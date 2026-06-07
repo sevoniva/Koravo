@@ -33,7 +33,7 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 流程追踪：通过。请假实例完成后状态为 `COMPLETED`，流程图 SVG 渲染，变量包含 `approved=true` 和 `approvalAction=同意`。
 - 流程模型：通过。`/process-models` 使用统一页头，列表状态和更新时间格式正常，主视图不再展示裸 JSON。
 - 流程设计器：通过。`/process-designer` 画布渲染正常，移动端单列堆叠不挤压。
-- 流程实例列表：通过。`/process-instances` 使用统一状态标签和时间格式；选择 HTTP Connector 模型后自动切换为 HTTP 业务编号和审批人变量模板。
+- 流程实例列表：通过。`/process-instances` 使用统一状态标签和时间格式；启动区默认展示业务表单，选择 HTTP Connector 模型后自动切换为 HTTP 业务编号和审批人变量模板。
 - 流程实例详情：通过。`/process-instances/cb7fb909-625a-11f1-ab24-c232b2af3b82` 渲染实例状态、流程图、当前任务和折叠详情数据；变量、审计详情脱敏展示；接口返回 200 且控制台无错误。
 - 表单设计器：通过。`/forms` 渲染字段列表和表单预览，点击“新增字段”后生成 `field8`，JSON Schema 和预览同步更新。
 - 表单绑定：通过。`/form-bindings` 默认展示请假审批流程的已有绑定，模型、任务节点和表单自动带出；编辑、清空选择、全量绑定列表正常，相关接口返回 200 且控制台无错误。

@@ -16,14 +16,53 @@
           @change="selectModel"
         >
           <a-select-option v-for="model in deployedModels" :key="model.id" :value="model.id">
-            {{ model.modelName }} / {{ model.modelKey }} v{{ model.version }}
+            {{ model.modelName }} · v{{ model.version }}
           </a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label="流程定义 Key"><a-input v-model:value="processDefinitionKey" /></a-form-item>
       <a-form-item label="业务编号"><a-input v-model:value="businessKey" /></a-form-item>
-      <a-form-item label="流程变量 JSON" class="span-2">
-        <a-textarea v-model:value="variablesText" :rows="8" />
+      <template v-if="isLeaveModel">
+        <a-form-item label="申请人"><a-input v-model:value="startForm.applicant" /></a-form-item>
+        <a-form-item label="审批人"><a-input v-model:value="startForm.approver" /></a-form-item>
+        <a-form-item label="请假类型">
+          <a-select v-model:value="startForm.leaveType">
+            <a-select-option value="年假">年假</a-select-option>
+            <a-select-option value="病假">病假</a-select-option>
+            <a-select-option value="事假">事假</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="开始日期">
+          <a-date-picker v-model:value="startForm.startDate" value-format="YYYY-MM-DD" style="width: 100%" />
+        </a-form-item>
+        <a-form-item label="结束日期">
+          <a-date-picker v-model:value="startForm.endDate" value-format="YYYY-MM-DD" style="width: 100%" />
+        </a-form-item>
+        <a-form-item label="请假天数">
+          <a-input-number v-model:value="startForm.days" :min="1" :precision="0" style="width: 100%" />
+        </a-form-item>
+        <a-form-item label="请假原因" class="span-2">
+          <a-textarea v-model:value="startForm.reason" :rows="3" />
+        </a-form-item>
+      </template>
+      <template v-else>
+        <a-form-item label="审批人"><a-input v-model:value="startForm.approver" /></a-form-item>
+        <a-form-item label="调用目标">
+          <a-input :value="connectorTarget" disabled />
+        </a-form-item>
+      </template>
+      <a-form-item class="span-2">
+        <a-collapse ghost>
+          <a-collapse-panel key="advanced" header="高级配置">
+            <a-form layout="vertical" class="compact-form-grid">
+              <a-form-item label="流程定义 Key">
+                <a-input v-model:value="processDefinitionKey" />
+              </a-form-item>
+              <a-form-item label="流程变量" class="span-2">
+                <a-textarea v-model:value="variablesText" :rows="6" />
+              </a-form-item>
+            </a-form>
+          </a-collapse-panel>
+        </a-collapse>
       </a-form-item>
       <a-form-item>
         <Toolbar>
@@ -79,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
 import { PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons-vue'
@@ -98,25 +137,20 @@ import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 const processDefinitionKey = ref('leaveApproval')
 const selectedModelId = ref<string | undefined>()
 const todayCompact = new Date().toISOString().slice(0, 10).replaceAll('-', '')
+const today = new Date().toISOString().slice(0, 10)
 const businessKey = ref('')
 const variablesText = ref('')
 
-const leaveVariables = {
+const startForm = reactive({
   applicant: '张三',
   approver: 'admin',
   leaveType: '年假',
-  startDate: '2026-06-08',
-  endDate: '2026-06-09',
+  startDate: today,
+  endDate: today,
   days: 2,
   reason: '家庭事务',
   attachmentNote: ''
-}
-
-const connectorVariables = {
-  approver: 'admin'
-}
-
-applyStartTemplate('leaveApproval')
+})
 
 const instance = ref<ProcessInstance | null>(null)
 const loading = ref(false)
@@ -128,6 +162,11 @@ const startedPage = ref(1)
 const startedPageSize = ref(20)
 const startedTotal = ref(0)
 const router = useRouter()
+const selectedModelKey = computed(() => deployedModels.value.find((item) => item.id === selectedModelId.value)?.modelKey || processDefinitionKey.value)
+const isLeaveModel = computed(() => selectedModelKey.value !== 'httpConnectorDemo')
+const connectorTarget = 'GET /api/v1/health'
+
+applyStartTemplate('leaveApproval')
 
 const startedColumns = [
   { title: '实例 ID', dataIndex: 'instanceId', key: 'instanceId' },
@@ -149,6 +188,7 @@ const startedPagination = computed<TablePaginationConfig>(() => ({
 async function start() {
   loading.value = true
   try {
+    syncVariablesFromForm()
     const variables = parseJsonObject(variablesText.value, '流程变量')
     instance.value = await startProcessInstance({ processDefinitionKey: processDefinitionKey.value, businessKey: businessKey.value, variables })
     message.success('流程已启动')
@@ -184,7 +224,7 @@ async function loadDeployedModels() {
   try {
     deployedModels.value = await listProcessModels('DEPLOYED')
     if (!selectedModelId.value && deployedModels.value.length > 0) {
-      selectModel(deployedModels.value[0].id)
+      selectModel(deployedModels.value.find((item) => item.modelKey === 'leaveApproval')?.id || deployedModels.value[0].id)
     }
   } finally {
     modelLoading.value = false
@@ -207,11 +247,38 @@ function selectModel(modelId?: string) {
 function applyStartTemplate(modelKey: string) {
   if (modelKey === 'httpConnectorDemo') {
     businessKey.value = `HTTP-${Date.now()}`
-    variablesText.value = JSON.stringify(connectorVariables, null, 2)
+    startForm.approver = 'admin'
+    syncVariablesFromForm()
     return
   }
   businessKey.value = `LEAVE-${todayCompact}-001`
-  variablesText.value = JSON.stringify(leaveVariables, null, 2)
+  startForm.applicant = '张三'
+  startForm.approver = 'admin'
+  startForm.leaveType = '年假'
+  startForm.startDate = today
+  startForm.endDate = today
+  startForm.days = 2
+  startForm.reason = '家庭事务'
+  startForm.attachmentNote = ''
+  syncVariablesFromForm()
+}
+
+function syncVariablesFromForm() {
+  const variables = isLeaveModel.value
+    ? {
+        applicant: startForm.applicant,
+        approver: startForm.approver,
+        leaveType: startForm.leaveType,
+        startDate: startForm.startDate,
+        endDate: startForm.endDate,
+        days: startForm.days,
+        reason: startForm.reason,
+        attachmentNote: startForm.attachmentNote
+      }
+    : {
+        approver: startForm.approver
+      }
+  variablesText.value = JSON.stringify(variables, null, 2)
 }
 
 function handleStartedTableChange(nextPagination: TablePaginationConfig) {
@@ -228,4 +295,6 @@ function openOpsTrace(instanceId: string) {
 }
 
 onMounted(load)
+
+watch(startForm, syncVariablesFromForm, { deep: true })
 </script>

@@ -32,6 +32,7 @@
 - 数据源连接测试改为中文结果文案；前端按后端 `connected` 字段判断测试结果，测试日志成功列显示“成功/失败”。
 - 后端运行包已包含 H2 和 MySQL JDBC 驱动，H2 模板连接测试通过。
 - 流程实例列表和详情已接入 PageContainer、PageHeader、EmptyState、StatusTag、DetailSection；实例状态、任务状态和历史活动状态统一展示。
+- 流程实例启动区默认展示业务表单，流程定义 Key 和流程变量收进高级配置。
 - 流程实例详情已格式化时间，变量摘要、审计详情和详情数据统一脱敏展示。
 - 流程实例启动表单已按模型切换变量模板；HTTP Connector 示例使用 HTTP 业务编号和审批人变量，请假流程使用请假申请变量。
 - 任务详情已接入 PageContainer、PageHeader、StatusTag、EmptyState、DetailSection、Toolbar；任务时间、审批意见、表单快照和操作记录统一格式化。
