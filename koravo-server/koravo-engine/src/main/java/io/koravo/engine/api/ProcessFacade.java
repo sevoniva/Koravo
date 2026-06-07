@@ -9,6 +9,7 @@ import io.koravo.engine.command.TaskQueryCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.engine.dto.ProcessInstanceDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
+import io.koravo.engine.dto.ProcessTraceDTO;
 import io.koravo.engine.dto.TaskDTO;
 
 public interface ProcessFacade {
@@ -23,6 +24,8 @@ public interface ProcessFacade {
     void completeTask(CompleteTaskCommand command);
 
     ProcessInstanceDetailDTO getInstance(String tenantId, String instanceId);
+
+    ProcessTraceDTO getInstanceTrace(String tenantId, String instanceId);
 
     PageResult<ProcessInstanceDetailDTO> listInstances(InstanceQueryCommand command);
 }

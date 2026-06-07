@@ -12,6 +12,8 @@ import io.koravo.engine.command.TaskQueryCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.engine.dto.ProcessInstanceDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
+import io.koravo.engine.dto.ProcessTraceDTO;
+import io.koravo.engine.dto.ProcessTraceNodeDTO;
 import io.koravo.engine.dto.TaskDTO;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.IdentityService;
@@ -19,6 +21,7 @@ import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
 import org.flowable.engine.history.HistoricProcessInstance;
+import org.flowable.engine.history.HistoricActivityInstance;
 import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
@@ -26,6 +29,9 @@ import org.flowable.task.api.Task;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -167,6 +173,43 @@ public class FlowableProcessFacade implements ProcessFacade {
 
     @Override
     @Transactional(readOnly = true)
+    public ProcessTraceDTO getInstanceTrace(String tenantId, String instanceId) {
+        HistoricProcessInstance historic = historyService.createHistoricProcessInstanceQuery()
+                .processInstanceId(instanceId)
+                .processInstanceTenantId(tenantId)
+                .singleResult();
+        if (historic == null) {
+            throw new BusinessException(ErrorCode.PROCESS_INSTANCE_NOT_FOUND, "Process instance not found");
+        }
+        List<TaskDTO> currentTasks = taskService.createTaskQuery()
+                .processInstanceId(historic.getId())
+                .taskTenantId(tenantId)
+                .list()
+                .stream()
+                .map(this::toTaskDTO)
+                .toList();
+        List<ProcessTraceNodeDTO> timeline = historyService.createHistoricActivityInstanceQuery()
+                .processInstanceId(instanceId)
+                .orderByHistoricActivityInstanceStartTime()
+                .asc()
+                .list()
+                .stream()
+                .map(this::toTraceNode)
+                .toList();
+        return new ProcessTraceDTO(
+                historic.getId(),
+                historic.getProcessDefinitionId(),
+                historic.getBusinessKey(),
+                historic.getEndTime() == null ? "RUNNING" : "COMPLETED",
+                readBpmnXml(historic.getProcessDefinitionId()),
+                currentTasks.stream().map(TaskDTO::taskDefinitionKey).toList(),
+                currentTasks,
+                timeline
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PageResult<ProcessInstanceDetailDTO> listInstances(InstanceQueryCommand command) {
         long total = historyService.createHistoricProcessInstanceQuery()
                 .processInstanceTenantId(command.tenantId())
@@ -220,6 +263,34 @@ public class FlowableProcessFacade implements ProcessFacade {
                 task.getAssignee(),
                 task.getTaskDefinitionKey()
         );
+    }
+
+    private ProcessTraceNodeDTO toTraceNode(HistoricActivityInstance activity) {
+        return new ProcessTraceNodeDTO(
+                activity.getActivityId(),
+                activity.getActivityName(),
+                activity.getActivityType(),
+                toInstant(activity.getStartTime()),
+                toInstant(activity.getEndTime()),
+                activity.getEndTime() == null ? "ACTIVE" : "COMPLETED"
+        );
+    }
+
+    private String readBpmnXml(String processDefinitionId) {
+        ProcessDefinition definition = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionId(processDefinitionId)
+                .singleResult();
+        if (definition == null) {
+            return null;
+        }
+        try (InputStream inputStream = repositoryService.getResourceAsStream(
+                definition.getDeploymentId(),
+                definition.getResourceName()
+        )) {
+            return inputStream == null ? null : new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Failed to read BPMN XML");
+        }
     }
 
     private Instant toInstant(java.util.Date date) {

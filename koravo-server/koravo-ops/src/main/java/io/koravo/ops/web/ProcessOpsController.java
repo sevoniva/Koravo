@@ -5,6 +5,7 @@ import io.koravo.common.api.PageResult;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.InstanceQueryCommand;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
+import io.koravo.engine.dto.ProcessTraceDTO;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,5 +33,10 @@ public class ProcessOpsController {
     @GetMapping("/api/v1/ops/process-instances/{instanceId}")
     public ApiResponse<ProcessInstanceDetailDTO> getInstance(@PathVariable String instanceId) {
         return ApiResponse.success(processFacade.getInstance(TenantContextHolder.getTenantId(), instanceId));
+    }
+
+    @GetMapping("/api/v1/ops/process-instances/{instanceId}/trace")
+    public ApiResponse<ProcessTraceDTO> getInstanceTrace(@PathVariable String instanceId) {
+        return ApiResponse.success(processFacade.getInstanceTrace(TenantContextHolder.getTenantId(), instanceId));
     }
 }
