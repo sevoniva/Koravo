@@ -10,7 +10,14 @@
 
     <a-tabs v-model:activeKey="activeTab" @change="load">
       <a-tab-pane key="pending" tab="Pending">
-        <a-table :data-source="tasks" :columns="columns" row-key="taskId" :pagination="false">
+        <a-table
+          :data-source="tasks"
+          :columns="columns"
+          row-key="taskId"
+          :loading="loading && activeTab === 'pending'"
+          :pagination="pendingPagination"
+          @change="handlePendingTableChange"
+        >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
               <a-space>
@@ -23,7 +30,14 @@
       </a-tab-pane>
 
       <a-tab-pane key="done" tab="Done">
-        <a-table :data-source="doneTasks" :columns="doneColumns" row-key="taskId" :pagination="false">
+        <a-table
+          :data-source="doneTasks"
+          :columns="doneColumns"
+          row-key="taskId"
+          :loading="loading && activeTab === 'done'"
+          :pagination="donePagination"
+          @change="handleDoneTableChange"
+        >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
               <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">Detail</a-button>
@@ -33,7 +47,14 @@
       </a-tab-pane>
 
       <a-tab-pane key="started" tab="Started">
-        <a-table :data-source="startedInstances" :columns="startedColumns" row-key="instanceId" :pagination="false">
+        <a-table
+          :data-source="startedInstances"
+          :columns="startedColumns"
+          row-key="instanceId"
+          :loading="loading && activeTab === 'started'"
+          :pagination="startedPagination"
+          @change="handleStartedTableChange"
+        >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
               <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">Detail</a-button>
@@ -57,9 +78,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, type TablePaginationConfig } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import {
   completeTask,
@@ -77,6 +98,15 @@ const activeTab = ref('pending')
 const tasks = ref<TaskItem[]>([])
 const doneTasks = ref<TaskItem[]>([])
 const startedInstances = ref<OpsProcessInstance[]>([])
+const pendingPage = ref(1)
+const pendingPageSize = ref(20)
+const pendingTotal = ref(0)
+const donePage = ref(1)
+const donePageSize = ref(20)
+const doneTotal = ref(0)
+const startedPage = ref(1)
+const startedPageSize = ref(20)
+const startedTotal = ref(0)
 const modalOpen = ref(false)
 const selectedTask = ref<TaskItem | null>(null)
 const completeVariables = ref(JSON.stringify({ approved: true, comment: 'approved' }, null, 2))
@@ -109,22 +139,82 @@ const startedColumns = [
   { title: 'Action', key: 'action', width: 120 }
 ]
 
+const pendingPagination = computed<TablePaginationConfig>(() => ({
+  current: pendingPage.value,
+  pageSize: pendingPageSize.value,
+  total: pendingTotal.value,
+  showSizeChanger: true,
+  showTotal: (count) => `${count} pending tasks`
+}))
+
+const donePagination = computed<TablePaginationConfig>(() => ({
+  current: donePage.value,
+  pageSize: donePageSize.value,
+  total: doneTotal.value,
+  showSizeChanger: true,
+  showTotal: (count) => `${count} done tasks`
+}))
+
+const startedPagination = computed<TablePaginationConfig>(() => ({
+  current: startedPage.value,
+  pageSize: startedPageSize.value,
+  total: startedTotal.value,
+  showSizeChanger: true,
+  showTotal: (count) => `${count} started instances`
+}))
+
 async function load() {
   loading.value = true
   try {
     if (activeTab.value === 'done') {
-      const page = await listDoneTasks()
+      const page = await listDoneTasks({
+        page: donePage.value,
+        pageSize: donePageSize.value
+      })
       doneTasks.value = page.items
+      doneTotal.value = page.total
+      donePage.value = page.page
+      donePageSize.value = page.pageSize
     } else if (activeTab.value === 'started') {
-      const page = await listStartedInstances()
+      const page = await listStartedInstances({
+        page: startedPage.value,
+        pageSize: startedPageSize.value
+      })
       startedInstances.value = page.items
+      startedTotal.value = page.total
+      startedPage.value = page.page
+      startedPageSize.value = page.pageSize
     } else {
-      const page = await listTasks()
+      const page = await listTasks({
+        page: pendingPage.value,
+        pageSize: pendingPageSize.value
+      })
       tasks.value = page.items
+      pendingTotal.value = page.total
+      pendingPage.value = page.page
+      pendingPageSize.value = page.pageSize
     }
   } finally {
     loading.value = false
   }
+}
+
+function handlePendingTableChange(nextPagination: TablePaginationConfig) {
+  pendingPage.value = nextPagination.current || 1
+  pendingPageSize.value = nextPagination.pageSize || 20
+  load()
+}
+
+function handleDoneTableChange(nextPagination: TablePaginationConfig) {
+  donePage.value = nextPagination.current || 1
+  donePageSize.value = nextPagination.pageSize || 20
+  load()
+}
+
+function handleStartedTableChange(nextPagination: TablePaginationConfig) {
+  startedPage.value = nextPagination.current || 1
+  startedPageSize.value = nextPagination.pageSize || 20
+  load()
 }
 
 function openComplete(task: TaskItem) {

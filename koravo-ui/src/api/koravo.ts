@@ -284,12 +284,12 @@ export function getProcessInstance(instanceId: string) {
   return apiData<OpsProcessInstance>(http.get(`/process-instances/${instanceId}`))
 }
 
-export function listTasks() {
-  return apiData<PageResult<TaskItem>>(http.get('/tasks/my?page=1&pageSize=20'))
+export function listTasks(params?: { page?: number; pageSize?: number }) {
+  return apiData<PageResult<TaskItem>>(http.get('/tasks/my', { params }))
 }
 
-export function listDoneTasks() {
-  return apiData<PageResult<TaskItem>>(http.get('/tasks/done?page=1&pageSize=20'))
+export function listDoneTasks(params?: { page?: number; pageSize?: number }) {
+  return apiData<PageResult<TaskItem>>(http.get('/tasks/done', { params }))
 }
 
 export function listStartedInstances(params?: { page?: number; pageSize?: number }) {
