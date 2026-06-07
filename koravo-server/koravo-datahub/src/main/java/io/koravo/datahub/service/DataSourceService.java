@@ -130,12 +130,12 @@ public class DataSourceService {
                 }
             };
             executor.submit(callable).get(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            DataSourceTestResponse response = new DataSourceTestResponse(true, "Connection successful", elapsed(started));
+            DataSourceTestResponse response = new DataSourceTestResponse(true, "连接成功", elapsed(started));
             testLogService.record(dataSource, true, response.message(), response.elapsedMillis());
             auditLogService.record("DATASOURCE_TEST", "DATASOURCE", dataSource.getId(), testAuditDetail(dataSource, true, response.elapsedMillis()));
             return response;
         } catch (Exception e) {
-            DataSourceTestResponse response = new DataSourceTestResponse(false, e.getMessage(), elapsed(started));
+            DataSourceTestResponse response = new DataSourceTestResponse(false, readableTestError(e), elapsed(started));
             testLogService.record(dataSource, false, response.message(), response.elapsedMillis());
             auditLogService.record("DATASOURCE_TEST", "DATASOURCE", dataSource.getId(), testAuditDetail(dataSource, false, response.elapsedMillis()));
             return response;
@@ -146,7 +146,7 @@ public class DataSourceService {
 
     private KoDataSource find(String id) {
         return repository.findByIdAndTenantIdAndDeletedFalse(id, TenantContextHolder.getTenantId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.DATASOURCE_NOT_FOUND, "Datasource not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.DATASOURCE_NOT_FOUND, "数据源不存在"));
     }
 
     private DataSourceResponse toResponse(KoDataSource dataSource) {
@@ -165,6 +165,14 @@ public class DataSourceService {
 
     private long elapsed(Instant started) {
         return Duration.between(started, Instant.now()).toMillis();
+    }
+
+    private String readableTestError(Exception e) {
+        String message = e.getMessage();
+        if (!StringUtils.hasText(message)) {
+            return "连接失败";
+        }
+        return "连接失败：" + message;
     }
 
     private Map<String, Object> testAuditDetail(KoDataSource dataSource, boolean connected, long elapsedMillis) {

@@ -25,6 +25,10 @@
 - 后端已显式配置 UserDetailsService，启动日志不再打印框架生成的开发密码。
 - 运维中心失败任务和死信任务已支持列表、详情、重试、删除，操作写入审计日志；无数据时显示空状态。
 - 前端已添加 `favicon.svg`，页面语言标记为 `zh-CN`，浏览器冒烟不再出现 favicon 404。
+- 数据源页已统一 PageHeader、PageContainer、Toolbar、EmptyState、StatusTag；PostgreSQL、MySQL、H2 模板可切换 URL、用户名和驱动类。
+- 数据源密码新增时不再预填，编辑时不回显；详情和列表响应不返回密码或密文字段。
+- 数据源连接测试改为中文结果文案；前端按后端 `connected` 字段判断测试结果，测试日志成功列显示“成功/失败”。
+- 后端运行包已包含 H2 和 MySQL JDBC 驱动，H2 模板连接测试通过。
 - 前端 `npm run build` 已通过。
 - 后端 `mvn -s .mvn/settings-cn.xml test` 已通过。
 

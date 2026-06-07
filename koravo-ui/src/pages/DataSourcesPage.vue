@@ -1,12 +1,10 @@
 <template>
-  <section class="page">
-    <div class="page-heading">
-      <div>
-        <h1>数据源管理</h1>
-        <p>维护 JDBC 数据源配置并测试连接。</p>
-      </div>
-      <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
-    </div>
+  <PageContainer>
+    <PageHeader title="数据源管理" description="维护 JDBC 数据源配置并测试连接。">
+      <template #actions>
+        <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
+      </template>
+    </PageHeader>
 
     <a-form layout="vertical" class="form-grid">
       <a-form-item label="名称"><a-input v-model:value="form.name" /></a-form-item>
@@ -29,7 +27,7 @@
       <a-form-item label="密码" :extra="editingId ? '留空表示保留已加密密码。' : undefined">
         <a-input-password
           v-model:value="form.password"
-          :placeholder="editingId ? '保留原密码' : '请输入数据源密码'"
+          :placeholder="editingId ? '保留原密码' : '可为空'"
         />
       </a-form-item>
       <a-form-item label="驱动类"><a-input v-model:value="form.driverClassName" /></a-form-item>
@@ -38,12 +36,12 @@
         <a-textarea v-model:value="form.poolConfigJson" :rows="4" />
       </a-form-item>
       <a-form-item>
-        <a-space>
+        <Toolbar>
           <a-button type="primary" :loading="saving" @click="save">
             <DatabaseOutlined />{{ editingId ? '更新' : '创建' }}
           </a-button>
           <a-button v-if="editingId" @click="reset">取消</a-button>
-        </a-space>
+        </Toolbar>
       </a-form-item>
     </a-form>
 
@@ -57,9 +55,12 @@
 
     <a-table :data-source="items" :columns="columns" row-key="id" :loading="loading" :pagination="false">
       <template #emptyText>
-        <a-empty description="暂无数据源" />
+        <EmptyState description="暂无数据源" />
       </template>
       <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'status'">
+          <StatusTag :status="record.status" />
+        </template>
         <template v-if="column.key === 'action'">
           <a-space>
             <a-button size="small" @click="openDetail(record.id)">详情</a-button>
@@ -83,7 +84,16 @@
         :pagination="logsPagination"
         size="small"
         @change="handleLogsTableChange"
-      />
+      >
+        <template #emptyText>
+          <EmptyState description="暂无测试日志" />
+        </template>
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'success'">
+            <StatusTag :status="record.success ? 'SUCCESS' : 'FAILED'" />
+          </template>
+        </template>
+      </a-table>
     </a-modal>
 
     <a-modal v-model:open="detailOpen" title="数据源详情" :footer="null" width="760px">
@@ -94,12 +104,12 @@
         <a-descriptions-item label="用户名">{{ detail.username }}</a-descriptions-item>
         <a-descriptions-item label="驱动">{{ detail.driverClassName }}</a-descriptions-item>
         <a-descriptions-item label="只读">{{ detail.readOnly ? '是' : '否' }}</a-descriptions-item>
-        <a-descriptions-item label="状态">{{ detail.status }}</a-descriptions-item>
+        <a-descriptions-item label="状态"><StatusTag :status="detail.status" /></a-descriptions-item>
         <a-descriptions-item label="连接池配置">{{ detail.poolConfigJson }}</a-descriptions-item>
       </a-descriptions>
       <JsonPreview :value="detail" />
     </a-modal>
-  </section>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -107,6 +117,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
 import { DatabaseOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
+import { EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
 import {
   createDataSource,
   deleteDataSource,
@@ -161,7 +172,7 @@ const form = reactive({
   type: 'POSTGRESQL',
   jdbcUrl: 'jdbc:postgresql://localhost:15432/koravo',
   username: 'koravo',
-  password: 'koravo',
+  password: '',
   driverClassName: 'org.postgresql.Driver',
   readOnly: true,
   poolConfigJson: '{}'
@@ -268,7 +279,7 @@ function applyTemplate(type: string) {
 
 async function test(id: string) {
   const result = await testDataSource(id)
-  message[result.success ? 'success' : 'error'](result.message || (result.success ? '连接成功' : '连接失败'))
+  message[result.connected ? 'success' : 'error'](result.message || (result.connected ? '连接成功' : '连接失败'))
   await openLogs(id)
 }
 

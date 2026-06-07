@@ -246,7 +246,7 @@ export interface DataSourceTestLogItem {
 }
 
 export interface DataSourceTestResult {
-  success: boolean
+  connected: boolean
   message?: string
   elapsedMillis: number
 }

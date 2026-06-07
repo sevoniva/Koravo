@@ -33,6 +33,8 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - HTTP Connector 示例：通过。部署 `httpConnectorDemo`，启动实例 `cb7fb909-625a-11f1-ab24-c232b2af3b82`，`httpResult.statusCode=200`，连接器日志为 `SUCCESS`。
 - 运维 tabs：通过。实例列表、失败任务、死信任务、连接器日志、异常摘要可见；失败/死信无数据时显示表格空状态。
 - 运维失败/死信接口：通过。`GET /api/v1/ops/failed-jobs` 和 `GET /api/v1/ops/dead-letter-jobs` 返回统一分页结构；能力清单中失败任务查看、死信任务处理、任务重试均为 `AVAILABLE`。
+- 数据源 API：通过。创建临时 H2 数据源后 `POST /api/v1/datasources/{id}/test` 返回 `connected=true` 和 `连接成功`；详情响应未包含密码、密文或 secret 字段；测试日志记录成功后删除临时数据源。
+- 数据源页面：通过。`/datasources` 渲染 PageHeader、空状态和安全提示；密码占位为“可为空”；PostgreSQL、MySQL、H2 模板切换正常；页面创建、测试、日志弹窗、删除 H2 数据源均返回 200。
 - 系统设置切换租户用户：通过。请求上下文、请求头预览、系统健康、依赖状态和 URL 策略可见。
 - 刷新页面路由：通过。`/dashboard`、`/connector-demo`、`/ops`、`/system-settings` 直接访问正常。
 - 启动日志：通过。后端启动后未出现 `Using generated security password` 或 `generated password`。
@@ -44,6 +46,8 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - Spring Security 默认开发密码曾出现在启动日志，已通过显式 `UserDetailsService` 配置关闭。
 - 运维中心失败任务和死信任务曾只显示摘要，已补列表、详情、重试、删除和审计记录。
 - `/favicon.ico` 曾在浏览器冒烟中返回 404，已添加 `favicon.svg` 并复验无控制台错误。
+- H2 数据源模板测试曾因运行包缺少 `org.h2.Driver` 失败，已把 H2 调整为运行期依赖并复验通过。
+- 数据源测试按钮曾按不存在的 `success` 字段判断结果，已改为后端响应的 `connected` 字段。
 
 ## 已知问题
 

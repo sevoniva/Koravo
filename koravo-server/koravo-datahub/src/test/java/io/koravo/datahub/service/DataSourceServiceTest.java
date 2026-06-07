@@ -82,8 +82,8 @@ class DataSourceServiceTest {
         var response = service.test("ds-h2");
 
         assertThat(response.connected()).isTrue();
-        assertThat(response.message()).isEqualTo("Connection successful");
-        verify(testLogService).record(dataSource, true, "Connection successful", response.elapsedMillis());
+        assertThat(response.message()).isEqualTo("连接成功");
+        verify(testLogService).record(dataSource, true, "连接成功", response.elapsedMillis());
         ArgumentCaptor<Map<String, Object>> auditDetail = ArgumentCaptor.captor();
         verify(auditLogService).record(eq("DATASOURCE_TEST"), eq("DATASOURCE"), eq("ds-h2"), auditDetail.capture());
         assertThat(auditDetail.getValue()).containsEntry("name", "h2");
