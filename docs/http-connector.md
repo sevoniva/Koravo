@@ -63,6 +63,8 @@ Query logs with:
 GET /api/v1/connector-execution-logs?connectorType=http&page=1&pageSize=30
 ```
 
+The console `Ops` page lists connector executions, recent failures, and a per-execution detail modal with request ID, URL, status, elapsed time, redacted request summary, redacted response summary, and error message.
+
 Filter a single request with:
 
 ```http

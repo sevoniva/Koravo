@@ -93,6 +93,9 @@
             <template v-if="column.key === 'summary'">
               <code>{{ record.errorMessage || record.responseSummary || record.requestSummary }}</code>
             </template>
+            <template v-if="column.key === 'action'">
+              <a-button size="small" @click="openConnectorDetail(record)">View</a-button>
+            </template>
           </template>
         </a-table>
 
@@ -108,6 +111,9 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'error'">
               <code>{{ record.errorMessage }}</code>
+            </template>
+            <template v-if="column.key === 'action'">
+              <a-button size="small" @click="openConnectorDetail(record)">View</a-button>
             </template>
           </template>
         </a-table>
@@ -153,6 +159,30 @@
     />
 
     <JsonPreview :value="detail" />
+
+    <a-modal v-model:open="connectorDetailOpen" title="Connector execution detail" :footer="null" width="860px">
+      <a-descriptions v-if="selectedConnectorLog" bordered :column="2" size="small" class="panel-block">
+        <a-descriptions-item label="Time">{{ selectedConnectorLog.createdAt }}</a-descriptions-item>
+        <a-descriptions-item label="Type">{{ selectedConnectorLog.connectorType }}</a-descriptions-item>
+        <a-descriptions-item label="Method">{{ selectedConnectorLog.method }}</a-descriptions-item>
+        <a-descriptions-item label="Status">{{ selectedConnectorLog.status }}</a-descriptions-item>
+        <a-descriptions-item label="Status Code">{{ selectedConnectorLog.statusCode }}</a-descriptions-item>
+        <a-descriptions-item label="Elapsed">{{ selectedConnectorLog.elapsedMillis }}</a-descriptions-item>
+        <a-descriptions-item label="Request ID">{{ selectedConnectorLog.requestId }}</a-descriptions-item>
+        <a-descriptions-item label="URL">{{ selectedConnectorLog.url }}</a-descriptions-item>
+      </a-descriptions>
+      <a-tabs v-if="selectedConnectorLog">
+        <a-tab-pane key="request" tab="Request">
+          <JsonPreview :value="selectedConnectorRequest" />
+        </a-tab-pane>
+        <a-tab-pane key="response" tab="Response">
+          <JsonPreview :value="selectedConnectorResponse" />
+        </a-tab-pane>
+        <a-tab-pane key="error" tab="Error">
+          <JsonPreview :value="selectedConnectorError" />
+        </a-tab-pane>
+      </a-tabs>
+    </a-modal>
   </section>
 </template>
 
@@ -195,6 +225,11 @@ const activeTab = ref('instances')
 const connectorLoading = ref(false)
 const connectorLogs = ref<ConnectorExecutionLogItem[]>([])
 const connectorSummary = ref<ConnectorExecutionSummary | null>(null)
+const connectorDetailOpen = ref(false)
+const selectedConnectorLog = ref<ConnectorExecutionLogItem | null>(null)
+const selectedConnectorRequest = ref<unknown>({})
+const selectedConnectorResponse = ref<unknown>({})
+const selectedConnectorError = ref<unknown>({})
 const capabilities = ref<OpsCapabilityItem[]>([])
 const capabilityLoading = ref(false)
 const connectorPage = ref(1)
@@ -232,7 +267,8 @@ const connectorColumns = [
   { title: 'Elapsed', dataIndex: 'elapsedMillis', key: 'elapsedMillis', width: 100 },
   { title: 'Request ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
   { title: 'URL', dataIndex: 'url', key: 'url', width: 260 },
-  { title: 'Summary', key: 'summary' }
+  { title: 'Summary', key: 'summary' },
+  { title: 'Action', key: 'action', width: 90 }
 ]
 
 const connectorFailureColumns = [
@@ -240,7 +276,8 @@ const connectorFailureColumns = [
   { title: 'Type', dataIndex: 'connectorType', key: 'connectorType', width: 90 },
   { title: 'URL', dataIndex: 'url', key: 'url', width: 260 },
   { title: 'Request ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
-  { title: 'Error', key: 'error' }
+  { title: 'Error', key: 'error' },
+  { title: 'Action', key: 'action', width: 90 }
 ]
 
 const capabilityColumns = [
@@ -418,6 +455,23 @@ function destroyTraceViewer() {
   if (traceViewer) {
     traceViewer.destroy()
     traceViewer = null
+  }
+}
+
+function openConnectorDetail(record: ConnectorExecutionLogItem) {
+  selectedConnectorLog.value = record
+  selectedConnectorRequest.value = parseJsonValue(record.requestSummary)
+  selectedConnectorResponse.value = parseJsonValue(record.responseSummary)
+  selectedConnectorError.value = record.errorMessage ? { message: record.errorMessage } : {}
+  connectorDetailOpen.value = true
+}
+
+function parseJsonValue(value?: string) {
+  if (!value) return {}
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
   }
 }
 
