@@ -177,3 +177,36 @@ databaseChangeLog:
             columns:
               - column: { name: tenant_id }
               - column: { name: datasource_id }
+  - changeSet:
+      id: 0004-create-form-binding
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_form_binding
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: process_model_id, type: varchar(64) }
+              - column: { name: process_definition_id, type: varchar(128) }
+              - column: { name: task_definition_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: form_schema_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: form_schema_version, type: int, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createIndex:
+            tableName: ko_form_binding
+            indexName: idx_ko_form_binding_tenant_model_task
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: process_model_id }
+              - column: { name: task_definition_key }
+        - createIndex:
+            tableName: ko_form_binding
+            indexName: idx_ko_form_binding_tenant_def_task
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: process_definition_id }
+              - column: { name: task_definition_key }
