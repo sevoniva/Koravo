@@ -41,11 +41,12 @@ class AuditLogQueryServiceTest {
         when(repository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(log)));
 
-        var result = service.query("admin", "PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "model-1", null, null, 1, 20);
+        var result = service.query("admin", "PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "model-1", "req-1", null, null, 1, 20);
 
         assertThat(result.total()).isEqualTo(1);
         assertThat(result.items()).hasSize(1);
         assertThat(result.items().getFirst().action()).isEqualTo("PROCESS_MODEL_DEPLOY");
+        assertThat(result.items().getFirst().requestId()).isEqualTo("req-1");
         assertThat(result.items().getFirst().detailJson()).doesNotContain("password");
     }
 }

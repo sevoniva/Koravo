@@ -13,6 +13,7 @@
       <a-form-item label="Action"><a-input v-model:value="filters.action" /></a-form-item>
       <a-form-item label="Resource type"><a-input v-model:value="filters.resourceType" /></a-form-item>
       <a-form-item label="Resource ID"><a-input v-model:value="filters.resourceId" /></a-form-item>
+      <a-form-item label="Request ID"><a-input v-model:value="filters.requestId" /></a-form-item>
       <a-form-item label="Start time"><a-input v-model:value="filters.startTime" placeholder="2026-06-07T00:00:00Z" /></a-form-item>
       <a-form-item label="End time"><a-input v-model:value="filters.endTime" placeholder="2026-06-07T23:59:59Z" /></a-form-item>
     </a-form>
@@ -50,6 +51,7 @@ const filters = reactive({
   action: '',
   resourceType: '',
   resourceId: '',
+  requestId: '',
   startTime: '',
   endTime: ''
 })
@@ -61,6 +63,7 @@ const columns = [
   { title: 'Resource', dataIndex: 'resourceType', key: 'resourceType', width: 140 },
   { title: 'Resource ID', dataIndex: 'resourceId', key: 'resourceId', width: 170 },
   { title: 'Request ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
+  { title: 'Client IP', dataIndex: 'clientIp', key: 'clientIp', width: 140 },
   { title: 'Detail', key: 'detail' }
 ]
 
@@ -80,6 +83,7 @@ async function load() {
       action: filters.action || undefined,
       resourceType: filters.resourceType || undefined,
       resourceId: filters.resourceId || undefined,
+      requestId: filters.requestId || undefined,
       startTime: filters.startTime || undefined,
       endTime: filters.endTime || undefined,
       page: page.value,

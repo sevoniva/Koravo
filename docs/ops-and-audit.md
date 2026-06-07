@@ -65,6 +65,12 @@ Filter a specific audited resource with `resourceId`:
 GET /api/v1/audit-logs?resourceType=TASK&resourceId=task-1&page=1&pageSize=20
 ```
 
+Trace one request across audited operations with `requestId`:
+
+```http
+GET /api/v1/audit-logs?requestId=req-1&page=1&pageSize=20
+```
+
 Process start audit events can be queried with:
 
 ```http

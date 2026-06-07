@@ -1,6 +1,7 @@
 @baseUrl = http://localhost:8080/api/v1
 @tenantId = default
 @userId = admin
+@requestId = demo-request-1
 @processInstanceId = replace-with-instance-id
 @processModelId = replace-with-model-id
 @processDefinitionId = replace-with-process-definition-id
@@ -70,6 +71,7 @@ X-User-Id: {{userId}}
 POST {{baseUrl}}/process-instances/start
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
+X-Request-Id: {{requestId}}
 Content-Type: application/json
 
 {
@@ -252,6 +254,16 @@ X-User-Id: {{userId}}
 
 ### 12. Query audit logs
 GET {{baseUrl}}/audit-logs?page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 12a. Query audit logs by request ID
+GET {{baseUrl}}/audit-logs?requestId={{requestId}}&page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 12b. Query task audit logs by resource
+GET {{baseUrl}}/audit-logs?resourceType=TASK&resourceId={{taskId}}&page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 

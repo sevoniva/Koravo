@@ -405,6 +405,7 @@ export function listAuditLogs(params: {
   action?: string
   resourceType?: string
   resourceId?: string
+  requestId?: string
   startTime?: string
   endTime?: string
   page?: number
