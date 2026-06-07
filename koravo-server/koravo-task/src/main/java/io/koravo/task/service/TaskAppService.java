@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -54,30 +55,42 @@ public class TaskAppService {
         this.processModelRepository = processModelRepository;
     }
 
-    public PageResult<TaskDTO> queryMyTasks(int page, int pageSize) {
+    public PageResult<TaskDTO> queryMyTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
         return processFacade.queryMyTasks(new TaskQueryCommand(
                 TenantContextHolder.getTenantId(),
                 UserContextHolder.getUserId(),
                 page,
-                pageSize
+                pageSize,
+                keyword,
+                status,
+                startTime,
+                endTime
         ));
     }
 
-    public PageResult<TaskDTO> queryDoneTasks(int page, int pageSize) {
+    public PageResult<TaskDTO> queryDoneTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
         return processFacade.queryDoneTasks(new TaskQueryCommand(
                 TenantContextHolder.getTenantId(),
                 UserContextHolder.getUserId(),
                 page,
-                pageSize
+                pageSize,
+                keyword,
+                status,
+                startTime,
+                endTime
         ));
     }
 
-    public PageResult<ProcessInstanceDetailDTO> queryStartedInstances(int page, int pageSize) {
+    public PageResult<ProcessInstanceDetailDTO> queryStartedInstances(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
         return processFacade.queryStartedInstances(new TaskQueryCommand(
                 TenantContextHolder.getTenantId(),
                 UserContextHolder.getUserId(),
                 page,
-                pageSize
+                pageSize,
+                keyword,
+                status,
+                startTime,
+                endTime
         ));
     }
 

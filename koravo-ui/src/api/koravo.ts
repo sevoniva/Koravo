@@ -278,6 +278,15 @@ export interface OpsCapabilityItem {
   description: string
 }
 
+export interface TaskListParams {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  status?: string
+  startTime?: string
+  endTime?: string
+}
+
 export function getHealth() {
   return apiData<HealthInfo>(http.get('/health'))
 }
@@ -376,15 +385,15 @@ export function getProcessInstance(instanceId: string) {
   return apiData<OpsProcessInstance>(http.get(`/process-instances/${instanceId}`))
 }
 
-export function listTasks(params?: { page?: number; pageSize?: number }) {
+export function listTasks(params?: TaskListParams) {
   return apiData<PageResult<TaskItem>>(http.get('/tasks/my', { params }))
 }
 
-export function listDoneTasks(params?: { page?: number; pageSize?: number }) {
+export function listDoneTasks(params?: TaskListParams) {
   return apiData<PageResult<TaskItem>>(http.get('/tasks/done', { params }))
 }
 
-export function listStartedInstances(params?: { page?: number; pageSize?: number }) {
+export function listStartedInstances(params?: TaskListParams) {
   return apiData<PageResult<OpsProcessInstance>>(http.get('/tasks/started', { params }))
 }
 

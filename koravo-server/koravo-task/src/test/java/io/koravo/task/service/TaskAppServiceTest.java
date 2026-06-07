@@ -81,26 +81,53 @@ class TaskAppServiceTest {
     void queryDoneTasksUsesCurrentTenantAndUser() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
-        when(processFacade.queryDoneTasks(new TaskQueryCommand("default", "admin", 1, 20)))
+        TaskQueryCommand command = new TaskQueryCommand(
+                "default",
+                "admin",
+                1,
+                20,
+                "审批",
+                "COMPLETED",
+                Instant.parse("2026-06-07T00:00:00Z"),
+                Instant.parse("2026-06-07T23:59:59Z")
+        );
+        when(processFacade.queryDoneTasks(command))
                 .thenReturn(PageResult.of(List.of(), 0, 1, 20));
 
-        var result = service.queryDoneTasks(1, 20);
+        var result = service.queryDoneTasks(
+                1,
+                20,
+                "审批",
+                "COMPLETED",
+                Instant.parse("2026-06-07T00:00:00Z"),
+                Instant.parse("2026-06-07T23:59:59Z")
+        );
 
         assertThat(result.items()).isEmpty();
-        verify(processFacade).queryDoneTasks(new TaskQueryCommand("default", "admin", 1, 20));
+        verify(processFacade).queryDoneTasks(command);
     }
 
     @Test
     void queryStartedInstancesUsesCurrentTenantAndUser() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
-        when(processFacade.queryStartedInstances(new TaskQueryCommand("default", "admin", 1, 20)))
+        TaskQueryCommand command = new TaskQueryCommand(
+                "default",
+                "admin",
+                1,
+                20,
+                "LEAVE",
+                "RUNNING",
+                null,
+                null
+        );
+        when(processFacade.queryStartedInstances(command))
                 .thenReturn(PageResult.of(List.of(), 0, 1, 20));
 
-        PageResult<ProcessInstanceDetailDTO> result = service.queryStartedInstances(1, 20);
+        PageResult<ProcessInstanceDetailDTO> result = service.queryStartedInstances(1, 20, "LEAVE", "RUNNING", null, null);
 
         assertThat(result.items()).isEmpty();
-        verify(processFacade).queryStartedInstances(new TaskQueryCommand("default", "admin", 1, 20));
+        verify(processFacade).queryStartedInstances(command);
     }
 
     @Test

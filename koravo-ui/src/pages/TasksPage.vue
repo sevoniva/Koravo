@@ -1,14 +1,26 @@
 <template>
-  <section class="page">
-    <div class="page-heading">
-      <div>
-        <h1>我的任务</h1>
-        <p>处理待办、查看已办和我发起的流程。</p>
-      </div>
-      <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
-    </div>
+  <PageContainer>
+    <PageHeader title="我的任务" description="处理待办、查看已办和我发起的流程。">
+      <template #actions>
+        <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
+      </template>
+    </PageHeader>
 
-    <a-tabs v-model:activeKey="activeTab" @change="load">
+    <SearchBar v-model="filters.keyword" placeholder="搜索任务、业务编号、节点、处理人" @search="applyFilters">
+      <Toolbar>
+        <a-select v-model:value="filters.status" allow-clear placeholder="状态" style="width: 130px">
+          <a-select-option value="RUNNING">运行中</a-select-option>
+          <a-select-option value="COMPLETED">已完成</a-select-option>
+          <a-select-option value="SUSPENDED">已挂起</a-select-option>
+        </a-select>
+        <a-date-picker v-model:value="filters.startDate" value-format="YYYY-MM-DD" placeholder="开始日期" />
+        <a-date-picker v-model:value="filters.endDate" value-format="YYYY-MM-DD" placeholder="结束日期" />
+        <a-button type="primary" @click="applyFilters"><SearchOutlined />查询</a-button>
+        <a-button @click="resetFilters">重置</a-button>
+      </Toolbar>
+    </SearchBar>
+
+    <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
       <a-tab-pane key="pending" tab="我的待办">
         <a-table
           :data-source="tasks"
@@ -19,13 +31,19 @@
           @change="handlePendingTableChange"
         >
           <template #emptyText>
-            <a-empty description="暂无待办任务" />
+            <EmptyState description="暂无待办任务" />
           </template>
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'action'">
+            <template v-if="column.key === 'status'">
+              <StatusTag :status="record.status" />
+            </template>
+            <template v-else-if="column.key === 'createTime'">
+              {{ formatDateTime(record.createTime) }}
+            </template>
+            <template v-else-if="column.key === 'action'">
               <a-space>
-                <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">详情</a-button>
-                <a-button size="small" type="primary" @click="openComplete(record)">办理</a-button>
+                <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)"><EyeOutlined />详情</a-button>
+                <a-button size="small" type="primary" @click="openComplete(record)"><FormOutlined />办理</a-button>
               </a-space>
             </template>
           </template>
@@ -42,11 +60,17 @@
           @change="handleDoneTableChange"
         >
           <template #emptyText>
-            <a-empty description="暂无已办任务" />
+            <EmptyState description="暂无已办任务" />
           </template>
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'action'">
-              <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">详情</a-button>
+            <template v-if="column.key === 'status'">
+              <StatusTag :status="record.status" />
+            </template>
+            <template v-else-if="column.key === 'createTime'">
+              {{ formatDateTime(record.createTime) }}
+            </template>
+            <template v-else-if="column.key === 'action'">
+              <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)"><EyeOutlined />详情</a-button>
             </template>
           </template>
         </a-table>
@@ -62,11 +86,20 @@
           @change="handleStartedTableChange"
         >
           <template #emptyText>
-            <a-empty description="暂无我发起的流程" />
+            <EmptyState description="暂无我发起的流程" />
           </template>
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'action'">
-              <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">详情</a-button>
+            <template v-if="column.key === 'status'">
+              <StatusTag :status="record.status" />
+            </template>
+            <template v-else-if="column.key === 'startTime'">
+              {{ formatDateTime(record.startTime) }}
+            </template>
+            <template v-else-if="column.key === 'endTime'">
+              {{ formatDateTime(record.endTime) }}
+            </template>
+            <template v-else-if="column.key === 'action'">
+              <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)"><EyeOutlined />详情</a-button>
             </template>
           </template>
         </a-table>
@@ -102,14 +135,14 @@
         </a-form-item>
       </a-form>
     </a-modal>
-  </section>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
-import { ReloadOutlined } from '@ant-design/icons-vue'
+import { EyeOutlined, FormOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons-vue'
 import SchemaForm from '../components/SchemaForm.vue'
 import {
   completeTask,
@@ -120,8 +153,11 @@ import {
   type JsonRecord,
   type OpsProcessInstance,
   type TaskDetail,
+  type TaskListParams,
   type TaskItem
 } from '../api/koravo'
+import { EmptyState, PageContainer, PageHeader, SearchBar, StatusTag, Toolbar } from '../components/ui'
+import { formatDateTime } from '../utils/format'
 import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const router = useRouter()
@@ -130,6 +166,12 @@ const activeTab = ref('pending')
 const tasks = ref<TaskItem[]>([])
 const doneTasks = ref<TaskItem[]>([])
 const startedInstances = ref<OpsProcessInstance[]>([])
+const filters = reactive({
+  keyword: '',
+  status: '',
+  startDate: '',
+  endDate: ''
+})
 const pendingPage = ref(1)
 const pendingPageSize = ref(20)
 const pendingTotal = ref(0)
@@ -214,31 +256,23 @@ watch(approvalAction, (value) => {
 })
 
 async function load() {
+  if (!validateDateRange()) return
   loading.value = true
   try {
     if (activeTab.value === 'done') {
-      const page = await listDoneTasks({
-        page: donePage.value,
-        pageSize: donePageSize.value
-      })
+      const page = await listDoneTasks(buildTaskParams(donePage.value, donePageSize.value))
       doneTasks.value = page.items
       doneTotal.value = page.total
       donePage.value = page.page
       donePageSize.value = page.pageSize
     } else if (activeTab.value === 'started') {
-      const page = await listStartedInstances({
-        page: startedPage.value,
-        pageSize: startedPageSize.value
-      })
+      const page = await listStartedInstances(buildTaskParams(startedPage.value, startedPageSize.value))
       startedInstances.value = page.items
       startedTotal.value = page.total
       startedPage.value = page.page
       startedPageSize.value = page.pageSize
     } else {
-      const page = await listTasks({
-        page: pendingPage.value,
-        pageSize: pendingPageSize.value
-      })
+      const page = await listTasks(buildTaskParams(pendingPage.value, pendingPageSize.value))
       tasks.value = page.items
       pendingTotal.value = page.total
       pendingPage.value = page.page
@@ -247,6 +281,69 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function buildTaskParams(page: number, pageSize: number): TaskListParams {
+  return {
+    page,
+    pageSize,
+    keyword: filters.keyword.trim() || undefined,
+    status: filters.status || undefined,
+    startTime: toStartTime(filters.startDate),
+    endTime: toEndTime(filters.endDate)
+  }
+}
+
+function applyFilters() {
+  if (!validateDateRange()) return
+  resetActivePage()
+  load()
+}
+
+function resetFilters() {
+  filters.keyword = ''
+  filters.status = ''
+  filters.startDate = ''
+  filters.endDate = ''
+  resetActivePage()
+  load()
+}
+
+function handleTabChange() {
+  resetActivePage()
+  load()
+}
+
+function resetActivePage() {
+  if (activeTab.value === 'done') {
+    donePage.value = 1
+  } else if (activeTab.value === 'started') {
+    startedPage.value = 1
+  } else {
+    pendingPage.value = 1
+  }
+}
+
+function validateDateRange() {
+  if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
+    message.error('开始日期不能晚于结束日期')
+    return false
+  }
+  return true
+}
+
+function toStartTime(value: string) {
+  return toIsoTime(value, 'T00:00:00')
+}
+
+function toEndTime(value: string) {
+  return toIsoTime(value, 'T23:59:59.999')
+}
+
+function toIsoTime(value: string, suffix: string) {
+  if (!value) return undefined
+  const date = new Date(`${value}${suffix}`)
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
 }
 
 function handlePendingTableChange(nextPagination: TablePaginationConfig) {

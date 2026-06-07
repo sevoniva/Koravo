@@ -25,6 +25,7 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 初始化演示数据：通过。重复初始化后流程、表单、绑定保持就绪。
 - 启动请假流程：通过。创建实例 `75ede74a-625a-11f1-ab24-c232b2af3b82`，业务编号 `LEAVE-20260607-8918`。
 - 我的待办：通过。启动后出现“审批请假”，提交后待办清空。
+- 任务中心筛选：通过。`/tasks/my` 支持 `keyword`、`status`、`startTime`、`endTime`；浏览器输入无匹配关键词显示空状态，输入“确认”恢复待办行。
 - 任务详情提交表单：通过。绑定“请假申请表 v1”，提交“同意”后写入审批变量、意见和表单快照。
 - 流程追踪：通过。请假实例完成后状态为 `COMPLETED`，流程图 SVG 渲染，变量包含 `approved=true` 和 `approvalAction=同意`。
 - 表单设计器：通过。`/forms` 渲染字段列表和表单预览，点击“新增字段”后生成 `field8`，JSON Schema 和预览同步更新。
@@ -42,4 +43,5 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 ## 已知问题
 
 - 后端 jar 用 `Ctrl+C` 停止时会打印 Spring Boot/Tomcat/Netty/Flowable 销毁阶段的 `NoClassDefFoundError` 警告；服务进程会退出，8080 会释放，需后续单独定位打包或停机生命周期依赖问题。
+- 后端未配置自定义 Spring Security 用户时，启动日志会打印框架生成的开发密码；需后续禁用默认用户或接入明确安全配置。
 - 前端生产构建提示主包超过 500 kB；当前不影响运行，后续可做路由级代码拆分。

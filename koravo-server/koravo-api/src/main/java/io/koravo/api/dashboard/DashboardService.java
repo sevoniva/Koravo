@@ -55,7 +55,7 @@ public class DashboardService {
                 processModelRepository.countByTenantIdAndDeletedFalse(tenantId),
                 processModelRepository.countByTenantIdAndStatusAndDeletedFalse(tenantId, ProcessModelStatus.DEPLOYED),
                 processFacade.countRunningInstances(tenantId),
-                processFacade.queryMyTasks(new TaskQueryCommand(tenantId, userId, 1, 1)).total(),
+                processFacade.queryMyTasks(new TaskQueryCommand(tenantId, userId, 1, 1, null, null, null, null)).total(),
                 auditLogRepository.countByTenantIdAndActionAndCreatedAtGreaterThanEqual(
                         tenantId,
                         "TASK_COMPLETE",

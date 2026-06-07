@@ -39,6 +39,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
+import java.util.Objects;
 
 @Service
 public class FlowableProcessFacade implements ProcessFacade {
@@ -115,60 +117,50 @@ public class FlowableProcessFacade implements ProcessFacade {
     @Override
     @Transactional(readOnly = true)
     public PageResult<TaskDTO> queryMyTasks(TaskQueryCommand command) {
-        long total = taskService.createTaskQuery()
-                .taskTenantId(command.tenantId())
-                .taskAssignee(command.userId())
-                .count();
         List<TaskDTO> tasks = taskService.createTaskQuery()
                 .taskTenantId(command.tenantId())
                 .taskAssignee(command.userId())
                 .orderByTaskCreateTime()
                 .desc()
-                .listPage(command.offset(), command.pageSize())
+                .list()
                 .stream()
                 .map(this::toTaskDTO)
+                .filter(task -> matchesTaskQuery(task, command))
                 .toList();
-        return PageResult.of(tasks, total, command.page(), command.pageSize());
+        return page(tasks, command);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResult<TaskDTO> queryDoneTasks(TaskQueryCommand command) {
-        long total = historyService.createHistoricTaskInstanceQuery()
-                .taskTenantId(command.tenantId())
-                .taskAssignee(command.userId())
-                .finished()
-                .count();
         List<TaskDTO> tasks = historyService.createHistoricTaskInstanceQuery()
                 .taskTenantId(command.tenantId())
                 .taskAssignee(command.userId())
                 .finished()
                 .orderByHistoricTaskInstanceEndTime()
                 .desc()
-                .listPage(command.offset(), command.pageSize())
+                .list()
                 .stream()
                 .map(this::toTaskDTO)
+                .filter(task -> matchesTaskQuery(task, command))
                 .toList();
-        return PageResult.of(tasks, total, command.page(), command.pageSize());
+        return page(tasks, command);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResult<ProcessInstanceDetailDTO> queryStartedInstances(TaskQueryCommand command) {
-        long total = historyService.createHistoricProcessInstanceQuery()
-                .processInstanceTenantId(command.tenantId())
-                .startedBy(command.userId())
-                .count();
         List<ProcessInstanceDetailDTO> instances = historyService.createHistoricProcessInstanceQuery()
                 .processInstanceTenantId(command.tenantId())
                 .startedBy(command.userId())
                 .orderByProcessInstanceStartTime()
                 .desc()
-                .listPage(command.offset(), command.pageSize())
+                .list()
                 .stream()
                 .map(this::toInstanceDetail)
+                .filter(instance -> matchesStartedQuery(instance, command))
                 .toList();
-        return PageResult.of(instances, total, command.page(), command.pageSize());
+        return page(instances, command);
     }
 
     @Override
@@ -543,6 +535,57 @@ public class FlowableProcessFacade implements ProcessFacade {
                 .processInstanceTenantId(instance.getTenantId())
                 .singleResult();
         return runtimeInstance != null && runtimeInstance.isSuspended() ? "SUSPENDED" : "RUNNING";
+    }
+
+    private boolean matchesTaskQuery(TaskDTO task, TaskQueryCommand command) {
+        return matchesStatus(task.status(), command)
+                && matchesTime(task.createTime(), command)
+                && matchesKeyword(command, task.name(), task.businessKey(), task.taskDefinitionKey(), task.assignee(), task.processInstanceId());
+    }
+
+    private boolean matchesStartedQuery(ProcessInstanceDetailDTO instance, TaskQueryCommand command) {
+        return matchesStatus(instance.status(), command)
+                && matchesTime(instance.startTime(), command)
+                && matchesKeyword(command, instance.businessKey(), instance.instanceId(), instance.processDefinitionId(), instance.startUserId());
+    }
+
+    private boolean matchesStatus(String status, TaskQueryCommand command) {
+        return !command.hasStatus() || Objects.equals(normalize(status), normalize(command.status()));
+    }
+
+    private boolean matchesTime(Instant value, TaskQueryCommand command) {
+        if (value == null) {
+            return command.startTime() == null && command.endTime() == null;
+        }
+        if (command.startTime() != null && value.isBefore(command.startTime())) {
+            return false;
+        }
+        return command.endTime() == null || !value.isAfter(command.endTime());
+    }
+
+    private boolean matchesKeyword(TaskQueryCommand command, String... values) {
+        if (!command.hasKeyword()) {
+            return true;
+        }
+        String keyword = normalize(command.keyword());
+        for (String value : values) {
+            if (normalize(value).contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT).trim();
+    }
+
+    private <T> PageResult<T> page(List<T> items, TaskQueryCommand command) {
+        List<T> pageItems = items.stream()
+                .skip(command.offset())
+                .limit(command.pageSize())
+                .toList();
+        return PageResult.of(pageItems, items.size(), command.page(), command.pageSize());
     }
 
     private Instant toInstant(java.util.Date date) {

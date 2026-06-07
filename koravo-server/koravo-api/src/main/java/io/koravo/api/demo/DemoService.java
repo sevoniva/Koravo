@@ -69,7 +69,11 @@ public class DemoService {
                 tenantId,
                 UserContextHolder.getUserId(),
                 1,
-                1
+                1,
+                null,
+                null,
+                null,
+                null
         )).total();
         long auditCount = auditLogQueryService.query(null, null, null, null, null, null, null, 1, 1).total();
         return new DemoStatusResponse(
