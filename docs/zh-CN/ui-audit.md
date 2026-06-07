@@ -22,6 +22,7 @@
 - 新增后端 dashboard summary、demo status 增强、BPMN taskDefinitionKey 解析、连接器日志详情、系统健康、运维摘要接口。
 - 表单设计器已支持字段列表、新增、删除、字段名、标题、类型、必填、占位符、下拉选项、JSON 同步和表单预览。
 - 任务中心已统一 PageHeader、PageContainer、SearchBar、Toolbar、StatusTag、EmptyState，并接入后端分页筛选参数。
+- 后端已显式配置 UserDetailsService，启动日志不再打印框架生成的开发密码。
 - 前端 `npm run build` 已通过。
 - 后端 `mvn -s .mvn/settings-cn.xml test` 已通过。
 

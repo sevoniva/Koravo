@@ -34,14 +34,15 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 运维 tabs：通过。实例列表、异常摘要、运行中实例和完成实例可见。
 - 系统设置切换租户用户：通过。请求上下文、请求头预览、系统健康、依赖状态和 URL 策略可见。
 - 刷新页面路由：通过。`/dashboard`、`/connector-demo`、`/ops`、`/system-settings` 直接访问正常。
+- 启动日志：通过。后端启动后未出现 `Using generated security password` 或 `generated password`。
 
 ## 修复记录
 
 - 连接器详情接口 `GET /api/v1/connector-execution-logs/{id}` 在 PostgreSQL LOB 字段读取时曾返回 500，已通过只读事务边界修复并复验通过。
 - 首页和连接器示例的指标卡曾在未传入状态时显示“缺失”，已修复为仅在明确传入状态时显示状态标签。
+- Spring Security 默认开发密码曾出现在启动日志，已通过显式 `UserDetailsService` 配置关闭。
 
 ## 已知问题
 
 - 后端 jar 用 `Ctrl+C` 停止时会打印 Spring Boot/Tomcat/Netty/Flowable 销毁阶段的 `NoClassDefFoundError` 警告；服务进程会退出，8080 会释放，需后续单独定位打包或停机生命周期依赖问题。
-- 后端未配置自定义 Spring Security 用户时，启动日志会打印框架生成的开发密码；需后续禁用默认用户或接入明确安全配置。
 - 前端生产构建提示主包超过 500 kB；当前不影响运行，后续可做路由级代码拆分。
