@@ -1,6 +1,6 @@
 <template>
   <span class="copyable-text">
-    <span class="copyable-value">{{ value || '-' }}</span>
+    <span class="copyable-value">{{ displayValue || value || '-' }}</span>
     <a-tooltip v-if="hasValue" title="复制">
       <a-button size="small" type="text" @click="copy"><CopyOutlined /></a-button>
     </a-tooltip>
@@ -13,7 +13,10 @@ import { message } from 'ant-design-vue'
 import { CopyOutlined } from '@ant-design/icons-vue'
 import { copyText } from '../../utils/format'
 
-const props = defineProps<{ value?: string | number | null }>()
+const props = defineProps<{
+  value?: string | number | null
+  displayValue?: string | number | null
+}>()
 
 const hasValue = computed(() => props.value !== undefined && props.value !== null && props.value !== '')
 

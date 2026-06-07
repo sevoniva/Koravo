@@ -143,7 +143,7 @@
 
       <a-tab-pane key="failed" tab="失败任务">
         <div class="metric-grid panel-block">
-          <a-card title="失败任务"><strong>{{ opsSummary?.failedJobCount ?? 0 }}</strong><span>Flowable 异常作业</span></a-card>
+          <a-card title="失败任务"><strong>{{ opsSummary?.failedJobCount ?? 0 }}</strong><span>待处理异常</span></a-card>
           <a-card title="运行中实例"><strong>{{ opsSummary?.runningInstanceCount ?? 0 }}</strong><span>当前租户</span></a-card>
         </div>
         <a-table
@@ -203,7 +203,7 @@
 
       <a-tab-pane key="dead-letter" tab="死信任务">
         <div class="metric-grid panel-block">
-          <a-card title="死信任务"><strong>{{ opsSummary?.deadLetterJobCount ?? 0 }}</strong><span>Flowable 死信作业</span></a-card>
+          <a-card title="死信任务"><strong>{{ opsSummary?.deadLetterJobCount ?? 0 }}</strong><span>需人工处理</span></a-card>
           <a-card title="连接器失败"><strong>{{ opsSummary?.connectorFailureCount ?? 0 }}</strong><span>连接器日志</span></a-card>
         </div>
         <a-table
@@ -263,8 +263,8 @@
 
       <a-tab-pane key="exceptions" tab="异常摘要">
         <div class="metric-grid panel-block">
-          <a-card title="失败任务"><strong>{{ opsSummary?.failedJobCount ?? 0 }}</strong><span>Flowable 作业异常</span></a-card>
-          <a-card title="死信任务"><strong>{{ opsSummary?.deadLetterJobCount ?? 0 }}</strong><span>Flowable 死信作业</span></a-card>
+          <a-card title="失败任务"><strong>{{ opsSummary?.failedJobCount ?? 0 }}</strong><span>待处理异常</span></a-card>
+          <a-card title="死信任务"><strong>{{ opsSummary?.deadLetterJobCount ?? 0 }}</strong><span>需人工处理</span></a-card>
           <a-card title="连接器失败"><strong>{{ opsSummary?.connectorFailureCount ?? 0 }}</strong><span>当前租户</span></a-card>
         </div>
         <a-table

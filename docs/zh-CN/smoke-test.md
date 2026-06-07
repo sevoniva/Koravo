@@ -20,7 +20,7 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 
 ## 页面
 
-- 首页：通过。仪表盘摘要、最近审计、连接器摘要正常显示。
+- 首页：通过。仪表盘摘要、最近审计、连接器摘要正常显示；指标说明和最近审计默认使用中文业务文案，不直露后端枚举。
 - 主菜单：通过。按工作台、流程、表单、集成、运维分组，路由入口正常。
 - 快速开始：通过。演示状态、流程上下文、步骤入口和请假申请摘要正常显示；原始启动变量收进高级详情。
 - 初始化演示数据：通过。重复初始化后流程、表单、绑定保持就绪。
@@ -51,6 +51,7 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 
 - 连接器详情接口 `GET /api/v1/connector-execution-logs/{id}` 在 PostgreSQL LOB 字段读取时曾返回 500，已通过只读事务边界修复并复验通过。
 - 首页和 HTTP 连接器的指标卡曾在未传入状态时显示“缺失”，已修复为仅在明确传入状态时显示状态标签。
+- 首页最近审计和异常指标曾直露 `TASK_COMPLETE`、`DATASOURCE`、`Dead letter jobs` 等技术文案，已改为中文业务动作、对象和异常说明。
 - Spring Security 默认开发密码曾出现在启动日志，已通过显式 `UserDetailsService` 配置关闭。
 - 运维中心失败任务和死信任务曾只显示摘要，已补列表、详情、重试、删除和审计记录。
 - `/favicon.ico` 曾在浏览器冒烟中返回 404，已添加 `favicon.svg` 并复验无控制台错误。
