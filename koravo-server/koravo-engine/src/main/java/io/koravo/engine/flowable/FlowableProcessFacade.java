@@ -441,7 +441,8 @@ public class FlowableProcessFacade implements ProcessFacade {
                 businessKey,
                 toInstant(task.getCreateTime()),
                 task.getAssignee(),
-                task.getTaskDefinitionKey()
+                task.getTaskDefinitionKey(),
+                "RUNNING"
         );
     }
 
@@ -461,7 +462,8 @@ public class FlowableProcessFacade implements ProcessFacade {
                 businessKey,
                 toInstant(task.getCreateTime()),
                 task.getAssignee(),
-                task.getTaskDefinitionKey()
+                task.getTaskDefinitionKey(),
+                task.getEndTime() == null ? "RUNNING" : "COMPLETED"
         );
     }
 

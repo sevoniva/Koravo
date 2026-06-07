@@ -19,7 +19,7 @@ class ProcessTraceDTOTest {
                 "<definitions />",
                 Map.of("applicant", "u001"),
                 List.of("approveTask"),
-                List.of(new TaskDTO("task-1", "Approve", "pi-1", "pd-1", "biz-1", null, "admin", "approveTask")),
+                List.of(new TaskDTO("task-1", "Approve", "pi-1", "pd-1", "biz-1", null, "admin", "approveTask", "RUNNING")),
                 List.of(new ProcessTraceNodeDTO("start", "Start", "startEvent", Instant.EPOCH, Instant.EPOCH, "COMPLETED"))
         );
 

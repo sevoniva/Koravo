@@ -115,7 +115,8 @@ class TaskAppServiceTest {
                 "biz-1",
                 null,
                 "admin",
-                "approveTask"
+                "approveTask",
+                "RUNNING"
         ));
 
         service.completeTask(
@@ -151,7 +152,8 @@ class TaskAppServiceTest {
                 "biz-1",
                 null,
                 "admin",
-                "approveTask"
+                "approveTask",
+                "RUNNING"
         ));
         when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(java.util.Optional.of(
                 new FormBindingResponse("binding-1", null, "pd-1", "approveTask", "form-1", 1)
@@ -189,7 +191,8 @@ class TaskAppServiceTest {
                 "biz-1",
                 null,
                 "admin",
-                "approveTask"
+                "approveTask",
+                "RUNNING"
         ));
         KoProcessModel model = model("model-1", "pd-1");
         when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(Optional.empty());
@@ -231,7 +234,8 @@ class TaskAppServiceTest {
                 "biz-1",
                 null,
                 "admin",
-                "approveTask"
+                "approveTask",
+                "RUNNING"
         ));
         when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(java.util.Optional.of(
                 new FormBindingResponse("binding-1", null, "pd-1", "approveTask", "form-1", 1)
@@ -278,6 +282,7 @@ class TaskAppServiceTest {
         var detail = service.getTaskDetail("task-1");
 
         assertThat(detail.task().taskId()).isEqualTo("task-1");
+        assertThat(detail.task().status()).isEqualTo("RUNNING");
         assertThat(detail.formBinding().formSchemaId()).isEqualTo("form-1");
         assertThat(detail.formSchema().schemaJson()).contains("object");
         assertThat(detail.processVariables()).containsEntry("days", 2);
@@ -299,7 +304,8 @@ class TaskAppServiceTest {
                 "biz-1",
                 null,
                 "admin",
-                "approveTask"
+                "approveTask",
+                "RUNNING"
         ));
         when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(Optional.empty());
         when(processModelRepository.findFirstByTenantIdAndFlowableDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc("default", "pd-1"))
@@ -340,7 +346,8 @@ class TaskAppServiceTest {
                 "biz-1",
                 null,
                 "admin",
-                "approveTask"
+                "approveTask",
+                "COMPLETED"
         ));
         when(processFacade.getProcessVariables("default", "pi-1")).thenReturn(Map.of("approved", true));
         when(processFacade.getTaskVariablesForDetail("default", "admin", "done-task-1")).thenReturn(Map.of("approved", true));
@@ -351,6 +358,7 @@ class TaskAppServiceTest {
         var detail = service.getTaskDetail("done-task-1");
 
         assertThat(detail.task().taskId()).isEqualTo("done-task-1");
+        assertThat(detail.task().status()).isEqualTo("COMPLETED");
         assertThat(detail.processVariables()).containsEntry("approved", true);
         verify(processFacade).getTaskForDetail("default", "admin", "done-task-1");
         verify(processFacade).getTaskVariablesForDetail("default", "admin", "done-task-1");

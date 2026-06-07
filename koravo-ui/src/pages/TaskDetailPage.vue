@@ -16,6 +16,7 @@
     <a-descriptions v-if="detail" bordered :column="2" class="panel-block">
       <a-descriptions-item label="Task ID">{{ detail.task.taskId }}</a-descriptions-item>
       <a-descriptions-item label="Task Key">{{ detail.task.taskDefinitionKey }}</a-descriptions-item>
+      <a-descriptions-item label="Status">{{ detail.task.status }}</a-descriptions-item>
       <a-descriptions-item label="Business Key">{{ detail.task.businessKey }}</a-descriptions-item>
       <a-descriptions-item label="Assignee">{{ detail.task.assignee }}</a-descriptions-item>
       <a-descriptions-item label="Process Instance">
@@ -57,7 +58,16 @@
       </a-tab-pane>
     </a-tabs>
 
-    <a-form layout="vertical" class="form-grid">
+    <a-alert
+      v-if="detail && !isCompletable"
+      class="panel-block"
+      type="info"
+      show-icon
+      message="Completed task"
+      description="This task is available for historic review. Comments, form snapshots, variables, and audit logs remain visible, but completion is disabled."
+    />
+
+    <a-form v-if="!detail || isCompletable" layout="vertical" class="form-grid">
       <a-form-item label="Variables JSON" class="span-2">
         <a-textarea v-model:value="variablesJson" :rows="5" />
       </a-form-item>
@@ -186,6 +196,7 @@ const schemaFields = computed<SchemaField[]>(() => {
     return []
   }
 })
+const isCompletable = computed(() => detail.value?.task.status === 'RUNNING')
 
 watch(schemaFields, initializeFormDataValues)
 

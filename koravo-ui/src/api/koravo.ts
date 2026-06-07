@@ -99,6 +99,7 @@ export interface TaskItem {
   createTime: string
   assignee: string
   taskDefinitionKey: string
+  status: string
 }
 
 export interface PageResult<T> {

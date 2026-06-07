@@ -10,6 +10,7 @@ public record TaskDTO(
         String businessKey,
         Instant createTime,
         String assignee,
-        String taskDefinitionKey
+        String taskDefinitionKey,
+        String status
 ) {
 }

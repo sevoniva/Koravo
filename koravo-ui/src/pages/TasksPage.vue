@@ -120,6 +120,7 @@ const columns = [
   { title: 'Task', dataIndex: 'name', key: 'name' },
   { title: 'Business Key', dataIndex: 'businessKey', key: 'businessKey' },
   { title: 'Task Key', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
+  { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
   { title: 'Assignee', dataIndex: 'assignee', key: 'assignee' },
   { title: 'Created', dataIndex: 'createTime', key: 'createTime' },
   { title: 'Action', key: 'action', width: 180 }
@@ -129,6 +130,7 @@ const doneColumns = [
   { title: 'Task', dataIndex: 'name', key: 'name' },
   { title: 'Business Key', dataIndex: 'businessKey', key: 'businessKey' },
   { title: 'Task Key', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
+  { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
   { title: 'Assignee', dataIndex: 'assignee', key: 'assignee' },
   { title: 'Created', dataIndex: 'createTime', key: 'createTime' },
   { title: 'Action', key: 'action', width: 120 }

@@ -37,6 +37,7 @@ GET /api/v1/tasks/{taskId}
 The task detail response includes:
 
 - task metadata: task ID, name, process instance ID, definition ID, business key, assignee, task definition key
+- task status: `RUNNING` for active tasks and `COMPLETED` for finished historic tasks
 - bound form schema, if a binding exists for `processDefinitionId + taskDefinitionKey`
 - process variables
 - task variables
@@ -50,6 +51,7 @@ Form snapshots are stored in `ko_form_snapshot`. They preserve submitted form da
 Task audit logs are queried from `ko_audit_log` by `resourceType = TASK` and `resourceId = taskId`.
 
 The console task detail page links directly to `/process-instances/{instanceId}` so approvers can move from a task to the BPMN trace, timeline, current tasks, variables, and saved form snapshots without switching through Ops first.
+For completed historic tasks, the console switches to review mode: comments, variables, snapshots, and audit logs remain visible, while the completion form is hidden.
 
 ## Complete Task
 
