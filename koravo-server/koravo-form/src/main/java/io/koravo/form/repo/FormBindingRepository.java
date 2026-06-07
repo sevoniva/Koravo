@@ -14,6 +14,11 @@ public interface FormBindingRepository extends JpaRepository<KoFormBinding, Stri
             String processModelId
     );
 
+    List<KoFormBinding> findByTenantIdAndProcessDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            String processDefinitionId
+    );
+
     Optional<KoFormBinding> findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
             String tenantId,
             String processModelId,

@@ -155,6 +155,11 @@ GET {{baseUrl}}/form-bindings?processModelId={{processModelId}}
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
+### 7e-1. Query definition-scoped form bindings
+GET {{baseUrl}}/form-bindings?processDefinitionId={{processDefinitionId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
 ### 7f. Update form binding
 PUT {{baseUrl}}/form-bindings/replace-with-binding-id
 X-Tenant-Id: {{tenantId}}

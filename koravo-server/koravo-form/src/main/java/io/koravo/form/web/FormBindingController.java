@@ -28,8 +28,11 @@ public class FormBindingController {
     }
 
     @GetMapping("/api/v1/form-bindings")
-    public ApiResponse<List<FormBindingResponse>> list(@RequestParam(required = false) String processModelId) {
-        return ApiResponse.success(formBindingService.list(processModelId));
+    public ApiResponse<List<FormBindingResponse>> list(
+            @RequestParam(required = false) String processModelId,
+            @RequestParam(required = false) String processDefinitionId
+    ) {
+        return ApiResponse.success(formBindingService.list(processModelId, processDefinitionId));
     }
 
     @PutMapping("/api/v1/form-bindings/{id}")

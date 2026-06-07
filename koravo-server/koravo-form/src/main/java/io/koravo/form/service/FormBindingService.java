@@ -45,10 +45,15 @@ public class FormBindingService {
     }
 
     @Transactional(readOnly = true)
-    public List<FormBindingResponse> list(String processModelId) {
-        List<KoFormBinding> bindings = StringUtils.hasText(processModelId)
-                ? repository.findByTenantIdAndProcessModelIdAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId(), processModelId)
-                : repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId());
+    public List<FormBindingResponse> list(String processModelId, String processDefinitionId) {
+        List<KoFormBinding> bindings;
+        if (StringUtils.hasText(processDefinitionId)) {
+            bindings = repository.findByTenantIdAndProcessDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId(), processDefinitionId);
+        } else if (StringUtils.hasText(processModelId)) {
+            bindings = repository.findByTenantIdAndProcessModelIdAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId(), processModelId);
+        } else {
+            bindings = repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId());
+        }
         return bindings.stream().map(this::toResponse).toList();
     }
 

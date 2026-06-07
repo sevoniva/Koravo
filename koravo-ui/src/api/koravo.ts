@@ -347,9 +347,8 @@ export function getFormSchema(id: string) {
   return apiData<FormSchemaItem>(http.get(`/forms/schemas/${id}`))
 }
 
-export function listFormBindings(processModelId?: string) {
-  const query = processModelId ? `?processModelId=${encodeURIComponent(processModelId)}` : ''
-  return apiData<FormBindingItem[]>(http.get(`/form-bindings${query}`))
+export function listFormBindings(params?: { processModelId?: string; processDefinitionId?: string }) {
+  return apiData<FormBindingItem[]>(http.get('/form-bindings', { params }))
 }
 
 export function createFormBinding(payload: {

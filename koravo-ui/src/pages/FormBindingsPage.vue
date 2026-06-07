@@ -22,6 +22,9 @@
           </a-select-option>
         </a-select>
       </a-form-item>
+      <a-form-item>
+        <a-button :disabled="!selectedModelId" @click="loadSelectedModelBindings">Load model bindings</a-button>
+      </a-form-item>
       <a-form-item label="Process model ID"><a-input v-model:value="form.processModelId" /></a-form-item>
       <a-form-item label="Process definition ID"><a-input v-model:value="form.processDefinitionId" /></a-form-item>
       <a-form-item label="Task definition key"><a-input v-model:value="form.taskDefinitionKey" /></a-form-item>
@@ -182,6 +185,21 @@ function syncSelectedModel() {
   if (!model) return
   form.processModelId = model.id
   form.processDefinitionId = model.flowableDefinitionId || ''
+}
+
+async function loadSelectedModelBindings() {
+  const model = processModels.value.find((item) => item.id === selectedModelId.value)
+  if (!model) return
+  syncSelectedModel()
+  loading.value = true
+  try {
+    bindings.value = await listFormBindings({
+      processModelId: model.id,
+      processDefinitionId: model.flowableDefinitionId || undefined
+    })
+  } finally {
+    loading.value = false
+  }
 }
 
 function syncSelectedForm() {

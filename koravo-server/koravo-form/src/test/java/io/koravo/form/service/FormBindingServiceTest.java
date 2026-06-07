@@ -10,6 +10,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -94,6 +95,27 @@ class FormBindingServiceTest {
                 "taskDefinitionKey", "reviewTask",
                 "formSchemaId", "form-2"
         ));
+    }
+
+    @Test
+    void listCanFilterByProcessDefinitionId() {
+        TenantContextHolder.setTenantId("default");
+        KoFormBinding binding = new KoFormBinding();
+        binding.setId("binding-1");
+        binding.setTenantId("default");
+        binding.setProcessDefinitionId("pd-1");
+        binding.setTaskDefinitionKey("approveTask");
+        binding.setFormSchemaId("form-1");
+        binding.setFormSchemaVersion(1);
+        binding.prePersist();
+        when(repository.findByTenantIdAndProcessDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc("default", "pd-1"))
+                .thenReturn(List.of(binding));
+
+        var result = service.list(null, "pd-1");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().processDefinitionId()).isEqualTo("pd-1");
+        verify(repository).findByTenantIdAndProcessDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc("default", "pd-1");
     }
 
     @Test
