@@ -60,6 +60,11 @@ class FormBindingServiceTest {
         assertThat(created.id()).isEqualTo("binding-1");
         assertThat(found.formSchemaId()).isEqualTo("form-1");
         assertThat(found.formSchemaVersion()).isEqualTo(2);
+        verify(auditLogService).record("FORM_BIND", "FORM_BINDING", "binding-1", java.util.Map.of(
+                "processModelId", "model-1",
+                "taskDefinitionKey", "approveTask",
+                "formSchemaId", "form-1"
+        ));
     }
 
     @Test
@@ -84,6 +89,8 @@ class FormBindingServiceTest {
         assertThat(updated.formSchemaId()).isEqualTo("form-2");
         assertThat(updated.formSchemaVersion()).isEqualTo(3);
         verify(auditLogService).record("FORM_BIND_UPDATE", "FORM_BINDING", "binding-1", java.util.Map.of(
+                "processModelId", "model-1",
+                "processDefinitionId", "pd-1",
                 "taskDefinitionKey", "reviewTask",
                 "formSchemaId", "form-2"
         ));
@@ -108,6 +115,7 @@ class FormBindingServiceTest {
         assertThat(existing.isDeleted()).isTrue();
         assertThat(existing.getUpdatedBy()).isEqualTo("admin");
         verify(auditLogService).record("FORM_BIND_DELETE", "FORM_BINDING", "binding-1", java.util.Map.of(
+                "processModelId", "model-1",
                 "taskDefinitionKey", "approveTask",
                 "formSchemaId", "form-1"
         ));

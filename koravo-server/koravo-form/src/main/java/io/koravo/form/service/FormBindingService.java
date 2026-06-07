@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,10 +40,7 @@ public class FormBindingService {
         binding.setFormSchemaId(request.formSchemaId());
         binding.setFormSchemaVersion(request.formSchemaVersion());
         KoFormBinding saved = repository.save(binding);
-        auditLogService.record("FORM_BIND", "FORM_BINDING", saved.getId(), Map.of(
-                "taskDefinitionKey", saved.getTaskDefinitionKey(),
-                "formSchemaId", saved.getFormSchemaId()
-        ));
+        auditLogService.record("FORM_BIND", "FORM_BINDING", saved.getId(), auditDetail(saved));
         return toResponse(saved);
     }
 
@@ -88,10 +86,7 @@ public class FormBindingService {
         binding.setFormSchemaId(request.formSchemaId());
         binding.setFormSchemaVersion(request.formSchemaVersion());
         KoFormBinding saved = repository.save(binding);
-        auditLogService.record("FORM_BIND_UPDATE", "FORM_BINDING", saved.getId(), Map.of(
-                "taskDefinitionKey", saved.getTaskDefinitionKey(),
-                "formSchemaId", saved.getFormSchemaId()
-        ));
+        auditLogService.record("FORM_BIND_UPDATE", "FORM_BINDING", saved.getId(), auditDetail(saved));
         return toResponse(saved);
     }
 
@@ -100,10 +95,7 @@ public class FormBindingService {
         KoFormBinding binding = findActive(id);
         binding.setUpdatedBy(UserContextHolder.getUserId());
         binding.setDeleted(true);
-        auditLogService.record("FORM_BIND_DELETE", "FORM_BINDING", binding.getId(), Map.of(
-                "taskDefinitionKey", binding.getTaskDefinitionKey(),
-                "formSchemaId", binding.getFormSchemaId()
-        ));
+        auditLogService.record("FORM_BIND_DELETE", "FORM_BINDING", binding.getId(), auditDetail(binding));
     }
 
     private KoFormBinding findActive(String id) {
@@ -124,5 +116,18 @@ public class FormBindingService {
                 binding.getFormSchemaId(),
                 binding.getFormSchemaVersion()
         );
+    }
+
+    private Map<String, Object> auditDetail(KoFormBinding binding) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        if (StringUtils.hasText(binding.getProcessModelId())) {
+            detail.put("processModelId", binding.getProcessModelId());
+        }
+        if (StringUtils.hasText(binding.getProcessDefinitionId())) {
+            detail.put("processDefinitionId", binding.getProcessDefinitionId());
+        }
+        detail.put("taskDefinitionKey", binding.getTaskDefinitionKey());
+        detail.put("formSchemaId", binding.getFormSchemaId());
+        return detail;
     }
 }

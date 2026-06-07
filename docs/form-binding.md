@@ -62,6 +62,7 @@ Task detail returns historical snapshots for the process instance so review does
 ## Audit
 
 Form schema create/update writes `FORM_SCHEMA_CREATE` and `FORM_SCHEMA_UPDATE`. Form binding create/update/delete writes `FORM_BIND`, `FORM_BIND_UPDATE`, and `FORM_BIND_DELETE`. Task completion writes `TASK_COMPLETE`.
+Form binding audit details include the target `processModelId` or `processDefinitionId`, `taskDefinitionKey`, and `formSchemaId` so operators can trace which task node received a form binding.
 
 ## Current Limits
 
