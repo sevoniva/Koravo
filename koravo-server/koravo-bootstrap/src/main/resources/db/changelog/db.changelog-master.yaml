@@ -1,0 +1,145 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0001-create-platform-tables
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_tenant
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_process_model
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: model_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: model_name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: model_type, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: version, type: int, constraints: { nullable: false } }
+              - column: { name: flowable_deployment_id, type: varchar(128) }
+              - column: { name: flowable_definition_id, type: varchar(128) }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: description, type: varchar(1024) }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_form_schema
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: form_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: form_name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: version, type: int, constraints: { nullable: false } }
+              - column: { name: schema_json, type: clob, constraints: { nullable: false } }
+              - column: { name: ui_schema_json, type: clob }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_form_snapshot
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: process_instance_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: task_id, type: varchar(128) }
+              - column: { name: form_schema_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: data_json, type: clob, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_datasource
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: type, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: jdbc_url, type: varchar(1024), constraints: { nullable: false } }
+              - column: { name: username, type: varchar(256) }
+              - column: { name: password_cipher, type: clob }
+              - column: { name: driver_class_name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: read_only, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: pool_config_json, type: clob }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_connector_config
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: connector_type, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: connector_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: config_json, type: clob, constraints: { nullable: false } }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_audit_log
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: user_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: action, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: resource_type, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: resource_id, type: varchar(128) }
+              - column: { name: request_id, type: varchar(128) }
+              - column: { name: client_ip, type: varchar(128) }
+              - column: { name: detail_json, type: clob }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - insert:
+            tableName: ko_tenant
+            columns:
+              - column: { name: id, value: default }
+              - column: { name: tenant_id, value: default }
+              - column: { name: name, value: Default Tenant }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
+        - createIndex:
+            tableName: ko_process_model
+            indexName: idx_ko_process_model_tenant_key
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: model_key }
+        - createIndex:
+            tableName: ko_datasource
+            indexName: idx_ko_datasource_tenant
+            columns:
+              - column: { name: tenant_id }
+        - createIndex:
+            tableName: ko_audit_log
+            indexName: idx_ko_audit_log_tenant_action
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: action }
