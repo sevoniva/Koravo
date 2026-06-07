@@ -30,6 +30,7 @@
 - 数据源页已统一 PageHeader、PageContainer、Toolbar、EmptyState、StatusTag；PostgreSQL、MySQL、H2 模板可切换 URL、用户名和驱动类。
 - 数据源密码新增时不再预填，编辑时不回显；详情和列表响应不返回密码或密文字段。
 - 数据源连接测试改为中文结果文案；前端按后端 `connected` 字段判断测试结果，测试日志成功列显示“成功/失败”。
+- 数据源页默认表单已移除连接池 JSON 文本区，模板、连接、只读和安全状态前置；连接池参数、详情原始配置收进高级配置。
 - 后端运行包已包含 H2 和 MySQL JDBC 驱动，H2 模板连接测试通过。
 - 流程实例列表和详情已接入 PageContainer、PageHeader、EmptyState、StatusTag、DetailSection；实例状态、任务状态和历史活动状态统一展示。
 - 流程实例启动区默认展示业务表单，流程定义 Key 和流程变量收进高级配置。

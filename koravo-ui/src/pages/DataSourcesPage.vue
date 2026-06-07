@@ -1,49 +1,70 @@
 <template>
   <PageContainer>
-    <PageHeader title="数据源管理" description="维护 JDBC 数据源配置并测试连接。">
+    <PageHeader title="数据源管理" description="维护 JDBC 连接，验证连通性和只读策略。">
       <template #actions>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
       </template>
     </PageHeader>
 
-    <a-form layout="vertical" class="form-grid">
-      <a-form-item label="名称"><a-input v-model:value="form.name" /></a-form-item>
-      <a-form-item label="类型">
-        <a-select v-model:value="form.type" @change="applyTemplate(form.type)">
-          <a-select-option value="POSTGRESQL">PostgreSQL</a-select-option>
-          <a-select-option value="MYSQL">MySQL</a-select-option>
-          <a-select-option value="H2">H2</a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item label="模板" class="span-2">
+    <div class="connector-result-grid panel-block">
+      <MetricCard label="数据源" :value="items.length" description="当前租户" />
+      <MetricCard label="可用连接" :value="activeCount" status="READY" description="已启用" />
+      <MetricCard label="只读连接" :value="readOnlyCount" status="OK" description="禁止写入操作" />
+    </div>
+
+    <DetailSection :title="editingId ? '编辑数据源' : '新增数据源'">
+      <template #actions>
         <a-space wrap>
-          <a-button v-for="template in datasourceTemplates" :key="template.type" @click="applyTemplate(template.type)">
+          <a-button
+            v-for="template in datasourceTemplates"
+            :key="template.type"
+            :type="form.type === template.type ? 'primary' : 'default'"
+            @click="applyTemplate(template.type)"
+          >
             {{ template.name }}
           </a-button>
         </a-space>
-      </a-form-item>
-      <a-form-item label="JDBC URL" class="span-2"><a-input v-model:value="form.jdbcUrl" /></a-form-item>
-      <a-form-item label="用户名"><a-input v-model:value="form.username" /></a-form-item>
-      <a-form-item label="密码" :extra="editingId ? '留空表示保留已加密密码。' : undefined">
-        <a-input-password
-          v-model:value="form.password"
-          :placeholder="editingId ? '保留原密码' : '可为空'"
-        />
-      </a-form-item>
-      <a-form-item label="驱动类"><a-input v-model:value="form.driverClassName" /></a-form-item>
-      <a-form-item label="只读"><a-switch v-model:checked="form.readOnly" /></a-form-item>
-      <a-form-item label="连接池配置 JSON" class="span-2">
-        <a-textarea v-model:value="form.poolConfigJson" :rows="4" />
-      </a-form-item>
-      <a-form-item>
-        <Toolbar>
-          <a-button type="primary" :loading="saving" @click="save">
-            <DatabaseOutlined />{{ editingId ? '更新' : '创建' }}
-          </a-button>
-          <a-button v-if="editingId" @click="reset">取消</a-button>
-        </Toolbar>
-      </a-form-item>
-    </a-form>
+      </template>
+      <a-form layout="vertical" class="form-grid datasource-form">
+        <a-form-item label="名称"><a-input v-model:value="form.name" /></a-form-item>
+        <a-form-item label="类型">
+          <a-select v-model:value="form.type" @change="applyTemplate(form.type)">
+            <a-select-option value="POSTGRESQL">PostgreSQL</a-select-option>
+            <a-select-option value="MYSQL">MySQL</a-select-option>
+            <a-select-option value="H2">H2</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="JDBC URL" class="span-2"><a-input v-model:value="form.jdbcUrl" /></a-form-item>
+        <a-form-item label="用户名"><a-input v-model:value="form.username" /></a-form-item>
+        <a-form-item label="密码" :extra="editingId ? '留空表示保留已加密密码。' : undefined">
+          <a-input-password
+            v-model:value="form.password"
+            :placeholder="editingId ? '保留原密码' : '可为空'"
+          />
+        </a-form-item>
+        <a-form-item label="驱动类"><a-input v-model:value="form.driverClassName" /></a-form-item>
+        <a-form-item label="只读">
+          <a-switch v-model:checked="form.readOnly" />
+          <span class="switch-note">{{ form.readOnly ? '连接测试和连接器读取使用' : '允许写入配置' }}</span>
+        </a-form-item>
+        <a-form-item class="span-2">
+          <a-collapse>
+            <a-collapse-panel key="pool" header="高级配置">
+              <p class="datasource-hint">连接池参数默认留空，只有需要覆盖超时或池大小时填写。</p>
+              <JsonEditor v-model="form.poolConfigJson" :rows="5" object-only />
+            </a-collapse-panel>
+          </a-collapse>
+        </a-form-item>
+        <a-form-item class="span-2">
+          <Toolbar>
+            <a-button type="primary" :loading="saving" @click="save">
+              <DatabaseOutlined />{{ editingId ? '更新数据源' : '创建数据源' }}
+            </a-button>
+            <a-button v-if="editingId" @click="reset">取消编辑</a-button>
+          </Toolbar>
+        </a-form-item>
+      </a-form>
+    </DetailSection>
 
     <a-alert
       class="panel-block"
@@ -53,13 +74,19 @@
       description="当前控制台不提供任意 SQL 执行入口。密码加密保存，编辑时不回显。"
     />
 
-    <a-table :data-source="items" :columns="columns" row-key="id" :loading="loading" :pagination="false">
+    <a-table :data-source="items" :columns="columns" row-key="id" :loading="loading" :pagination="false" class="panel-block">
       <template #emptyText>
         <EmptyState description="暂无数据源" />
       </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'status'">
           <StatusTag :status="record.status" />
+        </template>
+        <template v-else-if="column.key === 'jdbcUrl'">
+          <span class="datasource-url">{{ record.jdbcUrl }}</span>
+        </template>
+        <template v-else-if="column.key === 'readOnly'">
+          {{ record.readOnly ? '只读' : '可写' }}
         </template>
         <template v-if="column.key === 'action'">
           <a-space>
@@ -76,6 +103,14 @@
     </a-table>
 
     <a-modal v-model:open="logsOpen" title="数据源测试日志" :footer="null" width="760px">
+      <a-alert
+        v-if="logsDataSourceName"
+        class="panel-block"
+        type="info"
+        show-icon
+        :message="logsDataSourceName"
+        description="仅记录连接测试结果，不记录密码。"
+      />
       <a-table
         :data-source="logs"
         :columns="logColumns"
@@ -92,12 +127,21 @@
           <template v-if="column.key === 'success'">
             <StatusTag :status="record.success ? 'SUCCESS' : 'FAILED'" />
           </template>
+          <template v-else-if="column.key === 'createdAt'">
+            {{ formatDateTime(record.createdAt) }}
+          </template>
+          <template v-else-if="column.key === 'elapsedMillis'">
+            {{ formatDuration(record.elapsedMillis) }}
+          </template>
+          <template v-else-if="column.key === 'message'">
+            <span class="datasource-message">{{ maskText(record.message) }}</span>
+          </template>
         </template>
       </a-table>
     </a-modal>
 
     <a-modal v-model:open="detailOpen" title="数据源详情" :footer="null" width="760px">
-      <a-descriptions v-if="detail" bordered :column="2">
+      <a-descriptions v-if="detail" bordered :column="2" size="small">
         <a-descriptions-item label="名称">{{ detail.name }}</a-descriptions-item>
         <a-descriptions-item label="类型">{{ detail.type }}</a-descriptions-item>
         <a-descriptions-item label="JDBC URL">{{ detail.jdbcUrl }}</a-descriptions-item>
@@ -105,9 +149,21 @@
         <a-descriptions-item label="驱动">{{ detail.driverClassName }}</a-descriptions-item>
         <a-descriptions-item label="只读">{{ detail.readOnly ? '是' : '否' }}</a-descriptions-item>
         <a-descriptions-item label="状态"><StatusTag :status="detail.status" /></a-descriptions-item>
-        <a-descriptions-item label="连接池配置">{{ detail.poolConfigJson }}</a-descriptions-item>
+        <a-descriptions-item label="连接池">{{ detailPoolConfigText }}</a-descriptions-item>
       </a-descriptions>
-      <JsonPreview :value="detail" />
+      <a-alert
+        v-if="detail"
+        class="panel-block"
+        type="info"
+        show-icon
+        message="密码已加密保存"
+        description="详情响应不返回密码、密文或 secret 字段。"
+      />
+      <a-collapse v-if="detail" class="panel-block">
+        <a-collapse-panel key="pool" header="高级详情">
+          <JsonPreview :value="detailPoolConfig" />
+        </a-collapse-panel>
+      </a-collapse>
     </a-modal>
   </PageContainer>
 </template>
@@ -117,7 +173,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
 import { DatabaseOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
-import { EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
+import { DetailSection, EmptyState, JsonEditor, MetricCard, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
 import {
   createDataSource,
   deleteDataSource,
@@ -130,6 +186,7 @@ import {
   type DataSourceTestLogItem
 } from '../api/koravo'
 import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
+import { formatDateTime, formatDuration, maskSecret, parseJsonSafe } from '../utils/format'
 
 const saving = ref(false)
 const loading = ref(false)
@@ -178,20 +235,30 @@ const form = reactive({
   poolConfigJson: '{}'
 })
 
+const activeCount = computed(() => items.value.filter((item) => item.status === 'ACTIVE').length)
+const readOnlyCount = computed(() => items.value.filter((item) => item.readOnly).length)
+const logsDataSourceName = computed(() => items.value.find((item) => item.id === logsDataSourceId.value)?.name || '')
+const detailPoolConfig = computed(() => parseJsonSafe(detail.value?.poolConfigJson || '{}', {}))
+const detailPoolConfigText = computed(() => {
+  const raw = detail.value?.poolConfigJson?.trim()
+  return raw && raw !== '{}' ? '已自定义' : '默认配置'
+})
+
 const columns = [
   { title: '名称', dataIndex: 'name', key: 'name' },
   { title: '类型', dataIndex: 'type', key: 'type' },
-  { title: 'URL', dataIndex: 'jdbcUrl', key: 'jdbcUrl' },
+  { title: 'URL', key: 'jdbcUrl' },
   { title: '用户', dataIndex: 'username', key: 'username' },
+  { title: '权限', key: 'readOnly', width: 90 },
   { title: '状态', dataIndex: 'status', key: 'status' },
   { title: '操作', key: 'action', width: 330 }
 ]
 
 const logColumns = [
-  { title: '时间', dataIndex: 'createdAt', key: 'createdAt', width: 190 },
-  { title: '成功', dataIndex: 'success', key: 'success', width: 90 },
-  { title: '耗时 ms', dataIndex: 'elapsedMillis', key: 'elapsedMillis', width: 100 },
-  { title: '消息', dataIndex: 'message', key: 'message' }
+  { title: '时间', key: 'createdAt', width: 160 },
+  { title: '结果', key: 'success', width: 90 },
+  { title: '耗时', key: 'elapsedMillis', width: 100 },
+  { title: '消息', key: 'message' }
 ]
 
 const logsPagination = computed<TablePaginationConfig>(() => ({
@@ -213,7 +280,7 @@ async function load() {
 
 async function save() {
   try {
-    parseJsonObject(form.poolConfigJson || '{}', '连接池配置 JSON')
+    parseJsonObject(form.poolConfigJson || '{}', '连接池配置')
   } catch (error) {
     if (error instanceof JsonInputError) {
       message.error(error.message)
@@ -320,5 +387,36 @@ function handleLogsTableChange(nextPagination: TablePaginationConfig) {
   loadLogs()
 }
 
+function maskText(value?: string) {
+  const masked = maskSecret(value || '-')
+  return typeof masked === 'string' ? masked : JSON.stringify(masked)
+}
+
 onMounted(load)
 </script>
+
+<style scoped>
+.datasource-form {
+  margin: 0;
+}
+
+.switch-note {
+  margin-left: 10px;
+  color: #60706a;
+  font-size: 13px;
+}
+
+.datasource-hint {
+  margin-bottom: 10px;
+}
+
+.datasource-url,
+.datasource-message {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 420px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+</style>
