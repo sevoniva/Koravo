@@ -25,7 +25,7 @@
       </a-form-item>
     </a-form>
 
-    <a-table :data-source="items" :columns="columns" row-key="id" :pagination="false">
+    <a-table :data-source="items" :columns="columns" row-key="id" :loading="loading" :pagination="false">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
           <a-space>
