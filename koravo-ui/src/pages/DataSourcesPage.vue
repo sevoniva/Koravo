@@ -26,6 +26,9 @@
         />
       </a-form-item>
       <a-form-item label="Read only"><a-switch v-model:checked="form.readOnly" /></a-form-item>
+      <a-form-item label="Pool config JSON" class="span-2">
+        <a-textarea v-model:value="form.poolConfigJson" :rows="4" />
+      </a-form-item>
       <a-form-item>
         <a-space>
           <a-button type="primary" :loading="saving" @click="save">
@@ -96,6 +99,7 @@ import {
   type DataSourceItem,
   type DataSourceTestLogItem
 } from '../api/koravo'
+import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const saving = ref(false)
 const loading = ref(false)
@@ -154,6 +158,14 @@ async function load() {
 }
 
 async function save() {
+  try {
+    parseJsonObject(form.poolConfigJson || '{}', 'Pool config JSON')
+  } catch (error) {
+    if (error instanceof JsonInputError) {
+      message.error(error.message)
+    }
+    return
+  }
   saving.value = true
   try {
     const payload = { ...form }

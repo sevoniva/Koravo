@@ -177,7 +177,7 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 6. Open `Tasks`, fill bound form fields from the quick completion modal or enter the task detail page for full context, then complete the task with variables and an approval comment. The console validates variables and form data as JSON objects before submission.
 7. From task detail, click `Trace Instance`, or open `Process Instances` / `Ops`, to inspect the process trace, current/completed nodes, variables, timeline, and saved form snapshots.
 8. Open `Audit Logs` to review model, start, task, form, datasource, connector, and ops events.
-9. Create, update, test, and inspect datasource test logs in `Data Sources`.
+9. Create, update, test, and inspect datasource test logs in `Data Sources`; pool configuration is edited as validated JSON.
 
 The same calls are available in [examples/http/koravo.http](examples/http/koravo.http).
 

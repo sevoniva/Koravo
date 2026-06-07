@@ -46,6 +46,7 @@ Datasource create/update/delete/test operations write audit events:
 
 Use `/datasources` to create, edit, delete, inspect detail responses, run connection tests, and review recent test logs. Detail and list responses intentionally omit password fields.
 When editing in the console, leaving the password field blank keeps the existing encrypted password; entering a value rotates it.
+The console exposes `poolConfigJson` as a JSON object input and validates it before create or update, so invalid pool configuration does not reach the API.
 
 ## Current Limits
 
