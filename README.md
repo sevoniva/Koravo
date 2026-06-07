@@ -218,6 +218,7 @@ Then inspect:
 - `GET /api/v1/process-instances/{instanceId}`
 - `GET /api/v1/ops/process-instances/{instanceId}/trace`
 - `GET /api/v1/audit-logs?page=1&pageSize=20`
+- `GET /api/v1/audit-logs?action=PROCESS_INSTANCE_START&resourceType=PROCESS_INSTANCE&page=1&pageSize=20`
 
 The HTTP connector demo uses [examples/bpmn/http-connector-demo.bpmn20.xml](examples/bpmn/http-connector-demo.bpmn20.xml). Deploy it, start `httpConnectorDemo`, and query connector logs with:
 

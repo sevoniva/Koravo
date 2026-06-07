@@ -41,6 +41,7 @@ Each action is tenant-scoped. If the runtime instance is missing or outside the 
 
 Ops actions write audit records:
 
+- `PROCESS_INSTANCE_START`
 - `PROCESS_INSTANCE_SUSPEND`
 - `PROCESS_INSTANCE_ACTIVATE`
 - `PROCESS_INSTANCE_TERMINATE`
@@ -50,6 +51,12 @@ Query audit logs with:
 
 ```http
 GET /api/v1/audit-logs?action=PROCESS_INSTANCE_SUSPEND&resourceType=PROCESS_INSTANCE&page=1&pageSize=20
+```
+
+Process start audit events can be queried with:
+
+```http
+GET /api/v1/audit-logs?action=PROCESS_INSTANCE_START&resourceType=PROCESS_INSTANCE&page=1&pageSize=20
 ```
 
 Connector audit events can be queried with:

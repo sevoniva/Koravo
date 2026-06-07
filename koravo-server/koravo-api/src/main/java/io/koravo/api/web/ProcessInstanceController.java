@@ -38,7 +38,7 @@ public class ProcessInstanceController {
                 request.businessKey(),
                 request.variables()
         ));
-        auditLogService.record("PROCESS_START", "PROCESS_INSTANCE", instance.instanceId(), Map.of(
+        auditLogService.record("PROCESS_INSTANCE_START", "PROCESS_INSTANCE", instance.instanceId(), Map.of(
                 "processDefinitionKey", request.processDefinitionKey(),
                 "businessKey", request.businessKey()
         ));
