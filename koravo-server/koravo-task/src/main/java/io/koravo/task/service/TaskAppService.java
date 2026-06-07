@@ -11,6 +11,7 @@ import io.koravo.form.service.FormSnapshotService;
 import io.koravo.form.service.FormSchemaService;
 import io.koravo.form.web.FormBindingResponse;
 import io.koravo.form.web.FormSchemaResponse;
+import io.koravo.model.repo.ProcessModelRepository;
 import io.koravo.ops.audit.AuditLogQueryService;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
@@ -32,6 +33,7 @@ public class TaskAppService {
     private final FormSnapshotService formSnapshotService;
     private final FormBindingService formBindingService;
     private final FormSchemaService formSchemaService;
+    private final ProcessModelRepository processModelRepository;
 
     public TaskAppService(
             ProcessFacade processFacade,
@@ -39,7 +41,8 @@ public class TaskAppService {
             AuditLogQueryService auditLogQueryService,
             FormSnapshotService formSnapshotService,
             FormBindingService formBindingService,
-            FormSchemaService formSchemaService
+            FormSchemaService formSchemaService,
+            ProcessModelRepository processModelRepository
     ) {
         this.processFacade = processFacade;
         this.auditLogService = auditLogService;
@@ -47,6 +50,7 @@ public class TaskAppService {
         this.formSnapshotService = formSnapshotService;
         this.formBindingService = formBindingService;
         this.formSchemaService = formSchemaService;
+        this.processModelRepository = processModelRepository;
     }
 
     public PageResult<TaskDTO> queryMyTasks(int page, int pageSize) {
@@ -78,10 +82,7 @@ public class TaskAppService {
 
     public TaskDetailResponse getTaskDetail(String taskId) {
         TaskDTO task = processFacade.getTaskForDetail(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
-        Optional<FormBindingResponse> binding = formBindingService.findByProcessDefinitionTaskKey(
-                task.processDefinitionId(),
-                task.taskDefinitionKey()
-        );
+        Optional<FormBindingResponse> binding = resolveFormBinding(task);
         FormSchemaResponse schema = binding
                 .map(value -> formSchemaService.get(value.formSchemaId()))
                 .orElse(null);
@@ -118,9 +119,24 @@ public class TaskAppService {
         if (StringUtils.hasText(request.formSchemaId())) {
             return request.formSchemaId();
         }
-        return formBindingService.findByProcessDefinitionTaskKey(task.processDefinitionId(), task.taskDefinitionKey())
+        return resolveFormBinding(task)
                 .map(FormBindingResponse::formSchemaId)
                 .orElse(null);
+    }
+
+    private Optional<FormBindingResponse> resolveFormBinding(TaskDTO task) {
+        Optional<FormBindingResponse> definitionBinding = formBindingService.findByProcessDefinitionTaskKey(
+                task.processDefinitionId(),
+                task.taskDefinitionKey()
+        );
+        if (definitionBinding.isPresent()) {
+            return definitionBinding;
+        }
+        return processModelRepository.findFirstByTenantIdAndFlowableDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc(
+                        TenantContextHolder.getTenantId(),
+                        task.processDefinitionId()
+                )
+                .flatMap(model -> formBindingService.findByProcessModelTaskKey(model.getId(), task.taskDefinitionKey()));
     }
 
     private Map<String, Object> taskCompleteAuditDetail(TaskDTO task, String formSchemaId) {

@@ -13,4 +13,9 @@ public interface ProcessModelRepository extends JpaRepository<KoProcessModel, St
     List<KoProcessModel> findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(String tenantId, ProcessModelStatus status);
 
     Optional<KoProcessModel> findByIdAndTenantIdAndDeletedFalse(String id, String tenantId);
+
+    Optional<KoProcessModel> findFirstByTenantIdAndFlowableDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            String flowableDefinitionId
+    );
 }

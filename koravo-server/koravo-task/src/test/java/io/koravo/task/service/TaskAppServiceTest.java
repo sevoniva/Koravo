@@ -13,6 +13,9 @@ import io.koravo.form.service.FormSchemaService;
 import io.koravo.form.web.FormSnapshotResponse;
 import io.koravo.form.web.FormBindingResponse;
 import io.koravo.form.web.FormSchemaResponse;
+import io.koravo.model.domain.KoProcessModel;
+import io.koravo.model.domain.ProcessModelStatus;
+import io.koravo.model.repo.ProcessModelRepository;
 import io.koravo.ops.audit.AuditLogQueryService;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.ops.audit.dto.AuditLogResponse;
@@ -25,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,13 +44,15 @@ class TaskAppServiceTest {
     private final FormSnapshotService formSnapshotService = mock(FormSnapshotService.class);
     private final FormBindingService formBindingService = mock(FormBindingService.class);
     private final FormSchemaService formSchemaService = mock(FormSchemaService.class);
+    private final ProcessModelRepository processModelRepository = mock(ProcessModelRepository.class);
     private final TaskAppService service = new TaskAppService(
             processFacade,
             auditLogService,
             auditLogQueryService,
             formSnapshotService,
             formBindingService,
-            formSchemaService
+            formSchemaService,
+            processModelRepository
     );
 
     @AfterEach
@@ -156,6 +162,48 @@ class TaskAppServiceTest {
     }
 
     @Test
+    void completeTaskUsesModelScopedBindingWhenDefinitionBindingIsMissing() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        when(processFacade.getTask("default", "admin", "task-1")).thenReturn(new TaskDTO(
+                "task-1",
+                "Approve",
+                "pi-1",
+                "pd-1",
+                "biz-1",
+                null,
+                "admin",
+                "approveTask"
+        ));
+        KoProcessModel model = model("model-1", "pd-1");
+        when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(Optional.empty());
+        when(processModelRepository.findFirstByTenantIdAndFlowableDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc("default", "pd-1"))
+                .thenReturn(Optional.of(model));
+        when(formBindingService.findByProcessModelTaskKey("model-1", "approveTask")).thenReturn(Optional.of(
+                new FormBindingResponse("binding-1", "model-1", null, "approveTask", "form-1", 1)
+        ));
+
+        service.completeTask(
+                "task-1",
+                new CompleteTaskRequest(
+                        Map.of("approved", true),
+                        Map.of("reason", "ok"),
+                        null,
+                        "LGTM"
+                )
+        );
+
+        verify(formSnapshotService).saveSnapshot("pi-1", "task-1", "form-1", Map.of("reason", "ok"));
+        verify(auditLogService).record(eq("TASK_COMPLETE"), eq("TASK"), eq("task-1"), eq(Map.of(
+                "taskId", "task-1",
+                "processInstanceId", "pi-1",
+                "businessKey", "biz-1",
+                "taskDefinitionKey", "approveTask",
+                "formSchemaId", "form-1"
+        )));
+    }
+
+    @Test
     void getTaskDetailReturnsBoundFormSchemaVariablesCommentsAndSnapshots() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
@@ -224,6 +272,47 @@ class TaskAppServiceTest {
     }
 
     @Test
+    void getTaskDetailUsesModelScopedBindingWhenDefinitionBindingIsMissing() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        when(processFacade.getTaskForDetail("default", "admin", "task-1")).thenReturn(new TaskDTO(
+                "task-1",
+                "Approve",
+                "pi-1",
+                "pd-1",
+                "biz-1",
+                null,
+                "admin",
+                "approveTask"
+        ));
+        when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(Optional.empty());
+        when(processModelRepository.findFirstByTenantIdAndFlowableDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc("default", "pd-1"))
+                .thenReturn(Optional.of(model("model-1", "pd-1")));
+        when(formBindingService.findByProcessModelTaskKey("model-1", "approveTask")).thenReturn(Optional.of(
+                new FormBindingResponse("binding-1", "model-1", null, "approveTask", "form-1", 1)
+        ));
+        when(formSchemaService.get("form-1")).thenReturn(new FormSchemaResponse(
+                "form-1",
+                "leave",
+                "Leave",
+                1,
+                "{\"type\":\"object\"}",
+                null,
+                "ACTIVE"
+        ));
+        when(processFacade.getProcessVariables("default", "pi-1")).thenReturn(Map.of());
+        when(processFacade.getTaskVariablesForDetail("default", "admin", "task-1")).thenReturn(Map.of());
+        when(processFacade.getTaskComments("default", "pi-1", "task-1")).thenReturn(List.of());
+        when(formSnapshotService.listByProcessInstance("pi-1")).thenReturn(List.of());
+        when(auditLogQueryService.queryByResource("TASK", "task-1", 20)).thenReturn(List.of());
+
+        var detail = service.getTaskDetail("task-1");
+
+        assertThat(detail.formBinding().processModelId()).isEqualTo("model-1");
+        assertThat(detail.formSchema().id()).isEqualTo("form-1");
+    }
+
+    @Test
     void getTaskDetailUsesHistoricTaskLookupForCompletedTasks() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
@@ -249,5 +338,19 @@ class TaskAppServiceTest {
         assertThat(detail.processVariables()).containsEntry("approved", true);
         verify(processFacade).getTaskForDetail("default", "admin", "done-task-1");
         verify(processFacade).getTaskVariablesForDetail("default", "admin", "done-task-1");
+    }
+
+    private KoProcessModel model(String id, String processDefinitionId) {
+        KoProcessModel model = new KoProcessModel();
+        model.setId(id);
+        model.setTenantId("default");
+        model.setModelKey("leaveApproval");
+        model.setModelName("Leave Approval");
+        model.setModelType("BPMN");
+        model.setVersion(1);
+        model.setFlowableDefinitionId(processDefinitionId);
+        model.setStatus(ProcessModelStatus.DEPLOYED);
+        model.setBpmnXml("<definitions />");
+        return model;
     }
 }

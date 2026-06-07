@@ -28,8 +28,8 @@ Bindings can target:
 - `processModelId + taskDefinitionKey`
 - `processDefinitionId + taskDefinitionKey`
 
-Runtime task detail and task completion resolve binding by `processDefinitionId + taskDefinitionKey` and return/use the bound form schema when present. Use this target for the approval-flow demo after deploying a model and copying the returned `processDefinitionId`.
-`processModelId + taskDefinitionKey` is useful as design-time metadata while editing a draft model; it is listed by the model center but is not enough by itself for runtime task detail.
+Runtime task detail and task completion first resolve binding by `processDefinitionId + taskDefinitionKey`. If no definition-scoped binding exists, Koravo looks up the deployed process model by Flowable definition ID and falls back to `processModelId + taskDefinitionKey`.
+Use `processDefinitionId` when binding a Flowable definition directly. Use `processModelId` when binding a stored model from the model center; after deployment, runtime tasks can still find that model-scoped binding.
 The console renders simple JSON Schema object fields for bound task forms. Supported field types are `string`, `number`, `integer`, and `boolean`; complex schema constructs can still be submitted through the raw JSON form data editor.
 The console validates form schema, UI schema, variables, and raw form data inputs as JSON objects before calling the API.
 
