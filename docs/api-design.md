@@ -1,0 +1,50 @@
+# API Design
+
+All APIs use `/api/v1` and return `ApiResponse`.
+
+Success:
+
+```json
+{
+  "success": true,
+  "code": "OK",
+  "message": "success",
+  "data": {},
+  "requestId": "..."
+}
+```
+
+Error:
+
+```json
+{
+  "success": false,
+  "code": "MODEL_NOT_FOUND",
+  "message": "Process model not found",
+  "data": null,
+  "requestId": "..."
+}
+```
+
+## Implemented Endpoints
+
+- `GET /api/v1/health`
+- `POST /api/v1/process-models/deploy`
+- `POST /api/v1/process-instances/start`
+- `GET /api/v1/process-instances/{instanceId}`
+- `GET /api/v1/tasks/my`
+- `POST /api/v1/tasks/{taskId}/complete`
+- `POST /api/v1/forms/schemas`
+- `GET /api/v1/forms/schemas/{id}`
+- `POST /api/v1/datasources`
+- `GET /api/v1/datasources`
+- `GET /api/v1/datasources/{id}`
+- `POST /api/v1/datasources/{id}/test`
+- `GET /api/v1/ops/process-instances`
+- `GET /api/v1/ops/process-instances/{instanceId}`
+
+## Headers
+
+- `X-Tenant-Id`: defaults to `default` in development.
+- `X-User-Id`: defaults to `anonymous`; console uses `admin`.
+- `X-Request-Id`: optional; generated if absent.
