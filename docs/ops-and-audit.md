@@ -53,6 +53,12 @@ Query audit logs with:
 GET /api/v1/audit-logs?action=PROCESS_INSTANCE_SUSPEND&resourceType=PROCESS_INSTANCE&page=1&pageSize=20
 ```
 
+Filter a specific audited resource with `resourceId`:
+
+```http
+GET /api/v1/audit-logs?resourceType=TASK&resourceId=task-1&page=1&pageSize=20
+```
+
 Process start audit events can be queried with:
 
 ```http

@@ -24,11 +24,12 @@ public class AuditLogController {
             @RequestParam(required = false) String userId,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) String resourceType,
+            @RequestParam(required = false) String resourceId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startTime,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endTime,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize
     ) {
-        return ApiResponse.success(auditLogQueryService.query(userId, action, resourceType, startTime, endTime, page, pageSize));
+        return ApiResponse.success(auditLogQueryService.query(userId, action, resourceType, resourceId, startTime, endTime, page, pageSize));
     }
 }

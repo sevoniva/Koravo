@@ -396,6 +396,7 @@ export function listAuditLogs(params: {
   userId?: string
   action?: string
   resourceType?: string
+  resourceId?: string
   startTime?: string
   endTime?: string
   page?: number

@@ -12,6 +12,7 @@
       <a-form-item label="User"><a-input v-model:value="filters.userId" /></a-form-item>
       <a-form-item label="Action"><a-input v-model:value="filters.action" /></a-form-item>
       <a-form-item label="Resource type"><a-input v-model:value="filters.resourceType" /></a-form-item>
+      <a-form-item label="Resource ID"><a-input v-model:value="filters.resourceId" /></a-form-item>
       <a-form-item label="Start time"><a-input v-model:value="filters.startTime" placeholder="2026-06-07T00:00:00Z" /></a-form-item>
       <a-form-item label="End time"><a-input v-model:value="filters.endTime" placeholder="2026-06-07T23:59:59Z" /></a-form-item>
     </a-form>
@@ -37,6 +38,7 @@ const filters = reactive({
   userId: '',
   action: '',
   resourceType: '',
+  resourceId: '',
   startTime: '',
   endTime: ''
 })
@@ -57,6 +59,7 @@ async function load() {
       userId: filters.userId || undefined,
       action: filters.action || undefined,
       resourceType: filters.resourceType || undefined,
+      resourceId: filters.resourceId || undefined,
       startTime: filters.startTime || undefined,
       endTime: filters.endTime || undefined,
       page: 1,
