@@ -27,6 +27,7 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 我的待办：通过。启动后出现“审批请假”，提交后待办清空。
 - 任务详情提交表单：通过。绑定“请假申请表 v1”，提交“同意”后写入审批变量、意见和表单快照。
 - 流程追踪：通过。请假实例完成后状态为 `COMPLETED`，流程图 SVG 渲染，变量包含 `approved=true` 和 `approvalAction=同意`。
+- 表单设计器：通过。`/forms` 渲染字段列表和表单预览，点击“新增字段”后生成 `field8`，JSON Schema 和预览同步更新。
 - 审计日志：通过。可查询 `TASK_COMPLETE`，任务详情返回对应审计记录。
 - HTTP Connector 示例：通过。部署 `httpConnectorDemo`，启动实例 `cb7fb909-625a-11f1-ab24-c232b2af3b82`，`httpResult.statusCode=200`，连接器日志为 `SUCCESS`。
 - 运维 tabs：通过。实例列表、异常摘要、运行中实例和完成实例可见。

@@ -274,6 +274,70 @@ p {
   align-items: start;
 }
 
+.form-designer-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.85fr) minmax(360px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.compact-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.field-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.field-list {
+  display: grid;
+  gap: 8px;
+}
+
+.field-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.field-list-item:hover,
+.field-list-item.active {
+  border-color: #9fc6b4;
+  background: #edf6f2;
+}
+
+.field-list-item span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.field-list-item strong,
+.field-list-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-list-item small {
+  color: var(--color-muted);
+}
+
 .quick-step-list {
   display: grid;
   gap: 10px;
@@ -498,6 +562,8 @@ p {
 
   .identity-strip,
   .form-grid,
+  .form-designer-grid,
+  .compact-form-grid,
   .metric-grid,
   .workbench-grid,
   .two-column-grid,
