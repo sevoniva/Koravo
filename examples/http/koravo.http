@@ -94,7 +94,32 @@ GET {{baseUrl}}/ops/process-instances/{{processInstanceId}}/trace
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 11. Deploy HTTP connector demo
+### 11. Suspend process instance
+POST {{baseUrl}}/ops/process-instances/{{processInstanceId}}/suspend
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 12. Activate process instance
+POST {{baseUrl}}/ops/process-instances/{{processInstanceId}}/activate
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 13. Terminate process instance
+POST {{baseUrl}}/ops/process-instances/{{processInstanceId}}/terminate
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "reason": "Manual ops cleanup"
+}
+
+### 14. Query process ops audit logs
+GET {{baseUrl}}/audit-logs?action=PROCESS_INSTANCE_SUSPEND&resourceType=PROCESS_INSTANCE&page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 15. Deploy HTTP connector demo
 POST {{baseUrl}}/process-models/deploy?modelName=HTTP%20Connector%20Demo
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -107,7 +132,7 @@ Content-Type: application/xml
 < ../bpmn/http-connector-demo.bpmn20.xml
 --KoravoBoundary--
 
-### 12. Start HTTP connector demo
+### 16. Start HTTP connector demo
 POST {{baseUrl}}/process-instances/start
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -121,7 +146,7 @@ Content-Type: application/json
   }
 }
 
-### 13. Trace HTTP connector demo
+### 17. Trace HTTP connector demo
 GET {{baseUrl}}/ops/process-instances/{{httpProcessInstanceId}}/trace
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}

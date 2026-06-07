@@ -59,6 +59,15 @@ Spring Boot 4.x and Flowable 8.x are not used in this baseline because compatibl
 - `koravo-api`: request ID filter, health API, OpenAPI, exception handling, instance APIs.
 - `koravo-bootstrap`: Spring Boot entrypoint, application config, Liquibase changelog.
 
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [API design](docs/api-design.md)
+- [Deployment guide](docs/deployment-guide.md)
+- [Development guide](docs/development-guide.md)
+- [Ops and audit](docs/ops-and-audit.md)
+- [Connector design](docs/connector-design.md)
+
 ## Package Sources
 
 The repository includes:
