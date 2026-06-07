@@ -23,15 +23,24 @@
 
     <DetailSection v-if="deployment" title="部署结果">
       <a-descriptions bordered :column="2" size="small">
-        <a-descriptions-item label="模型">{{ deployment.platformModelId }}</a-descriptions-item>
-        <a-descriptions-item label="流程 Key">{{ deployment.processDefinitionKey }}</a-descriptions-item>
+        <a-descriptions-item label="模型">
+          <CopyableText :value="deployment.platformModelId" :display-value="shortIdLabel(deployment.platformModelId)" />
+        </a-descriptions-item>
+        <a-descriptions-item label="流程">{{ modelDisplayName(deployment.processDefinitionKey) }}</a-descriptions-item>
         <a-descriptions-item label="版本">{{ deployment.version }}</a-descriptions-item>
-        <a-descriptions-item label="部署 ID">{{ deployment.deploymentId }}</a-descriptions-item>
-        <a-descriptions-item label="流程定义" :span="2">{{ deployment.processDefinitionId }}</a-descriptions-item>
+        <a-descriptions-item label="部署">
+          <CopyableText :value="deployment.deploymentId" :display-value="shortIdLabel(deployment.deploymentId)" />
+        </a-descriptions-item>
+        <a-descriptions-item label="流程定义" :span="2">
+          <CopyableText :value="deployment.processDefinitionId" :display-value="definitionLabel(deployment.processDefinitionId)" />
+        </a-descriptions-item>
       </a-descriptions>
     </DetailSection>
 
     <a-form layout="vertical" class="form-grid panel-block">
+      <a-form-item label="关键词">
+        <a-input v-model:value="keyword" allow-clear placeholder="搜索流程名称或说明" />
+      </a-form-item>
       <a-form-item label="状态">
         <a-select v-model:value="statusFilter" allow-clear @change="loadModels">
           <a-select-option value="DRAFT">草稿</a-select-option>
@@ -43,7 +52,7 @@
     </a-form>
 
     <a-table
-      :data-source="models"
+      :data-source="filteredModels"
       :columns="columns"
       row-key="id"
       :loading="loadingModels"
@@ -56,8 +65,17 @@
         <EmptyState description="暂无流程模型" />
       </template>
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'status'">
+        <template v-if="column.key === 'model'">
+          <div class="model-summary">
+            <strong>{{ modelDisplayName(record.modelKey, record.modelName) }}</strong>
+            <span>{{ modelDescriptionLabel(record) }}</span>
+          </div>
+        </template>
+        <template v-else-if="column.key === 'status'">
           <StatusTag :status="record.status" />
+        </template>
+        <template v-else-if="column.key === 'definition'">
+          <CopyableText :value="record.flowableDefinitionId" :display-value="definitionLabel(record.flowableDefinitionId)" />
         </template>
         <template v-else-if="column.key === 'updatedAt'">
           {{ formatDateTime(record.updatedAt) }}
@@ -101,14 +119,20 @@
 
     <DetailSection v-if="selectedModel" title="模型详情">
       <a-descriptions bordered :column="2" size="small">
-        <a-descriptions-item label="模型名称">{{ selectedModel.modelName }}</a-descriptions-item>
+        <a-descriptions-item label="模型名称">{{ modelDisplayName(selectedModel.modelKey, selectedModel.modelName) }}</a-descriptions-item>
         <a-descriptions-item label="状态"><StatusTag :status="selectedModel.status" /></a-descriptions-item>
-        <a-descriptions-item label="模型 Key">{{ selectedModel.modelKey }}</a-descriptions-item>
+        <a-descriptions-item label="模型编码">
+          <CopyableText :value="selectedModel.modelKey" :display-value="modelDisplayName(selectedModel.modelKey)" />
+        </a-descriptions-item>
         <a-descriptions-item label="版本">{{ selectedModel.version }}</a-descriptions-item>
-        <a-descriptions-item label="流程定义">{{ selectedModel.flowableDefinitionId || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="部署 ID">{{ selectedModel.flowableDeploymentId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="流程定义">
+          <CopyableText :value="selectedModel.flowableDefinitionId" :display-value="definitionLabel(selectedModel.flowableDefinitionId)" />
+        </a-descriptions-item>
+        <a-descriptions-item label="部署">
+          <CopyableText :value="selectedModel.flowableDeploymentId" :display-value="shortIdLabel(selectedModel.flowableDeploymentId)" />
+        </a-descriptions-item>
         <a-descriptions-item label="更新时间">{{ formatDateTime(selectedModel.updatedAt) }}</a-descriptions-item>
-        <a-descriptions-item label="说明">{{ selectedModel.description || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="说明">{{ modelDescriptionLabel(selectedModel) }}</a-descriptions-item>
       </a-descriptions>
     </DetailSection>
 
@@ -139,7 +163,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { EditOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons-vue'
-import { DetailSection, EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
+import { CopyableText, DetailSection, EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
 import {
   archiveProcessModel,
   deployProcessModel,
@@ -166,15 +190,15 @@ const models = ref<ProcessModelItem[]>([])
 const selectedModel = ref<ProcessModelItem | null>(null)
 const validation = ref<BpmnValidationResult | null>(null)
 const statusFilter = ref<string | undefined>()
+const keyword = ref('')
 
 const columns = [
-  { title: '模型名称', dataIndex: 'modelName', key: 'modelName', width: 220 },
-  { title: '模型 Key', dataIndex: 'modelKey', key: 'modelKey', width: 180 },
+  { title: '流程', key: 'model', width: 280 },
   { title: '版本', dataIndex: 'version', key: 'version', width: 90 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
-  { title: '流程定义', dataIndex: 'flowableDefinitionId', key: 'flowableDefinitionId', width: 240 },
+  { title: '定义', key: 'definition', width: 180 },
   { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 170 },
-  { title: '操作', key: 'action', width: 520 }
+  { title: '操作', key: 'action', width: 500 }
 ]
 
 const validationColumns = [
@@ -188,6 +212,19 @@ const validationIssues = computed(() => [
   ...(validation.value?.errors || []).map((item, index) => ({ ...item, key: `error:${index}`, type: '错误' })),
   ...(validation.value?.warnings || []).map((item, index) => ({ ...item, key: `warning:${index}`, type: '警告' }))
 ])
+
+const filteredModels = computed(() => {
+  const text = keyword.value.trim().toLowerCase()
+  if (!text) return models.value
+  return models.value.filter((item) => [
+    item.modelName,
+    item.modelKey,
+    item.description,
+    modelDisplayName(item.modelKey, item.modelName),
+    modelDescriptionLabel(item),
+    item.flowableDefinitionId
+  ].some((value) => String(value || '').toLowerCase().includes(text)))
+})
 
 function beforeUpload(nextFile: File) {
   file.value = nextFile
@@ -276,5 +313,59 @@ async function runAction(key: string, action: () => Promise<void>, reload = true
   }
 }
 
+function modelDisplayName(modelKey?: string, fallback?: string) {
+  const mapping: Record<string, string> = {
+    leaveApproval: '请假审批',
+    httpConnectorDemo: 'HTTP 健康检查'
+  }
+  return mapping[modelKey || ''] || fallback || modelKey || '-'
+}
+
+function modelKindLabel(modelKey?: string) {
+  const mapping: Record<string, string> = {
+    leaveApproval: '人员请假审批流程',
+    httpConnectorDemo: 'HTTP 连接器调用流程'
+  }
+  return mapping[modelKey || ''] || '流程模型'
+}
+
+function modelDescriptionLabel(model?: ProcessModelItem | null) {
+  const description = model?.description?.trim()
+  if (!description || /演示|示例|demo/i.test(description)) return modelKindLabel(model?.modelKey)
+  return description
+}
+
+function definitionLabel(value?: string) {
+  if (!value) return ''
+  const [key, version] = value.split(':')
+  const name = modelDisplayName(key)
+  return version ? `${name} v${version}` : name
+}
+
+function shortIdLabel(value?: string) {
+  if (!value) return ''
+  return value.length > 12 ? `ID ${value.slice(-8)}` : value
+}
+
 onMounted(loadModels)
 </script>
+
+<style scoped>
+.model-summary {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.model-summary strong,
+.model-summary span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-summary span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+</style>

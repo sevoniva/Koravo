@@ -37,6 +37,7 @@ const router = createRouter({
     { path: '/', redirect: '/dashboard' },
     ...menuRoutes,
     { path: '/process-instances/:instanceId', component: ProcessInstanceDetailPage, meta: { title: '实例详情', breadcrumb: ['流程实例', '实例详情'] } },
+    { path: '/tasks/my', redirect: '/tasks' },
     { path: '/tasks/:taskId', component: TaskDetailPage, meta: { title: '任务详情', breadcrumb: ['我的任务', '任务详情'] } }
   ]
 })
