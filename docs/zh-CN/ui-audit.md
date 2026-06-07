@@ -11,7 +11,7 @@
 - 连接器示例改为可部署、可启动、可查看日志和结果变量。
 - 任务中心已支持关键词、状态和日期范围筛选。
 - 表单管理已支持可视化字段编辑、JSON Schema 预览和表单预览。
-- 表单绑定已支持从 BPMN 自动加载任务节点。
+- 表单绑定已支持从 BPMN 自动加载任务节点，默认展示已有绑定对应的流程模型。
 - 系统设置已显示请求头预览和系统健康。
 - 数据源页保留连接测试，不提供任意 SQL 执行入口。
 
@@ -34,6 +34,7 @@
 - 流程实例启动表单已按模型切换变量模板；HTTP Connector 示例使用 HTTP 业务编号和审批人变量，请假流程使用请假申请变量。
 - 任务详情已接入 PageContainer、PageHeader、StatusTag、EmptyState、DetailSection、Toolbar；任务时间、审批意见、表单快照和操作记录统一格式化。
 - 任务详情流程变量、任务变量、表单快照、操作记录和详情数据已脱敏展示；提交前校验绑定表单必填项。
+- 表单绑定已接入 PageContainer、PageHeader、DetailSection、Toolbar、StatusTag、CopyableText、ConfirmAction、EmptyState；新增和编辑不再手填流程模型、流程定义和任务节点。
 - 前端 `npm run build` 已通过。
 - 后端 `mvn -s .mvn/settings-cn.xml test` 已通过。
 

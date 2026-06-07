@@ -1,82 +1,104 @@
 <template>
-  <section class="page">
-    <div class="page-heading">
-      <div>
-        <h1>表单绑定</h1>
-        <p>把任务节点绑定到指定版本的表单。</p>
-      </div>
-      <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
-    </div>
-
-    <a-form layout="vertical" class="form-grid">
-      <a-form-item label="已部署模型">
-        <a-select
-          v-model:value="selectedModelId"
-          allow-clear
-          :loading="loading"
-          placeholder="请选择已部署模型"
-          @change="syncSelectedModel"
-        >
-          <a-select-option v-for="model in processModels" :key="model.id" :value="model.id">
-            {{ model.modelName }} / {{ model.modelKey }} v{{ model.version }}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item>
-        <a-button :disabled="!selectedModelId" :loading="taskLoading" @click="loadSelectedModelBindings">加载绑定</a-button>
-      </a-form-item>
-      <a-form-item label="流程模型 ID"><a-input v-model:value="form.processModelId" disabled /></a-form-item>
-      <a-form-item label="流程定义 ID"><a-input v-model:value="form.processDefinitionId" disabled /></a-form-item>
-      <a-form-item label="任务节点">
-        <a-select
-          v-model:value="form.taskDefinitionKey"
-          :loading="taskLoading"
-          placeholder="请选择任务节点"
-        >
-          <a-select-option v-for="task in taskDefinitions" :key="task.taskDefinitionKey" :value="task.taskDefinitionKey">
-            {{ task.name || task.taskDefinitionKey }} / {{ task.taskDefinitionKey }}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item label="表单">
-        <a-select v-model:value="selectedFormId" @change="syncSelectedForm">
-          <a-select-option v-for="schema in schemas" :key="schema.id" :value="schema.id">
-            {{ schema.formName }} v{{ schema.version }}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item>
-        <a-space>
-          <a-button type="primary" :loading="saving" @click="save">
-            <SaveOutlined />{{ editingId ? '更新' : '绑定' }}
-          </a-button>
-          <a-button v-if="editingId" @click="reset">取消</a-button>
-        </a-space>
-      </a-form-item>
-    </a-form>
-
-    <a-table :data-source="bindings" :columns="columns" row-key="id" :pagination="false">
-      <template #emptyText>
-        <a-empty description="暂无表单绑定" />
+  <PageContainer>
+    <PageHeader title="表单绑定" description="为已部署流程的任务节点选择表单版本。">
+      <template #actions>
+        <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
       </template>
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'action'">
-          <a-space>
-            <a-button size="small" @click="edit(record)">编辑</a-button>
-            <a-popconfirm title="确认删除该表单绑定？" ok-text="删除" cancel-text="取消" @confirm="remove(record.id)">
-              <a-button size="small" danger>删除</a-button>
-            </a-popconfirm>
-          </a-space>
+    </PageHeader>
+
+    <DetailSection title="绑定配置">
+      <a-form layout="vertical" class="form-grid">
+        <a-form-item label="已部署模型" required>
+          <a-select
+            v-model:value="selectedModelId"
+            allow-clear
+            :loading="loading"
+            placeholder="请选择模型"
+            @change="handleModelChange"
+          >
+            <a-select-option v-for="model in processModels" :key="model.id" :value="model.id">
+              {{ model.modelName }} / {{ model.modelKey }} v{{ model.version }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="模型状态">
+          <StatusTag v-if="selectedModel" :status="selectedModel.status" />
+          <span v-else>-</span>
+        </a-form-item>
+        <a-form-item label="流程模型 ID">
+          <CopyableText :value="form.processModelId" />
+        </a-form-item>
+        <a-form-item label="流程定义 ID">
+          <CopyableText :value="form.processDefinitionId" />
+        </a-form-item>
+        <a-form-item label="任务节点" required>
+          <a-select
+            v-model:value="form.taskDefinitionKey"
+            :disabled="!selectedModelId || !taskDefinitions.length"
+            :loading="taskLoading"
+            placeholder="请选择任务节点"
+          >
+            <a-select-option v-for="task in taskDefinitions" :key="task.taskDefinitionKey" :value="task.taskDefinitionKey">
+              {{ task.name || task.taskDefinitionKey }} / {{ task.taskDefinitionKey }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="表单" required>
+          <a-select v-model:value="selectedFormId" placeholder="请选择表单" @change="syncSelectedForm">
+            <a-select-option v-for="schema in schemas" :key="schema.id" :value="schema.id">
+              {{ schema.formName }} v{{ schema.version }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item class="span-2">
+          <Toolbar>
+            <a-button type="primary" :disabled="!canSave" :loading="saving" @click="save">
+              <SaveOutlined />{{ editingId ? '更新绑定' : '保存绑定' }}
+            </a-button>
+            <a-button v-if="editingId" @click="cancelEdit">取消编辑</a-button>
+            <a-button @click="clearSelection">清空选择</a-button>
+          </Toolbar>
+        </a-form-item>
+      </a-form>
+    </DetailSection>
+
+    <DetailSection title="当前绑定">
+      <a-table :data-source="bindings" :columns="columns" row-key="id" :loading="loading" :pagination="false" size="small">
+        <template #emptyText>
+          <EmptyState description="暂无表单绑定" />
         </template>
-      </template>
-    </a-table>
-  </section>
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'processModelId'">
+            {{ modelLabel(record.processModelId) }}
+          </template>
+          <template v-else-if="column.key === 'processDefinitionId'">
+            <CopyableText :value="record.processDefinitionId" />
+          </template>
+          <template v-else-if="column.key === 'taskDefinitionKey'">
+            {{ taskLabel(record.taskDefinitionKey) }}
+          </template>
+          <template v-else-if="column.key === 'formSchemaId'">
+            {{ schemaLabel(record.formSchemaId, record.formSchemaVersion) }}
+          </template>
+          <template v-else-if="column.key === 'action'">
+            <a-space>
+              <a-button size="small" @click="edit(record)">编辑</a-button>
+              <ConfirmAction title="确认删除该表单绑定？" ok-text="删除" @confirm="remove(record.id)">
+                <a-button size="small" danger>删除</a-button>
+              </ConfirmAction>
+            </a-space>
+          </template>
+        </template>
+      </a-table>
+    </DetailSection>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { ReloadOutlined, SaveOutlined } from '@ant-design/icons-vue'
+import { ConfirmAction, CopyableText, DetailSection, EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
 import {
   createFormBinding,
   deleteFormBinding,
@@ -87,8 +109,8 @@ import {
   updateFormBinding,
   type BpmnTaskDefinition,
   type FormBindingItem,
-  type ProcessModelItem,
-  type FormSchemaItem
+  type FormSchemaItem,
+  type ProcessModelItem
 } from '../api/koravo'
 
 const loading = ref(false)
@@ -104,19 +126,22 @@ const taskLoading = ref(false)
 const form = reactive({
   processModelId: '',
   processDefinitionId: '',
-  taskDefinitionKey: 'approveTask',
+  taskDefinitionKey: '',
   formSchemaId: '',
   formSchemaVersion: 1
 })
 
 const columns = [
-  { title: '任务节点 Key', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
-  { title: '流程模型', dataIndex: 'processModelId', key: 'processModelId' },
-  { title: '流程定义', dataIndex: 'processDefinitionId', key: 'processDefinitionId' },
-  { title: '表单', dataIndex: 'formSchemaId', key: 'formSchemaId' },
-  { title: '版本', dataIndex: 'formSchemaVersion', key: 'formSchemaVersion', width: 100 },
-  { title: '操作', key: 'action', width: 170 }
+  { title: '流程模型', dataIndex: 'processModelId', key: 'processModelId', width: 220 },
+  { title: '流程定义', dataIndex: 'processDefinitionId', key: 'processDefinitionId', width: 260 },
+  { title: '任务节点', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey', width: 180 },
+  { title: '表单', dataIndex: 'formSchemaId', key: 'formSchemaId', width: 220 },
+  { title: '版本', dataIndex: 'formSchemaVersion', key: 'formSchemaVersion', width: 90 },
+  { title: '操作', key: 'action', width: 150 }
 ]
+
+const selectedModel = computed(() => processModels.value.find((item) => item.id === selectedModelId.value))
+const canSave = computed(() => Boolean(form.processModelId && form.taskDefinitionKey && form.formSchemaId))
 
 async function load() {
   loading.value = true
@@ -126,27 +151,65 @@ async function load() {
       listFormSchemas(),
       listProcessModels('DEPLOYED')
     ])
-    bindings.value = nextBindings
     schemas.value = nextSchemas
     processModels.value = nextProcessModels
-    if (!selectedFormId.value && nextSchemas[0]) {
-      selectedFormId.value = nextSchemas[0].id
-      syncSelectedForm()
+    ensureSelectedForm()
+
+    const model = selectedModel.value || findModelForBinding(nextBindings[0]) || nextProcessModels[0]
+    if (model) {
+      selectedModelId.value = model.id
+      syncModelFields(model)
+      await Promise.all([
+        loadTaskDefinitions(model.id),
+        refreshBindings(model)
+      ])
+    } else {
+      clearModelFields()
+      bindings.value = nextBindings
     }
   } finally {
     loading.value = false
   }
 }
 
+async function handleModelChange() {
+  editingId.value = null
+  const model = selectedModel.value
+  loading.value = true
+  try {
+    if (!model) {
+      clearModelFields()
+      bindings.value = await listFormBindings()
+      return
+    }
+    syncModelFields(model)
+    await Promise.all([
+      loadTaskDefinitions(model.id),
+      refreshBindings(model)
+    ])
+  } finally {
+    loading.value = false
+  }
+}
+
 async function save() {
+  if (!form.processModelId) {
+    message.warning('请先选择已部署模型')
+    return
+  }
+  if (!form.taskDefinitionKey) {
+    message.warning('请先选择任务节点')
+    return
+  }
   if (!form.formSchemaId) {
     message.warning('请先选择表单')
     return
   }
+
   saving.value = true
   try {
     const payload = {
-      processModelId: form.processModelId || undefined,
+      processModelId: form.processModelId,
       processDefinitionId: form.processDefinitionId || undefined,
       taskDefinitionKey: form.taskDefinitionKey,
       formSchemaId: form.formSchemaId,
@@ -158,69 +221,59 @@ async function save() {
       await createFormBinding(payload)
     }
     message.success(editingId.value ? '表单绑定已更新' : '表单绑定已保存')
-    reset()
-    await load()
+    editingId.value = null
+    await refreshBindings(selectedModel.value)
   } finally {
     saving.value = false
   }
 }
 
-function edit(record: FormBindingItem) {
+async function edit(record: FormBindingItem) {
   editingId.value = record.id
-  form.processModelId = record.processModelId || ''
-  form.processDefinitionId = record.processDefinitionId || ''
+  selectedModelId.value = record.processModelId
+  const model = selectedModel.value
+  if (model) {
+    syncModelFields(model)
+    await loadTaskDefinitions(model.id)
+  } else {
+    form.processModelId = record.processModelId || ''
+    form.processDefinitionId = record.processDefinitionId || ''
+  }
   form.taskDefinitionKey = record.taskDefinitionKey
   form.formSchemaId = record.formSchemaId
   form.formSchemaVersion = record.formSchemaVersion
   selectedFormId.value = record.formSchemaId
-  selectedModelId.value = record.processModelId
-  if (selectedModelId.value) {
-    void loadTaskDefinitions(selectedModelId.value)
-  }
 }
 
 async function remove(id: string) {
   await deleteFormBinding(id)
-  if (editingId.value === id) reset()
+  if (editingId.value === id) cancelEdit()
   message.success('表单绑定已删除')
-  await load()
+  await refreshBindings(selectedModel.value)
 }
 
-function reset() {
+function cancelEdit() {
   editingId.value = null
-  form.processModelId = ''
-  form.processDefinitionId = ''
+}
+
+async function clearSelection() {
+  editingId.value = null
   selectedModelId.value = undefined
-  form.taskDefinitionKey = 'approveTask'
-  if (selectedFormId.value) {
-    syncSelectedForm()
-  } else {
-    form.formSchemaId = ''
-    form.formSchemaVersion = 1
-  }
-}
-
-async function syncSelectedModel() {
-  const model = processModels.value.find((item) => item.id === selectedModelId.value)
-  if (!model) return
-  form.processModelId = model.id
-  form.processDefinitionId = model.flowableDefinitionId || ''
-  await loadTaskDefinitions(model.id)
-}
-
-async function loadSelectedModelBindings() {
-  const model = processModels.value.find((item) => item.id === selectedModelId.value)
-  if (!model) return
-  await syncSelectedModel()
+  clearModelFields()
+  ensureSelectedForm()
   loading.value = true
   try {
-    bindings.value = await listFormBindings({
-      processModelId: model.id,
-      processDefinitionId: model.flowableDefinitionId || undefined
-    })
+    bindings.value = await listFormBindings()
   } finally {
     loading.value = false
   }
+}
+
+async function refreshBindings(model?: ProcessModelItem) {
+  bindings.value = await listFormBindings(model ? {
+    processModelId: model.id,
+    processDefinitionId: model.flowableDefinitionId || undefined
+  } : undefined)
 }
 
 async function loadTaskDefinitions(modelId: string) {
@@ -235,11 +288,59 @@ async function loadTaskDefinitions(modelId: string) {
   }
 }
 
+function syncModelFields(model: ProcessModelItem) {
+  form.processModelId = model.id
+  form.processDefinitionId = model.flowableDefinitionId || ''
+}
+
+function clearModelFields() {
+  form.processModelId = ''
+  form.processDefinitionId = ''
+  form.taskDefinitionKey = ''
+  taskDefinitions.value = []
+}
+
+function ensureSelectedForm() {
+  if (!schemas.value.some((item) => item.id === selectedFormId.value)) {
+    selectedFormId.value = schemas.value[0]?.id
+  }
+  syncSelectedForm()
+}
+
 function syncSelectedForm() {
   const schema = schemas.value.find((item) => item.id === selectedFormId.value)
-  if (!schema) return
+  if (!schema) {
+    form.formSchemaId = ''
+    form.formSchemaVersion = 1
+    return
+  }
   form.formSchemaId = schema.id
   form.formSchemaVersion = schema.version
+}
+
+function modelLabel(id?: string) {
+  const model = processModels.value.find((item) => item.id === id)
+  if (!model) return id || '-'
+  return `${model.modelName} / ${model.modelKey} v${model.version}`
+}
+
+function findModelForBinding(binding?: FormBindingItem) {
+  if (!binding) return undefined
+  return processModels.value.find((item) =>
+    item.id === binding.processModelId || item.flowableDefinitionId === binding.processDefinitionId
+  )
+}
+
+function schemaLabel(id?: string, version?: number) {
+  const schema = schemas.value.find((item) => item.id === id)
+  if (!schema) return id ? `${id} v${version || '-'}` : '-'
+  return `${schema.formName} v${version || schema.version}`
+}
+
+function taskLabel(key?: string) {
+  if (!key) return '-'
+  const task = taskDefinitions.value.find((item) => item.taskDefinitionKey === key)
+  return task?.name ? `${task.name} / ${key}` : key
 }
 
 onMounted(load)

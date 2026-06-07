@@ -32,6 +32,7 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 流程实例列表：通过。`/process-instances` 使用统一状态标签和时间格式；选择 HTTP Connector 模型后自动切换为 HTTP 业务编号和审批人变量模板。
 - 流程实例详情：通过。`/process-instances/cb7fb909-625a-11f1-ab24-c232b2af3b82` 渲染实例状态、流程图、当前任务和折叠详情数据；变量、审计详情脱敏展示；接口返回 200 且控制台无错误。
 - 表单设计器：通过。`/forms` 渲染字段列表和表单预览，点击“新增字段”后生成 `field8`，JSON Schema 和预览同步更新。
+- 表单绑定：通过。`/form-bindings` 默认展示请假审批流程的已有绑定，模型、任务节点和表单自动带出；编辑、清空选择、全量绑定列表正常，相关接口返回 200 且控制台无错误。
 - 审计日志：通过。可查询 `TASK_COMPLETE`，任务详情返回对应审计记录。
 - HTTP Connector 示例：通过。部署 `httpConnectorDemo`，启动实例 `cb7fb909-625a-11f1-ab24-c232b2af3b82`，`httpResult.statusCode=200`，连接器日志为 `SUCCESS`。
 - 运维 tabs：通过。实例列表、失败任务、死信任务、连接器日志、异常摘要可见；失败/死信无数据时显示表格空状态。
