@@ -6,6 +6,7 @@ import io.koravo.connector.core.ConnectorContext;
 import io.koravo.connector.core.ConnectorRegistry;
 import io.koravo.connector.core.ConnectorRequest;
 import io.koravo.connector.core.ConnectorResponse;
+import io.koravo.connector.log.ConnectorExecutionLogService;
 import org.flowable.common.engine.api.delegate.Expression;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,8 @@ class KoravoConnectorDelegateTest {
         when(connector.type()).thenReturn("http");
         when(connector.execute(any(ConnectorRequest.class), any(ConnectorContext.class)))
                 .thenReturn(new ConnectorResponse(200, Map.of("content-type", List.of("application/json")), "{\"ok\":true}"));
-        KoravoConnectorDelegate delegate = new KoravoConnectorDelegate(new ConnectorRegistry(List.of(connector)), new ObjectMapper());
+        ConnectorExecutionLogService logService = mock(ConnectorExecutionLogService.class);
+        KoravoConnectorDelegate delegate = new KoravoConnectorDelegate(new ConnectorRegistry(List.of(connector)), new ObjectMapper(), logService);
         delegate.setConnectorType(expression("http"));
         delegate.setUrl(expression("http://localhost:8080/echo"));
         delegate.setMethod(expression("POST"));
@@ -49,6 +51,7 @@ class KoravoConnectorDelegateTest {
                 "{\"ping\":true}",
                 Duration.ofMillis(2000)
         )), any(ConnectorContext.class));
+        verify(logService).recordSuccess(eq("http"), any(ConnectorContext.class), any(ConnectorRequest.class), any(ConnectorResponse.class), any(Long.class));
         verify(execution).setVariable(eq("connectorResult"), any(Map.class));
     }
 

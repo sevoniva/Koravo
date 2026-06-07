@@ -8,6 +8,7 @@ import io.koravo.connector.core.ConnectorContext;
 import io.koravo.connector.core.ConnectorRegistry;
 import io.koravo.connector.core.ConnectorRequest;
 import io.koravo.connector.core.ConnectorResponse;
+import io.koravo.connector.log.ConnectorExecutionLogService;
 import org.flowable.common.engine.api.delegate.Expression;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.flowable.engine.delegate.JavaDelegate;
@@ -25,6 +26,7 @@ public class KoravoConnectorDelegate implements JavaDelegate {
 
     private final ConnectorRegistry connectorRegistry;
     private final ObjectMapper objectMapper;
+    private final ConnectorExecutionLogService logService;
 
     private Expression connectorType;
     private Expression url;
@@ -34,9 +36,14 @@ public class KoravoConnectorDelegate implements JavaDelegate {
     private Expression outputVariable;
     private Expression timeoutMillis;
 
-    public KoravoConnectorDelegate(ConnectorRegistry connectorRegistry, ObjectMapper objectMapper) {
+    public KoravoConnectorDelegate(
+            ConnectorRegistry connectorRegistry,
+            ObjectMapper objectMapper,
+            ConnectorExecutionLogService logService
+    ) {
         this.connectorRegistry = connectorRegistry;
         this.objectMapper = objectMapper;
+        this.logService = logService;
     }
 
     @Override
@@ -49,13 +56,21 @@ public class KoravoConnectorDelegate implements JavaDelegate {
                 value(body, execution, null),
                 Duration.ofMillis(parseTimeoutMillis(value(timeoutMillis, execution, null)))
         );
-        ConnectorResponse response = connectorRegistry.get(type).execute(request, context(execution));
-        String outputName = value(outputVariable, execution, "connectorResult");
-        execution.setVariable(outputName, Map.of(
-                "statusCode", response.statusCode(),
-                "headers", response.headers() == null ? Map.<String, List<String>>of() : response.headers(),
-                "body", response.body() == null ? "" : response.body()
-        ));
+        ConnectorContext context = context(execution);
+        long started = System.currentTimeMillis();
+        try {
+            ConnectorResponse response = connectorRegistry.get(type).execute(request, context);
+            logService.recordSuccess(type, context, request, response, System.currentTimeMillis() - started);
+            String outputName = value(outputVariable, execution, "connectorResult");
+            execution.setVariable(outputName, Map.of(
+                    "statusCode", response.statusCode(),
+                    "headers", response.headers() == null ? Map.<String, List<String>>of() : response.headers(),
+                    "body", response.body() == null ? "" : response.body()
+            ));
+        } catch (RuntimeException e) {
+            logService.recordFailure(type, context, request, e, System.currentTimeMillis() - started);
+            throw e;
+        }
     }
 
     public void setConnectorType(Expression connectorType) {
