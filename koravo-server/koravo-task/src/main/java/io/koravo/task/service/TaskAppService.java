@@ -20,6 +20,7 @@ import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -109,6 +110,18 @@ public class TaskAppService {
                 safeRequest.variables() == null ? Map.of() : safeRequest.variables(),
                 safeRequest.comment()
         ));
-        auditLogService.record("TASK_COMPLETE", "TASK", taskId, Map.of("taskId", taskId));
+        auditLogService.record("TASK_COMPLETE", "TASK", taskId, taskCompleteAuditDetail(task, safeRequest));
+    }
+
+    private Map<String, Object> taskCompleteAuditDetail(TaskDTO task, CompleteTaskRequest request) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("taskId", task.taskId());
+        detail.put("processInstanceId", task.processInstanceId());
+        detail.put("businessKey", task.businessKey());
+        detail.put("taskDefinitionKey", task.taskDefinitionKey());
+        if (StringUtils.hasText(request.formSchemaId())) {
+            detail.put("formSchemaId", request.formSchemaId());
+        }
+        return detail;
     }
 }

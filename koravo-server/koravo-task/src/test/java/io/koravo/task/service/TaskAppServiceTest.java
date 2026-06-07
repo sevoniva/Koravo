@@ -28,6 +28,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -107,6 +108,13 @@ class TaskAppServiceTest {
 
         verify(formSnapshotService).saveSnapshot("pi-1", "task-1", "form-1", Map.of("reason", "ok"));
         verify(processFacade).completeTask(any(CompleteTaskCommand.class));
+        verify(auditLogService).record(eq("TASK_COMPLETE"), eq("TASK"), eq("task-1"), eq(Map.of(
+                "taskId", "task-1",
+                "processInstanceId", "pi-1",
+                "businessKey", "biz-1",
+                "taskDefinitionKey", "approveTask",
+                "formSchemaId", "form-1"
+        )));
     }
 
     @Test
