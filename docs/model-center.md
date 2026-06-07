@@ -46,7 +46,7 @@ Creating a blank/default draft writes `PROCESS_MODEL_CREATE`; importing BPMN XML
 
 ## Console
 
-Use `/process-models` to list models by status, inspect metadata, open a model in the designer, deploy stored drafts, export BPMN XML, disable models, and archive models.
+Use `/process-models` to list models by status, inspect metadata, validate stored BPMN XML, open a model in the designer, deploy stored drafts, export BPMN XML, disable models, and archive models.
 
 Use `/process-designer` to create, edit, import, export, validate, save, and deploy BPMN with `bpmn-js`. `/process-designer?modelId={id}` opens a stored model directly from the model center.
 The designer enables deployment only for `DRAFT` models, matching the backend lifecycle rule.

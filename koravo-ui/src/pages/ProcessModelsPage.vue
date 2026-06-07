@@ -44,6 +44,7 @@
           <a-space wrap>
             <a-button size="small" @click="inspect(record.id)">Detail</a-button>
             <a-button size="small" @click="router.push(`/process-designer?modelId=${record.id}`)">Edit</a-button>
+            <a-button size="small" :loading="actionLoading === `validate:${record.id}`" @click="validateModel(record.id)">Validate</a-button>
             <a-button size="small" @click="exportModel(record)">Export</a-button>
             <a-button
               size="small"
@@ -77,6 +78,7 @@
     </a-table>
 
     <JsonPreview :value="selectedModel" />
+    <JsonPreview :value="validation" />
   </section>
 </template>
 
@@ -94,6 +96,8 @@ import {
   exportProcessModel,
   getProcessModel,
   listProcessModels,
+  validateProcessModel,
+  type BpmnValidationResult,
   type ProcessDeployment,
   type ProcessModelItem
 } from '../api/koravo'
@@ -107,6 +111,7 @@ const actionLoading = ref<string | null>(null)
 const deployment = ref<ProcessDeployment | null>(null)
 const models = ref<ProcessModelItem[]>([])
 const selectedModel = ref<ProcessModelItem | null>(null)
+const validation = ref<BpmnValidationResult | null>(null)
 const statusFilter = ref<string | undefined>()
 
 const columns = [
@@ -116,7 +121,7 @@ const columns = [
   { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
   { title: 'Definition', dataIndex: 'flowableDefinitionId', key: 'flowableDefinitionId' },
   { title: 'Updated', dataIndex: 'updatedAt', key: 'updatedAt', width: 210 },
-  { title: 'Action', key: 'action', width: 430 }
+  { title: 'Action', key: 'action', width: 520 }
 ]
 
 function beforeUpload(nextFile: File) {
@@ -152,6 +157,19 @@ async function inspect(id: string) {
   selectedModel.value = await getProcessModel(id)
 }
 
+async function validateModel(id: string) {
+  await runAction(`validate:${id}`, async () => {
+    validation.value = await validateProcessModel(id)
+    const errorCount = validation.value.errors.length
+    const warningCount = validation.value.warnings.length
+    if (validation.value.valid) {
+      message.success(`BPMN valid, ${warningCount} warning(s)`)
+    } else {
+      message.error(`BPMN invalid, ${errorCount} error(s)`)
+    }
+  }, false)
+}
+
 async function deployDraft(id: string) {
   await runAction(`deploy:${id}`, async () => {
     await deployProcessModelDraft(id)
@@ -183,11 +201,11 @@ async function exportModel(model: ProcessModelItem) {
   URL.revokeObjectURL(url)
 }
 
-async function runAction(key: string, action: () => Promise<void>) {
+async function runAction(key: string, action: () => Promise<void>, reload = true) {
   actionLoading.value = key
   try {
     await action()
-    await loadModels()
+    if (reload) await loadModels()
   } finally {
     actionLoading.value = null
   }

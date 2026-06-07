@@ -267,6 +267,10 @@ export function validateProcessModelXml(bpmnXml: string) {
   }))
 }
 
+export function validateProcessModel(id: string) {
+  return apiData<BpmnValidationResult>(http.post(`/process-models/${id}/validate`))
+}
+
 export function deployProcessModelDraft(id: string) {
   return apiData<ProcessModelDeployResult>(http.post(`/process-models/${id}/deploy`))
 }
