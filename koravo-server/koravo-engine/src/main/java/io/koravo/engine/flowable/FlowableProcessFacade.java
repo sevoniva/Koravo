@@ -18,6 +18,7 @@ import io.koravo.engine.dto.TaskCommentDTO;
 import io.koravo.engine.dto.TaskDTO;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.IdentityService;
+import org.flowable.engine.ManagementService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
@@ -46,19 +47,22 @@ public class FlowableProcessFacade implements ProcessFacade {
     private final TaskService taskService;
     private final HistoryService historyService;
     private final IdentityService identityService;
+    private final ManagementService managementService;
 
     public FlowableProcessFacade(
             RepositoryService repositoryService,
             RuntimeService runtimeService,
             TaskService taskService,
             HistoryService historyService,
-            IdentityService identityService
+            IdentityService identityService,
+            ManagementService managementService
     ) {
         this.repositoryService = repositoryService;
         this.runtimeService = runtimeService;
         this.taskService = taskService;
         this.historyService = historyService;
         this.identityService = identityService;
+        this.managementService = managementService;
     }
 
     @Override
@@ -379,6 +383,31 @@ public class FlowableProcessFacade implements ProcessFacade {
                 .map(this::toInstanceDetail)
                 .toList();
         return PageResult.of(instances, total, command.page(), command.pageSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countRunningInstances(String tenantId) {
+        return runtimeService.createProcessInstanceQuery()
+                .processInstanceTenantId(tenantId)
+                .count();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countFailedJobs(String tenantId) {
+        return managementService.createJobQuery()
+                .jobTenantId(tenantId)
+                .withException()
+                .count();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countDeadLetterJobs(String tenantId) {
+        return managementService.createDeadLetterJobQuery()
+                .jobTenantId(tenantId)
+                .count();
     }
 
     @Override

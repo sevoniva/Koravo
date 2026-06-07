@@ -2,14 +2,14 @@
   <section class="page">
     <div class="page-heading">
       <div>
-        <h1>Tasks</h1>
-        <p>Query current user's pending tasks, inspect bindings, and complete approvals.</p>
+        <h1>我的任务</h1>
+        <p>处理待办、查看已办和我发起的流程。</p>
       </div>
-      <a-button :loading="loading" @click="load"><ReloadOutlined />Reload</a-button>
+      <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
     </div>
 
     <a-tabs v-model:activeKey="activeTab" @change="load">
-      <a-tab-pane key="pending" tab="Pending">
+      <a-tab-pane key="pending" tab="我的待办">
         <a-table
           :data-source="tasks"
           :columns="columns"
@@ -18,18 +18,21 @@
           :pagination="pendingPagination"
           @change="handlePendingTableChange"
         >
+          <template #emptyText>
+            <a-empty description="暂无待办任务" />
+          </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
               <a-space>
-                <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">Detail</a-button>
-                <a-button size="small" type="primary" @click="openComplete(record)">Complete</a-button>
+                <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">详情</a-button>
+                <a-button size="small" type="primary" @click="openComplete(record)">办理</a-button>
               </a-space>
             </template>
           </template>
         </a-table>
       </a-tab-pane>
 
-      <a-tab-pane key="done" tab="Done">
+      <a-tab-pane key="done" tab="我的已办">
         <a-table
           :data-source="doneTasks"
           :columns="doneColumns"
@@ -38,15 +41,18 @@
           :pagination="donePagination"
           @change="handleDoneTableChange"
         >
+          <template #emptyText>
+            <a-empty description="暂无已办任务" />
+          </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
-              <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">Detail</a-button>
+              <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">详情</a-button>
             </template>
           </template>
         </a-table>
       </a-tab-pane>
 
-      <a-tab-pane key="started" tab="Started">
+      <a-tab-pane key="started" tab="我发起的">
         <a-table
           :data-source="startedInstances"
           :columns="startedColumns"
@@ -55,58 +61,43 @@
           :pagination="startedPagination"
           @change="handleStartedTableChange"
         >
+          <template #emptyText>
+            <a-empty description="暂无我发起的流程" />
+          </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
-              <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">Detail</a-button>
+              <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">详情</a-button>
             </template>
           </template>
         </a-table>
       </a-tab-pane>
     </a-tabs>
 
-    <a-modal v-model:open="modalOpen" title="Complete task" :confirm-loading="completeLoading" @ok="submitComplete">
+    <a-modal v-model:open="modalOpen" title="办理任务" :confirm-loading="completeLoading" ok-text="提交" cancel-text="取消" @ok="submitComplete">
       <a-form layout="vertical">
-        <a-form-item label="Variables JSON">
-          <a-textarea v-model:value="completeVariables" :rows="5" />
+        <a-form-item label="审批结果">
+          <a-segmented v-model:value="approvalAction" :options="approvalOptions" />
         </a-form-item>
-        <a-form-item v-if="taskDetail?.formSchema" label="Bound form">
+        <a-form-item v-if="taskDetail?.formSchema" label="绑定表单">
           <a-alert
             :message="`${taskDetail.formSchema.formName} v${taskDetail.formSchema.version}`"
-            :description="`Form key: ${taskDetail.formSchema.formKey}`"
+            :description="`表单 Key：${taskDetail.formSchema.formKey}`"
             type="info"
             show-icon
           />
         </a-form-item>
-        <template v-if="schemaFields.length">
-          <a-form-item
-            v-for="field in schemaFields"
-            :key="field.key"
-            :label="field.label"
-            :required="field.required"
-          >
-            <a-switch
-              v-if="field.type === 'boolean'"
-              v-model:checked="formDataValues[field.key]"
-              @change="syncFormDataJson"
-            />
-            <a-input-number
-              v-else-if="field.type === 'number' || field.type === 'integer'"
-              v-model:value="formDataValues[field.key]"
-              :precision="field.type === 'integer' ? 0 : undefined"
-              style="width: 100%"
-              @change="syncFormDataJson"
-            />
-            <a-input
-              v-else
-              v-model:value="formDataValues[field.key]"
-              @change="syncFormDataJson"
-            />
-          </a-form-item>
-        </template>
-        <a-form-item :label="schemaFields.length ? 'Raw form data JSON' : 'Form data JSON'">
-          <a-textarea v-model:value="completeFormData" :rows="5" />
+        <SchemaForm
+          v-if="taskDetail?.formSchema"
+          v-model="formDataValues"
+          :schema-json="taskDetail.formSchema.schemaJson"
+        />
+        <a-form-item label="表单数据 JSON">
+          <a-textarea v-model:value="completeFormData" :rows="4" />
         </a-form-item>
-        <a-form-item label="Comment">
+        <a-form-item label="流程变量 JSON">
+          <a-textarea v-model:value="completeVariables" :rows="4" />
+        </a-form-item>
+        <a-form-item label="审批意见">
           <a-input v-model:value="comment" />
         </a-form-item>
       </a-form>
@@ -115,10 +106,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
+import SchemaForm from '../components/SchemaForm.vue'
 import {
   completeTask,
   getTaskDetail,
@@ -154,42 +146,37 @@ const completeLoading = ref(false)
 const completeVariables = ref(JSON.stringify({ approved: true, comment: 'approved' }, null, 2))
 const completeFormData = ref('{}')
 const formDataValues = ref<JsonRecord>({})
-const comment = ref('approved')
-
-type SchemaField = {
-  key: string
-  label: string
-  type: 'string' | 'number' | 'integer' | 'boolean'
-  required: boolean
-}
+const comment = ref('同意')
+const approvalAction = ref('同意')
+const approvalOptions = ['同意', '拒绝', '提交']
 
 const columns = [
-  { title: 'Task', dataIndex: 'name', key: 'name' },
-  { title: 'Business Key', dataIndex: 'businessKey', key: 'businessKey' },
-  { title: 'Task Key', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
-  { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
-  { title: 'Assignee', dataIndex: 'assignee', key: 'assignee' },
-  { title: 'Created', dataIndex: 'createTime', key: 'createTime' },
-  { title: 'Action', key: 'action', width: 180 }
+  { title: '任务名称', dataIndex: 'name', key: 'name' },
+  { title: '业务编号', dataIndex: 'businessKey', key: 'businessKey' },
+  { title: '任务节点', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
+  { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
+  { title: '操作', key: 'action', width: 180 }
 ]
 
 const doneColumns = [
-  { title: 'Task', dataIndex: 'name', key: 'name' },
-  { title: 'Business Key', dataIndex: 'businessKey', key: 'businessKey' },
-  { title: 'Task Key', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
-  { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
-  { title: 'Assignee', dataIndex: 'assignee', key: 'assignee' },
-  { title: 'Created', dataIndex: 'createTime', key: 'createTime' },
-  { title: 'Action', key: 'action', width: 120 }
+  { title: '任务名称', dataIndex: 'name', key: 'name' },
+  { title: '业务编号', dataIndex: 'businessKey', key: 'businessKey' },
+  { title: '任务节点', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
+  { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
+  { title: '操作', key: 'action', width: 120 }
 ]
 
 const startedColumns = [
-  { title: 'Instance ID', dataIndex: 'instanceId', key: 'instanceId' },
-  { title: 'Business Key', dataIndex: 'businessKey', key: 'businessKey' },
-  { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
-  { title: 'Started', dataIndex: 'startTime', key: 'startTime' },
-  { title: 'Ended', dataIndex: 'endTime', key: 'endTime' },
-  { title: 'Action', key: 'action', width: 120 }
+  { title: '实例 ID', dataIndex: 'instanceId', key: 'instanceId' },
+  { title: '业务编号', dataIndex: 'businessKey', key: 'businessKey' },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
+  { title: '发起时间', dataIndex: 'startTime', key: 'startTime' },
+  { title: '结束时间', dataIndex: 'endTime', key: 'endTime' },
+  { title: '操作', key: 'action', width: 120 }
 ]
 
 const pendingPagination = computed<TablePaginationConfig>(() => ({
@@ -197,7 +184,7 @@ const pendingPagination = computed<TablePaginationConfig>(() => ({
   pageSize: pendingPageSize.value,
   total: pendingTotal.value,
   showSizeChanger: true,
-  showTotal: (count) => `${count} pending tasks`
+  showTotal: (count) => `共 ${count} 个待办`
 }))
 
 const donePagination = computed<TablePaginationConfig>(() => ({
@@ -205,7 +192,7 @@ const donePagination = computed<TablePaginationConfig>(() => ({
   pageSize: donePageSize.value,
   total: doneTotal.value,
   showSizeChanger: true,
-  showTotal: (count) => `${count} done tasks`
+  showTotal: (count) => `共 ${count} 个已办`
 }))
 
 const startedPagination = computed<TablePaginationConfig>(() => ({
@@ -213,29 +200,17 @@ const startedPagination = computed<TablePaginationConfig>(() => ({
   pageSize: startedPageSize.value,
   total: startedTotal.value,
   showSizeChanger: true,
-  showTotal: (count) => `${count} started instances`
+  showTotal: (count) => `共 ${count} 个我发起的实例`
 }))
 
-const schemaFields = computed<SchemaField[]>(() => {
-  const schemaJson = taskDetail.value?.formSchema?.schemaJson
-  if (!schemaJson) return []
-  try {
-    const schema = JSON.parse(schemaJson) as {
-      required?: string[]
-      properties?: Record<string, { type?: string; title?: string }>
-    }
-    const required = new Set(schema.required || [])
-    return Object.entries(schema.properties || {})
-      .filter(([, property]) => ['string', 'number', 'integer', 'boolean'].includes(property.type || 'string'))
-      .map(([key, property]) => ({
-        key,
-        label: property.title || key,
-        type: (property.type || 'string') as SchemaField['type'],
-        required: required.has(key)
-      }))
-  } catch {
-    return []
-  }
+watch(formDataValues, (value) => {
+  completeFormData.value = JSON.stringify(value || {}, null, 2)
+}, { deep: true })
+
+watch(approvalAction, (value) => {
+  const approved = value !== '拒绝'
+  completeVariables.value = JSON.stringify({ approved, approvalAction: value }, null, 2)
+  comment.value = value
 })
 
 async function load() {
@@ -297,6 +272,9 @@ async function openComplete(task: TaskItem) {
   taskDetail.value = null
   completeFormData.value = '{}'
   formDataValues.value = {}
+  approvalAction.value = '同意'
+  completeVariables.value = JSON.stringify({ approved: true, approvalAction: '同意' }, null, 2)
+  comment.value = '同意'
   modalOpen.value = true
   completeLoading.value = true
   try {
@@ -308,36 +286,32 @@ async function openComplete(task: TaskItem) {
 }
 
 function initializeFormDataValues() {
-  const next: JsonRecord = {}
-  for (const field of schemaFields.value) {
-    next[field.key] = field.type === 'boolean' ? false : undefined
+  const next: JsonRecord = {
+    applicant: String(taskDetail.value?.processVariables.applicant || ''),
+    leaveType: String(taskDetail.value?.processVariables.leaveType || '年假'),
+    startDate: String(taskDetail.value?.processVariables.startDate || ''),
+    endDate: String(taskDetail.value?.processVariables.endDate || ''),
+    days: Number(taskDetail.value?.processVariables.days || 1),
+    reason: String(taskDetail.value?.processVariables.reason || ''),
+    attachmentNote: String(taskDetail.value?.processVariables.attachmentNote || '')
   }
   formDataValues.value = next
-  if (schemaFields.value.length) {
-    syncFormDataJson()
-  }
-}
-
-function syncFormDataJson() {
-  const data = Object.fromEntries(
-    Object.entries(formDataValues.value).filter(([, value]) => value !== undefined && value !== '')
-  )
-  completeFormData.value = JSON.stringify(data, null, 2)
+  completeFormData.value = JSON.stringify(next, null, 2)
 }
 
 async function submitComplete() {
   if (!selectedTask.value) return
   completeLoading.value = true
   try {
-    const variables = parseJsonObject(completeVariables.value, 'Variables')
-    const formData = parseJsonObject(completeFormData.value, 'Form data')
+    const variables = parseJsonObject(completeVariables.value, '流程变量')
+    const formData = parseJsonObject(completeFormData.value, '表单数据')
     await completeTask(selectedTask.value.taskId, {
       variables,
       formData,
       formSchemaId: taskDetail.value?.formSchema?.id,
       comment: comment.value
     })
-    message.success('Task completed')
+    message.success('任务已完成')
     modalOpen.value = false
     await load()
   } catch (error) {

@@ -1,0 +1,195 @@
+<template>
+  <PageContainer>
+    <PageHeader title="快速开始" description="按步骤跑通请假审批演示。">
+      <template #actions>
+        <a-button :loading="statusLoading" @click="loadStatus"><ReloadOutlined />刷新状态</a-button>
+        <a-button type="primary" :loading="initLoading" @click="initDemo"><ThunderboltOutlined />初始化演示数据</a-button>
+      </template>
+    </PageHeader>
+
+    <a-alert
+      :type="demoStatus?.initialized ? 'success' : 'warning'"
+      :message="demoStatus?.message || '正在检查演示数据'"
+      :description="statusDescription"
+      show-icon
+    />
+
+    <div class="two-column-grid panel-block">
+      <div class="quick-step-list">
+        <div v-for="(step, index) in steps" :key="step.key" class="quick-step">
+          <span class="quick-step-index">{{ index + 1 }}</span>
+          <div>
+            <h3>{{ step.title }} <StatusTag :status="step.ready" :text="step.statusText" /></h3>
+            <p>{{ step.message }}</p>
+          </div>
+          <a-button :type="step.primary ? 'primary' : 'default'" :loading="step.loading" @click="step.action">
+            {{ step.actionText }}
+          </a-button>
+        </div>
+      </div>
+
+      <DetailSection title="演示上下文">
+        <a-descriptions :column="1" bordered size="small">
+          <a-descriptions-item label="租户">{{ demoStatus?.tenantId || 'default' }}</a-descriptions-item>
+          <a-descriptions-item label="用户">{{ demoStatus?.userId || 'admin' }}</a-descriptions-item>
+          <a-descriptions-item label="流程 Key">{{ demoStatus?.processDefinitionKey || 'leaveApproval' }}</a-descriptions-item>
+          <a-descriptions-item label="流程定义"><CopyableText :value="demoStatus?.processDefinitionId" /></a-descriptions-item>
+          <a-descriptions-item label="表单"><CopyableText :value="demoStatus?.formSchemaId" /></a-descriptions-item>
+          <a-descriptions-item label="绑定"><CopyableText :value="demoStatus?.formBindingId" /></a-descriptions-item>
+        </a-descriptions>
+        <JsonPreview :value="demoStatus?.defaultStartVariables || defaultVariables" />
+      </DetailSection>
+    </div>
+  </PageContainer>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
+import { ReloadOutlined, ThunderboltOutlined } from '@ant-design/icons-vue'
+import JsonPreview from '../components/JsonPreview.vue'
+import {
+  getDemoStatus,
+  initDemoData,
+  startProcessInstance,
+  type DemoStatus,
+  type JsonRecord
+} from '../api/koravo'
+import { CopyableText, DetailSection, PageContainer, PageHeader, StatusTag } from '../components/ui'
+
+const router = useRouter()
+const demoStatus = ref<DemoStatus | null>(null)
+const statusLoading = ref(false)
+const initLoading = ref(false)
+const startLoading = ref(false)
+
+const defaultVariables: JsonRecord = {
+  applicant: '张三',
+  approver: 'admin',
+  leaveType: '年假',
+  startDate: '2026-06-08',
+  endDate: '2026-06-09',
+  days: 2,
+  reason: '家庭事务',
+  attachmentNote: ''
+}
+
+const statusDescription = computed(() => {
+  if (!demoStatus.value) return '请确认后端服务已启动。'
+  if (demoStatus.value.initialized) {
+    return '流程、表单和绑定已就绪，可以启动请假流程。'
+  }
+  return '初始化会创建流程、表单和绑定，重复执行不会生成大量重复数据。'
+})
+
+const steps = computed(() => [
+  {
+    key: 'service',
+    title: '检查服务',
+    ready: Boolean(demoStatus.value),
+    statusText: demoStatus.value ? '已连接' : '待检查',
+    message: demoStatus.value ? `后端用户 ${demoStatus.value.userId}` : '读取 /api/v1/demo/status。',
+    actionText: '刷新',
+    action: loadStatus,
+    loading: statusLoading.value,
+    primary: false
+  },
+  {
+    key: 'init',
+    title: '初始化演示数据',
+    ready: Boolean(demoStatus.value?.initialized),
+    statusText: demoStatus.value?.initialized ? '已就绪' : '待初始化',
+    message: demoStatus.value?.binding?.message || '创建请假审批流程、表单和绑定。',
+    actionText: demoStatus.value?.initialized ? '重新检查' : '初始化',
+    action: demoStatus.value?.initialized ? loadStatus : initDemo,
+    loading: initLoading.value,
+    primary: !demoStatus.value?.initialized
+  },
+  {
+    key: 'start',
+    title: '启动请假流程',
+    ready: Boolean(demoStatus.value?.todo?.ready),
+    statusText: demoStatus.value?.todo?.ready ? '已有待办' : '待启动',
+    message: demoStatus.value?.todo?.message || '使用默认变量启动 leaveApproval。',
+    actionText: '启动流程',
+    action: startLeaveProcess,
+    loading: startLoading.value,
+    primary: Boolean(demoStatus.value?.initialized && !demoStatus.value?.todo?.ready)
+  },
+  {
+    key: 'task',
+    title: '处理待办',
+    ready: Boolean(demoStatus.value?.todo?.ready),
+    statusText: demoStatus.value?.todo?.ready ? `${demoStatus.value?.todo?.count || 0} 个待办` : '暂无待办',
+    message: '进入我的任务，打开审批请假任务。',
+    actionText: '我的任务',
+    action: () => router.push('/tasks'),
+    loading: false,
+    primary: false
+  },
+  {
+    key: 'trace',
+    title: '查看流程追踪',
+    ready: Boolean(demoStatus.value?.audit?.ready),
+    statusText: demoStatus.value?.audit?.ready ? '可查看' : '待产生',
+    message: '实例详情展示流程图、时间线和变量。',
+    actionText: '流程实例',
+    action: () => router.push('/process-instances'),
+    loading: false,
+    primary: false
+  },
+  {
+    key: 'audit',
+    title: '查看审计日志',
+    ready: Boolean(demoStatus.value?.audit?.ready),
+    statusText: demoStatus.value?.audit?.ready ? `${demoStatus.value?.audit?.count || 0} 条` : '暂无审计',
+    message: demoStatus.value?.audit?.message || '确认初始化、启动和任务完成记录。',
+    actionText: '审计日志',
+    action: () => router.push('/audit-logs'),
+    loading: false,
+    primary: false
+  }
+])
+
+async function loadStatus() {
+  statusLoading.value = true
+  try {
+    demoStatus.value = await getDemoStatus()
+  } finally {
+    statusLoading.value = false
+  }
+}
+
+async function initDemo() {
+  initLoading.value = true
+  try {
+    const result = await initDemoData()
+    message.success(result.actions.join('；'))
+    await loadStatus()
+  } finally {
+    initLoading.value = false
+  }
+}
+
+async function startLeaveProcess() {
+  if (!demoStatus.value?.initialized) {
+    message.warning('请先初始化演示数据')
+    return
+  }
+  startLoading.value = true
+  try {
+    const instance = await startProcessInstance({
+      processDefinitionKey: demoStatus.value.processDefinitionKey,
+      businessKey: `LEAVE-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${Date.now().toString().slice(-4)}`,
+      variables: demoStatus.value.defaultStartVariables || defaultVariables
+    })
+    message.success('流程已启动')
+    router.push(`/process-instances/${instance.instanceId}`)
+  } finally {
+    startLoading.value = false
+  }
+}
+
+onMounted(loadStatus)
+</script>

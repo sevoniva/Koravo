@@ -1,4 +1,17 @@
 import { apiData, http } from './http'
+import type {
+  BpmnTaskDefinition,
+  DashboardSummary,
+  OpsSummary,
+  SystemHealth
+} from '../types/koravo'
+
+export type {
+  BpmnTaskDefinition,
+  DashboardSummary,
+  OpsSummary,
+  SystemHealth
+} from '../types/koravo'
 
 export type JsonRecord = Record<string, unknown>
 
@@ -8,6 +21,43 @@ export interface HealthInfo {
   time: string
   tenantId: string
   userId: string
+}
+
+export interface DemoStatus {
+  initialized: boolean
+  tenantId: string
+  userId: string
+  processModelId?: string
+  processDefinitionId?: string
+  processDefinitionKey: string
+  formSchemaId?: string
+  formBindingId?: string
+  message: string
+  process?: DemoStepStatus
+  form?: DemoStepStatus
+  binding?: DemoStepStatus
+  todo?: DemoStepStatus
+  audit?: DemoStepStatus
+  connector?: DemoStepStatus
+  defaultStartVariables?: JsonRecord
+}
+
+export interface DemoStepStatus {
+  ready: boolean
+  status: string
+  message: string
+  resourceId?: string
+  count: number
+}
+
+export interface DemoInitResult {
+  initialized: boolean
+  processModelId?: string
+  processDefinitionId?: string
+  processDefinitionKey: string
+  formSchemaId?: string
+  formBindingId?: string
+  actions: string[]
 }
 
 export interface ProcessDeployment {
@@ -193,6 +243,12 @@ export interface DataSourceTestLogItem {
   createdAt: string
 }
 
+export interface DataSourceTestResult {
+  success: boolean
+  message?: string
+  elapsedMillis: number
+}
+
 export interface ConnectorExecutionLogItem {
   id: string
   connectorType: string
@@ -226,6 +282,22 @@ export function getHealth() {
   return apiData<HealthInfo>(http.get('/health'))
 }
 
+export function getSystemHealth() {
+  return apiData<SystemHealth>(http.get('/system/health'))
+}
+
+export function getDashboardSummary() {
+  return apiData<DashboardSummary>(http.get('/dashboard/summary'))
+}
+
+export function getDemoStatus() {
+  return apiData<DemoStatus>(http.get('/demo/status'))
+}
+
+export function initDemoData() {
+  return apiData<DemoInitResult>(http.post('/demo/init'))
+}
+
 export function deployProcessModel(modelName: string, file: File) {
   const formData = new FormData()
   formData.append('file', file)
@@ -238,6 +310,10 @@ export function listProcessModels(status?: string) {
 
 export function getProcessModel(id: string) {
   return apiData<ProcessModelItem>(http.get(`/process-models/${id}`))
+}
+
+export function listProcessModelTaskDefinitions(id: string) {
+  return apiData<BpmnTaskDefinition[]>(http.get(`/process-models/${id}/task-definitions`))
 }
 
 export function createProcessModel(payload: {
@@ -400,7 +476,7 @@ export function getDataSource(id: string) {
 }
 
 export function testDataSource(id: string) {
-  return apiData(http.post(`/datasources/${id}/test`))
+  return apiData<DataSourceTestResult>(http.post(`/datasources/${id}/test`))
 }
 
 export function listDataSourceTestLogs(id: string, params?: { page?: number; pageSize?: number }) {
@@ -427,6 +503,10 @@ export function listOpsInstances(params?: { page?: number; pageSize?: number }) 
 
 export function listOpsCapabilities() {
   return apiData<OpsCapabilityItem[]>(http.get('/ops/capabilities'))
+}
+
+export function getOpsSummary() {
+  return apiData<OpsSummary>(http.get('/ops/summary'))
 }
 
 export function getOpsInstance(instanceId: string) {
@@ -461,4 +541,8 @@ export function listConnectorExecutionLogs(params: {
 
 export function getConnectorExecutionSummary(connectorType?: string) {
   return apiData<ConnectorExecutionSummary>(http.get('/connector-execution-logs/summary', { params: { connectorType } }))
+}
+
+export function getConnectorExecutionLog(id: string) {
+  return apiData<ConnectorExecutionLogItem>(http.get(`/connector-execution-logs/${id}`))
 }

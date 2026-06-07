@@ -2,19 +2,19 @@
   <section class="page">
     <div class="page-heading">
       <div>
-        <h1>Process Instances</h1>
-        <p>Start process instances and inspect their current state.</p>
+        <h1>流程实例</h1>
+        <p>启动流程并查看当前状态。</p>
       </div>
-      <a-button :loading="listLoading || modelLoading" @click="load"><ReloadOutlined />Reload</a-button>
+      <a-button :loading="listLoading || modelLoading" @click="load"><ReloadOutlined />刷新</a-button>
     </div>
 
     <a-form layout="vertical" class="form-grid">
-      <a-form-item label="Deployed model">
+      <a-form-item label="已部署模型">
         <a-select
           v-model:value="selectedModelId"
           allow-clear
           :loading="modelLoading"
-          placeholder="Select a deployed model"
+          placeholder="请选择已部署模型"
           @change="selectModel"
         >
           <a-select-option v-for="model in deployedModels" :key="model.id" :value="model.id">
@@ -22,20 +22,20 @@
           </a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label="Process definition key"><a-input v-model:value="processDefinitionKey" /></a-form-item>
-      <a-form-item label="Business key"><a-input v-model:value="businessKey" /></a-form-item>
-      <a-form-item label="Variables JSON" class="span-2">
+      <a-form-item label="流程定义 Key"><a-input v-model:value="processDefinitionKey" /></a-form-item>
+      <a-form-item label="业务编号"><a-input v-model:value="businessKey" /></a-form-item>
+      <a-form-item label="流程变量 JSON" class="span-2">
         <a-textarea v-model:value="variablesText" :rows="8" />
       </a-form-item>
       <a-form-item>
-        <a-button type="primary" :loading="loading" @click="start"><PlayCircleOutlined />Start</a-button>
+        <a-button type="primary" :loading="loading" @click="start"><PlayCircleOutlined />启动流程</a-button>
       </a-form-item>
     </a-form>
 
     <JsonPreview :value="instance" />
     <a-space v-if="instance" class="panel-block">
-      <a-button @click="router.push(`/process-instances/${instance.instanceId}`)">Detail</a-button>
-      <a-button type="primary" @click="openOpsTrace(instance.instanceId)">Trace</a-button>
+      <a-button @click="router.push(`/process-instances/${instance.instanceId}`)">详情</a-button>
+      <a-button type="primary" @click="openOpsTrace(instance.instanceId)">追踪</a-button>
     </a-space>
 
     <a-table
@@ -47,11 +47,14 @@
       :pagination="startedPagination"
       @change="handleStartedTableChange"
     >
+      <template #emptyText>
+        <a-empty description="暂无流程实例" />
+      </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
           <a-space>
-            <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">Detail</a-button>
-            <a-button size="small" type="primary" @click="openOpsTrace(record.instanceId)">Trace</a-button>
+            <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">详情</a-button>
+            <a-button size="small" type="primary" @click="openOpsTrace(record.instanceId)">追踪</a-button>
           </a-space>
         </template>
       </template>
@@ -77,8 +80,17 @@ import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const processDefinitionKey = ref('leaveApproval')
 const selectedModelId = ref<string | undefined>()
-const businessKey = ref('LEAVE-001')
-const variablesText = ref(JSON.stringify({ applicant: 'u001', approver: 'admin', days: 2 }, null, 2))
+const businessKey = ref(`LEAVE-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-001`)
+const variablesText = ref(JSON.stringify({
+  applicant: '张三',
+  approver: 'admin',
+  leaveType: '年假',
+  startDate: '2026-06-08',
+  endDate: '2026-06-09',
+  days: 2,
+  reason: '家庭事务',
+  attachmentNote: ''
+}, null, 2))
 const instance = ref<ProcessInstance | null>(null)
 const loading = ref(false)
 const listLoading = ref(false)
@@ -91,12 +103,12 @@ const startedTotal = ref(0)
 const router = useRouter()
 
 const startedColumns = [
-  { title: 'Instance ID', dataIndex: 'instanceId', key: 'instanceId' },
-  { title: 'Business Key', dataIndex: 'businessKey', key: 'businessKey' },
-  { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
-  { title: 'Started', dataIndex: 'startTime', key: 'startTime' },
-  { title: 'Ended', dataIndex: 'endTime', key: 'endTime' },
-  { title: 'Action', key: 'action', width: 150 }
+  { title: '实例 ID', dataIndex: 'instanceId', key: 'instanceId' },
+  { title: '业务编号', dataIndex: 'businessKey', key: 'businessKey' },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
+  { title: '发起时间', dataIndex: 'startTime', key: 'startTime' },
+  { title: '结束时间', dataIndex: 'endTime', key: 'endTime' },
+  { title: '操作', key: 'action', width: 150 }
 ]
 
 const startedPagination = computed<TablePaginationConfig>(() => ({
@@ -104,15 +116,15 @@ const startedPagination = computed<TablePaginationConfig>(() => ({
   pageSize: startedPageSize.value,
   total: startedTotal.value,
   showSizeChanger: true,
-  showTotal: (count) => `${count} started instances`
+  showTotal: (count) => `共 ${count} 个我发起的实例`
 }))
 
 async function start() {
   loading.value = true
   try {
-    const variables = parseJsonObject(variablesText.value, 'Variables')
+    const variables = parseJsonObject(variablesText.value, '流程变量')
     instance.value = await startProcessInstance({ processDefinitionKey: processDefinitionKey.value, businessKey: businessKey.value, variables })
-    message.success('Process started')
+    message.success('流程已启动')
     startedPage.value = 1
     await loadStartedInstances()
   } catch (error) {

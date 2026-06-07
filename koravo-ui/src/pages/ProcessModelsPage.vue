@@ -2,33 +2,33 @@
   <section class="page">
     <div class="page-heading">
       <div>
-        <h1>Process Models</h1>
-        <p>Manage BPMN drafts, deployments, disabled models, and archived models.</p>
+        <h1>流程模型</h1>
+        <p>管理 BPMN 草稿、部署版本、禁用模型和归档模型。</p>
       </div>
       <a-space>
-        <a-button :loading="loadingModels" @click="loadModels"><ReloadOutlined />Reload</a-button>
-        <a-button type="primary" @click="router.push('/process-designer')"><EditOutlined />Open Designer</a-button>
+        <a-button :loading="loadingModels" @click="loadModels"><ReloadOutlined />刷新</a-button>
+        <a-button type="primary" @click="router.push('/process-designer')"><EditOutlined />打开设计器</a-button>
       </a-space>
     </div>
 
     <a-form layout="vertical" class="form-grid">
-      <a-form-item label="Model name">
-        <a-input v-model:value="modelName" placeholder="Leave Approval" />
+      <a-form-item label="模型名称">
+        <a-input v-model:value="modelName" placeholder="请假审批流程" />
       </a-form-item>
-      <a-form-item label="BPMN file">
+      <a-form-item label="BPMN 文件">
         <a-upload :before-upload="beforeUpload" :max-count="1" accept=".xml,.bpmn,.bpmn20.xml">
-          <a-button><UploadOutlined />Select BPMN</a-button>
+          <a-button><UploadOutlined />选择 BPMN</a-button>
         </a-upload>
       </a-form-item>
       <a-form-item>
-        <a-button type="primary" :disabled="!file" :loading="loading" @click="deploy"><UploadOutlined />Deploy</a-button>
+        <a-button type="primary" :disabled="!file" :loading="loading" @click="deploy"><UploadOutlined />部署</a-button>
       </a-form-item>
     </a-form>
 
     <JsonPreview :value="deployment" />
 
     <a-form layout="vertical" class="form-grid panel-block">
-      <a-form-item label="Status">
+      <a-form-item label="状态">
         <a-select v-model:value="statusFilter" allow-clear @change="loadModels">
           <a-select-option value="DRAFT">DRAFT</a-select-option>
           <a-select-option value="DEPLOYED">DEPLOYED</a-select-option>
@@ -39,13 +39,16 @@
     </a-form>
 
     <a-table :data-source="models" :columns="columns" row-key="id" :loading="loadingModels" :pagination="false" class="panel-block">
+      <template #emptyText>
+        <a-empty description="暂无流程模型" />
+      </template>
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
           <a-space wrap>
-            <a-button size="small" @click="inspect(record.id)">Detail</a-button>
-            <a-button size="small" @click="router.push(`/process-designer?modelId=${record.id}`)">Edit</a-button>
-            <a-button size="small" :loading="actionLoading === `validate:${record.id}`" @click="validateModel(record.id)">Validate</a-button>
-            <a-button size="small" @click="exportModel(record)">Export</a-button>
+            <a-button size="small" @click="inspect(record.id)">详情</a-button>
+            <a-button size="small" @click="router.push(`/process-designer?modelId=${record.id}`)">编辑</a-button>
+            <a-button size="small" :loading="actionLoading === `validate:${record.id}`" @click="validateModel(record.id)">校验</a-button>
+            <a-button size="small" @click="exportModel(record)">导出</a-button>
             <a-button
               size="small"
               type="primary"
@@ -53,7 +56,7 @@
               :loading="actionLoading === `deploy:${record.id}`"
               @click="deployDraft(record.id)"
             >
-              Deploy
+              部署
             </a-button>
             <a-button
               v-if="record.status !== 'DISABLED' && record.status !== 'ARCHIVED'"
@@ -61,16 +64,16 @@
               :loading="actionLoading === `disable:${record.id}`"
               @click="disableModel(record.id)"
             >
-              Disable
+              禁用
             </a-button>
             <a-popconfirm
               v-if="record.status !== 'ARCHIVED'"
-              title="Archive this process model?"
-              ok-text="Archive"
-              cancel-text="Cancel"
+              title="确认归档该流程模型？"
+              ok-text="归档"
+              cancel-text="取消"
               @confirm="archiveModel(record.id)"
             >
-              <a-button size="small" danger :loading="actionLoading === `archive:${record.id}`">Archive</a-button>
+              <a-button size="small" danger :loading="actionLoading === `archive:${record.id}`">归档</a-button>
             </a-popconfirm>
           </a-space>
         </template>
@@ -102,7 +105,7 @@ import {
   type ProcessModelItem
 } from '../api/koravo'
 
-const modelName = ref('Leave Approval')
+const modelName = ref('请假审批流程')
 const router = useRouter()
 const file = ref<File | null>(null)
 const loading = ref(false)
@@ -115,13 +118,13 @@ const validation = ref<BpmnValidationResult | null>(null)
 const statusFilter = ref<string | undefined>()
 
 const columns = [
-  { title: 'Name', dataIndex: 'modelName', key: 'modelName' },
-  { title: 'Key', dataIndex: 'modelKey', key: 'modelKey' },
-  { title: 'Version', dataIndex: 'version', key: 'version', width: 90 },
-  { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
-  { title: 'Definition', dataIndex: 'flowableDefinitionId', key: 'flowableDefinitionId' },
-  { title: 'Updated', dataIndex: 'updatedAt', key: 'updatedAt', width: 210 },
-  { title: 'Action', key: 'action', width: 520 }
+  { title: '模型名称', dataIndex: 'modelName', key: 'modelName' },
+  { title: '模型 Key', dataIndex: 'modelKey', key: 'modelKey' },
+  { title: '版本', dataIndex: 'version', key: 'version', width: 90 },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
+  { title: '流程定义 Process Definition', dataIndex: 'flowableDefinitionId', key: 'flowableDefinitionId' },
+  { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 210 },
+  { title: '操作', key: 'action', width: 520 }
 ]
 
 function beforeUpload(nextFile: File) {
@@ -131,13 +134,13 @@ function beforeUpload(nextFile: File) {
 
 async function deploy() {
   if (!file.value) {
-    message.warning('Select a BPMN file first')
+    message.warning('请先选择 BPMN 文件')
     return
   }
   loading.value = true
   try {
     deployment.value = await deployProcessModel(modelName.value, file.value)
-    message.success('Process deployed')
+    message.success('流程部署成功')
     await loadModels()
   } finally {
     loading.value = false
@@ -163,9 +166,9 @@ async function validateModel(id: string) {
     const errorCount = validation.value.errors.length
     const warningCount = validation.value.warnings.length
     if (validation.value.valid) {
-      message.success(`BPMN valid, ${warningCount} warning(s)`)
+      message.success(`BPMN 校验通过，${warningCount} 个警告`)
     } else {
-      message.error(`BPMN invalid, ${errorCount} error(s)`)
+      message.error(`BPMN 校验失败，${errorCount} 个错误`)
     }
   }, false)
 }
@@ -173,21 +176,21 @@ async function validateModel(id: string) {
 async function deployDraft(id: string) {
   await runAction(`deploy:${id}`, async () => {
     await deployProcessModelDraft(id)
-    message.success('Model deployed')
+    message.success('模型部署成功')
   })
 }
 
 async function disableModel(id: string) {
   await runAction(`disable:${id}`, async () => {
     selectedModel.value = await disableProcessModel(id)
-    message.success('Model disabled')
+    message.success('模型已禁用')
   })
 }
 
 async function archiveModel(id: string) {
   await runAction(`archive:${id}`, async () => {
     selectedModel.value = await archiveProcessModel(id)
-    message.success('Model archived')
+    message.success('模型已归档')
   })
 }
 

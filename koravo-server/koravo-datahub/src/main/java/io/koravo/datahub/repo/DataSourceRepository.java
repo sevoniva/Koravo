@@ -10,4 +10,6 @@ public interface DataSourceRepository extends JpaRepository<KoDataSource, String
     List<KoDataSource> findByTenantIdAndDeletedFalseOrderByCreatedAtDesc(String tenantId);
 
     Optional<KoDataSource> findByIdAndTenantIdAndDeletedFalse(String id, String tenantId);
+
+    long countByTenantIdAndDeletedFalse(String tenantId);
 }

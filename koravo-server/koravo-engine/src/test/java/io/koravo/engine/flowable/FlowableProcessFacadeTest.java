@@ -4,6 +4,7 @@ import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.IdentityService;
+import org.flowable.engine.ManagementService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
@@ -29,12 +30,14 @@ class FlowableProcessFacadeTest {
     private final TaskService taskService = mock(TaskService.class);
     private final HistoryService historyService = mock(HistoryService.class);
     private final IdentityService identityService = mock(IdentityService.class);
+    private final ManagementService managementService = mock(ManagementService.class);
     private final FlowableProcessFacade facade = new FlowableProcessFacade(
             repositoryService,
             runtimeService,
             taskService,
             historyService,
-            identityService
+            identityService,
+            managementService
     );
 
     @Test

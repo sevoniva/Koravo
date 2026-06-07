@@ -5,29 +5,23 @@
         <div class="brand-mark">K</div>
         <div>
           <strong>Koravo</strong>
-          <span>Orchestration Console</span>
+          <span>流程编排控制台</span>
         </div>
       </div>
-      <a-menu :selectedKeys="[route.path]" theme="dark" mode="inline" @click="handleNav">
-        <a-menu-item key="/dashboard"><DashboardOutlined />Dashboard</a-menu-item>
-        <a-menu-item key="/process-models"><PartitionOutlined />Process Models</a-menu-item>
-        <a-menu-item key="/process-designer"><EditOutlined />Process Designer</a-menu-item>
-        <a-menu-item key="/process-instances"><PlayCircleOutlined />Process Instances</a-menu-item>
-        <a-menu-item key="/tasks"><CheckCircleOutlined />Tasks</a-menu-item>
-        <a-menu-item key="/forms"><FormOutlined />Forms</a-menu-item>
-        <a-menu-item key="/form-bindings"><LinkOutlined />Form Bindings</a-menu-item>
-        <a-menu-item key="/datasources"><DatabaseOutlined />Data Sources</a-menu-item>
-        <a-menu-item key="/ops"><ControlOutlined />Ops</a-menu-item>
-        <a-menu-item key="/audit-logs"><FileSearchOutlined />Audit Logs</a-menu-item>
+      <a-menu :selectedKeys="[activeMenuKey]" theme="dark" mode="inline" @click="handleNav">
+        <a-menu-item v-for="item in navItems" :key="item.path">
+          <component :is="item.icon" />
+          {{ item.title }}
+        </a-menu-item>
       </a-menu>
     </a-layout-sider>
     <a-layout>
       <a-layout-header class="app-header">
-        <div class="header-title">Koravo v0.2/v0.3 Console</div>
+        <div class="header-title">Koravo 控制台</div>
         <div class="identity-strip">
-          <a-input v-model:value="tenantId" size="small" addon-before="Tenant" />
-          <a-input v-model:value="userId" size="small" addon-before="User" />
-          <a-input v-model:value="requestId" size="small" addon-before="Request" placeholder="optional" />
+          <a-input v-model:value="tenantId" size="small" addon-before="租户" />
+          <a-input v-model:value="userId" size="small" addon-before="用户" />
+          <a-input v-model:value="requestId" size="small" addon-before="请求 ID" placeholder="可选" />
         </div>
       </a-layout-header>
       <a-layout-content class="app-content">
@@ -40,6 +34,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
+  ApiOutlined,
   CheckCircleOutlined,
   ControlOutlined,
   DashboardOutlined,
@@ -49,14 +44,45 @@ import {
   FormOutlined,
   LinkOutlined,
   PartitionOutlined,
-  PlayCircleOutlined
+  PlayCircleOutlined,
+  SettingOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
+import { menuRoutes } from '../router'
 import { useSessionStore } from '../stores/session'
 
 const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
+const iconMap = {
+  dashboard: DashboardOutlined,
+  quick: ThunderboltOutlined,
+  models: PartitionOutlined,
+  designer: EditOutlined,
+  instances: PlayCircleOutlined,
+  tasks: CheckCircleOutlined,
+  forms: FormOutlined,
+  bindings: LinkOutlined,
+  datasources: DatabaseOutlined,
+  connectors: ApiOutlined,
+  ops: ControlOutlined,
+  audit: FileSearchOutlined,
+  settings: SettingOutlined
+}
+
+const navItems = menuRoutes
+  .filter((item) => item.meta?.menu)
+  .map((item) => ({
+    path: item.path,
+    title: String(item.meta?.title || item.path),
+    icon: iconMap[String(item.meta?.icon) as keyof typeof iconMap] || DashboardOutlined
+  }))
+
+const activeMenuKey = computed(() => {
+  const match = navItems.find((item) => route.path === item.path || route.path.startsWith(`${item.path}/`))
+  return match?.path || '/dashboard'
+})
 
 const tenantId = computed({
   get: () => session.tenantId,

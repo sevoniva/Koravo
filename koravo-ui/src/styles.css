@@ -3,9 +3,20 @@
 @import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 
 :root {
-  color: #1f2933;
-  background: #eef2f3;
-  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  --color-bg: #eef2f3;
+  --color-surface: #f9fbfa;
+  --color-surface-strong: #ffffff;
+  --color-border: #d9e3df;
+  --color-text: #1f2933;
+  --color-muted: #60706a;
+  --color-brand: #2e7d5b;
+  --color-brand-soft: #dceee6;
+  --color-warn: #d97706;
+  --color-danger: #b42318;
+  --radius: 8px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: "Avenir Next", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   letter-spacing: 0;
 }
 
@@ -17,7 +28,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #eef2f3;
+  background: var(--color-bg);
 }
 
 .app-shell {
@@ -83,17 +94,32 @@ body {
   padding: 24px;
 }
 
-.page {
+.page,
+.page-container {
   max-width: 1180px;
   margin: 0 auto;
 }
 
-.page-heading {
+.page-container-wide {
+  max-width: none;
+}
+
+.page-heading,
+.page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 18px;
+}
+
+.page-header-main {
+  min-width: 0;
+}
+
+.page-breadcrumb {
+  margin-bottom: 6px;
+  color: var(--color-muted);
 }
 
 h1 {
@@ -104,10 +130,11 @@ h1 {
 
 p {
   margin: 0;
-  color: #60706a;
+  color: var(--color-muted);
 }
 
-.metric-grid {
+.metric-grid,
+.workbench-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
@@ -128,7 +155,182 @@ p {
 .metric-grid span {
   display: block;
   margin-top: 8px;
-  color: #60706a;
+  color: var(--color-muted);
+}
+
+.metric-card {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 124px;
+  padding: 16px;
+  text-align: left;
+  color: var(--color-text);
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: default;
+}
+
+.metric-card:not(:disabled) {
+  cursor: pointer;
+}
+
+.metric-card:not(:disabled):hover {
+  border-color: #9fc6b4;
+  box-shadow: 0 6px 18px rgba(30, 62, 50, 0.08);
+}
+
+.metric-card-label {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.metric-card strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.metric-card-description {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.toolbar,
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-bar {
+  margin-bottom: 14px;
+}
+
+.search-bar .ant-input-search {
+  width: min(360px, 100%);
+}
+
+.detail-section {
+  margin-top: 18px;
+  padding: 16px;
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.detail-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.detail-section h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  background: var(--color-surface-strong);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+}
+
+.copyable-text {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  gap: 4px;
+}
+
+.copyable-text code {
+  overflow: hidden;
+  max-width: min(520px, 100%);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.json-editor .ant-input {
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.json-editor-error,
+.error-block {
+  margin-top: 8px;
+}
+
+.two-column-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.quick-step-list {
+  display: grid;
+  gap: 10px;
+}
+
+.quick-step {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.quick-step-index {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: #fff;
+  background: var(--color-brand);
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.quick-step h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.quick-step p {
+  font-size: 13px;
+}
+
+.audit-list {
+  display: grid;
+  gap: 10px;
+}
+
+.audit-list-item {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.audit-list-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.connector-result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .form-grid {
@@ -287,15 +489,29 @@ p {
 
 @media (max-width: 860px) {
   .app-header,
-  .page-heading {
+  .page-heading,
+  .page-header,
+  .detail-section-header {
     align-items: stretch;
     flex-direction: column;
   }
 
   .identity-strip,
   .form-grid,
-  .metric-grid {
+  .metric-grid,
+  .workbench-grid,
+  .two-column-grid,
+  .connector-result-grid {
     grid-template-columns: 1fr;
+  }
+
+  .quick-step {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .quick-step .ant-btn {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .trace-viewer-heading {

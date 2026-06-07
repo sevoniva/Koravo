@@ -1,6 +1,8 @@
 package io.koravo.connector.log;
 
 import io.koravo.common.api.PageResult;
+import io.koravo.common.exception.BusinessException;
+import io.koravo.common.exception.ErrorCode;
 import io.koravo.connector.domain.KoConnectorExecutionLog;
 import io.koravo.connector.repo.ConnectorExecutionLogRepository;
 import io.koravo.tenant.TenantContextHolder;
@@ -9,12 +11,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class ConnectorExecutionLogQueryService {
     private final ConnectorExecutionLogRepository repository;
 
@@ -47,6 +51,12 @@ public class ConnectorExecutionLogQueryService {
                 failed.total(),
                 failed.items()
         );
+    }
+
+    public ConnectorExecutionLogResponse get(String id) {
+        return repository.findByIdAndTenantId(id, TenantContextHolder.getTenantId())
+                .map(this::toResponse)
+                .orElseThrow(() -> new BusinessException(ErrorCode.BAD_REQUEST, "连接器日志不存在"));
     }
 
     private Specification<KoConnectorExecutionLog> specification(String connectorType, String status, String requestId) {

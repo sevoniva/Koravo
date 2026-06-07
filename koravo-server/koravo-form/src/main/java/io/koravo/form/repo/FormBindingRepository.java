@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface FormBindingRepository extends JpaRepository<KoFormBinding, String> {
     List<KoFormBinding> findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(String tenantId);
 
+    long countByTenantIdAndDeletedFalse(String tenantId);
+
     List<KoFormBinding> findByTenantIdAndProcessModelIdAndDeletedFalseOrderByUpdatedAtDesc(
             String tenantId,
             String processModelId

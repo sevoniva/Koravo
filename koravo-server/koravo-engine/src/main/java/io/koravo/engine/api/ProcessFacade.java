@@ -47,6 +47,12 @@ public interface ProcessFacade {
 
     PageResult<ProcessInstanceDetailDTO> listInstances(InstanceQueryCommand command);
 
+    long countRunningInstances(String tenantId);
+
+    long countFailedJobs(String tenantId);
+
+    long countDeadLetterJobs(String tenantId);
+
     void terminateProcessInstance(String tenantId, String instanceId, String reason);
 
     void suspendProcessInstance(String tenantId, String instanceId);

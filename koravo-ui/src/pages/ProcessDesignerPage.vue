@@ -2,26 +2,30 @@
   <section class="designer-page">
     <div class="page-heading">
       <div>
-        <h1>Process Designer</h1>
-        <p>{{ selectedModel ? `${selectedModel.modelName} v${selectedModel.version} · ${selectedModel.status}` : 'Draft BPMN model' }}</p>
+        <h1>流程设计器</h1>
+        <p>{{ selectedModel ? `${selectedModel.modelName} · 版本 ${selectedModel.version} · ${selectedModel.status}` : '请假审批流程草稿' }}</p>
       </div>
       <a-space wrap>
-        <a-button @click="newDiagram"><PlusOutlined />New</a-button>
+        <a-button @click="newDiagram"><PlusOutlined />新建</a-button>
+        <a-button @click="loadLeaveDemo"><PlusOutlined />加载请假审批示例</a-button>
         <a-upload :before-upload="beforeImport" :show-upload-list="false" accept=".xml,.bpmn,.bpmn20.xml">
-          <a-button><UploadOutlined />Import</a-button>
+          <a-button><UploadOutlined />导入</a-button>
         </a-upload>
-        <a-button :disabled="!selectedModel" @click="downloadSelected"><DownloadOutlined />Export</a-button>
-        <a-button :loading="saving" type="primary" @click="saveDraft"><SaveOutlined />Save Draft</a-button>
-        <a-button :loading="validating" @click="validate"><CheckCircleOutlined />Validate</a-button>
-        <a-button :loading="deploying" :disabled="!canDeploySelectedModel" type="primary" @click="deploy"><CloudUploadOutlined />Deploy</a-button>
+        <a-button :disabled="!selectedModel" @click="downloadSelected"><DownloadOutlined />导出</a-button>
+        <a-button :loading="saving" type="primary" @click="saveDraft"><SaveOutlined />保存草稿</a-button>
+        <a-button :loading="validating" @click="validate"><CheckCircleOutlined />校验</a-button>
+        <a-button :loading="deploying" :disabled="!canDeploySelectedModel" type="primary" @click="deploy"><CloudUploadOutlined />部署</a-button>
       </a-space>
     </div>
 
     <div class="designer-shell">
       <aside class="designer-sidebar">
-        <div class="panel-title">Models</div>
-        <a-button block size="small" :loading="loadingModels" @click="loadModels"><ReloadOutlined />Reload</a-button>
+        <div class="panel-title">模型列表</div>
+        <a-button block size="small" :loading="loadingModels" @click="loadModels"><ReloadOutlined />刷新</a-button>
         <a-list :data-source="models" size="small" class="model-list">
+          <template #emptyText>
+            <a-empty description="暂无流程模型" />
+          </template>
           <template #renderItem="{ item }">
             <a-list-item :class="{ active: item.id === selectedModel?.id }" @click="openModel(item)">
               <a-list-item-meta :title="item.modelName" :description="`${item.modelKey} · ${item.status}`" />
@@ -35,47 +39,48 @@
       </main>
 
       <aside class="designer-properties">
-        <div class="panel-title">Properties</div>
+        <div class="panel-title">模型属性</div>
         <a-form layout="vertical">
-          <a-form-item label="Model key">
+          <a-form-item label="模型 Key">
             <a-input v-model:value="form.modelKey" :disabled="!!selectedModel" />
           </a-form-item>
-          <a-form-item label="Model name">
+          <a-form-item label="模型名称">
             <a-input v-model:value="form.modelName" />
           </a-form-item>
-          <a-form-item label="Description">
+          <a-form-item label="说明">
             <a-textarea v-model:value="form.description" :rows="3" />
           </a-form-item>
         </a-form>
 
-        <div class="panel-title">Selected Element</div>
+        <div class="panel-title">选中节点</div>
         <a-alert
           v-if="!selectedElement"
           type="info"
-          message="Select a BPMN element to edit its properties."
+          message="选择 BPMN 节点后可编辑基础属性。"
+          description="当前版本支持节点 ID、名称、用户任务处理人和 HTTP Service Task 基础 XML 配置。"
           show-icon
         />
         <a-form v-else layout="vertical">
-          <a-form-item label="Element type">
+          <a-form-item label="节点类型">
             <a-input :value="selectedElement.type" disabled />
           </a-form-item>
-          <a-form-item label="Element id">
+          <a-form-item label="节点 ID">
             <a-input v-model:value="elementForm.id" />
           </a-form-item>
-          <a-form-item label="Element name">
+          <a-form-item label="节点名称">
             <a-input v-model:value="elementForm.name" />
           </a-form-item>
-          <a-form-item v-if="selectedElement.type === 'bpmn:UserTask'" label="Assignee">
+          <a-form-item v-if="selectedElement.type === 'bpmn:UserTask'" label="处理人 Assignee">
             <a-input v-model:value="elementForm.assignee" />
           </a-form-item>
           <template v-if="selectedElement.type === 'bpmn:ServiceTask'">
             <a-form-item label="Delegate expression">
               <a-input v-model:value="elementForm.delegateExpression" />
             </a-form-item>
-            <a-form-item label="Connector type">
+            <a-form-item label="连接器类型">
               <a-input v-model:value="elementForm.connectorType" />
             </a-form-item>
-            <a-form-item label="Method">
+            <a-form-item label="请求方法">
               <a-select v-model:value="elementForm.method">
                 <a-select-option value="GET">GET</a-select-option>
                 <a-select-option value="POST">POST</a-select-option>
@@ -84,27 +89,27 @@
             <a-form-item label="URL">
               <a-input v-model:value="elementForm.url" />
             </a-form-item>
-            <a-form-item label="Headers JSON">
+            <a-form-item label="请求头 JSON">
               <a-textarea v-model:value="elementForm.headers" :rows="3" />
             </a-form-item>
-            <a-form-item label="Body">
+            <a-form-item label="请求体">
               <a-textarea v-model:value="elementForm.body" :rows="3" />
             </a-form-item>
-            <a-form-item label="Timeout millis">
+            <a-form-item label="超时毫秒">
               <a-input v-model:value="elementForm.timeoutMillis" />
             </a-form-item>
-            <a-form-item label="Output variable">
+            <a-form-item label="输出变量">
               <a-input v-model:value="elementForm.outputVariable" />
             </a-form-item>
           </template>
-          <a-button size="small" type="primary" @click="applyElementProperties">Apply</a-button>
+          <a-button size="small" type="primary" @click="applyElementProperties">应用</a-button>
         </a-form>
 
-        <div class="panel-title">Validation</div>
+        <div class="panel-title">校验结果</div>
         <a-alert
           v-if="validation"
           :type="validation.valid ? 'success' : 'error'"
-          :message="validation.valid ? 'BPMN is valid' : 'BPMN has errors'"
+          :message="validation.valid ? 'BPMN 校验通过' : 'BPMN 存在错误'"
           show-icon
         />
         <a-list v-if="validation" :data-source="[...validation.errors, ...validation.warnings]" size="small">
@@ -160,8 +165,8 @@ const validating = ref(false)
 const deploying = ref(false)
 const form = reactive({
   modelKey: 'leaveApproval',
-  modelName: 'Leave Approval',
-  description: 'Default approval process'
+  modelName: '请假审批流程',
+  description: '提交请假申请后由 admin 审批。'
 })
 const elementForm = reactive({
   id: '',
@@ -218,12 +223,12 @@ const defaultBpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
              xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
              xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
              targetNamespace="https://koravo.io/designer">
-  <process id="leaveApproval" name="Leave Approval" isExecutable="true">
-    <startEvent id="start" name="Start"/>
+  <process id="leaveApproval" name="请假审批流程" isExecutable="true">
+    <startEvent id="start" name="开始"/>
     <sequenceFlow id="flow_start_approve" sourceRef="start" targetRef="approveTask"/>
-    <userTask id="approveTask" name="Approve" flowable:assignee="\${approver}"/>
+    <userTask id="approveTask" name="审批请假" flowable:assignee="\${approver}"/>
     <sequenceFlow id="flow_approve_end" sourceRef="approveTask" targetRef="end"/>
-    <endEvent id="end" name="End"/>
+    <endEvent id="end" name="结束"/>
   </process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_leaveApproval">
     <bpmndi:BPMNPlane id="BPMNPlane_leaveApproval" bpmnElement="leaveApproval">
@@ -278,10 +283,15 @@ async function newDiagram() {
   selectElement(null)
   validation.value = null
   form.modelKey = 'leaveApproval'
-  form.modelName = 'Leave Approval'
-  form.description = 'Default approval process'
+  form.modelName = '请假审批流程'
+  form.description = '提交请假申请后由 admin 审批。'
   await modeler.value.importXML(defaultBpmnXml)
   modeler.value.get('canvas').zoom('fit-viewport')
+}
+
+async function loadLeaveDemo() {
+  await newDiagram()
+  message.success('已加载请假审批示例')
 }
 
 async function openModel(model: ProcessModelItem) {
@@ -321,7 +331,7 @@ function normalizeBpmnId(value: string) {
 
 async function saveDraft() {
   if (!normalizeBpmnId(form.modelKey) || !form.modelName.trim()) {
-    message.warning('Model key and name are required')
+    message.warning('请输入模型 Key 和模型名称')
     return
   }
   saving.value = true
@@ -330,7 +340,7 @@ async function saveDraft() {
     selectedModel.value = selectedModel.value
       ? await updateProcessModel(selectedModel.value.id, { modelName: form.modelName, description: form.description, bpmnXml })
       : await createProcessModel({ modelKey: form.modelKey, modelName: form.modelName, description: form.description, bpmnXml })
-    message.success('Draft saved')
+    message.success('草稿已保存')
     await loadModels()
   } finally {
     saving.value = false
@@ -341,7 +351,7 @@ async function validate() {
   validating.value = true
   try {
     validation.value = await validateProcessModelXml(await currentXml())
-    message[validation.value.valid ? 'success' : 'warning'](validation.value.valid ? 'BPMN is valid' : 'BPMN has validation errors')
+    message[validation.value.valid ? 'success' : 'warning'](validation.value.valid ? 'BPMN 校验通过' : 'BPMN 存在校验错误')
   } finally {
     validating.value = false
   }
@@ -354,7 +364,7 @@ async function deploy() {
     await saveDraft()
     const result = await deployProcessModelDraft(selectedModel.value.id)
     selectedModel.value = result.model
-    message.success('Model deployed')
+    message.success('模型已部署')
     await loadModels()
   } finally {
     deploying.value = false
@@ -365,7 +375,7 @@ async function beforeImport(file: File) {
   const xml = await file.text()
   selectedModel.value = await importProcessModel({
     modelName: file.name.replace(/\.(bpmn20\.xml|bpmn|xml)$/i, ''),
-    description: 'Imported from designer',
+    description: '从设计器导入',
     bpmnXml: xml
   })
   form.modelKey = selectedModel.value.modelKey
@@ -374,7 +384,7 @@ async function beforeImport(file: File) {
   await modeler.value.importXML(selectedModel.value.bpmnXml || xml)
   modeler.value.get('canvas').zoom('fit-viewport')
   await loadModels()
-  message.success('BPMN imported')
+  message.success('BPMN 已导入')
   return false
 }
 
@@ -414,7 +424,7 @@ function applyElementProperties() {
   if (!selectedElement.value || !modeler.value) return
   const elementId = normalizeBpmnId(elementForm.id)
   if (!elementId) {
-    message.warning('Element id is required')
+    message.warning('请输入节点 ID')
     return
   }
   const modeling = modeler.value.get('modeling')
@@ -437,7 +447,7 @@ function applyElementProperties() {
   }
   selectElement(selectedElement.value)
   validation.value = null
-  message.success('Element properties updated')
+  message.success('节点属性已更新')
 }
 
 function readConnectorField(businessObject: any, name: string) {
@@ -479,7 +489,7 @@ function setConnectorField(businessObject: any, name: string, value: string) {
 
 function validateConnectorFields() {
   try {
-    parseJsonObject(elementForm.headers || '{}', 'Headers')
+    parseJsonObject(elementForm.headers || '{}', '请求头 JSON')
   } catch (error) {
     if (error instanceof JsonInputError) {
       message.error(error.message)
@@ -487,11 +497,11 @@ function validateConnectorFields() {
     return false
   }
   if (!/^[1-9]\d*$/.test(elementForm.timeoutMillis || '')) {
-    message.error('Timeout millis must be a positive integer')
+    message.error('超时毫秒必须是正整数')
     return false
   }
   if (!elementForm.url.trim()) {
-    message.error('Connector URL is required')
+    message.error('请输入连接器 URL')
     return false
   }
   return true

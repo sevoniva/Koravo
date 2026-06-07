@@ -7,6 +7,7 @@ import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.ProcessTraceDTO;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.ops.dto.OpsCapabilityResponse;
+import io.koravo.ops.dto.OpsSummaryResponse;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,41 @@ public class ProcessOpsService {
 
     public ProcessTraceDTO getInstanceTrace(String instanceId) {
         return processFacade.getInstanceTrace(TenantContextHolder.getTenantId(), instanceId);
+    }
+
+    public OpsSummaryResponse summary(long connectorFailureCount) {
+        String tenantId = TenantContextHolder.getTenantId();
+        long failedJobs = processFacade.countFailedJobs(tenantId);
+        long deadLetterJobs = processFacade.countDeadLetterJobs(tenantId);
+        return new OpsSummaryResponse(
+                processFacade.countRunningInstances(tenantId),
+                failedJobs,
+                deadLetterJobs,
+                connectorFailureCount,
+                List.of(
+                        new OpsSummaryResponse.OpsSummaryItem(
+                                "failed-jobs",
+                                "失败任务",
+                                failedJobs > 0 ? "WARN" : "OK",
+                                failedJobs,
+                                failedJobs > 0 ? "存在执行异常任务" : "暂无失败任务"
+                        ),
+                        new OpsSummaryResponse.OpsSummaryItem(
+                                "dead-letter-jobs",
+                                "死信任务",
+                                deadLetterJobs > 0 ? "WARN" : "OK",
+                                deadLetterJobs,
+                                deadLetterJobs > 0 ? "存在死信任务" : "暂无死信任务"
+                        ),
+                        new OpsSummaryResponse.OpsSummaryItem(
+                                "connector-failures",
+                                "连接器失败",
+                                connectorFailureCount > 0 ? "WARN" : "OK",
+                                connectorFailureCount,
+                                connectorFailureCount > 0 ? "存在连接器失败记录" : "暂无连接器失败"
+                        )
+                )
+        );
     }
 
     public List<OpsCapabilityResponse> capabilities() {

@@ -12,11 +12,11 @@ export function parseJsonObject(text: string, label: string): JsonObject {
   try {
     value = JSON.parse(text)
   } catch {
-    throw new JsonInputError(`${label} must be valid JSON`)
+    throw new JsonInputError(`${label} 必须是合法 JSON`)
   }
 
   if (!isJsonObject(value)) {
-    throw new JsonInputError(`${label} must be a JSON object`)
+    throw new JsonInputError(`${label} 必须是 JSON 对象`)
   }
 
   return value

@@ -9,6 +9,7 @@ import io.koravo.model.dto.ProcessModelExportResponse;
 import io.koravo.model.dto.ProcessModelImportRequest;
 import io.koravo.model.dto.ProcessModelResponse;
 import io.koravo.model.dto.ProcessModelUpdateRequest;
+import io.koravo.model.dto.BpmnTaskDefinitionResponse;
 import io.koravo.model.service.ProcessModelService;
 import io.koravo.model.validation.BpmnValidationResult;
 import jakarta.validation.Valid;
@@ -57,6 +58,11 @@ public class ProcessModelController {
     @GetMapping("/api/v1/process-models/{id}")
     public ApiResponse<ProcessModelResponse> get(@PathVariable String id) {
         return ApiResponse.success(processModelService.get(id));
+    }
+
+    @GetMapping("/api/v1/process-models/{id}/task-definitions")
+    public ApiResponse<List<BpmnTaskDefinitionResponse>> taskDefinitions(@PathVariable String id) {
+        return ApiResponse.success(processModelService.taskDefinitions(id));
     }
 
     @PutMapping("/api/v1/process-models/{id}")

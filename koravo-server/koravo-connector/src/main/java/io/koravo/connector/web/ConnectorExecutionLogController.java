@@ -6,6 +6,7 @@ import io.koravo.connector.log.ConnectorExecutionLogQueryService;
 import io.koravo.connector.log.ConnectorExecutionLogResponse;
 import io.koravo.connector.log.ConnectorExecutionSummaryResponse;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,5 +34,10 @@ public class ConnectorExecutionLogController {
             @RequestParam(required = false) String connectorType
     ) {
         return ApiResponse.success(queryService.summary(connectorType));
+    }
+
+    @GetMapping("/api/v1/connector-execution-logs/{id}")
+    public ApiResponse<ConnectorExecutionLogResponse> get(@PathVariable String id) {
+        return ApiResponse.success(queryService.get(id));
     }
 }

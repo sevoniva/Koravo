@@ -11,6 +11,7 @@ import io.koravo.model.dto.ProcessModelExportResponse;
 import io.koravo.model.dto.ProcessModelImportRequest;
 import io.koravo.model.dto.ProcessModelResponse;
 import io.koravo.model.dto.ProcessModelUpdateRequest;
+import io.koravo.model.dto.BpmnTaskDefinitionResponse;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
 import io.koravo.model.repo.ProcessModelRepository;
@@ -23,12 +24,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 @Service
 public class ProcessModelService {
@@ -209,6 +215,34 @@ public class ProcessModelService {
         return new ProcessModelExportResponse(exportFileName(model), model.getBpmnXml());
     }
 
+    @Transactional(readOnly = true)
+    public List<BpmnTaskDefinitionResponse> taskDefinitions(String id) {
+        KoProcessModel model = find(id);
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            NodeList tasks = factory.newDocumentBuilder()
+                    .parse(new InputSource(new StringReader(model.getBpmnXml())))
+                    .getElementsByTagNameNS("*", "userTask");
+            java.util.ArrayList<BpmnTaskDefinitionResponse> result = new java.util.ArrayList<>();
+            for (int i = 0; i < tasks.getLength(); i++) {
+                Element task = (Element) tasks.item(i);
+                result.add(new BpmnTaskDefinitionResponse(
+                        task.getAttribute("id"),
+                        task.getAttribute("name"),
+                        "UserTask",
+                        readAttribute(task, "assignee")
+                ));
+            }
+            return result;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "无法解析 BPMN 任务节点");
+        }
+    }
+
     private String readFile(MultipartFile file) {
         try {
             return new String(file.getBytes(), StandardCharsets.UTF_8);
@@ -291,5 +325,15 @@ public class ProcessModelService {
         int start = idIndex + 4;
         int end = bpmnXml.indexOf('"', start);
         return end > start ? bpmnXml.substring(start, end) : "importedProcess";
+    }
+
+    private String readAttribute(Element element, String name) {
+        if (element.hasAttribute(name)) {
+            return element.getAttribute(name);
+        }
+        if (element.hasAttribute("flowable:" + name)) {
+            return element.getAttribute("flowable:" + name);
+        }
+        return element.getAttributeNS("http://flowable.org/bpmn", name);
     }
 }

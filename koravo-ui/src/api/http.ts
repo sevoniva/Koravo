@@ -34,7 +34,7 @@ http.interceptors.response.use(
   (error) => {
     const session = useSessionStore()
     session.setLastRequestId(error.response?.data?.requestId || error.response?.headers?.['x-request-id'])
-    const text = error.response?.data?.message || error.message || 'Request failed'
+    const text = readableError(error)
     message.error(text)
     return Promise.reject(error)
   }
@@ -47,4 +47,20 @@ export async function apiData<T>(request: Promise<{ data: ApiResponse<T> }>): Pr
     throw new Error(response.data.message)
   }
   return response.data.data
+}
+
+function readableError(error: any) {
+  const requestId = error.response?.data?.requestId || error.response?.headers?.['x-request-id']
+  const suffix = requestId ? `（请求 ID：${requestId}）` : ''
+  const serverMessage = error.response?.data?.message
+  if (serverMessage) {
+    return `${serverMessage}${suffix}`
+  }
+  if (error.code === 'ECONNABORTED') {
+    return `请求超时，请检查后端服务是否正常${suffix}`
+  }
+  if (!error.response) {
+    return `无法连接后端服务，请确认 koravo-server 已启动${suffix}`
+  }
+  return `请求失败：HTTP ${error.response.status}${suffix}`
 }
