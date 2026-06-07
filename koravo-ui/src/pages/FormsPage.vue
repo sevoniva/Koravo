@@ -52,6 +52,7 @@ import {
   updateFormSchema,
   type FormSchemaItem
 } from '../api/koravo'
+import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -91,10 +92,12 @@ async function load() {
 
 async function save() {
   try {
-    JSON.parse(form.schemaJson)
-    if (form.uiSchemaJson) JSON.parse(form.uiSchemaJson)
-  } catch {
-    message.error('Schema fields must contain valid JSON')
+    parseJsonObject(form.schemaJson, 'Schema JSON')
+    if (form.uiSchemaJson) parseJsonObject(form.uiSchemaJson, 'UI schema JSON')
+  } catch (error) {
+    if (error instanceof JsonInputError) {
+      message.error(error.message)
+    }
     return
   }
   saving.value = true

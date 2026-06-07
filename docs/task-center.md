@@ -75,6 +75,7 @@ Completion behavior:
 - completes the Flowable task through `ProcessFacade`
 - writes a `TASK_COMPLETE` audit log
 - renders simple bound form schema fields in the console while keeping raw JSON form data editing as a fallback
+- validates completion variables and form data as JSON objects before submitting the request
 
 ## Current Limits
 

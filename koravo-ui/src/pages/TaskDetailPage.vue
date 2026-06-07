@@ -107,6 +107,7 @@ import { message } from 'ant-design-vue'
 import { CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
 import { completeTask, getTaskDetail, type JsonRecord, type TaskDetail } from '../api/koravo'
+import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const route = useRoute()
 const router = useRouter()
@@ -201,8 +202,8 @@ function syncFormDataJson() {
 async function submit() {
   submitting.value = true
   try {
-    const variables = JSON.parse(variablesJson.value) as JsonRecord
-    const formData = JSON.parse(formDataJson.value) as JsonRecord
+    const variables = parseJsonObject(variablesJson.value, 'Variables') as JsonRecord
+    const formData = parseJsonObject(formDataJson.value, 'Form data') as JsonRecord
     await completeTask(taskId.value, {
       variables,
       formData,
@@ -212,8 +213,8 @@ async function submit() {
     message.success('Task completed')
     router.push('/tasks')
   } catch (error) {
-    if (error instanceof SyntaxError) {
-      message.error('JSON input is invalid')
+    if (error instanceof JsonInputError) {
+      message.error(error.message)
     }
   } finally {
     submitting.value = false

@@ -30,6 +30,7 @@ import { message } from 'ant-design-vue'
 import { PlayCircleOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
 import { startProcessInstance, type ProcessInstance } from '../api/koravo'
+import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const processDefinitionKey = ref('leaveApproval')
 const businessKey = ref('LEAVE-001')
@@ -41,12 +42,12 @@ const router = useRouter()
 async function start() {
   loading.value = true
   try {
-    const variables = JSON.parse(variablesText.value)
+    const variables = parseJsonObject(variablesText.value, 'Variables')
     instance.value = await startProcessInstance({ processDefinitionKey: processDefinitionKey.value, businessKey: businessKey.value, variables })
     message.success('Process started')
   } catch (error) {
-    if (error instanceof SyntaxError) {
-      message.error('Variables must be valid JSON')
+    if (error instanceof JsonInputError) {
+      message.error(error.message)
     }
   } finally {
     loading.value = false

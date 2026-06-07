@@ -30,6 +30,7 @@ Bindings can target:
 
 Task detail resolves binding by `processDefinitionId + taskDefinitionKey` and returns the bound form schema when present.
 The console renders simple JSON Schema object fields for bound task forms. Supported field types are `string`, `number`, `integer`, and `boolean`; complex schema constructs can still be submitted through the raw JSON form data editor.
+The console validates form schema, UI schema, variables, and raw form data inputs as JSON objects before calling the API.
 
 ## Snapshot Behavior
 
