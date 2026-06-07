@@ -30,7 +30,7 @@
         <a-table :data-source="startedInstances" :columns="startedColumns" row-key="instanceId" :pagination="false">
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
-              <a-button size="small" @click="router.push('/ops')">Open Ops</a-button>
+              <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">Detail</a-button>
             </template>
           </template>
         </a-table>

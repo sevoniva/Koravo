@@ -73,6 +73,7 @@ export interface ProcessTrace {
   businessKey: string
   status: string
   bpmnXml?: string
+  variables: JsonRecord
   currentActivityIds: string[]
   currentTasks: TaskItem[]
   timeline: ProcessTraceNode[]
@@ -261,7 +262,7 @@ export function startProcessInstance(payload: { processDefinitionKey: string; bu
 }
 
 export function getProcessInstance(instanceId: string) {
-  return apiData(http.get(`/process-instances/${instanceId}`))
+  return apiData<OpsProcessInstance>(http.get(`/process-instances/${instanceId}`))
 }
 
 export function listTasks() {

@@ -19,7 +19,7 @@
     </a-form>
 
     <JsonPreview :value="instance" />
-    <a-button v-if="instance" class="panel-block" @click="router.push('/ops')">Open in Ops</a-button>
+    <a-button v-if="instance" class="panel-block" @click="router.push(`/process-instances/${instance.instanceId}`)">Detail</a-button>
   </section>
 </template>
 

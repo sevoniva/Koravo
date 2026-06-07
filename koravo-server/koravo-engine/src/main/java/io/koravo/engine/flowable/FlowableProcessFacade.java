@@ -305,6 +305,7 @@ public class FlowableProcessFacade implements ProcessFacade {
                 historic.getBusinessKey(),
                 toInstanceStatus(historic),
                 readBpmnXml(historic.getProcessDefinitionId()),
+                getProcessVariables(tenantId, instanceId),
                 currentTasks.stream().map(TaskDTO::taskDefinitionKey).toList(),
                 currentTasks,
                 timeline

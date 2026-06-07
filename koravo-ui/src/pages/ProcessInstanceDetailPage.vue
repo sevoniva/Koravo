@@ -1,0 +1,156 @@
+<template>
+  <section class="page">
+    <div class="page-heading">
+      <div>
+        <h1>Process Instance</h1>
+        <p>{{ instance?.businessKey || instanceId }}</p>
+      </div>
+      <a-space>
+        <a-button @click="router.push('/process-instances')">Start</a-button>
+        <a-button :loading="loading" @click="load"><ReloadOutlined />Reload</a-button>
+      </a-space>
+    </div>
+
+    <a-descriptions v-if="instance" bordered :column="2" class="panel-block">
+      <a-descriptions-item label="Instance ID">{{ instance.instanceId }}</a-descriptions-item>
+      <a-descriptions-item label="Status">{{ instance.status }}</a-descriptions-item>
+      <a-descriptions-item label="Business Key">{{ instance.businessKey }}</a-descriptions-item>
+      <a-descriptions-item label="Started By">{{ instance.startUserId }}</a-descriptions-item>
+      <a-descriptions-item label="Process Definition">{{ instance.processDefinitionId }}</a-descriptions-item>
+      <a-descriptions-item label="Started">{{ instance.startTime }}</a-descriptions-item>
+      <a-descriptions-item label="Ended">{{ instance.endTime }}</a-descriptions-item>
+    </a-descriptions>
+
+    <div v-if="traceDetail" class="trace-viewer-panel panel-block">
+      <div class="trace-viewer-heading">
+        <strong>Trace Diagram</strong>
+        <a-space>
+          <span><i class="trace-dot trace-dot-completed" />Completed</span>
+          <span><i class="trace-dot trace-dot-current" />Current</span>
+        </a-space>
+      </div>
+      <div ref="traceCanvasRef" class="trace-viewer-canvas" />
+    </div>
+
+    <a-tabs v-if="traceDetail" class="panel-block">
+      <a-tab-pane key="tasks" tab="Current Tasks">
+        <a-table :data-source="traceDetail.currentTasks" :columns="taskColumns" row-key="taskId" :pagination="false" size="small">
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'action'">
+              <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">Detail</a-button>
+            </template>
+          </template>
+        </a-table>
+      </a-tab-pane>
+      <a-tab-pane key="timeline" tab="Timeline">
+        <a-table :data-source="traceDetail.timeline" :columns="timelineColumns" row-key="activityId" :pagination="false" size="small" />
+      </a-tab-pane>
+      <a-tab-pane key="variables" tab="Variables">
+        <JsonPreview :value="traceDetail.variables" />
+      </a-tab-pane>
+    </a-tabs>
+
+    <JsonPreview :value="{ instance, trace: traceDetail }" />
+  </section>
+</template>
+
+<script setup lang="ts">
+import { nextTick, onBeforeUnmount, onMounted, ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ReloadOutlined } from '@ant-design/icons-vue'
+import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
+import JsonPreview from '../components/JsonPreview.vue'
+import {
+  getProcessInstance,
+  getProcessTrace,
+  type OpsProcessInstance,
+  type ProcessTrace
+} from '../api/koravo'
+
+const route = useRoute()
+const router = useRouter()
+const instanceId = computed(() => String(route.params.instanceId))
+const loading = ref(false)
+const instance = ref<OpsProcessInstance | null>(null)
+const traceDetail = ref<ProcessTrace | null>(null)
+const traceCanvasRef = ref<HTMLElement | null>(null)
+
+const taskColumns = [
+  { title: 'Task', dataIndex: 'name', key: 'name' },
+  { title: 'Task Key', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
+  { title: 'Assignee', dataIndex: 'assignee', key: 'assignee', width: 140 },
+  { title: 'Created', dataIndex: 'createTime', key: 'createTime', width: 220 },
+  { title: 'Action', key: 'action', width: 100 }
+]
+
+const timelineColumns = [
+  { title: 'Activity ID', dataIndex: 'activityId', key: 'activityId' },
+  { title: 'Name', dataIndex: 'activityName', key: 'activityName' },
+  { title: 'Type', dataIndex: 'activityType', key: 'activityType' },
+  { title: 'Status', dataIndex: 'status', key: 'status', width: 110 },
+  { title: 'Start', dataIndex: 'startTime', key: 'startTime' },
+  { title: 'End', dataIndex: 'endTime', key: 'endTime' }
+]
+
+let traceViewer: any = null
+
+async function load() {
+  loading.value = true
+  try {
+    const [instanceDetail, trace] = await Promise.all([
+      getProcessInstance(instanceId.value),
+      getProcessTrace(instanceId.value)
+    ])
+    instance.value = instanceDetail
+    traceDetail.value = trace
+    await renderTraceDiagram()
+  } finally {
+    loading.value = false
+  }
+}
+
+async function renderTraceDiagram() {
+  if (!traceDetail.value?.bpmnXml) {
+    destroyTraceViewer()
+    return
+  }
+
+  await nextTick()
+  if (!traceCanvasRef.value) {
+    return
+  }
+
+  destroyTraceViewer()
+  traceViewer = new BpmnNavigatedViewer({
+    container: traceCanvasRef.value
+  })
+
+  await traceViewer.importXML(traceDetail.value.bpmnXml)
+
+  const canvas = traceViewer.get('canvas')
+  const completedActivityIds = traceDetail.value.timeline
+    .filter((item) => item.status === 'COMPLETED')
+    .map((item) => item.activityId)
+
+  for (const activityId of completedActivityIds) {
+    canvas.addMarker(activityId, 'trace-completed')
+  }
+  for (const activityId of traceDetail.value.currentActivityIds) {
+    canvas.addMarker(activityId, 'trace-current')
+  }
+  canvas.zoom('fit-viewport')
+}
+
+function destroyTraceViewer() {
+  if (traceViewer) {
+    traceViewer.destroy()
+    traceViewer = null
+  }
+}
+
+onMounted(load)
+
+onBeforeUnmount(() => {
+  destroyTraceViewer()
+})
+</script>

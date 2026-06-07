@@ -17,11 +17,20 @@ Trace includes:
 - BPMN XML
 - current activity IDs
 - current tasks
+- process variables
 - historic activity timeline
 
 ## Console
 
-Ops renders trace BPMN XML with `bpmn-js`:
+The process instance detail page at `/process-instances/{instanceId}` renders:
+
+- instance metadata
+- BPMN trace diagram
+- current tasks
+- historic activity timeline
+- process variable summary
+
+Ops also renders trace BPMN XML with `bpmn-js`:
 
 - completed activities are highlighted
 - current activities are highlighted
@@ -40,5 +49,4 @@ These actions are tenant scoped and audited.
 
 ## Current Limits
 
-- Dedicated process instance detail route is still represented by the Ops page rather than a separate `/process-instances/{id}` console page.
 - Failed jobs, dead-letter jobs, retry, and migration APIs are reserved for the next Ops iteration.

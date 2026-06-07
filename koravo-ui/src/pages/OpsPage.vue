@@ -16,6 +16,7 @@
               <a-space>
                 <a-button size="small" @click="inspect(record.instanceId)">Inspect</a-button>
                 <a-button size="small" type="primary" @click="trace(record.instanceId)">Trace</a-button>
+                <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">Detail</a-button>
                 <a-button
                   v-if="record.status === 'RUNNING'"
                   size="small"
@@ -100,6 +101,7 @@
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
@@ -118,6 +120,7 @@ import {
 } from '../api/koravo'
 
 const loading = ref(false)
+const router = useRouter()
 const instances = ref<OpsProcessInstance[]>([])
 const detail = ref<unknown>(null)
 const traceDetail = ref<ProcessTrace | null>(null)
@@ -136,7 +139,7 @@ const columns = [
   { title: 'Business Key', dataIndex: 'businessKey', key: 'businessKey' },
   { title: 'Status', dataIndex: 'status', key: 'status' },
   { title: 'Started', dataIndex: 'startTime', key: 'startTime' },
-  { title: 'Action', key: 'action', width: 320 }
+  { title: 'Action', key: 'action', width: 380 }
 ]
 
 const traceColumns = [
