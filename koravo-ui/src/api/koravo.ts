@@ -292,8 +292,8 @@ export function listDoneTasks() {
   return apiData<PageResult<TaskItem>>(http.get('/tasks/done?page=1&pageSize=20'))
 }
 
-export function listStartedInstances() {
-  return apiData<PageResult<OpsProcessInstance>>(http.get('/tasks/started?page=1&pageSize=20'))
+export function listStartedInstances(params?: { page?: number; pageSize?: number }) {
+  return apiData<PageResult<OpsProcessInstance>>(http.get('/tasks/started', { params }))
 }
 
 export function getTaskDetail(taskId: string) {
