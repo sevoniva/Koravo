@@ -29,10 +29,17 @@
     <a-table :data-source="items" :columns="columns" row-key="id" :pagination="false">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <a-button size="small" @click="test(record.id)">Test</a-button>
+          <a-space>
+            <a-button size="small" @click="test(record.id)">Test</a-button>
+            <a-button size="small" @click="openLogs(record.id)">Logs</a-button>
+          </a-space>
         </template>
       </template>
     </a-table>
+
+    <a-modal v-model:open="logsOpen" title="Datasource test logs" :footer="null" width="760px">
+      <a-table :data-source="logs" :columns="logColumns" row-key="id" :pagination="false" size="small" />
+    </a-modal>
   </section>
 </template>
 
@@ -40,10 +47,19 @@
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { DatabaseOutlined, ReloadOutlined } from '@ant-design/icons-vue'
-import { createDataSource, listDataSources, testDataSource, type DataSourceItem } from '../api/koravo'
+import {
+  createDataSource,
+  listDataSources,
+  listDataSourceTestLogs,
+  testDataSource,
+  type DataSourceItem,
+  type DataSourceTestLogItem
+} from '../api/koravo'
 
 const saving = ref(false)
 const items = ref<DataSourceItem[]>([])
+const logsOpen = ref(false)
+const logs = ref<DataSourceTestLogItem[]>([])
 const form = reactive({
   name: 'Local PostgreSQL',
   type: 'POSTGRESQL',
@@ -60,7 +76,14 @@ const columns = [
   { title: 'URL', dataIndex: 'jdbcUrl', key: 'jdbcUrl' },
   { title: 'User', dataIndex: 'username', key: 'username' },
   { title: 'Status', dataIndex: 'status', key: 'status' },
-  { title: 'Action', key: 'action', width: 100 }
+  { title: 'Action', key: 'action', width: 150 }
+]
+
+const logColumns = [
+  { title: 'Time', dataIndex: 'createdAt', key: 'createdAt', width: 190 },
+  { title: 'Success', dataIndex: 'success', key: 'success', width: 90 },
+  { title: 'Elapsed', dataIndex: 'elapsedMillis', key: 'elapsedMillis', width: 100 },
+  { title: 'Message', dataIndex: 'message', key: 'message' }
 ]
 
 async function load() {
@@ -82,6 +105,13 @@ async function create() {
 async function test(id: string) {
   const result = await testDataSource(id)
   message.info(JSON.stringify(result))
+  await openLogs(id)
+}
+
+async function openLogs(id: string) {
+  const page = await listDataSourceTestLogs(id)
+  logs.value = page.items
+  logsOpen.value = true
 }
 
 onMounted(load)

@@ -13,8 +13,11 @@
         <a-menu-item key="/process-models"><PartitionOutlined />Process Models</a-menu-item>
         <a-menu-item key="/process-instances"><PlayCircleOutlined />Process Instances</a-menu-item>
         <a-menu-item key="/tasks"><CheckCircleOutlined />Tasks</a-menu-item>
+        <a-menu-item key="/forms"><FormOutlined />Forms</a-menu-item>
+        <a-menu-item key="/form-bindings"><LinkOutlined />Form Bindings</a-menu-item>
         <a-menu-item key="/datasources"><DatabaseOutlined />Data Sources</a-menu-item>
         <a-menu-item key="/ops"><ControlOutlined />Ops</a-menu-item>
+        <a-menu-item key="/audit-logs"><FileSearchOutlined />Audit Logs</a-menu-item>
       </a-menu>
     </a-layout-sider>
     <a-layout>
@@ -38,6 +41,9 @@ import {
   ControlOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  FileSearchOutlined,
+  FormOutlined,
+  LinkOutlined,
   PartitionOutlined,
   PlayCircleOutlined
 } from '@ant-design/icons-vue'
