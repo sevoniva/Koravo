@@ -351,6 +351,10 @@ export function listDataSources() {
   return apiData<DataSourceItem[]>(http.get('/datasources'))
 }
 
+export function getDataSource(id: string) {
+  return apiData<DataSourceItem>(http.get(`/datasources/${id}`))
+}
+
 export function testDataSource(id: string) {
   return apiData(http.post(`/datasources/${id}/test`))
 }

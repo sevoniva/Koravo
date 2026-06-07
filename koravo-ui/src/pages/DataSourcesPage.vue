@@ -30,6 +30,7 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
           <a-space>
+            <a-button size="small" @click="openDetail(record.id)">Detail</a-button>
             <a-button size="small" @click="test(record.id)">Test</a-button>
             <a-button size="small" @click="openLogs(record.id)">Logs</a-button>
           </a-space>
@@ -40,6 +41,20 @@
     <a-modal v-model:open="logsOpen" title="Datasource test logs" :footer="null" width="760px">
       <a-table :data-source="logs" :columns="logColumns" row-key="id" :pagination="false" size="small" />
     </a-modal>
+
+    <a-modal v-model:open="detailOpen" title="Datasource detail" :footer="null" width="760px">
+      <a-descriptions v-if="detail" bordered :column="2">
+        <a-descriptions-item label="Name">{{ detail.name }}</a-descriptions-item>
+        <a-descriptions-item label="Type">{{ detail.type }}</a-descriptions-item>
+        <a-descriptions-item label="JDBC URL">{{ detail.jdbcUrl }}</a-descriptions-item>
+        <a-descriptions-item label="Username">{{ detail.username }}</a-descriptions-item>
+        <a-descriptions-item label="Driver">{{ detail.driverClassName }}</a-descriptions-item>
+        <a-descriptions-item label="Read only">{{ detail.readOnly }}</a-descriptions-item>
+        <a-descriptions-item label="Status">{{ detail.status }}</a-descriptions-item>
+        <a-descriptions-item label="Pool config">{{ detail.poolConfigJson }}</a-descriptions-item>
+      </a-descriptions>
+      <JsonPreview :value="detail" />
+    </a-modal>
   </section>
 </template>
 
@@ -47,8 +62,10 @@
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { DatabaseOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import JsonPreview from '../components/JsonPreview.vue'
 import {
   createDataSource,
+  getDataSource,
   listDataSources,
   listDataSourceTestLogs,
   testDataSource,
@@ -59,7 +76,9 @@ import {
 const saving = ref(false)
 const items = ref<DataSourceItem[]>([])
 const logsOpen = ref(false)
+const detailOpen = ref(false)
 const logs = ref<DataSourceTestLogItem[]>([])
+const detail = ref<DataSourceItem | null>(null)
 const form = reactive({
   name: 'Local PostgreSQL',
   type: 'POSTGRESQL',
@@ -76,7 +95,7 @@ const columns = [
   { title: 'URL', dataIndex: 'jdbcUrl', key: 'jdbcUrl' },
   { title: 'User', dataIndex: 'username', key: 'username' },
   { title: 'Status', dataIndex: 'status', key: 'status' },
-  { title: 'Action', key: 'action', width: 150 }
+  { title: 'Action', key: 'action', width: 210 }
 ]
 
 const logColumns = [
@@ -106,6 +125,11 @@ async function test(id: string) {
   const result = await testDataSource(id)
   message.info(JSON.stringify(result))
   await openLogs(id)
+}
+
+async function openDetail(id: string) {
+  detail.value = await getDataSource(id)
+  detailOpen.value = true
 }
 
 async function openLogs(id: string) {

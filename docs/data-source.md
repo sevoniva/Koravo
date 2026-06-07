@@ -36,6 +36,10 @@ Datasource create/test operations write audit events:
 - `DATASOURCE_CREATE`
 - `DATASOURCE_TEST`
 
+## Console
+
+Use `/datasources` to create datasources, inspect detail responses, run connection tests, and review recent test logs. Detail and list responses intentionally omit password fields.
+
 ## Current Limits
 
 - Datasource update/delete APIs are not implemented yet.

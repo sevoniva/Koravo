@@ -119,6 +119,16 @@ POST {{baseUrl}}/datasources/{{datasourceId}}/test
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
+### 11a. Get datasource detail
+GET {{baseUrl}}/datasources/{{datasourceId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 11b. Query datasource test logs
+GET {{baseUrl}}/datasources/{{datasourceId}}/test-logs?page=1&pageSize=10
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
 ### 12. Query audit logs
 GET {{baseUrl}}/audit-logs?page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}

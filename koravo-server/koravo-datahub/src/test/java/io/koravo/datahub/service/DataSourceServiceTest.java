@@ -1,6 +1,7 @@
 package io.koravo.datahub.service;
 
 import io.koravo.datahub.domain.DataSourceType;
+import io.koravo.datahub.domain.DataSourceStatus;
 import io.koravo.datahub.domain.KoDataSource;
 import io.koravo.datahub.repo.DataSourceRepository;
 import io.koravo.datahub.web.DataSourceCreateRequest;
@@ -76,5 +77,28 @@ class DataSourceServiceTest {
 
         assertThat(response.connected()).isTrue();
         assertThat(response.message()).isEqualTo("Connection successful");
+    }
+
+    @Test
+    void getDoesNotReturnPlaintextOrCipherPassword() {
+        TenantContextHolder.setTenantId("default");
+        KoDataSource dataSource = new KoDataSource();
+        dataSource.setId("ds-1");
+        dataSource.setTenantId("default");
+        dataSource.setName("pg");
+        dataSource.setType(DataSourceType.POSTGRESQL);
+        dataSource.setJdbcUrl("jdbc:postgresql://localhost:5432/koravo");
+        dataSource.setUsername("koravo");
+        dataSource.setPasswordCipher(secretService.encrypt("secret-password"));
+        dataSource.setDriverClassName(DataSourceType.POSTGRESQL.defaultDriverClassName());
+        dataSource.setReadOnly(true);
+        dataSource.setPoolConfigJson("{}");
+        dataSource.setStatus(DataSourceStatus.ACTIVE);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("ds-1", "default")).thenReturn(Optional.of(dataSource));
+
+        var response = service.get("ds-1");
+
+        assertThat(response.toString()).doesNotContain("secret-password");
+        assertThat(response.toString()).doesNotContain(dataSource.getPasswordCipher());
     }
 }
