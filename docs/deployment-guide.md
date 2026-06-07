@@ -36,6 +36,8 @@ The UI image packages the local `koravo-ui/dist` output. This keeps npm dependen
 - `REDIS_HOST`
 - `REDIS_PORT`
 - `MINIO_ENDPOINT`
+- `MINIO_API_PORT`
+- `MINIO_CONSOLE_PORT`
 - `MINIO_ACCESS_KEY`
 - `MINIO_SECRET_KEY`
 - `KORAVO_SERVER_PORT`

@@ -102,7 +102,7 @@ PostgreSQL defaults:
 - username: `koravo`
 - password: `koravo`
 
-MinIO console is available at `http://localhost:9001`.
+MinIO API and console listen on `MINIO_API_PORT` and `MINIO_CONSOLE_PORT`; by default the console is available at `http://localhost:9001`.
 
 ## Run Backend
 
