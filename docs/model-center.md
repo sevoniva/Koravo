@@ -39,7 +39,8 @@ The model service records audit events:
 - `PROCESS_MODEL_DEPLOY`
 - `PROCESS_MODEL_DISABLE`
 - `PROCESS_MODEL_ARCHIVE`
-- `PROCESS_DEPLOY`
+
+Both stored draft deployment and the legacy multipart deploy shortcut write `PROCESS_MODEL_DEPLOY`.
 
 ## Console
 

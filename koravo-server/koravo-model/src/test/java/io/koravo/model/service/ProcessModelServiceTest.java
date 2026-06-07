@@ -1,20 +1,26 @@
 package io.koravo.model.service;
 
 import io.koravo.engine.api.ProcessFacade;
+import io.koravo.engine.command.DeployProcessCommand;
+import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
 import io.koravo.model.repo.ProcessModelRepository;
+import io.koravo.model.validation.BpmnValidationResult;
 import io.koravo.model.validation.BpmnValidationService;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockMultipartFile;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,6 +66,50 @@ class ProcessModelServiceTest {
         assertThat(model.getUpdatedBy()).isEqualTo("admin");
         verify(repository).save(model);
         verify(auditLogService).record("PROCESS_MODEL_ARCHIVE", "PROCESS_MODEL", "model-1", Map.of("modelKey", "leaveApproval"));
+    }
+
+    @Test
+    void directDeployPersistsModelAndWritesModelDeployAudit() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        String bpmnXml = "<definitions><process id=\"leaveApproval\" /></definitions>";
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "leave-approval.bpmn20.xml",
+                "text/xml",
+                bpmnXml.getBytes()
+        );
+        ProcessDeploymentDTO deployment = new ProcessDeploymentDTO(
+                null,
+                "dep-1",
+                "pd-1",
+                "leaveApproval",
+                3
+        );
+        when(validationService.validate(bpmnXml)).thenReturn(new BpmnValidationResult(true, List.of(), List.of()));
+        when(processFacade.deploy(new DeployProcessCommand(
+                "default",
+                "admin",
+                "leave_approval",
+                "Leave Approval",
+                "leave-approval.bpmn20.xml",
+                bpmnXml
+        ))).thenReturn(deployment);
+        when(repository.save(any(KoProcessModel.class))).thenAnswer(invocation -> {
+            KoProcessModel saved = invocation.getArgument(0);
+            saved.setId("model-1");
+            return saved;
+        });
+
+        var response = service.deploy("Leave Approval", file);
+
+        assertThat(response.platformModelId()).isEqualTo("model-1");
+        assertThat(response.processDefinitionKey()).isEqualTo("leaveApproval");
+        verify(auditLogService).record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "model-1", Map.of(
+                "deploymentId", "dep-1",
+                "processDefinitionId", "pd-1",
+                "processDefinitionKey", "leaveApproval"
+        ));
     }
 
     private KoProcessModel model(String id, ProcessModelStatus status) {

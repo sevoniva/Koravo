@@ -199,7 +199,7 @@ public class ProcessModelService {
         model.setBpmnXml(bpmnXml);
         repository.save(model);
 
-        auditLogService.record("PROCESS_DEPLOY", "PROCESS_MODEL", model.getId(), Map.of(
+        auditLogService.record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", model.getId(), Map.of(
                 "deploymentId", deployment.deploymentId(),
                 "processDefinitionId", deployment.processDefinitionId(),
                 "processDefinitionKey", deployment.processDefinitionKey()
