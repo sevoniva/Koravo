@@ -220,7 +220,7 @@ Then inspect:
 - `GET /api/v1/audit-logs?page=1&pageSize=20`
 - `GET /api/v1/audit-logs?action=PROCESS_INSTANCE_START&resourceType=PROCESS_INSTANCE&page=1&pageSize=20`
 
-The HTTP connector demo uses [examples/bpmn/http-connector-demo.bpmn20.xml](examples/bpmn/http-connector-demo.bpmn20.xml). Deploy it, start `httpConnectorDemo`, and query connector logs with:
+The HTTP connector demo uses [examples/bpmn/http-connector-demo.bpmn20.xml](examples/bpmn/http-connector-demo.bpmn20.xml). Deploy it, start `httpConnectorDemo`, query the assigned `Review HTTP Result` task, complete it, then inspect the trace and connector logs. The service task stores the HTTP response in the `healthResult` process variable before moving to the review task.
 
 ```http
 GET /api/v1/connector-execution-logs?connectorType=http&page=1&pageSize=20
