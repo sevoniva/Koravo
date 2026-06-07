@@ -1,15 +1,15 @@
 <template>
   <PageContainer>
-    <PageHeader title="快速开始" description="按步骤跑通请假审批演示。">
+    <PageHeader title="快速开始" description="按步骤完成请假审批流程。">
       <template #actions>
         <a-button :loading="statusLoading" @click="loadStatus"><ReloadOutlined />刷新状态</a-button>
-        <a-button type="primary" :loading="initLoading" @click="initDemo"><ThunderboltOutlined />初始化演示数据</a-button>
+        <a-button type="primary" :loading="initLoading" @click="initDemo"><ThunderboltOutlined />准备基础数据</a-button>
       </template>
     </PageHeader>
 
     <a-alert
       :type="demoStatus?.initialized ? 'success' : 'warning'"
-      :message="demoStatus?.message || '正在检查演示数据'"
+      :message="statusMessage"
       :description="statusDescription"
       show-icon
     />
@@ -28,14 +28,20 @@
         </div>
       </div>
 
-      <DetailSection title="演示上下文">
+      <DetailSection title="流程准备">
         <a-descriptions :column="1" bordered size="small">
           <a-descriptions-item label="租户">{{ demoStatus?.tenantId || 'default' }}</a-descriptions-item>
           <a-descriptions-item label="用户">{{ demoStatus?.userId || 'admin' }}</a-descriptions-item>
-          <a-descriptions-item label="流程 Key">{{ demoStatus?.processDefinitionKey || 'leaveApproval' }}</a-descriptions-item>
-          <a-descriptions-item label="流程定义"><CopyableText :value="demoStatus?.processDefinitionId" /></a-descriptions-item>
-          <a-descriptions-item label="表单"><CopyableText :value="demoStatus?.formSchemaId" /></a-descriptions-item>
-          <a-descriptions-item label="绑定"><CopyableText :value="demoStatus?.formBindingId" /></a-descriptions-item>
+          <a-descriptions-item label="流程">请假审批</a-descriptions-item>
+          <a-descriptions-item label="流程定义">
+            <CopyableText :value="demoStatus?.processDefinitionId" :display-value="readyLabel(demoStatus?.process?.ready)" />
+          </a-descriptions-item>
+          <a-descriptions-item label="表单">
+            <CopyableText :value="demoStatus?.formSchemaId" :display-value="readyLabel(demoStatus?.form?.ready)" />
+          </a-descriptions-item>
+          <a-descriptions-item label="绑定">
+            <CopyableText :value="demoStatus?.formBindingId" :display-value="readyLabel(demoStatus?.binding?.ready)" />
+          </a-descriptions-item>
         </a-descriptions>
         <DetailSection title="请假申请摘要">
           <a-descriptions bordered :column="1" size="small">
@@ -90,12 +96,17 @@ const defaultStartVariables = computed(() => demoStatus.value?.defaultStartVaria
 
 const defaultVariableSummaryItems = computed(() => variableSummaryItems(defaultStartVariables.value))
 
+const statusMessage = computed(() => {
+  if (!demoStatus.value) return '正在检查基础数据'
+  return demoStatus.value.initialized ? '基础数据已就绪' : '基础数据未就绪'
+})
+
 const statusDescription = computed(() => {
   if (!demoStatus.value) return '请确认后端服务已启动。'
   if (demoStatus.value.initialized) {
     return '流程、表单和绑定已就绪，可以启动请假流程。'
   }
-  return '初始化会创建流程、表单和绑定，重复执行不会生成大量重复数据。'
+  return '准备动作会创建流程、表单和绑定，重复执行会复用已有资源。'
 })
 
 const steps = computed(() => [
@@ -104,7 +115,7 @@ const steps = computed(() => [
     title: '检查服务',
     ready: Boolean(demoStatus.value),
     statusText: demoStatus.value ? '已连接' : '待检查',
-    message: demoStatus.value ? `后端用户 ${demoStatus.value.userId}` : '读取 /api/v1/demo/status。',
+    message: demoStatus.value ? `当前用户 ${demoStatus.value.userId}` : '检查后端服务状态。',
     actionText: '刷新',
     action: loadStatus,
     loading: statusLoading.value,
@@ -112,11 +123,11 @@ const steps = computed(() => [
   },
   {
     key: 'init',
-    title: '初始化演示数据',
+    title: '准备基础数据',
     ready: Boolean(demoStatus.value?.initialized),
-    statusText: demoStatus.value?.initialized ? '已就绪' : '待初始化',
+    statusText: demoStatus.value?.initialized ? '已就绪' : '待准备',
     message: demoStatus.value?.binding?.message || '创建请假审批流程、表单和绑定。',
-    actionText: demoStatus.value?.initialized ? '重新检查' : '初始化',
+    actionText: demoStatus.value?.initialized ? '重新检查' : '准备',
     action: demoStatus.value?.initialized ? loadStatus : initDemo,
     loading: initLoading.value,
     primary: !demoStatus.value?.initialized
@@ -126,7 +137,7 @@ const steps = computed(() => [
     title: '启动请假流程',
     ready: Boolean(demoStatus.value?.todo?.ready),
     statusText: demoStatus.value?.todo?.ready ? '已有待办' : '待启动',
-    message: demoStatus.value?.todo?.message || '使用默认变量启动 leaveApproval。',
+    message: demoStatus.value?.todo?.message || '使用申请摘要启动请假审批。',
     actionText: '启动流程',
     action: startLeaveProcess,
     loading: startLoading.value,
@@ -179,8 +190,8 @@ async function loadStatus() {
 async function initDemo() {
   initLoading.value = true
   try {
-    const result = await initDemoData()
-    message.success(result.actions.join('；'))
+    await initDemoData()
+    message.success('基础数据已准备')
     await loadStatus()
   } finally {
     initLoading.value = false
@@ -189,7 +200,7 @@ async function initDemo() {
 
 async function startLeaveProcess() {
   if (!demoStatus.value?.initialized) {
-    message.warning('请先初始化演示数据')
+    message.warning('请先准备基础数据')
     return
   }
   startLoading.value = true
@@ -233,6 +244,10 @@ function fieldLabel(key: string) {
 function formatSummaryValue(value: unknown) {
   if (typeof value === 'boolean') return value ? '是' : '否'
   return String(value)
+}
+
+function readyLabel(ready?: boolean) {
+  return ready ? '已就绪' : '待准备'
 }
 
 onMounted(loadStatus)
