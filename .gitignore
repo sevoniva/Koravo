@@ -1,0 +1,14 @@
+.DS_Store
+.idea/
+.vscode/
+.worktrees/
+worktrees/
+target/
+*.iml
+
+node_modules/
+dist/
+.vite/
+
+.env
+*.log
