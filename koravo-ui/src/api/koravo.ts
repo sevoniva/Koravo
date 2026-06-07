@@ -405,8 +405,8 @@ export function listAuditLogs(params: {
   return apiData<PageResult<AuditLogItem>>(http.get('/audit-logs', { params }))
 }
 
-export function listOpsInstances() {
-  return apiData<PageResult<OpsProcessInstance>>(http.get('/ops/process-instances?page=1&pageSize=20'))
+export function listOpsInstances(params?: { page?: number; pageSize?: number }) {
+  return apiData<PageResult<OpsProcessInstance>>(http.get('/ops/process-instances', { params }))
 }
 
 export function getOpsInstance(instanceId: string) {

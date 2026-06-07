@@ -10,7 +10,14 @@
 
     <a-tabs v-model:activeKey="activeTab">
       <a-tab-pane key="instances" tab="Process Instances">
-        <a-table :data-source="instances" :columns="columns" row-key="instanceId" :pagination="false">
+        <a-table
+          :data-source="instances"
+          :columns="columns"
+          row-key="instanceId"
+          :loading="loading"
+          :pagination="instancePagination"
+          @change="handleInstanceTableChange"
+        >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
               <a-space>
@@ -154,6 +161,9 @@ import {
 const loading = ref(false)
 const router = useRouter()
 const instances = ref<OpsProcessInstance[]>([])
+const instancePage = ref(1)
+const instancePageSize = ref(20)
+const instanceTotal = ref(0)
 const detail = ref<unknown>(null)
 const traceDetail = ref<ProcessTrace | null>(null)
 const traceCanvasRef = ref<HTMLElement | null>(null)
@@ -214,6 +224,14 @@ const connectorPagination = computed<TablePaginationConfig>(() => ({
   showTotal: (count) => `${count} connector executions`
 }))
 
+const instancePagination = computed<TablePaginationConfig>(() => ({
+  current: instancePage.value,
+  pageSize: instancePageSize.value,
+  total: instanceTotal.value,
+  showSizeChanger: true,
+  showTotal: (count) => `${count} process instances`
+}))
+
 let traceViewer: any = null
 
 async function load() {
@@ -222,12 +240,24 @@ async function load() {
     if (activeTab.value === 'connectors') {
       await loadConnectorLogs()
     } else {
-      const page = await listOpsInstances()
+      const page = await listOpsInstances({
+        page: instancePage.value,
+        pageSize: instancePageSize.value
+      })
       instances.value = page.items
+      instanceTotal.value = page.total
+      instancePage.value = page.page
+      instancePageSize.value = page.pageSize
     }
   } finally {
     loading.value = false
   }
+}
+
+function handleInstanceTableChange(nextPagination: TablePaginationConfig) {
+  instancePage.value = nextPagination.current || 1
+  instancePageSize.value = nextPagination.pageSize || 20
+  load()
 }
 
 async function loadConnectorLogs() {
