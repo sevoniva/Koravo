@@ -64,12 +64,46 @@
       </a-tab-pane>
     </a-tabs>
 
-    <a-modal v-model:open="modalOpen" title="Complete task" @ok="submitComplete">
+    <a-modal v-model:open="modalOpen" title="Complete task" :confirm-loading="completeLoading" @ok="submitComplete">
       <a-form layout="vertical">
         <a-form-item label="Variables JSON">
           <a-textarea v-model:value="completeVariables" :rows="5" />
         </a-form-item>
-        <a-form-item label="Form data JSON">
+        <a-form-item v-if="taskDetail?.formSchema" label="Bound form">
+          <a-alert
+            :message="`${taskDetail.formSchema.formName} v${taskDetail.formSchema.version}`"
+            :description="`Form key: ${taskDetail.formSchema.formKey}`"
+            type="info"
+            show-icon
+          />
+        </a-form-item>
+        <template v-if="schemaFields.length">
+          <a-form-item
+            v-for="field in schemaFields"
+            :key="field.key"
+            :label="field.label"
+            :required="field.required"
+          >
+            <a-switch
+              v-if="field.type === 'boolean'"
+              v-model:checked="formDataValues[field.key]"
+              @change="syncFormDataJson"
+            />
+            <a-input-number
+              v-else-if="field.type === 'number' || field.type === 'integer'"
+              v-model:value="formDataValues[field.key]"
+              :precision="field.type === 'integer' ? 0 : undefined"
+              style="width: 100%"
+              @change="syncFormDataJson"
+            />
+            <a-input
+              v-else
+              v-model:value="formDataValues[field.key]"
+              @change="syncFormDataJson"
+            />
+          </a-form-item>
+        </template>
+        <a-form-item :label="schemaFields.length ? 'Raw form data JSON' : 'Form data JSON'">
           <a-textarea v-model:value="completeFormData" :rows="5" />
         </a-form-item>
         <a-form-item label="Comment">
@@ -87,10 +121,13 @@ import { message, type TablePaginationConfig } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import {
   completeTask,
+  getTaskDetail,
   listDoneTasks,
   listStartedInstances,
   listTasks,
+  type JsonRecord,
   type OpsProcessInstance,
+  type TaskDetail,
   type TaskItem
 } from '../api/koravo'
 import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
@@ -112,9 +149,19 @@ const startedPageSize = ref(20)
 const startedTotal = ref(0)
 const modalOpen = ref(false)
 const selectedTask = ref<TaskItem | null>(null)
+const taskDetail = ref<TaskDetail | null>(null)
+const completeLoading = ref(false)
 const completeVariables = ref(JSON.stringify({ approved: true, comment: 'approved' }, null, 2))
 const completeFormData = ref('{}')
+const formDataValues = ref<JsonRecord>({})
 const comment = ref('approved')
+
+type SchemaField = {
+  key: string
+  label: string
+  type: 'string' | 'number' | 'integer' | 'boolean'
+  required: boolean
+}
 
 const columns = [
   { title: 'Task', dataIndex: 'name', key: 'name' },
@@ -168,6 +215,28 @@ const startedPagination = computed<TablePaginationConfig>(() => ({
   showSizeChanger: true,
   showTotal: (count) => `${count} started instances`
 }))
+
+const schemaFields = computed<SchemaField[]>(() => {
+  const schemaJson = taskDetail.value?.formSchema?.schemaJson
+  if (!schemaJson) return []
+  try {
+    const schema = JSON.parse(schemaJson) as {
+      required?: string[]
+      properties?: Record<string, { type?: string; title?: string }>
+    }
+    const required = new Set(schema.required || [])
+    return Object.entries(schema.properties || {})
+      .filter(([, property]) => ['string', 'number', 'integer', 'boolean'].includes(property.type || 'string'))
+      .map(([key, property]) => ({
+        key,
+        label: property.title || key,
+        type: (property.type || 'string') as SchemaField['type'],
+        required: required.has(key)
+      }))
+  } catch {
+    return []
+  }
+})
 
 async function load() {
   loading.value = true
@@ -223,17 +292,51 @@ function handleStartedTableChange(nextPagination: TablePaginationConfig) {
   load()
 }
 
-function openComplete(task: TaskItem) {
+async function openComplete(task: TaskItem) {
   selectedTask.value = task
+  taskDetail.value = null
+  completeFormData.value = '{}'
+  formDataValues.value = {}
   modalOpen.value = true
+  completeLoading.value = true
+  try {
+    taskDetail.value = await getTaskDetail(task.taskId)
+    initializeFormDataValues()
+  } finally {
+    completeLoading.value = false
+  }
+}
+
+function initializeFormDataValues() {
+  const next: JsonRecord = {}
+  for (const field of schemaFields.value) {
+    next[field.key] = field.type === 'boolean' ? false : undefined
+  }
+  formDataValues.value = next
+  if (schemaFields.value.length) {
+    syncFormDataJson()
+  }
+}
+
+function syncFormDataJson() {
+  const data = Object.fromEntries(
+    Object.entries(formDataValues.value).filter(([, value]) => value !== undefined && value !== '')
+  )
+  completeFormData.value = JSON.stringify(data, null, 2)
 }
 
 async function submitComplete() {
   if (!selectedTask.value) return
+  completeLoading.value = true
   try {
     const variables = parseJsonObject(completeVariables.value, 'Variables')
     const formData = parseJsonObject(completeFormData.value, 'Form data')
-    await completeTask(selectedTask.value.taskId, { variables, formData, comment: comment.value })
+    await completeTask(selectedTask.value.taskId, {
+      variables,
+      formData,
+      formSchemaId: taskDetail.value?.formSchema?.id,
+      comment: comment.value
+    })
     message.success('Task completed')
     modalOpen.value = false
     await load()
@@ -241,6 +344,8 @@ async function submitComplete() {
     if (error instanceof JsonInputError) {
       message.error(error.message)
     }
+  } finally {
+    completeLoading.value = false
   }
 }
 

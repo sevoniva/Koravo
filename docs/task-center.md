@@ -80,8 +80,8 @@ Completion behavior:
 - writes Flowable task comments when `comment` is present
 - completes the Flowable task through `ProcessFacade`
 - writes a `TASK_COMPLETE` audit log with task ID, process instance ID, business key, task definition key, and form schema ID when available
-- renders simple bound form schema fields in the console while keeping raw JSON form data editing as a fallback
-- allows the task list quick-complete dialog to submit `formData` JSON so bound tasks can still create form snapshots
+- renders simple bound form schema fields in the task detail page and task list quick-complete dialog while keeping raw JSON form data editing as a fallback
+- loads task detail before quick completion so the dialog can include the bound form schema and submit `formSchemaId`
 - validates completion variables and form data as JSON objects before submitting the request
 
 ## Current Limits
