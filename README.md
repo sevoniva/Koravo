@@ -140,6 +140,14 @@ Open:
 http://localhost:5173
 ```
 
+To run the packaged browser console with Docker Compose:
+
+```bash
+docker compose up --build koravo-ui
+```
+
+The packaged UI listens on `KORAVO_UI_PORT` and proxies `/api/` to the Compose backend service.
+
 ## Console Demo Loop
 
 1. Start PostgreSQL, Redis, and MinIO with Docker Compose.

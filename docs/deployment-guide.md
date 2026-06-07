@@ -15,6 +15,14 @@ Build and run server through Compose:
 docker compose up --build koravo-server
 ```
 
+Build and run the browser console through Compose:
+
+```bash
+docker compose up --build koravo-ui
+```
+
+The UI listens on `KORAVO_UI_PORT` and proxies `/api/` to `koravo-server:8080` inside the Compose network.
+
 ## Environment Variables
 
 - `POSTGRES_HOST`
@@ -28,6 +36,7 @@ docker compose up --build koravo-server
 - `MINIO_ACCESS_KEY`
 - `MINIO_SECRET_KEY`
 - `KORAVO_SERVER_PORT`
+- `KORAVO_UI_PORT`
 
 ## PostgreSQL
 
