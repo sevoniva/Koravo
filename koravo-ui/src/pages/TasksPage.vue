@@ -23,7 +23,13 @@
       </a-tab-pane>
 
       <a-tab-pane key="done" tab="Done">
-        <a-table :data-source="doneTasks" :columns="doneColumns" row-key="taskId" :pagination="false" />
+        <a-table :data-source="doneTasks" :columns="doneColumns" row-key="taskId" :pagination="false">
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'action'">
+              <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">Detail</a-button>
+            </template>
+          </template>
+        </a-table>
       </a-tab-pane>
 
       <a-tab-pane key="started" tab="Started">
@@ -63,6 +69,7 @@ import {
   type OpsProcessInstance,
   type TaskItem
 } from '../api/koravo'
+import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const router = useRouter()
 const loading = ref(false)
@@ -89,7 +96,8 @@ const doneColumns = [
   { title: 'Business Key', dataIndex: 'businessKey', key: 'businessKey' },
   { title: 'Task Key', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
   { title: 'Assignee', dataIndex: 'assignee', key: 'assignee' },
-  { title: 'Created', dataIndex: 'createTime', key: 'createTime' }
+  { title: 'Created', dataIndex: 'createTime', key: 'createTime' },
+  { title: 'Action', key: 'action', width: 120 }
 ]
 
 const startedColumns = [
@@ -127,14 +135,14 @@ function openComplete(task: TaskItem) {
 async function submitComplete() {
   if (!selectedTask.value) return
   try {
-    const variables = JSON.parse(completeVariables.value)
+    const variables = parseJsonObject(completeVariables.value, 'Variables')
     await completeTask(selectedTask.value.taskId, { variables, comment: comment.value })
     message.success('Task completed')
     modalOpen.value = false
     await load()
   } catch (error) {
-    if (error instanceof SyntaxError) {
-      message.error('Variables must be valid JSON')
+    if (error instanceof JsonInputError) {
+      message.error(error.message)
     }
   }
 }
