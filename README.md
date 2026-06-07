@@ -162,6 +162,7 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 1. Start PostgreSQL, Redis, and MinIO with Docker Compose.
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
 3. Start frontend and open `http://localhost:5173`.
+   The Dashboard shows backend health, tenant/user/request context, pending and done task totals, started instances, and HTTP connector success/failure counts.
 4. Use `Process Designer` to create or import `examples/bpmn/leave-approval.bpmn20.xml`, validate it, save the draft, and deploy it.
 5. Create a form schema in `Forms`, bind it to `approveTask` with either the stored `processModelId` or deployed `processDefinitionId` in `Form Bindings`, then start a process with `processDefinitionKey = leaveApproval` and variables:
 
