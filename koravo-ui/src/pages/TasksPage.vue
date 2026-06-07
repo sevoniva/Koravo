@@ -37,6 +37,9 @@
             <template v-if="column.key === 'status'">
               <StatusTag :status="record.status" />
             </template>
+            <template v-else-if="column.key === 'taskDefinitionKey'">
+              {{ taskDefinitionLabel(record.taskDefinitionKey) }}
+            </template>
             <template v-else-if="column.key === 'createTime'">
               {{ formatDateTime(record.createTime) }}
             </template>
@@ -66,6 +69,9 @@
             <template v-if="column.key === 'status'">
               <StatusTag :status="record.status" />
             </template>
+            <template v-else-if="column.key === 'taskDefinitionKey'">
+              {{ taskDefinitionLabel(record.taskDefinitionKey) }}
+            </template>
             <template v-else-if="column.key === 'createTime'">
               {{ formatDateTime(record.createTime) }}
             </template>
@@ -92,6 +98,9 @@
             <template v-if="column.key === 'status'">
               <StatusTag :status="record.status" />
             </template>
+            <template v-else-if="column.key === 'instanceId'">
+              <CopyableText :value="record.instanceId" :display-value="shortTraceLabel(record.instanceId)" />
+            </template>
             <template v-else-if="column.key === 'startTime'">
               {{ formatDateTime(record.startTime) }}
             </template>
@@ -114,7 +123,7 @@
         <a-form-item v-if="taskDetail?.formSchema" label="绑定表单">
           <a-alert
             :message="`${taskDetail.formSchema.formName} v${taskDetail.formSchema.version}`"
-            :description="`表单 Key：${taskDetail.formSchema.formKey}`"
+            description="按当前表单办理，提交后写入任务记录。"
             type="info"
             show-icon
           />
@@ -160,8 +169,9 @@ import {
   type TaskListParams,
   type TaskItem
 } from '../api/koravo'
-import { EmptyState, PageContainer, PageHeader, SearchBar, StatusTag, Toolbar } from '../components/ui'
+import { CopyableText, EmptyState, PageContainer, PageHeader, SearchBar, StatusTag, Toolbar } from '../components/ui'
 import { formatDateTime } from '../utils/format'
+import { shortTraceLabel, taskDefinitionLabel } from '../utils/display'
 import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const router = useRouter()
@@ -217,7 +227,7 @@ const doneColumns = [
 ]
 
 const startedColumns = [
-  { title: '实例 ID', dataIndex: 'instanceId', key: 'instanceId' },
+  { title: '实例', dataIndex: 'instanceId', key: 'instanceId', width: 150 },
   { title: '业务编号', dataIndex: 'businessKey', key: 'businessKey' },
   { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
   { title: '发起时间', dataIndex: 'startTime', key: 'startTime' },

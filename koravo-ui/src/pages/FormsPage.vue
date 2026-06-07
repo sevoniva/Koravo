@@ -1,6 +1,6 @@
 <template>
   <PageContainer wide>
-    <PageHeader title="表单管理" description="设计任务表单，保存为 JSON Schema。">
+    <PageHeader title="表单管理" description="设计任务表单并管理字段配置。">
       <template #actions>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
         <a-button @click="loadLeaveTemplate"><FormOutlined />请假模板</a-button>
@@ -12,7 +12,7 @@
     <div class="form-designer-grid">
       <DetailSection title="表单信息">
         <a-form layout="vertical" class="compact-form-grid">
-          <a-form-item label="表单 Key">
+          <a-form-item label="表单标识">
             <a-input v-model:value="form.formKey" />
           </a-form-item>
           <a-form-item label="表单名称">
@@ -24,7 +24,7 @@
           <strong>字段</strong>
           <a-space>
             <a-button size="small" @click="addField"><PlusOutlined />新增字段</a-button>
-            <a-button size="small" @click="syncJsonFromFields">生成 JSON</a-button>
+            <a-button size="small" @click="syncJsonFromFields">同步配置</a-button>
           </a-space>
         </div>
 
@@ -90,17 +90,20 @@
         <SchemaForm v-model="previewData" :schema-json="form.schemaJson" />
       </DetailSection>
 
-      <DetailSection title="JSON Schema">
+    </div>
+
+    <a-collapse class="panel-block">
+      <a-collapse-panel key="advanced" header="高级配置">
         <a-tabs>
-          <a-tab-pane key="schema" tab="Schema">
+          <a-tab-pane key="schema" tab="表单配置">
             <JsonEditor v-model="form.schemaJson" object-only :rows="14" @valid="handleSchemaJsonValid" />
           </a-tab-pane>
-          <a-tab-pane key="ui" tab="UI Schema">
+          <a-tab-pane key="ui" tab="展示配置">
             <JsonEditor v-model="form.uiSchemaJson" object-only :rows="10" />
           </a-tab-pane>
         </a-tabs>
-      </DetailSection>
-    </div>
+      </a-collapse-panel>
+    </a-collapse>
 
     <DetailSection title="已保存表单">
       <a-table :data-source="items" :columns="columns" row-key="id" :loading="loading" :pagination="false" size="small">
@@ -123,7 +126,7 @@
 
     <DetailSection v-if="selected" title="表单详情">
       <a-descriptions bordered :column="2" size="small">
-        <a-descriptions-item label="表单 Key">{{ selected.formKey }}</a-descriptions-item>
+        <a-descriptions-item label="表单标识">{{ selected.formKey }}</a-descriptions-item>
         <a-descriptions-item label="表单名称">{{ selected.formName }}</a-descriptions-item>
         <a-descriptions-item label="版本">{{ selected.version }}</a-descriptions-item>
         <a-descriptions-item label="状态"><StatusTag :status="selected.status" /></a-descriptions-item>
@@ -158,10 +161,10 @@
       <a-collapse class="panel-block">
         <a-collapse-panel key="schema" header="高级详情">
           <a-tabs>
-            <a-tab-pane key="schema" tab="Schema">
+            <a-tab-pane key="schema" tab="表单配置">
               <JsonPreview :value="selectedFormSchema" />
             </a-tab-pane>
-            <a-tab-pane key="uiSchema" tab="UI Schema">
+            <a-tab-pane key="uiSchema" tab="展示配置">
               <JsonPreview :value="selectedFormUiSchema" />
             </a-tab-pane>
           </a-tabs>
@@ -253,7 +256,7 @@ const selectedFormUiSchema = computed(() => parseJsonSafe(selected.value?.uiSche
 const selectedFormSummary = computed(() => formSummary(selectedFormSchema.value))
 
 const columns = [
-  { title: '表单 Key', dataIndex: 'formKey', key: 'formKey' },
+  { title: '表单标识', dataIndex: 'formKey', key: 'formKey' },
   { title: '表单名称', dataIndex: 'formName', key: 'formName' },
   { title: '版本', dataIndex: 'version', key: 'version', width: 100 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 110 },
@@ -262,7 +265,7 @@ const columns = [
 
 const fieldSummaryColumns = [
   { title: '字段', dataIndex: 'title', key: 'title' },
-  { title: '字段名', dataIndex: 'name', key: 'name' },
+  { title: '字段标识', dataIndex: 'name', key: 'name' },
   { title: '类型', dataIndex: 'type', key: 'type', width: 120 },
   { title: '必填', dataIndex: 'required', key: 'required', width: 100 },
   { title: '选项', dataIndex: 'options', key: 'options' }
@@ -281,8 +284,8 @@ async function save() {
   syncJsonFromFields()
   let schema: JsonRecord
   try {
-    schema = parseJsonObject(form.schemaJson, 'Schema JSON')
-    if (form.uiSchemaJson) parseJsonObject(form.uiSchemaJson, 'UI Schema JSON')
+    schema = parseJsonObject(form.schemaJson, '表单配置')
+    if (form.uiSchemaJson) parseJsonObject(form.uiSchemaJson, '展示配置')
   } catch (error) {
     if (error instanceof JsonInputError) {
       message.error(error.message)
@@ -458,7 +461,7 @@ function buildUiSchema() {
 
 function validateDesignerFields(schema: JsonRecord) {
   const errors: string[] = []
-  if (!form.formKey.trim()) errors.push('表单 Key 不能为空')
+  if (!form.formKey.trim()) errors.push('表单标识不能为空')
   if (!form.formName.trim()) errors.push('表单名称不能为空')
   const names = fields.value.map((field) => field.name.trim()).filter(Boolean)
   if (fields.value.some((field) => !field.name.trim())) errors.push('字段名不能为空')
@@ -468,7 +471,7 @@ function validateDesignerFields(schema: JsonRecord) {
       errors.push(`下拉字段「${field.title || field.name}」至少需要一个选项`)
     }
   }
-  if (schema.type !== 'object') errors.push('Schema type 必须是 object')
+  if (schema.type !== 'object') errors.push('表单配置必须是 object')
   return errors
 }
 

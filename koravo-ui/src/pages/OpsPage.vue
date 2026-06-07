@@ -23,6 +23,9 @@
             <template v-if="column.key === 'status'">
               <StatusTag :status="record.status" />
             </template>
+            <template v-else-if="column.key === 'instanceId'">
+              <CopyableText :value="record.instanceId" :display-value="shortTraceLabel(record.instanceId)" />
+            </template>
             <template v-else-if="column.key === 'startTime'">
               {{ formatDateTime(record.startTime) }}
             </template>
@@ -79,7 +82,7 @@
               <a-select-option value="FAILED">失败</a-select-option>
             </a-select>
           </a-form-item>
-          <a-form-item label="请求 ID">
+          <a-form-item label="请求">
             <a-input v-model:value="connectorFilters.requestId" />
           </a-form-item>
           <a-form-item>
@@ -103,11 +106,17 @@
             <template v-if="column.key === 'createdAt'">
               {{ formatDateTime(record.createdAt) }}
             </template>
+            <template v-else-if="column.key === 'connectorType'">
+              {{ connectorTypeLabel(record.connectorType) }}
+            </template>
             <template v-else-if="column.key === 'status'">
               <StatusTag :status="record.status" />
             </template>
             <template v-else-if="column.key === 'elapsedMillis'">
               {{ formatDuration(record.elapsedMillis) }}
+            </template>
+            <template v-else-if="column.key === 'requestId'">
+              <CopyableText :value="record.requestId" :display-value="shortTraceLabel(record.requestId)" />
             </template>
             <template v-else-if="column.key === 'summary'">
               <span class="ops-summary-text">{{ connectorLogSummary(record) }}</span>
@@ -130,6 +139,12 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'error'">
               <span class="ops-summary-text">{{ maskText(record.errorMessage) }}</span>
+            </template>
+            <template v-else-if="column.key === 'connectorType'">
+              {{ connectorTypeLabel(record.connectorType) }}
+            </template>
+            <template v-else-if="column.key === 'requestId'">
+              <CopyableText :value="record.requestId" :display-value="shortTraceLabel(record.requestId)" />
             </template>
             <template v-else-if="column.key === 'createdAt'">
               {{ formatDateTime(record.createdAt) }}
@@ -163,13 +178,19 @@
             <template v-if="column.key === 'status'">
               <a-tag color="red">失败</a-tag>
             </template>
-            <template v-if="column.key === 'created'">
+            <template v-else-if="column.key === 'id'">
+              <CopyableText :value="record.id" :display-value="shortTraceLabel(record.id)" />
+            </template>
+            <template v-else-if="column.key === 'processInstanceId'">
+              <CopyableText :value="record.processInstanceId" :display-value="shortTraceLabel(record.processInstanceId)" />
+            </template>
+            <template v-else-if="column.key === 'created'">
               {{ formatDateTime(record.createTime) }}
             </template>
-            <template v-if="column.key === 'exception'">
+            <template v-else-if="column.key === 'exception'">
               <span class="ops-summary-text">{{ maskText(record.exceptionMessage) || '-' }}</span>
             </template>
-            <template v-if="column.key === 'action'">
+            <template v-else-if="column.key === 'action'">
               <a-space wrap>
                 <a-button size="small" @click="openJobDetail('failed', record.id)">查看</a-button>
                 <a-button
@@ -223,13 +244,19 @@
             <template v-if="column.key === 'status'">
               <a-tag color="red">死信</a-tag>
             </template>
-            <template v-if="column.key === 'created'">
+            <template v-else-if="column.key === 'id'">
+              <CopyableText :value="record.id" :display-value="shortTraceLabel(record.id)" />
+            </template>
+            <template v-else-if="column.key === 'processInstanceId'">
+              <CopyableText :value="record.processInstanceId" :display-value="shortTraceLabel(record.processInstanceId)" />
+            </template>
+            <template v-else-if="column.key === 'created'">
               {{ formatDateTime(record.createTime) }}
             </template>
-            <template v-if="column.key === 'exception'">
+            <template v-else-if="column.key === 'exception'">
               <span class="ops-summary-text">{{ maskText(record.exceptionMessage) || '-' }}</span>
             </template>
-            <template v-if="column.key === 'action'">
+            <template v-else-if="column.key === 'action'">
               <a-space wrap>
                 <a-button size="small" @click="openJobDetail('dead-letter', record.id)">查看</a-button>
                 <a-button
@@ -325,11 +352,15 @@
 
     <DetailSection v-if="inspectedInstance" title="实例详情">
       <a-descriptions bordered :column="2" size="small" class="panel-block">
-        <a-descriptions-item label="实例 ID">{{ inspectedInstance.instanceId }}</a-descriptions-item>
+        <a-descriptions-item label="实例">
+          <CopyableText :value="inspectedInstance.instanceId" :display-value="shortTraceLabel(inspectedInstance.instanceId)" />
+        </a-descriptions-item>
         <a-descriptions-item label="实例状态"><StatusTag :status="inspectedInstance.status" /></a-descriptions-item>
         <a-descriptions-item label="业务编号">{{ inspectedInstance.businessKey || '-' }}</a-descriptions-item>
         <a-descriptions-item label="发起人">{{ inspectedInstance.startUserId || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="流程定义">{{ inspectedInstance.processDefinitionId }}</a-descriptions-item>
+        <a-descriptions-item label="流程">
+          <CopyableText :value="inspectedInstance.processDefinitionId" :display-value="processDefinitionLabel(inspectedInstance.processDefinitionId)" />
+        </a-descriptions-item>
         <a-descriptions-item label="当前任务">{{ inspectedInstance.currentTasks?.length || 0 }}</a-descriptions-item>
         <a-descriptions-item label="发起时间">{{ formatDateTime(inspectedInstance.startTime) }}</a-descriptions-item>
         <a-descriptions-item label="结束时间">{{ formatDateTime(inspectedInstance.endTime) }}</a-descriptions-item>
@@ -399,12 +430,14 @@
     <a-modal v-model:open="connectorDetailOpen" title="连接器执行详情" :footer="null" width="860px">
       <a-descriptions v-if="selectedConnectorLog" bordered :column="2" size="small" class="panel-block">
         <a-descriptions-item label="时间">{{ formatDateTime(selectedConnectorLog.createdAt) }}</a-descriptions-item>
-        <a-descriptions-item label="类型">{{ selectedConnectorLog.connectorType }}</a-descriptions-item>
+        <a-descriptions-item label="类型">{{ connectorTypeLabel(selectedConnectorLog.connectorType) }}</a-descriptions-item>
         <a-descriptions-item label="方法">{{ selectedConnectorLog.method }}</a-descriptions-item>
         <a-descriptions-item label="状态"><StatusTag :status="selectedConnectorLog.status" /></a-descriptions-item>
         <a-descriptions-item label="状态码">{{ selectedConnectorLog.statusCode }}</a-descriptions-item>
         <a-descriptions-item label="耗时">{{ formatDuration(selectedConnectorLog.elapsedMillis) }}</a-descriptions-item>
-        <a-descriptions-item label="请求 ID">{{ selectedConnectorLog.requestId }}</a-descriptions-item>
+        <a-descriptions-item label="请求">
+          <CopyableText :value="selectedConnectorLog.requestId" :display-value="shortTraceLabel(selectedConnectorLog.requestId)" />
+        </a-descriptions-item>
         <a-descriptions-item label="URL">{{ selectedConnectorLog.url }}</a-descriptions-item>
       </a-descriptions>
       <a-alert
@@ -434,15 +467,21 @@
 
     <a-modal v-model:open="jobDetailOpen" title="任务异常详情" :footer="null" width="900px">
       <a-descriptions v-if="selectedJob" bordered :column="2" size="small" class="panel-block">
-        <a-descriptions-item label="任务 ID">{{ selectedJob.id }}</a-descriptions-item>
+        <a-descriptions-item label="任务">
+          <CopyableText :value="selectedJob.id" :display-value="shortTraceLabel(selectedJob.id)" />
+        </a-descriptions-item>
         <a-descriptions-item label="状态">
           <a-tag :color="selectedJob.type === 'DEAD_LETTER' ? 'red' : 'orange'">
             {{ selectedJob.type === 'DEAD_LETTER' ? '死信' : '失败' }}
           </a-tag>
         </a-descriptions-item>
-        <a-descriptions-item label="流程实例">{{ selectedJob.processInstanceId || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="流程定义">{{ selectedJob.processDefinitionId || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="节点 ID">{{ selectedJob.elementId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="流程实例">
+          <CopyableText :value="selectedJob.processInstanceId" :display-value="shortTraceLabel(selectedJob.processInstanceId)" />
+        </a-descriptions-item>
+        <a-descriptions-item label="流程">
+          <CopyableText :value="selectedJob.processDefinitionId" :display-value="processDefinitionLabel(selectedJob.processDefinitionId)" />
+        </a-descriptions-item>
+        <a-descriptions-item label="节点标识">{{ taskDefinitionLabel(selectedJob.elementId) }}</a-descriptions-item>
         <a-descriptions-item label="节点名称">{{ selectedJob.elementName || '-' }}</a-descriptions-item>
         <a-descriptions-item label="处理器">{{ selectedJob.handlerType || '-' }}</a-descriptions-item>
         <a-descriptions-item label="剩余重试">{{ selectedJob.retries }}</a-descriptions-item>
@@ -473,7 +512,7 @@ import { ReloadOutlined } from '@ant-design/icons-vue'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
 import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import JsonPreview from '../components/JsonPreview.vue'
-import { DetailSection, EmptyState, PageContainer, PageHeader, StatusTag } from '../components/ui'
+import { CopyableText, DetailSection, EmptyState, PageContainer, PageHeader, StatusTag } from '../components/ui'
 import {
   activateProcessInstance,
   deleteDeadLetterJob,
@@ -502,6 +541,7 @@ import {
   type ProcessTrace
 } from '../api/koravo'
 import { formatDateTime, formatDuration, maskSecret, parseJsonSafe } from '../utils/format'
+import { processDefinitionLabel, shortTraceLabel, taskDefinitionLabel } from '../utils/display'
 
 const loading = ref(false)
 const router = useRouter()
@@ -546,7 +586,7 @@ const connectorFilters = ref({
 })
 
 const columns = [
-  { title: '实例 ID', dataIndex: 'instanceId', key: 'instanceId' },
+  { title: '实例', dataIndex: 'instanceId', key: 'instanceId', width: 150 },
   { title: '业务编号', dataIndex: 'businessKey', key: 'businessKey' },
   { title: '状态', dataIndex: 'status', key: 'status' },
   { title: '发起时间', dataIndex: 'startTime', key: 'startTime' },
@@ -569,7 +609,7 @@ const connectorColumns = [
   { title: '状态', key: 'status', width: 110 },
   { title: '状态码', dataIndex: 'statusCode', key: 'statusCode', width: 80 },
   { title: '耗时', key: 'elapsedMillis', width: 100 },
-  { title: '请求 ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
+  { title: '请求', dataIndex: 'requestId', key: 'requestId', width: 150 },
   { title: 'URL', dataIndex: 'url', key: 'url', width: 260 },
   { title: '摘要', key: 'summary' },
   { title: '操作', key: 'action', width: 90 }
@@ -579,7 +619,7 @@ const connectorFailureColumns = [
   { title: '时间', key: 'createdAt', width: 160 },
   { title: '类型', dataIndex: 'connectorType', key: 'connectorType', width: 90 },
   { title: 'URL', dataIndex: 'url', key: 'url', width: 260 },
-  { title: '请求 ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
+  { title: '请求', dataIndex: 'requestId', key: 'requestId', width: 150 },
   { title: '错误', key: 'error' },
   { title: '操作', key: 'action', width: 90 }
 ]
@@ -592,7 +632,7 @@ const summaryColumns = [
 ]
 
 const jobColumns = [
-  { title: '任务 ID', dataIndex: 'id', key: 'id', width: 220 },
+  { title: '任务', dataIndex: 'id', key: 'id', width: 150 },
   { title: '状态', key: 'status', width: 80 },
   { title: '节点', dataIndex: 'elementName', key: 'elementName', width: 150 },
   { title: '流程实例', dataIndex: 'processInstanceId', key: 'processInstanceId', width: 220 },
@@ -606,7 +646,7 @@ const jobColumns = [
 const capabilityColumns = [
   { title: '能力', dataIndex: 'name', key: 'name', width: 240 },
   { title: '状态', key: 'status', width: 130 },
-  { title: 'Key', dataIndex: 'key', key: 'key', width: 230 },
+  { title: '标识', dataIndex: 'key', key: 'key', width: 230 },
   { title: '说明', dataIndex: 'description', key: 'description' }
 ]
 
@@ -963,6 +1003,13 @@ function connectorLogSummary(record: ConnectorExecutionLogItem) {
   return `${status}${version}`
 }
 
+function connectorTypeLabel(value?: string) {
+  const mapping: Record<string, string> = {
+    http: 'HTTP 调用'
+  }
+  return mapping[value || ''] || value || '-'
+}
+
 function extractResponseBody(summary?: string) {
   if (!summary) return null
   const bodyIndex = summary.indexOf('body=')
@@ -1030,7 +1077,7 @@ function auditActionLabel(action?: string) {
     CONNECTOR_EXECUTE: '执行连接器',
     PROCESS_MODEL_DEPLOY: '部署模型',
     PROCESS_MODEL_IMPORT: '导入模型',
-    DEMO_INIT: '初始化演示',
+    DEMO_INIT: '准备基础数据',
     DATASOURCE_CREATE: '创建数据源',
     DATASOURCE_TEST: '测试数据源',
     DATASOURCE_DELETE: '删除数据源',
@@ -1057,7 +1104,7 @@ function auditDetailKeyLabel(key: string) {
     approvalAction: '审批动作',
     businessKey: '业务编号',
     status: '状态',
-    processDefinitionKey: '流程 Key',
+    processDefinitionKey: '流程',
     connectorType: '连接器',
     statusCode: '状态码',
     elapsedMillis: '耗时',
@@ -1093,7 +1140,8 @@ function detailValueLabel(value?: string) {
     approveTask: '审批请假',
     reviewTask: '确认调用结果',
     leaveApproval: '请假审批',
-    httpConnectorDemo: 'HTTP Connector 示例',
+    httpConnectorDemo: 'HTTP 健康检查',
+    http: 'HTTP 调用',
     true: '是',
     false: '否'
   }
