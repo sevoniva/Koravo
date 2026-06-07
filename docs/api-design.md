@@ -56,3 +56,5 @@ Error:
 - `X-Tenant-Id`: defaults to `default` in development.
 - `X-User-Id`: defaults to `anonymous`; console uses `admin`.
 - `X-Request-Id`: optional; generated if absent.
+
+The web console exposes Tenant, User, and optional Request fields in the header. Values are stored in browser local storage and sent on every API request.

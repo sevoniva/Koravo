@@ -215,6 +215,7 @@ The Flowable integration test class is present but disabled until a Docker-backe
 - Flowable tables are not modified by Koravo migrations.
 - `X-Tenant-Id` defaults to `default` in development.
 - `X-User-Id` defaults to `anonymous`; the console sends `admin`.
+- The console header lets you switch Tenant, User, and optional Request ID; values persist in browser local storage and are sent as API headers.
 - The first frontend bundle is large because Ant Design Vue and bpmn-js are present in the v0.1 foundation.
 
 ## License

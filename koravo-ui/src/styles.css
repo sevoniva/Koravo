@@ -75,7 +75,7 @@ body {
 
 .identity-strip {
   display: grid;
-  grid-template-columns: minmax(140px, 220px) minmax(140px, 220px);
+  grid-template-columns: minmax(140px, 200px) minmax(140px, 200px) minmax(180px, 260px);
   gap: 10px;
 }
 

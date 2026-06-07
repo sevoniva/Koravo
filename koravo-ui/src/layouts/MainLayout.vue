@@ -23,10 +23,11 @@
     </a-layout-sider>
     <a-layout>
       <a-layout-header class="app-header">
-        <div class="header-title">Koravo v0.1 Foundation</div>
+        <div class="header-title">Koravo v0.2/v0.3 Console</div>
         <div class="identity-strip">
-          <a-input v-model:value="session.tenantId" size="small" addon-before="Tenant" />
-          <a-input v-model:value="session.userId" size="small" addon-before="User" />
+          <a-input v-model:value="tenantId" size="small" addon-before="Tenant" />
+          <a-input v-model:value="userId" size="small" addon-before="User" />
+          <a-input v-model:value="requestId" size="small" addon-before="Request" placeholder="optional" />
         </div>
       </a-layout-header>
       <a-layout-content class="app-content">
@@ -37,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import {
   CheckCircleOutlined,
   ControlOutlined,
@@ -55,6 +57,21 @@ import { useSessionStore } from '../stores/session'
 const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
+
+const tenantId = computed({
+  get: () => session.tenantId,
+  set: (value) => session.setTenantId(value)
+})
+
+const userId = computed({
+  get: () => session.userId,
+  set: (value) => session.setUserId(value)
+})
+
+const requestId = computed({
+  get: () => session.requestId,
+  set: (value) => session.setRequestId(value)
+})
 
 function handleNav(event: { key: string }) {
   router.push(event.key)

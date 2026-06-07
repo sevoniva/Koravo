@@ -19,6 +19,9 @@ http.interceptors.request.use((config) => {
   const session = useSessionStore()
   config.headers['X-Tenant-Id'] = session.tenantId
   config.headers['X-User-Id'] = session.userId
+  if (session.requestId) {
+    config.headers['X-Request-Id'] = session.requestId
+  }
   return config
 })
 
