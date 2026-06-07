@@ -28,7 +28,8 @@ Bindings can target:
 - `processModelId + taskDefinitionKey`
 - `processDefinitionId + taskDefinitionKey`
 
-Task detail resolves binding by `processDefinitionId + taskDefinitionKey` and returns the bound form schema when present.
+Runtime task detail and task completion resolve binding by `processDefinitionId + taskDefinitionKey` and return/use the bound form schema when present. Use this target for the approval-flow demo after deploying a model and copying the returned `processDefinitionId`.
+`processModelId + taskDefinitionKey` is useful as design-time metadata while editing a draft model; it is listed by the model center but is not enough by itself for runtime task detail.
 The console renders simple JSON Schema object fields for bound task forms. Supported field types are `string`, `number`, `integer`, and `boolean`; complex schema constructs can still be submitted through the raw JSON form data editor.
 The console validates form schema, UI schema, variables, and raw form data inputs as JSON objects before calling the API.
 

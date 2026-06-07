@@ -157,7 +157,7 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
 3. Start frontend and open `http://localhost:5173`.
 4. Use `Process Designer` to create or import `examples/bpmn/leave-approval.bpmn20.xml`, validate it, save the draft, and deploy it.
-5. Create a form schema in `Forms`, bind it to `approveTask` in `Form Bindings`, then start a process with `processDefinitionKey = leaveApproval` and variables:
+5. Create a form schema in `Forms`, bind it to `approveTask` with the deployed `processDefinitionId` in `Form Bindings`, then start a process with `processDefinitionKey = leaveApproval` and variables:
 
 ```json
 {
@@ -205,7 +205,6 @@ Complete a task:
   "formData": {
     "reason": "approved from Koravo demo"
   },
-  "formSchemaId": "replace-with-form-schema-id",
   "comment": "approved"
 }
 ```

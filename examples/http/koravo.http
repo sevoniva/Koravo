@@ -3,6 +3,7 @@
 @userId = admin
 @processInstanceId = replace-with-instance-id
 @processModelId = replace-with-model-id
+@processDefinitionId = replace-with-process-definition-id
 @taskId = replace-with-task-id
 @httpTaskId = replace-with-http-task-id
 @formSchemaId = replace-with-form-schema-id
@@ -116,14 +117,14 @@ X-User-Id: {{userId}}
 Content-Type: application/json
 
 {
-  "processModelId": "{{processModelId}}",
-  "processDefinitionId": null,
+  "processModelId": null,
+  "processDefinitionId": "{{processDefinitionId}}",
   "taskDefinitionKey": "approveTask",
   "formSchemaId": "{{formSchemaId}}",
   "formSchemaVersion": 1
 }
 
-### 7e. Query form bindings
+### 7e. Query model-scoped form bindings
 GET {{baseUrl}}/form-bindings?processModelId={{processModelId}}
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -135,8 +136,8 @@ X-User-Id: {{userId}}
 Content-Type: application/json
 
 {
-  "processModelId": "{{processModelId}}",
-  "processDefinitionId": null,
+  "processModelId": null,
+  "processDefinitionId": "{{processDefinitionId}}",
   "taskDefinitionKey": "approveTask",
   "formSchemaId": "{{formSchemaId}}",
   "formSchemaVersion": 2
