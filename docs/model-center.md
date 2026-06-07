@@ -43,6 +43,7 @@ The model service records audit events:
 - `PROCESS_MODEL_ARCHIVE`
 
 Creating a blank/default draft writes `PROCESS_MODEL_CREATE`; importing BPMN XML writes `PROCESS_MODEL_IMPORT`. Both stored draft deployment and the legacy multipart deploy shortcut write `PROCESS_MODEL_DEPLOY`.
+Model lifecycle audit details include model key, version, current status, and Flowable deployment/definition IDs when available. BPMN XML is intentionally not written into audit details.
 
 ## Console
 

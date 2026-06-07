@@ -5,6 +5,7 @@ import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
+import io.koravo.model.dto.ProcessModelUpdateRequest;
 import io.koravo.model.dto.ProcessModelImportRequest;
 import io.koravo.model.repo.ProcessModelRepository;
 import io.koravo.model.validation.BpmnValidationResult;
@@ -53,7 +54,11 @@ class ProcessModelServiceTest {
         assertThat(response.status()).isEqualTo("DISABLED");
         assertThat(model.getUpdatedBy()).isEqualTo("admin");
         verify(repository).save(model);
-        verify(auditLogService).record("PROCESS_MODEL_DISABLE", "PROCESS_MODEL", "model-1", Map.of("modelKey", "leaveApproval"));
+        verify(auditLogService).record("PROCESS_MODEL_DISABLE", "PROCESS_MODEL", "model-1", Map.of(
+                "modelKey", "leaveApproval",
+                "version", 1,
+                "status", "DISABLED"
+        ));
     }
 
     @Test
@@ -68,7 +73,11 @@ class ProcessModelServiceTest {
         assertThat(response.status()).isEqualTo("ARCHIVED");
         assertThat(model.getUpdatedBy()).isEqualTo("admin");
         verify(repository).save(model);
-        verify(auditLogService).record("PROCESS_MODEL_ARCHIVE", "PROCESS_MODEL", "model-1", Map.of("modelKey", "leaveApproval"));
+        verify(auditLogService).record("PROCESS_MODEL_ARCHIVE", "PROCESS_MODEL", "model-1", Map.of(
+                "modelKey", "leaveApproval",
+                "version", 1,
+                "status", "ARCHIVED"
+        ));
     }
 
     @Test
@@ -137,10 +146,36 @@ class ProcessModelServiceTest {
         assertThat(response.modelKey()).isEqualTo("expenseApproval");
         assertThat(response.status()).isEqualTo("DRAFT");
         verify(auditLogService).record("PROCESS_MODEL_IMPORT", "PROCESS_MODEL", "model-import-1", Map.of(
-                "modelKey", "expenseApproval"
+                "modelKey", "expenseApproval",
+                "version", 1,
+                "status", "DRAFT"
         ));
         verify(auditLogService, never()).record("PROCESS_MODEL_CREATE", "PROCESS_MODEL", "model-import-1", Map.of(
                 "modelKey", "expenseApproval"
+        ));
+    }
+
+    @Test
+    void updateDeployedModelReturnsDraftAndWritesLifecycleAuditDetail() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = model("model-1", ProcessModelStatus.DEPLOYED);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("model-1", "default")).thenReturn(Optional.of(model));
+        when(repository.save(any(KoProcessModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = service.update("model-1", new ProcessModelUpdateRequest(
+                "Leave Approval Updated",
+                "Updated draft",
+                "<definitions id=\"updated\" />"
+        ));
+
+        assertThat(response.status()).isEqualTo("DRAFT");
+        assertThat(response.version()).isEqualTo(2);
+        assertThat(model.getUpdatedBy()).isEqualTo("admin");
+        verify(auditLogService).record("PROCESS_MODEL_UPDATE", "PROCESS_MODEL", "model-1", Map.of(
+                "modelKey", "leaveApproval",
+                "version", 2,
+                "status", "DRAFT"
         ));
     }
 

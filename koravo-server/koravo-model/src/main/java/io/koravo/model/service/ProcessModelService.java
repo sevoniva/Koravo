@@ -26,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +55,7 @@ public class ProcessModelService {
                 ? request.bpmnXml()
                 : DefaultBpmnTemplates.approval(request.modelKey(), request.modelName());
         KoProcessModel model = createDraftModel(request.modelKey(), request.modelName(), request.description(), bpmnXml);
-        auditLogService.record("PROCESS_MODEL_CREATE", "PROCESS_MODEL", model.getId(), Map.of("modelKey", model.getModelKey()));
+        auditLogService.record("PROCESS_MODEL_CREATE", "PROCESS_MODEL", model.getId(), modelAuditDetail(model));
         return toResponse(model);
     }
 
@@ -62,7 +63,7 @@ public class ProcessModelService {
     public ProcessModelResponse importModel(ProcessModelImportRequest request) {
         String modelKey = extractProcessId(request.bpmnXml());
         KoProcessModel model = createDraftModel(modelKey, request.modelName(), request.description(), request.bpmnXml());
-        auditLogService.record("PROCESS_MODEL_IMPORT", "PROCESS_MODEL", model.getId(), Map.of("modelKey", model.getModelKey()));
+        auditLogService.record("PROCESS_MODEL_IMPORT", "PROCESS_MODEL", model.getId(), modelAuditDetail(model));
         return toResponse(model);
     }
 
@@ -91,7 +92,7 @@ public class ProcessModelService {
             model.setStatus(ProcessModelStatus.DRAFT);
         }
         repository.save(model);
-        auditLogService.record("PROCESS_MODEL_UPDATE", "PROCESS_MODEL", model.getId(), Map.of("version", model.getVersion()));
+        auditLogService.record("PROCESS_MODEL_UPDATE", "PROCESS_MODEL", model.getId(), modelAuditDetail(model));
         return toResponse(model);
     }
 
@@ -147,7 +148,7 @@ public class ProcessModelService {
         model.setStatus(ProcessModelStatus.DISABLED);
         model.setUpdatedBy(UserContextHolder.getUserId());
         repository.save(model);
-        auditLogService.record("PROCESS_MODEL_DISABLE", "PROCESS_MODEL", model.getId(), Map.of("modelKey", model.getModelKey()));
+        auditLogService.record("PROCESS_MODEL_DISABLE", "PROCESS_MODEL", model.getId(), modelAuditDetail(model));
         return toResponse(model);
     }
 
@@ -157,7 +158,7 @@ public class ProcessModelService {
         model.setStatus(ProcessModelStatus.ARCHIVED);
         model.setUpdatedBy(UserContextHolder.getUserId());
         repository.save(model);
-        auditLogService.record("PROCESS_MODEL_ARCHIVE", "PROCESS_MODEL", model.getId(), Map.of("modelKey", model.getModelKey()));
+        auditLogService.record("PROCESS_MODEL_ARCHIVE", "PROCESS_MODEL", model.getId(), modelAuditDetail(model));
         return toResponse(model);
     }
 
@@ -258,6 +259,20 @@ public class ProcessModelService {
     private String exportFileName(KoProcessModel model) {
         String modelKey = StringUtils.hasText(model.getModelKey()) ? model.getModelKey() : "process-model";
         return modelKey.replaceAll("[^A-Za-z0-9_-]", "_") + ".bpmn20.xml";
+    }
+
+    private Map<String, Object> modelAuditDetail(KoProcessModel model) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("modelKey", model.getModelKey());
+        detail.put("version", model.getVersion());
+        detail.put("status", model.getStatus().name());
+        if (StringUtils.hasText(model.getFlowableDeploymentId())) {
+            detail.put("deploymentId", model.getFlowableDeploymentId());
+        }
+        if (StringUtils.hasText(model.getFlowableDefinitionId())) {
+            detail.put("processDefinitionId", model.getFlowableDefinitionId());
+        }
+        return detail;
     }
 
     private String extractProcessId(String bpmnXml) {
