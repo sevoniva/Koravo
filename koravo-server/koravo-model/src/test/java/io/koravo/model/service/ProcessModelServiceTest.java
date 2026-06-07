@@ -145,6 +145,19 @@ class ProcessModelServiceTest {
     }
 
     @Test
+    void exportReturnsBpmnXmlWithModelKeyFileName() {
+        TenantContextHolder.setTenantId("default");
+        KoProcessModel model = model("model-1", ProcessModelStatus.DRAFT);
+        model.setBpmnXml("<definitions id=\"demo\" />");
+        when(repository.findByIdAndTenantIdAndDeletedFalse("model-1", "default")).thenReturn(Optional.of(model));
+
+        var exported = service.export("model-1");
+
+        assertThat(exported.fileName()).isEqualTo("leaveApproval.bpmn20.xml");
+        assertThat(exported.bpmnXml()).isEqualTo("<definitions id=\"demo\" />");
+    }
+
+    @Test
     void deployRejectsDisabledModel() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");

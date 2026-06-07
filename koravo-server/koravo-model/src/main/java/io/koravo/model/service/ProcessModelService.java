@@ -7,6 +7,7 @@ import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
 import io.koravo.model.dto.ProcessModelCreateRequest;
 import io.koravo.model.dto.ProcessModelDeployResponse;
+import io.koravo.model.dto.ProcessModelExportResponse;
 import io.koravo.model.dto.ProcessModelImportRequest;
 import io.koravo.model.dto.ProcessModelResponse;
 import io.koravo.model.dto.ProcessModelUpdateRequest;
@@ -202,8 +203,9 @@ public class ProcessModelService {
     }
 
     @Transactional(readOnly = true)
-    public String exportBpmnXml(String id) {
-        return find(id).getBpmnXml();
+    public ProcessModelExportResponse export(String id) {
+        KoProcessModel model = find(id);
+        return new ProcessModelExportResponse(exportFileName(model), model.getBpmnXml());
     }
 
     private String readFile(MultipartFile file) {
@@ -251,6 +253,11 @@ public class ProcessModelService {
                 model.getCreatedAt(),
                 model.getUpdatedAt()
         );
+    }
+
+    private String exportFileName(KoProcessModel model) {
+        String modelKey = StringUtils.hasText(model.getModelKey()) ? model.getModelKey() : "process-model";
+        return modelKey.replaceAll("[^A-Za-z0-9_-]", "_") + ".bpmn20.xml";
     }
 
     private String extractProcessId(String bpmnXml) {

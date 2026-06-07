@@ -5,6 +5,7 @@ import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.model.domain.ProcessModelStatus;
 import io.koravo.model.dto.ProcessModelCreateRequest;
 import io.koravo.model.dto.ProcessModelDeployResponse;
+import io.koravo.model.dto.ProcessModelExportResponse;
 import io.koravo.model.dto.ProcessModelImportRequest;
 import io.koravo.model.dto.ProcessModelResponse;
 import io.koravo.model.dto.ProcessModelUpdateRequest;
@@ -90,9 +91,10 @@ public class ProcessModelController {
 
     @GetMapping("/api/v1/process-models/{id}/export")
     public ResponseEntity<byte[]> export(@PathVariable String id) {
-        byte[] bytes = processModelService.exportBpmnXml(id).getBytes(StandardCharsets.UTF_8);
+        ProcessModelExportResponse export = processModelService.export(id);
+        byte[] bytes = export.bpmnXml().getBytes(StandardCharsets.UTF_8);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"process-model.bpmn20.xml\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + export.fileName() + "\"")
                 .contentType(MediaType.APPLICATION_XML)
                 .body(bytes);
     }

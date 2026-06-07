@@ -26,7 +26,7 @@ Only `DRAFT` models can be deployed from storage. Updating a `DEPLOYED` model re
 - `POST /api/v1/process-models/{id}/deploy`: deploy stored draft BPMN XML
 - `POST /api/v1/process-models/{id}/disable`: disable a model
 - `POST /api/v1/process-models/{id}/archive`: archive a model
-- `GET /api/v1/process-models/{id}/export`: download BPMN XML
+- `GET /api/v1/process-models/{id}/export`: download BPMN XML as `{modelKey}.bpmn20.xml`
 - `POST /api/v1/process-models/deploy`: legacy multipart deploy shortcut for examples
 
 Validation returns structured `errors` and `warnings`, not a boolean-only result.
