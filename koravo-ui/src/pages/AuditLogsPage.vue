@@ -5,7 +5,7 @@
         <h1>Audit Logs</h1>
         <p>Search tenant-scoped operational audit events.</p>
       </div>
-      <a-button :loading="loading" @click="load"><ReloadOutlined />Search</a-button>
+      <a-button :loading="loading" @click="search"><ReloadOutlined />Search</a-button>
     </div>
 
     <a-form layout="vertical" class="form-grid">
@@ -92,6 +92,11 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function search() {
+  page.value = 1
+  load()
 }
 
 function handleTableChange(nextPagination: TablePaginationConfig) {
