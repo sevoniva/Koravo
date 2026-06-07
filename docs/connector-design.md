@@ -21,14 +21,30 @@ The HTTP connector supports:
 - timeout
 - status code, headers, and body response
 
+Flowable service tasks can call it through `io.koravo.connector.flowable.KoravoConnectorDelegate`.
+Configure the delegate with Flowable field extensions:
+
+- `connectorType`: currently `http`.
+- `url`: target URL.
+- `method`: `GET` or `POST`.
+- `headers`: JSON object string.
+- `body`: optional request body.
+- `timeoutMillis`: optional timeout, defaults to 5000.
+- `outputVariable`: process variable name for `{ statusCode, headers, body }`.
+
+See `examples/bpmn/http-connector-demo.bpmn20.xml`.
+
 ## Security Boundary
 
 The default `UrlAccessPolicy` allows:
 
 - `https://...`
 - `http://localhost...`
+- `http://127.0.0.1...`
 
-It does not broadly allow private network access by default. Production deployments should replace this policy with allowlists and network controls.
+It blocks obvious private/link-local metadata targets such as `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, and `169.254.0.0/16`. Production deployments should replace this policy with allowlists and network controls.
+
+Every connector delegate execution writes a row to `ko_connector_execution_log` with redacted request and response summaries.
 
 ## JDBC Connector
 

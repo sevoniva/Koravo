@@ -4,6 +4,7 @@
 @processInstanceId = replace-with-instance-id
 @taskId = replace-with-task-id
 @datasourceId = replace-with-datasource-id
+@httpProcessInstanceId = replace-with-http-instance-id
 
 ### 1. Health check
 GET {{baseUrl}}/health
@@ -80,5 +81,47 @@ Content-Type: application/json
 
 ### 8. Test datasource
 POST {{baseUrl}}/datasources/{{datasourceId}}/test
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 9. Query audit logs
+GET {{baseUrl}}/audit-logs?page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 10. Trace process instance
+GET {{baseUrl}}/ops/process-instances/{{processInstanceId}}/trace
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 11. Deploy HTTP connector demo
+POST {{baseUrl}}/process-models/deploy?modelName=HTTP%20Connector%20Demo
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: multipart/form-data; boundary=KoravoBoundary
+
+--KoravoBoundary
+Content-Disposition: form-data; name="file"; filename="http-connector-demo.bpmn20.xml"
+Content-Type: application/xml
+
+< ../bpmn/http-connector-demo.bpmn20.xml
+--KoravoBoundary--
+
+### 12. Start HTTP connector demo
+POST {{baseUrl}}/process-instances/start
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "processDefinitionKey": "httpConnectorDemo",
+  "businessKey": "HTTP-001",
+  "variables": {
+    "approver": "admin"
+  }
+}
+
+### 13. Trace HTTP connector demo
+GET {{baseUrl}}/ops/process-instances/{{httpProcessInstanceId}}/trace
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
