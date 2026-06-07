@@ -22,5 +22,9 @@ class DefaultUrlAccessPolicyTest {
         assertThat(policy.isAllowed(URI.create("http://10.0.0.8/internal"))).isFalse();
         assertThat(policy.isAllowed(URI.create("https://192.168.1.8/internal"))).isFalse();
         assertThat(policy.isAllowed(URI.create("https://169.254.169.254/latest/meta-data"))).isFalse();
+        assertThat(policy.isAllowed(URI.create("https://100.64.0.1/internal"))).isFalse();
+        assertThat(policy.isAllowed(URI.create("https://[fc00::1]/internal"))).isFalse();
+        assertThat(policy.isAllowed(URI.create("https://[fe80::1]/internal"))).isFalse();
+        assertThat(policy.isAllowed(URI.create("https://[febf::1]/internal"))).isFalse();
     }
 }

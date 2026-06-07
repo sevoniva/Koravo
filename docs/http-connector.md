@@ -81,6 +81,8 @@ It blocks obvious private or metadata networks such as:
 - `172.16.0.0/12`
 - `192.168.0.0/16`
 - `169.254.0.0/16`
+- `100.64.0.0/10`
+- IPv6 unique local and link-local ranges such as `fc00::/7` and `fe80::/10`
 
 Production deployments should replace this with environment-specific allowlists and network egress controls.
 

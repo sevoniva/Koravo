@@ -13,7 +13,7 @@ Koravo is currently optimized for local development and demonstration. The codeb
 - Datasource secrets are encrypted and are not returned by APIs.
 - Connector execution logs redact obvious `password`, `token`, and `secret` fields.
 - Connector audit events record only minimal execution metadata and do not include URLs, headers, request bodies, or response bodies.
-- HTTP connector URL policy blocks obvious private and metadata networks by default.
+- HTTP connector URL policy blocks obvious private, link-local, carrier-grade NAT, and metadata networks by default.
 - Arbitrary SQL execution is not exposed.
 
 ## Production Hardening Checklist
