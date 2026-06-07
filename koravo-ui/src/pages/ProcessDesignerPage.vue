@@ -145,6 +145,7 @@ import {
   type BpmnValidationResult,
   type ProcessModelItem
 } from '../api/koravo'
+import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const canvasRef = ref<HTMLDivElement | null>(null)
 const route = useRoute()
@@ -425,6 +426,9 @@ function applyElementProperties() {
     properties['flowable:assignee'] = elementForm.assignee
   }
   if (selectedElement.value.type === 'bpmn:ServiceTask') {
+    if (!validateConnectorFields()) {
+      return
+    }
     properties['flowable:delegateExpression'] = elementForm.delegateExpression || '${koravoConnectorDelegate}'
   }
   modeling.updateProperties(selectedElement.value, properties)
@@ -471,5 +475,25 @@ function setConnectorField(businessObject: any, name: string, value: string) {
     extensionElements.values = values
   }
   field.stringValue = value || ''
+}
+
+function validateConnectorFields() {
+  try {
+    parseJsonObject(elementForm.headers || '{}', 'Headers')
+  } catch (error) {
+    if (error instanceof JsonInputError) {
+      message.error(error.message)
+    }
+    return false
+  }
+  if (!/^[1-9]\d*$/.test(elementForm.timeoutMillis || '')) {
+    message.error('Timeout millis must be a positive integer')
+    return false
+  }
+  if (!elementForm.url.trim()) {
+    message.error('Connector URL is required')
+    return false
+  }
+  return true
 }
 </script>

@@ -20,7 +20,7 @@ Configure it with Flowable field extensions:
 - `timeoutMillis`: optional timeout, defaults to 5000
 - `outputVariable`: variable name for the connector response
 
-In the console designer, select a `bpmn:ServiceTask` to edit the delegate expression and the basic HTTP connector fields above. This covers the demo configuration path without requiring raw XML edits.
+In the console designer, select a `bpmn:ServiceTask` to edit the delegate expression and the basic HTTP connector fields above. This covers the demo configuration path without requiring raw XML edits. The designer validates headers as a JSON object and requires `timeoutMillis` to be a positive integer before applying connector properties.
 
 The output variable contains:
 
