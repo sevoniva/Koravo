@@ -143,10 +143,13 @@ http://localhost:5173
 To run the packaged browser console with Docker Compose:
 
 ```bash
+cd koravo-ui
+npm run build
+cd ..
 docker compose up --build koravo-ui
 ```
 
-The packaged UI listens on `KORAVO_UI_PORT` and proxies `/api/` to the Compose backend service.
+The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PORT`, and proxies `/api/` to the Compose backend service.
 
 ## Console Demo Loop
 

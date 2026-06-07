@@ -18,10 +18,13 @@ docker compose up --build koravo-server
 Build and run the browser console through Compose:
 
 ```bash
+cd koravo-ui
+npm run build
+cd ..
 docker compose up --build koravo-ui
 ```
 
-The UI listens on `KORAVO_UI_PORT` and proxies `/api/` to `koravo-server:8080` inside the Compose network.
+The UI image packages the local `koravo-ui/dist` output. This keeps npm dependency installation on the developer machine, where the domestic npm mirror and local proxy are already configured. The packaged UI listens on `KORAVO_UI_PORT` and proxies `/api/` to `koravo-server:8080` inside the Compose network.
 
 ## Environment Variables
 
