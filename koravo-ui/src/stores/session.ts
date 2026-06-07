@@ -6,6 +6,7 @@ interface SessionState {
   tenantId: string
   userId: string
   requestId: string
+  lastRequestId: string
 }
 
 function loadState(): SessionState {
@@ -27,7 +28,8 @@ function defaultState(): SessionState {
   return {
     tenantId: 'default',
     userId: 'admin',
-    requestId: ''
+    requestId: '',
+    lastRequestId: ''
   }
 }
 
@@ -46,11 +48,18 @@ export const useSessionStore = defineStore('session', {
       this.requestId = requestId
       this.save()
     },
+    setLastRequestId(requestId?: string) {
+      if (requestId) {
+        this.lastRequestId = requestId
+        this.save()
+      }
+    },
     save() {
       localStorage.setItem(storageKey, JSON.stringify({
         tenantId: this.tenantId || 'default',
         userId: this.userId || 'admin',
-        requestId: this.requestId || ''
+        requestId: this.requestId || '',
+        lastRequestId: this.lastRequestId || ''
       }))
     }
   }

@@ -26,8 +26,14 @@ http.interceptors.request.use((config) => {
 })
 
 http.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const session = useSessionStore()
+    session.setLastRequestId(response.data?.requestId || response.headers['x-request-id'])
+    return response
+  },
   (error) => {
+    const session = useSessionStore()
+    session.setLastRequestId(error.response?.data?.requestId || error.response?.headers?.['x-request-id'])
     const text = error.response?.data?.message || error.message || 'Request failed'
     message.error(text)
     return Promise.reject(error)

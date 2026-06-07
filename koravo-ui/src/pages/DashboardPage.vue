@@ -14,6 +14,7 @@
       <a-card title="Tenant"><strong>{{ session.tenantId }}</strong><span>Header X-Tenant-Id</span></a-card>
       <a-card title="User"><strong>{{ session.userId }}</strong><span>Header X-User-Id</span></a-card>
       <a-card title="Request ID"><strong>{{ session.requestId || 'auto-generated' }}</strong><span>Header X-Request-Id</span></a-card>
+      <a-card title="Last Response"><strong>{{ session.lastRequestId || '-' }}</strong><span>Response requestId</span></a-card>
     </div>
 
     <JsonPreview :value="health" />
