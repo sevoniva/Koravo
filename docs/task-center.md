@@ -47,6 +47,8 @@ The task detail response includes:
 Form snapshots are stored in `ko_form_snapshot`. They preserve submitted form data at completion time, so historic review does not depend on the latest form schema or latest task variables.
 Task audit logs are queried from `ko_audit_log` by `resourceType = TASK` and `resourceId = taskId`.
 
+The console task detail page links directly to `/process-instances/{instanceId}` so approvers can move from a task to the BPMN trace, timeline, current tasks, variables, and saved form snapshots without switching through Ops first.
+
 ## Complete Task
 
 ```http

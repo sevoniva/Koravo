@@ -30,6 +30,8 @@ The process instance detail page at `/process-instances/{instanceId}` renders:
 - historic activity timeline
 - process variable summary
 
+The task detail page exposes a `Trace Instance` action that opens the same process instance detail page for the task's process instance. This keeps the approval flow connected: review task metadata, inspect bound form snapshots, then jump straight to the BPMN trace and timeline.
+
 Ops also renders trace BPMN XML with `bpmn-js`:
 
 - completed activities are highlighted

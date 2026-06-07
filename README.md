@@ -174,7 +174,7 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 ```
 
 6. Open `Tasks`, enter the task detail page, fill bound form fields or raw JSON form data, and complete the task with variables and an approval comment. The console validates variables and form data as JSON objects before submission.
-7. Open `Process Instances` or `Ops` to inspect the process trace, current/completed nodes, variables, and timeline.
+7. From task detail, click `Trace Instance`, or open `Process Instances` / `Ops`, to inspect the process trace, current/completed nodes, variables, timeline, and saved form snapshots.
 8. Open `Audit Logs` to review model, start, task, form, datasource, connector, and ops events.
 9. Create, update, test, and inspect datasource test logs in `Data Sources`.
 
@@ -229,6 +229,8 @@ The HTTP connector demo uses [examples/bpmn/http-connector-demo.bpmn20.xml](exam
 
 ```http
 GET /api/v1/connector-execution-logs?connectorType=http&page=1&pageSize=20
+GET /api/v1/connector-execution-logs/summary?connectorType=http
+GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
 ```
 
 ## Tests
