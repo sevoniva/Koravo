@@ -9,6 +9,19 @@
     </div>
 
     <a-form layout="vertical" class="form-grid">
+      <a-form-item label="Deployed model">
+        <a-select
+          v-model:value="selectedModelId"
+          allow-clear
+          :loading="loading"
+          placeholder="Select a deployed model"
+          @change="syncSelectedModel"
+        >
+          <a-select-option v-for="model in processModels" :key="model.id" :value="model.id">
+            {{ model.modelName }} / {{ model.modelKey }} v{{ model.version }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
       <a-form-item label="Process model ID"><a-input v-model:value="form.processModelId" /></a-form-item>
       <a-form-item label="Process definition ID"><a-input v-model:value="form.processDefinitionId" /></a-form-item>
       <a-form-item label="Task definition key"><a-input v-model:value="form.taskDefinitionKey" /></a-form-item>
@@ -52,9 +65,11 @@ import {
   createFormBinding,
   deleteFormBinding,
   listFormBindings,
+  listProcessModels,
   listFormSchemas,
   updateFormBinding,
   type FormBindingItem,
+  type ProcessModelItem,
   type FormSchemaItem
 } from '../api/koravo'
 
@@ -63,7 +78,9 @@ const saving = ref(false)
 const editingId = ref<string | null>(null)
 const bindings = ref<FormBindingItem[]>([])
 const schemas = ref<FormSchemaItem[]>([])
+const processModels = ref<ProcessModelItem[]>([])
 const selectedFormId = ref<string>()
+const selectedModelId = ref<string>()
 const form = reactive({
   processModelId: '',
   processDefinitionId: '',
@@ -84,9 +101,14 @@ const columns = [
 async function load() {
   loading.value = true
   try {
-    const [nextBindings, nextSchemas] = await Promise.all([listFormBindings(), listFormSchemas()])
+    const [nextBindings, nextSchemas, nextProcessModels] = await Promise.all([
+      listFormBindings(),
+      listFormSchemas(),
+      listProcessModels('DEPLOYED')
+    ])
     bindings.value = nextBindings
     schemas.value = nextSchemas
+    processModels.value = nextProcessModels
     if (!selectedFormId.value && nextSchemas[0]) {
       selectedFormId.value = nextSchemas[0].id
       syncSelectedForm()
@@ -131,6 +153,7 @@ function edit(record: FormBindingItem) {
   form.formSchemaId = record.formSchemaId
   form.formSchemaVersion = record.formSchemaVersion
   selectedFormId.value = record.formSchemaId
+  selectedModelId.value = record.processModelId
 }
 
 async function remove(id: string) {
@@ -144,6 +167,7 @@ function reset() {
   editingId.value = null
   form.processModelId = ''
   form.processDefinitionId = ''
+  selectedModelId.value = undefined
   form.taskDefinitionKey = 'approveTask'
   if (selectedFormId.value) {
     syncSelectedForm()
@@ -151,6 +175,13 @@ function reset() {
     form.formSchemaId = ''
     form.formSchemaVersion = 1
   }
+}
+
+function syncSelectedModel() {
+  const model = processModels.value.find((item) => item.id === selectedModelId.value)
+  if (!model) return
+  form.processModelId = model.id
+  form.processDefinitionId = model.flowableDefinitionId || ''
 }
 
 function syncSelectedForm() {
