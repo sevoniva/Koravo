@@ -51,7 +51,41 @@
       <a-form-item label="Variables JSON" class="span-2">
         <a-textarea v-model:value="variablesJson" :rows="5" />
       </a-form-item>
-      <a-form-item label="Form data JSON" class="span-2">
+      <a-form-item v-if="detail?.formSchema" label="Bound form" class="span-2">
+        <a-alert
+          :message="`${detail.formSchema.formName} v${detail.formSchema.version}`"
+          :description="`Form key: ${detail.formSchema.formKey}`"
+          type="info"
+          show-icon
+        />
+      </a-form-item>
+      <template v-if="schemaFields.length">
+        <a-form-item
+          v-for="field in schemaFields"
+          :key="field.key"
+          :label="field.label"
+          :required="field.required"
+        >
+          <a-switch
+            v-if="field.type === 'boolean'"
+            v-model:checked="formDataValues[field.key]"
+            @change="syncFormDataJson"
+          />
+          <a-input-number
+            v-else-if="field.type === 'number' || field.type === 'integer'"
+            v-model:value="formDataValues[field.key]"
+            :precision="field.type === 'integer' ? 0 : undefined"
+            style="width: 100%"
+            @change="syncFormDataJson"
+          />
+          <a-input
+            v-else
+            v-model:value="formDataValues[field.key]"
+            @change="syncFormDataJson"
+          />
+        </a-form-item>
+      </template>
+      <a-form-item :label="schemaFields.length ? 'Raw form data JSON' : 'Form data JSON'" class="span-2">
         <a-textarea v-model:value="formDataJson" :rows="6" />
       </a-form-item>
       <a-form-item label="Comment" class="span-2">
@@ -67,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons-vue'
@@ -82,7 +116,15 @@ const submitting = ref(false)
 const detail = ref<TaskDetail | null>(null)
 const variablesJson = ref(JSON.stringify({ approved: true }, null, 2))
 const formDataJson = ref('{}')
+const formDataValues = ref<JsonRecord>({})
 const comment = ref('approved')
+
+type SchemaField = {
+  key: string
+  label: string
+  type: 'string' | 'number' | 'integer' | 'boolean'
+  required: boolean
+}
 
 const commentColumns = [
   { title: 'User', dataIndex: 'userId', key: 'userId', width: 140 },
@@ -105,6 +147,30 @@ const auditColumns = [
   { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 }
 ]
 
+const schemaFields = computed<SchemaField[]>(() => {
+  const schemaJson = detail.value?.formSchema?.schemaJson
+  if (!schemaJson) return []
+  try {
+    const schema = JSON.parse(schemaJson) as {
+      required?: string[]
+      properties?: Record<string, { type?: string; title?: string }>
+    }
+    const required = new Set(schema.required || [])
+    return Object.entries(schema.properties || {})
+      .filter(([, property]) => ['string', 'number', 'integer', 'boolean'].includes(property.type || 'string'))
+      .map(([key, property]) => ({
+        key,
+        label: property.title || key,
+        type: (property.type || 'string') as SchemaField['type'],
+        required: required.has(key)
+      }))
+  } catch {
+    return []
+  }
+})
+
+watch(schemaFields, initializeFormDataValues)
+
 async function load() {
   loading.value = true
   try {
@@ -112,6 +178,24 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function initializeFormDataValues() {
+  const next: JsonRecord = {}
+  for (const field of schemaFields.value) {
+    next[field.key] = field.type === 'boolean' ? false : undefined
+  }
+  formDataValues.value = next
+  if (schemaFields.value.length) {
+    syncFormDataJson()
+  }
+}
+
+function syncFormDataJson() {
+  const data = Object.fromEntries(
+    Object.entries(formDataValues.value).filter(([, value]) => value !== undefined && value !== '')
+  )
+  formDataJson.value = JSON.stringify(data, null, 2)
 }
 
 async function submit() {

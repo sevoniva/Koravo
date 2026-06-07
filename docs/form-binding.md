@@ -29,6 +29,7 @@ Bindings can target:
 - `processDefinitionId + taskDefinitionKey`
 
 Task detail resolves binding by `processDefinitionId + taskDefinitionKey` and returns the bound form schema when present.
+The console renders simple JSON Schema object fields for bound task forms. Supported field types are `string`, `number`, `integer`, and `boolean`; complex schema constructs can still be submitted through the raw JSON form data editor.
 
 ## Snapshot Behavior
 
@@ -63,4 +64,4 @@ Form schema create/update writes `FORM_SCHEMA_CREATE` and `FORM_SCHEMA_UPDATE`. 
 
 ## Current Limits
 
-- The console currently uses JSON text areas for form data. Schema-driven form rendering is planned.
+- Advanced JSON Schema constructs such as arrays, nested objects, conditional schemas, and custom widgets still use the raw JSON fallback in the console.

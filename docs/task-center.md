@@ -74,7 +74,8 @@ Completion behavior:
 - writes Flowable task comments when `comment` is present
 - completes the Flowable task through `ProcessFacade`
 - writes a `TASK_COMPLETE` audit log
+- renders simple bound form schema fields in the console while keeping raw JSON form data editing as a fallback
 
 ## Current Limits
 
-- Form rendering is still JSON-oriented in the console; schema-driven controls are the next frontend step.
+- Advanced form widgets and complex JSON Schema constructs are still represented through the raw JSON fallback in the console.
