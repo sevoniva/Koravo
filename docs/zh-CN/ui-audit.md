@@ -39,6 +39,7 @@
 - 流程实例启动表单已按模型切换变量模板；HTTP Connector 示例使用 HTTP 业务编号和审批人变量，请假流程使用请假申请变量。
 - 任务详情已接入 PageContainer、PageHeader、StatusTag、EmptyState、DetailSection、Toolbar；任务时间、审批意见、表单快照和操作记录统一格式化。
 - 任务详情流程变量、任务变量、表单快照、操作记录和详情数据已脱敏展示；提交前校验绑定表单必填项。
+- 任务详情申请变量、任务变量、表单快照和操作记录默认展示业务摘要；原始脱敏数据移入高级详情。
 - 任务列表办理弹窗和任务详情办理区默认展示中文表单，表单数据和流程变量收进高级配置。
 - 表单绑定已接入 PageContainer、PageHeader、DetailSection、Toolbar、StatusTag、CopyableText、ConfirmAction、EmptyState；新增和编辑不再手填流程模型、流程定义和任务节点。
 - 审计日志已接入 PageContainer、PageHeader、DetailSection、Toolbar、EmptyState、CopyableText；列表和弹窗时间格式统一，详情 JSON 脱敏展示。

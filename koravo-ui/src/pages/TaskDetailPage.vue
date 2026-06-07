@@ -78,11 +78,21 @@
     </DetailSection>
 
     <a-tabs v-if="detail" class="panel-block">
-      <a-tab-pane key="processVariables" tab="流程变量">
-        <JsonPreview :value="maskedProcessVariables" />
+      <a-tab-pane key="processVariables" tab="申请摘要">
+        <EmptyState v-if="!processVariableSummaryItems.length" description="暂无申请摘要" />
+        <a-descriptions v-else bordered :column="2" size="small">
+          <a-descriptions-item v-for="item in processVariableSummaryItems" :key="item.key" :label="item.label">
+            {{ item.value }}
+          </a-descriptions-item>
+        </a-descriptions>
       </a-tab-pane>
-      <a-tab-pane key="taskVariables" tab="任务变量">
-        <JsonPreview :value="maskedTaskVariables" />
+      <a-tab-pane key="taskVariables" tab="任务摘要">
+        <EmptyState v-if="!taskVariableSummaryItems.length" description="暂无任务摘要" />
+        <a-descriptions v-else bordered :column="2" size="small">
+          <a-descriptions-item v-for="item in taskVariableSummaryItems" :key="item.key" :label="item.label">
+            {{ item.value }}
+          </a-descriptions-item>
+        </a-descriptions>
       </a-tab-pane>
       <a-tab-pane key="comments" tab="审批意见">
         <a-table :data-source="detail.comments" :columns="commentColumns" row-key="id" :pagination="false" size="small">
@@ -101,7 +111,7 @@
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'dataJson'">
-              <code>{{ maskedJsonText(record.dataJson) }}</code>
+              <span class="task-summary-text">{{ snapshotSummary(record.dataJson) }}</span>
             </template>
             <template v-else-if="column.key === 'createdAt'">
               {{ formatDateTime(record.createdAt) }}
@@ -118,8 +128,11 @@
             <EmptyState description="暂无操作记录" />
           </template>
           <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'actionLabel'">
+              {{ actionLabel(record.action) }}
+            </template>
             <template v-if="column.key === 'detailJson'">
-              <code>{{ maskedJsonText(record.detailJson) }}</code>
+              <span class="task-summary-text">{{ auditSummary(record.detailJson, record.action) }}</span>
             </template>
             <template v-else-if="column.key === 'createdAt'">
               {{ formatDateTime(record.createdAt) }}
@@ -130,8 +143,18 @@
     </a-tabs>
 
     <a-collapse v-if="detail" class="panel-block">
-      <a-collapse-panel key="detail" header="详情数据">
-        <JsonPreview :value="maskedDetail" />
+      <a-collapse-panel key="detail" header="高级详情">
+        <a-tabs>
+          <a-tab-pane key="variables" tab="流程变量">
+            <JsonPreview :value="maskedProcessVariables" />
+          </a-tab-pane>
+          <a-tab-pane key="taskVariables" tab="任务变量">
+            <JsonPreview :value="maskedTaskVariables" />
+          </a-tab-pane>
+          <a-tab-pane key="detail" tab="详情数据">
+            <JsonPreview :value="maskedDetail" />
+          </a-tab-pane>
+        </a-tabs>
       </a-collapse-panel>
     </a-collapse>
 
@@ -142,17 +165,26 @@
         <a-descriptions-item label="版本">{{ selectedSnapshot.formSchemaVersion }}</a-descriptions-item>
         <a-descriptions-item label="创建时间">{{ formatDateTime(selectedSnapshot.createdAt) }}</a-descriptions-item>
       </a-descriptions>
-      <a-tabs v-if="selectedSnapshot">
-        <a-tab-pane key="data" tab="数据">
-          <JsonPreview :value="selectedSnapshotData" />
-        </a-tab-pane>
-        <a-tab-pane key="schema" tab="Schema">
-          <JsonPreview :value="selectedSnapshotSchema" />
-        </a-tab-pane>
-        <a-tab-pane key="uiSchema" tab="UI Schema">
-          <JsonPreview :value="selectedSnapshotUiSchema" />
-        </a-tab-pane>
-      </a-tabs>
+      <a-descriptions v-if="selectedSnapshot" bordered :column="2" size="small" class="panel-block">
+        <a-descriptions-item v-for="item in selectedSnapshotSummaryItems" :key="item.key" :label="item.label">
+          {{ item.value }}
+        </a-descriptions-item>
+      </a-descriptions>
+      <a-collapse v-if="selectedSnapshot" class="panel-block">
+        <a-collapse-panel key="snapshot" header="高级详情">
+          <a-tabs>
+            <a-tab-pane key="data" tab="表单数据">
+              <JsonPreview :value="selectedSnapshotData" />
+            </a-tab-pane>
+            <a-tab-pane key="schema" tab="表单结构">
+              <JsonPreview :value="selectedSnapshotSchema" />
+            </a-tab-pane>
+            <a-tab-pane key="uiSchema" tab="界面配置">
+              <JsonPreview :value="selectedSnapshotUiSchema" />
+            </a-tab-pane>
+          </a-tabs>
+        </a-collapse-panel>
+      </a-collapse>
     </a-modal>
   </PageContainer>
 </template>
@@ -204,22 +236,25 @@ const snapshotColumns = [
   { title: '任务 ID', dataIndex: 'taskId', key: 'taskId', width: 180 },
   { title: '表单', dataIndex: 'formSchemaId', key: 'formSchemaId', width: 180 },
   { title: '版本', dataIndex: 'formSchemaVersion', key: 'formSchemaVersion', width: 90 },
-  { title: '数据', dataIndex: 'dataJson', key: 'dataJson' },
+  { title: '摘要', dataIndex: 'dataJson', key: 'dataJson' },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 220 },
   { title: '操作', key: 'action', width: 90 }
 ]
 
 const auditColumns = [
-  { title: '动作', dataIndex: 'action', key: 'action', width: 190 },
+  { title: '动作', key: 'actionLabel', width: 190 },
   { title: '用户', dataIndex: 'userId', key: 'userId', width: 140 },
   { title: '请求 ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
-  { title: '详情', dataIndex: 'detailJson', key: 'detailJson' },
+  { title: '摘要', dataIndex: 'detailJson', key: 'detailJson' },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 220 }
 ]
 
 const isCompletable = computed(() => detail.value?.task.status === 'RUNNING')
 const maskedProcessVariables = computed(() => maskSecret(detail.value?.processVariables || {}))
 const maskedTaskVariables = computed(() => maskSecret(detail.value?.taskVariables || {}))
+const processVariableSummaryItems = computed(() => variableSummaryItems(maskedProcessVariables.value as Record<string, unknown>))
+const taskVariableSummaryItems = computed(() => variableSummaryItems(maskedTaskVariables.value as Record<string, unknown>))
+const selectedSnapshotSummaryItems = computed(() => variableSummaryItems(selectedSnapshotData.value as Record<string, unknown>))
 const maskedDetail = computed(() => detail.value ? {
   ...detail.value,
   processVariables: maskedProcessVariables.value,
@@ -290,6 +325,77 @@ function parseJsonValue(value?: string) {
 function maskedJsonText(value?: string) {
   const masked = parseJsonValue(value)
   return typeof masked === 'string' ? masked : JSON.stringify(masked)
+}
+
+function variableSummaryItems(value: Record<string, unknown>) {
+  return Object.entries(value || {})
+    .filter(([key, item]) => !isLowSignalKey(key, item))
+    .map(([key, item]) => ({
+      key,
+      label: fieldLabel(key),
+      value: formatSummaryValue(item)
+    }))
+}
+
+function snapshotSummary(value?: string) {
+  const parsed = parseJsonValue(value)
+  const items = variableSummaryItems(parsed as Record<string, unknown>).slice(0, 4)
+  return items.length ? items.map((item) => `${item.label}：${item.value}`).join('，') : '无表单数据'
+}
+
+function auditSummary(value?: string, action?: string) {
+  const parsed = parseJsonValue(value)
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const items = variableSummaryItems(parsed as Record<string, unknown>).slice(0, 3)
+    if (items.length) return items.map((item) => `${item.label}：${item.value}`).join('，')
+  }
+  return actionLabel(action)
+}
+
+function actionLabel(action?: string) {
+  const mapping: Record<string, string> = {
+    TASK_COMPLETE: '任务已完成',
+    PROCESS_INSTANCE_START: '流程已启动',
+    FORM_SUBMIT: '表单已提交',
+    FORM_SCHEMA_CREATE: '表单已创建',
+    FORM_BINDING_CREATE: '表单已绑定',
+    CONNECTOR_EXECUTE: '连接器已执行'
+  }
+  return mapping[action || ''] || action || '无补充信息'
+}
+
+function fieldLabel(key: string) {
+  const mapping: Record<string, string> = {
+    applicant: '申请人',
+    approver: '审批人',
+    leaveType: '请假类型',
+    startDate: '开始日期',
+    endDate: '结束日期',
+    days: '请假天数',
+    reason: '请假原因',
+    attachmentNote: '附件说明',
+    approved: '审批结果',
+    approvalAction: '审批动作',
+    businessKey: '业务编号',
+    tenantId: '租户',
+    startUserId: '发起人',
+    status: '状态',
+    statusCode: '状态码',
+    elapsedMillis: '耗时'
+  }
+  return mapping[key] || key
+}
+
+function formatSummaryValue(value: unknown) {
+  if (typeof value === 'boolean') return value ? '是' : '否'
+  if (value === undefined || value === null || value === '') return '-'
+  const text = String(value)
+  return text.length > 48 ? `${text.slice(0, 48)}...` : text
+}
+
+function isLowSignalKey(key: string, value: unknown) {
+  if (value === undefined || value === null || value === '') return true
+  return ['requestId'].includes(key)
 }
 
 function validateRequiredFormFields(formData: JsonRecord) {
