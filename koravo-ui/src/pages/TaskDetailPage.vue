@@ -55,15 +55,19 @@
           :schema-json="detail.formSchema.schemaJson"
           @fields-change="schemaFields = $event"
         />
-        <a-form-item label="表单数据 JSON" class="span-2">
-          <a-textarea v-model:value="formDataJson" :rows="5" />
-        </a-form-item>
-        <a-form-item label="流程变量 JSON" class="span-2">
-          <a-textarea v-model:value="variablesJson" :rows="5" />
-        </a-form-item>
         <a-form-item label="审批意见" class="span-2">
           <a-input v-model:value="comment" />
         </a-form-item>
+        <a-collapse ghost class="span-2">
+          <a-collapse-panel key="advanced" header="高级配置">
+            <a-form-item label="表单数据">
+              <a-textarea v-model:value="formDataJson" :rows="5" />
+            </a-form-item>
+            <a-form-item label="流程变量">
+              <a-textarea v-model:value="variablesJson" :rows="5" />
+            </a-form-item>
+          </a-collapse-panel>
+        </a-collapse>
       </a-form>
       <template #actions>
         <Toolbar>

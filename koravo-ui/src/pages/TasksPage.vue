@@ -124,15 +124,19 @@
           v-model="formDataValues"
           :schema-json="taskDetail.formSchema.schemaJson"
         />
-        <a-form-item label="表单数据 JSON">
-          <a-textarea v-model:value="completeFormData" :rows="4" />
-        </a-form-item>
-        <a-form-item label="流程变量 JSON">
-          <a-textarea v-model:value="completeVariables" :rows="4" />
-        </a-form-item>
         <a-form-item label="审批意见">
           <a-input v-model:value="comment" />
         </a-form-item>
+        <a-collapse ghost>
+          <a-collapse-panel key="advanced" header="高级配置">
+            <a-form-item label="表单数据">
+              <a-textarea v-model:value="completeFormData" :rows="4" />
+            </a-form-item>
+            <a-form-item label="流程变量">
+              <a-textarea v-model:value="completeVariables" :rows="4" />
+            </a-form-item>
+          </a-collapse-panel>
+        </a-collapse>
       </a-form>
     </a-modal>
   </PageContainer>
