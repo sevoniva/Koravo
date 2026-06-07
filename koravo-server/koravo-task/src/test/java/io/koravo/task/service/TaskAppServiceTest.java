@@ -118,6 +118,7 @@ class TaskAppServiceTest {
                 "approveTask",
                 "RUNNING"
         ));
+        when(formSchemaService.get("form-1")).thenReturn(formSchema("form-1", 1));
 
         service.completeTask(
                 "task-1",
@@ -129,7 +130,7 @@ class TaskAppServiceTest {
                 )
         );
 
-        verify(formSnapshotService).saveSnapshot("pi-1", "task-1", "form-1", Map.of("reason", "ok"));
+        verify(formSnapshotService).saveSnapshot("pi-1", "task-1", "form-1", formSchema("form-1", 1), Map.of("reason", "ok"));
         verify(processFacade).completeTask(any(CompleteTaskCommand.class));
         verify(auditLogService).record(eq("TASK_COMPLETE"), eq("TASK"), eq("task-1"), eq(Map.of(
                 "taskId", "task-1",
@@ -158,6 +159,7 @@ class TaskAppServiceTest {
         when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(java.util.Optional.of(
                 new FormBindingResponse("binding-1", null, "pd-1", "approveTask", "form-1", 1)
         ));
+        when(formSchemaService.get("form-1")).thenReturn(formSchema("form-1", 1));
 
         service.completeTask(
                 "task-1",
@@ -169,7 +171,7 @@ class TaskAppServiceTest {
                 )
         );
 
-        verify(formSnapshotService).saveSnapshot("pi-1", "task-1", "form-1", Map.of("reason", "ok"));
+        verify(formSnapshotService).saveSnapshot("pi-1", "task-1", "form-1", formSchema("form-1", 1), Map.of("reason", "ok"));
         verify(auditLogService).record(eq("TASK_COMPLETE"), eq("TASK"), eq("task-1"), eq(Map.of(
                 "taskId", "task-1",
                 "processInstanceId", "pi-1",
@@ -201,6 +203,7 @@ class TaskAppServiceTest {
         when(formBindingService.findByProcessModelTaskKey("model-1", "approveTask")).thenReturn(Optional.of(
                 new FormBindingResponse("binding-1", "model-1", null, "approveTask", "form-1", 1)
         ));
+        when(formSchemaService.get("form-1")).thenReturn(formSchema("form-1", 1));
 
         service.completeTask(
                 "task-1",
@@ -212,7 +215,7 @@ class TaskAppServiceTest {
                 )
         );
 
-        verify(formSnapshotService).saveSnapshot("pi-1", "task-1", "form-1", Map.of("reason", "ok"));
+        verify(formSnapshotService).saveSnapshot("pi-1", "task-1", "form-1", formSchema("form-1", 1), Map.of("reason", "ok"));
         verify(auditLogService).record(eq("TASK_COMPLETE"), eq("TASK"), eq("task-1"), eq(Map.of(
                 "taskId", "task-1",
                 "processInstanceId", "pi-1",
@@ -260,6 +263,9 @@ class TaskAppServiceTest {
                         "pi-1",
                         "task-0",
                         "form-1",
+                        1,
+                        "{\"type\":\"object\"}",
+                        "{}",
                         "{\"reason\":\"ok\"}",
                         Instant.parse("2026-06-07T00:00:00Z")
                 )
@@ -376,5 +382,17 @@ class TaskAppServiceTest {
         model.setStatus(ProcessModelStatus.DEPLOYED);
         model.setBpmnXml("<definitions />");
         return model;
+    }
+
+    private FormSchemaResponse formSchema(String id, int version) {
+        return new FormSchemaResponse(
+                id,
+                "leave",
+                "Leave",
+                version,
+                "{\"type\":\"object\"}",
+                "{}",
+                "ACTIVE"
+        );
     }
 }

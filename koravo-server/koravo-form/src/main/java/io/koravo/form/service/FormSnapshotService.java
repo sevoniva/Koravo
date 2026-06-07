@@ -6,6 +6,7 @@ import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
 import io.koravo.form.domain.KoFormSnapshot;
 import io.koravo.form.repo.FormSnapshotRepository;
+import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.form.web.FormSnapshotResponse;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
@@ -27,6 +28,11 @@ public class FormSnapshotService {
 
     @Transactional
     public void saveSnapshot(String processInstanceId, String taskId, String formSchemaId, Map<String, Object> formData) {
+        saveSnapshot(processInstanceId, taskId, formSchemaId, null, formData);
+    }
+
+    @Transactional
+    public void saveSnapshot(String processInstanceId, String taskId, String formSchemaId, FormSchemaResponse formSchema, Map<String, Object> formData) {
         KoFormSnapshot snapshot = new KoFormSnapshot();
         snapshot.setTenantId(TenantContextHolder.getTenantId());
         snapshot.setCreatedBy(UserContextHolder.getUserId());
@@ -34,6 +40,11 @@ public class FormSnapshotService {
         snapshot.setProcessInstanceId(processInstanceId);
         snapshot.setTaskId(taskId);
         snapshot.setFormSchemaId(formSchemaId);
+        if (formSchema != null) {
+            snapshot.setFormSchemaVersion(formSchema.version());
+            snapshot.setSchemaJson(formSchema.schemaJson());
+            snapshot.setUiSchemaJson(formSchema.uiSchemaJson());
+        }
         snapshot.setDataJson(toJson(formData == null ? Map.of() : formData));
         repository.save(snapshot);
     }
@@ -55,6 +66,9 @@ public class FormSnapshotService {
                 snapshot.getProcessInstanceId(),
                 snapshot.getTaskId(),
                 snapshot.getFormSchemaId(),
+                snapshot.getFormSchemaVersion(),
+                snapshot.getSchemaJson(),
+                snapshot.getUiSchemaJson(),
                 snapshot.getDataJson(),
                 snapshot.getCreatedAt()
         );

@@ -240,3 +240,13 @@ databaseChangeLog:
             columns:
               - column: { name: tenant_id }
               - column: { name: connector_type }
+  - changeSet:
+      id: 0006-add-form-snapshot-schema-copy
+      author: koravo
+      changes:
+        - addColumn:
+            tableName: ko_form_snapshot
+            columns:
+              - column: { name: form_schema_version, type: int }
+              - column: { name: schema_json, type: clob }
+              - column: { name: ui_schema_json, type: clob }

@@ -18,6 +18,17 @@ public class KoFormSnapshot extends BaseEntity {
     @Column(name = "form_schema_id", nullable = false, length = 64)
     private String formSchemaId;
 
+    @Column(name = "form_schema_version")
+    private Integer formSchemaVersion;
+
+    @Lob
+    @Column(name = "schema_json")
+    private String schemaJson;
+
+    @Lob
+    @Column(name = "ui_schema_json")
+    private String uiSchemaJson;
+
     @Lob
     @Column(name = "data_json", nullable = false)
     private String dataJson;
@@ -44,6 +55,30 @@ public class KoFormSnapshot extends BaseEntity {
 
     public void setFormSchemaId(String formSchemaId) {
         this.formSchemaId = formSchemaId;
+    }
+
+    public Integer getFormSchemaVersion() {
+        return formSchemaVersion;
+    }
+
+    public void setFormSchemaVersion(Integer formSchemaVersion) {
+        this.formSchemaVersion = formSchemaVersion;
+    }
+
+    public String getSchemaJson() {
+        return schemaJson;
+    }
+
+    public void setSchemaJson(String schemaJson) {
+        this.schemaJson = schemaJson;
+    }
+
+    public String getUiSchemaJson() {
+        return uiSchemaJson;
+    }
+
+    public void setUiSchemaJson(String uiSchemaJson) {
+        this.uiSchemaJson = uiSchemaJson;
     }
 
     public String getDataJson() {

@@ -162,6 +162,7 @@ const commentColumns = [
 const snapshotColumns = [
   { title: 'Task ID', dataIndex: 'taskId', key: 'taskId', width: 180 },
   { title: 'Form Schema', dataIndex: 'formSchemaId', key: 'formSchemaId', width: 180 },
+  { title: 'Version', dataIndex: 'formSchemaVersion', key: 'formSchemaVersion', width: 90 },
   { title: 'Data', dataIndex: 'dataJson', key: 'dataJson' },
   { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 },
   { title: 'Action', key: 'action', width: 90 }

@@ -105,8 +105,9 @@ public class TaskAppService {
         CompleteTaskRequest safeRequest = request == null ? new CompleteTaskRequest(Map.of(), null, null, null) : request;
         TaskDTO task = processFacade.getTask(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
         String formSchemaId = resolveFormSchemaId(task, safeRequest);
+        FormSchemaResponse formSchema = StringUtils.hasText(formSchemaId) ? formSchemaService.get(formSchemaId) : null;
         if (safeRequest.formData() != null && StringUtils.hasText(formSchemaId)) {
-            formSnapshotService.saveSnapshot(task.processInstanceId(), taskId, formSchemaId, safeRequest.formData());
+            formSnapshotService.saveSnapshot(task.processInstanceId(), taskId, formSchemaId, formSchema, safeRequest.formData());
         }
         processFacade.completeTask(new CompleteTaskCommand(
                 TenantContextHolder.getTenantId(),
