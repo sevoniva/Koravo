@@ -5,6 +5,7 @@ import io.koravo.connector.repo.ConnectorExecutionLogRepository;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -27,6 +28,7 @@ class ConnectorExecutionLogQueryServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void queryReturnsTenantScopedRedactedLogs() {
         TenantContextHolder.setTenantId("default");
         KoConnectorExecutionLog log = new KoConnectorExecutionLog();
@@ -50,5 +52,35 @@ class ConnectorExecutionLogQueryServiceTest {
         assertThat(result.items().getFirst().connectorType()).isEqualTo("http");
         assertThat(result.items().getFirst().url()).doesNotContain("abc");
         assertThat(result.items().getFirst().requestSummary()).doesNotContain("secret");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void summaryReturnsCountsAndRecentFailures() {
+        TenantContextHolder.setTenantId("default");
+        KoConnectorExecutionLog failed = new KoConnectorExecutionLog();
+        failed.setId("log-failed");
+        failed.setTenantId("default");
+        failed.setConnectorType("http");
+        failed.setStatus("FAILED");
+        failed.setElapsedMillis(12);
+        failed.setErrorMessage("timeout");
+        failed.setCreatedAt(Instant.parse("2026-06-07T01:00:00Z"));
+        when(repository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(page(List.of(), 12))
+                .thenReturn(page(List.of(), 9))
+                .thenReturn(page(List.of(failed), 3));
+
+        var result = service.summary("http");
+
+        assertThat(result.total()).isEqualTo(12);
+        assertThat(result.success()).isEqualTo(9);
+        assertThat(result.failed()).isEqualTo(3);
+        assertThat(result.recentFailures()).hasSize(1);
+        assertThat(result.recentFailures().getFirst().errorMessage()).isEqualTo("timeout");
+    }
+
+    private Page<KoConnectorExecutionLog> page(List<KoConnectorExecutionLog> logs, long total) {
+        return new PageImpl<>(logs, Pageable.ofSize(Math.max(1, logs.size())), total);
     }
 }

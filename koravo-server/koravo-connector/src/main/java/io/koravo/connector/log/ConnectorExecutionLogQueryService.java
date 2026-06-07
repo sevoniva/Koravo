@@ -37,6 +37,18 @@ public class ConnectorExecutionLogQueryService {
         );
     }
 
+    public ConnectorExecutionSummaryResponse summary(String connectorType) {
+        PageResult<ConnectorExecutionLogResponse> total = query(connectorType, null, 1, 1);
+        PageResult<ConnectorExecutionLogResponse> success = query(connectorType, "SUCCESS", 1, 1);
+        PageResult<ConnectorExecutionLogResponse> failed = query(connectorType, "FAILED", 1, 5);
+        return new ConnectorExecutionSummaryResponse(
+                total.total(),
+                success.total(),
+                failed.total(),
+                failed.items()
+        );
+    }
+
     private Specification<KoConnectorExecutionLog> specification(String connectorType, String status) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();

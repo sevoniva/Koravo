@@ -49,6 +49,12 @@
       </a-tab-pane>
 
       <a-tab-pane key="connectors" tab="Connector Logs">
+        <div class="metric-grid panel-block">
+          <a-card title="Connector Total"><strong>{{ connectorSummary?.total ?? 0 }}</strong><span>Executions in current tenant</span></a-card>
+          <a-card title="Success"><strong>{{ connectorSummary?.success ?? 0 }}</strong><span>Completed connector calls</span></a-card>
+          <a-card title="Failed"><strong>{{ connectorSummary?.failed ?? 0 }}</strong><span>Operational exceptions</span></a-card>
+        </div>
+
         <a-form layout="vertical" class="form-grid">
           <a-form-item label="Connector type">
             <a-input v-model:value="connectorFilters.connectorType" placeholder="http" />
@@ -68,6 +74,22 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'summary'">
               <code>{{ record.errorMessage || record.responseSummary || record.requestSummary }}</code>
+            </template>
+          </template>
+        </a-table>
+
+        <a-table
+          v-if="connectorSummary?.recentFailures?.length"
+          class="panel-block"
+          :data-source="connectorSummary.recentFailures"
+          :columns="connectorFailureColumns"
+          row-key="id"
+          :pagination="false"
+          size="small"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'error'">
+              <code>{{ record.errorMessage }}</code>
             </template>
           </template>
         </a-table>
@@ -108,6 +130,7 @@ import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import JsonPreview from '../components/JsonPreview.vue'
 import {
   activateProcessInstance,
+  getConnectorExecutionSummary,
   getOpsInstance,
   getProcessTrace,
   listConnectorExecutionLogs,
@@ -115,6 +138,7 @@ import {
   suspendProcessInstance,
   terminateProcessInstance,
   type ConnectorExecutionLogItem,
+  type ConnectorExecutionSummary,
   type OpsProcessInstance,
   type ProcessTrace
 } from '../api/koravo'
@@ -129,6 +153,7 @@ const actionLoading = ref<string | null>(null)
 const activeTab = ref('instances')
 const connectorLoading = ref(false)
 const connectorLogs = ref<ConnectorExecutionLogItem[]>([])
+const connectorSummary = ref<ConnectorExecutionSummary | null>(null)
 const connectorFilters = ref({
   connectorType: 'http',
   status: undefined as string | undefined
@@ -162,6 +187,14 @@ const connectorColumns = [
   { title: 'Summary', key: 'summary' }
 ]
 
+const connectorFailureColumns = [
+  { title: 'Time', dataIndex: 'createdAt', key: 'createdAt', width: 190 },
+  { title: 'Type', dataIndex: 'connectorType', key: 'connectorType', width: 90 },
+  { title: 'URL', dataIndex: 'url', key: 'url', width: 260 },
+  { title: 'Request ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
+  { title: 'Error', key: 'error' }
+]
+
 let traceViewer: any = null
 
 async function load() {
@@ -181,6 +214,7 @@ async function load() {
 async function loadConnectorLogs() {
   connectorLoading.value = true
   try {
+    connectorSummary.value = await getConnectorExecutionSummary(connectorFilters.value.connectorType || undefined)
     const page = await listConnectorExecutionLogs({
       connectorType: connectorFilters.value.connectorType || undefined,
       status: connectorFilters.value.status,

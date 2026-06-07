@@ -49,6 +49,7 @@ Error:
 - `POST /api/v1/ops/process-instances/{instanceId}/suspend`
 - `POST /api/v1/ops/process-instances/{instanceId}/activate`
 - `POST /api/v1/ops/process-instances/{instanceId}/terminate`
+- `GET /api/v1/connector-execution-logs/summary`
 - `GET /api/v1/audit-logs`
 
 ## Headers

@@ -20,6 +20,12 @@ The Ops API supports controlled runtime actions:
 - `POST /api/v1/ops/process-instances/{instanceId}/activate`
 - `POST /api/v1/ops/process-instances/{instanceId}/terminate`
 
+Ops also exposes connector exception summaries:
+
+- `GET /api/v1/connector-execution-logs/summary?connectorType=http`
+
+The summary returns total, success, failed, and recent failed connector executions for the current tenant.
+
 Terminate accepts an optional JSON body:
 
 ```json

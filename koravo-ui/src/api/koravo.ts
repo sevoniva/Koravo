@@ -203,6 +203,13 @@ export interface ConnectorExecutionLogItem {
   createdAt: string
 }
 
+export interface ConnectorExecutionSummary {
+  total: number
+  success: number
+  failed: number
+  recentFailures: ConnectorExecutionLogItem[]
+}
+
 export function getHealth() {
   return apiData<HealthInfo>(http.get('/health'))
 }
@@ -406,4 +413,8 @@ export function listConnectorExecutionLogs(params: {
   pageSize?: number
 }) {
   return apiData<PageResult<ConnectorExecutionLogItem>>(http.get('/connector-execution-logs', { params }))
+}
+
+export function getConnectorExecutionSummary(connectorType?: string) {
+  return apiData<ConnectorExecutionSummary>(http.get('/connector-execution-logs/summary', { params: { connectorType } }))
 }
