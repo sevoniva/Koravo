@@ -4,6 +4,7 @@
 @processInstanceId = replace-with-instance-id
 @processModelId = replace-with-model-id
 @taskId = replace-with-task-id
+@formSchemaId = replace-with-form-schema-id
 @datasourceId = replace-with-datasource-id
 @httpProcessInstanceId = replace-with-http-instance-id
 
@@ -76,6 +77,37 @@ GET {{baseUrl}}/tasks/{{taskId}}
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
+### 7a. Create form schema
+POST {{baseUrl}}/forms/schemas
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "formKey": "leave",
+  "formName": "Leave Approval",
+  "schemaJson": "{\"type\":\"object\",\"required\":[\"days\",\"reason\"],\"properties\":{\"days\":{\"type\":\"number\",\"title\":\"Days\"},\"reason\":{\"type\":\"string\",\"title\":\"Reason\"}}}",
+  "uiSchemaJson": "{}"
+}
+
+### 7b. Get form schema detail
+GET {{baseUrl}}/forms/schemas/{{formSchemaId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 7c. Update form schema
+PUT {{baseUrl}}/forms/schemas/{{formSchemaId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "formKey": "leave",
+  "formName": "Leave Approval v2",
+  "schemaJson": "{\"type\":\"object\",\"required\":[\"days\",\"reason\"],\"properties\":{\"days\":{\"type\":\"number\",\"title\":\"Days\"},\"reason\":{\"type\":\"string\",\"title\":\"Reason\"},\"handover\":{\"type\":\"string\",\"title\":\"Handover\"}}}",
+  "uiSchemaJson": "{}"
+}
+
 ### 8. Complete task
 POST {{baseUrl}}/tasks/{{taskId}}/complete
 X-Tenant-Id: {{tenantId}}
@@ -89,7 +121,7 @@ Content-Type: application/json
   "formData": {
     "reason": "approved from Koravo demo"
   },
-  "formSchemaId": "replace-with-form-schema-id",
+  "formSchemaId": "{{formSchemaId}}",
   "comment": "approved"
 }
 

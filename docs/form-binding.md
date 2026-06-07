@@ -57,7 +57,7 @@ Task detail returns historical snapshots for the process instance so review does
 
 ## Audit
 
-Form binding writes `FORM_BIND`. Task completion writes `TASK_COMPLETE`.
+Form schema create/update writes `FORM_SCHEMA_CREATE` and `FORM_SCHEMA_UPDATE`. Form binding writes `FORM_BIND`. Task completion writes `TASK_COMPLETE`.
 
 ## Current Limits
 

@@ -47,6 +47,7 @@ import { ReloadOutlined, SaveOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
 import {
   createFormSchema,
+  getFormSchema,
   listFormSchemas,
   updateFormSchema,
   type FormSchemaItem
@@ -120,8 +121,8 @@ function edit(record: FormSchemaItem) {
   selected.value = record
 }
 
-function preview(record: FormSchemaItem) {
-  selected.value = record
+async function preview(record: FormSchemaItem) {
+  selected.value = await getFormSchema(record.id)
 }
 
 function reset() {

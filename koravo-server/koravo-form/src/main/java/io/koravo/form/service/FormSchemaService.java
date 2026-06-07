@@ -7,19 +7,23 @@ import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.repo.FormSchemaRepository;
 import io.koravo.form.web.FormSchemaRequest;
 import io.koravo.form.web.FormSchemaResponse;
+import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class FormSchemaService {
     private final FormSchemaRepository repository;
+    private final AuditLogService auditLogService;
 
-    public FormSchemaService(FormSchemaRepository repository) {
+    public FormSchemaService(FormSchemaRepository repository, AuditLogService auditLogService) {
         this.repository = repository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -34,7 +38,9 @@ public class FormSchemaService {
         schema.setSchemaJson(request.schemaJson());
         schema.setUiSchemaJson(request.uiSchemaJson());
         schema.setStatus(FormStatus.ACTIVE);
-        return toResponse(repository.save(schema));
+        KoFormSchema saved = repository.save(schema);
+        auditLogService.record("FORM_SCHEMA_CREATE", "FORM_SCHEMA", saved.getId(), Map.of("formKey", saved.getFormKey()));
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -63,7 +69,12 @@ public class FormSchemaService {
         schema.setVersion(schema.getVersion() + 1);
         schema.setStatus(FormStatus.ACTIVE);
         schema.setUpdatedBy(UserContextHolder.getUserId());
-        return toResponse(repository.save(schema));
+        KoFormSchema saved = repository.save(schema);
+        auditLogService.record("FORM_SCHEMA_UPDATE", "FORM_SCHEMA", saved.getId(), Map.of(
+                "formKey", saved.getFormKey(),
+                "version", saved.getVersion()
+        ));
+        return toResponse(saved);
     }
 
     private FormSchemaResponse toResponse(KoFormSchema schema) {
