@@ -60,8 +60,9 @@ startEvent -> userTask -> endEvent
 The default user task assignee is `${approver}`.
 
 For newly created drafts, the designer synchronizes the BPMN process `id` and `name` with the Model key and Model name fields before validation or saving. Existing models keep their stored BPMN identity unless edited directly in the canvas/XML.
+The designer property panel can also edit the selected BPMN element `id` and `name`. For `bpmn:UserTask` elements, it can edit `flowable:assignee`, which keeps simple approval demos configurable without opening raw BPMN XML.
 
 ## Current Limits
 
-- Visual property editing is still minimal. Advanced extension editing is done through BPMN XML or bpmn-js canvas editing.
+- Visual property editing is still minimal. Advanced extension editing beyond user task assignee is done through BPMN XML or bpmn-js canvas editing.
 - Model version branching is represented by incremented version metadata, not by a full diff/merge UI.

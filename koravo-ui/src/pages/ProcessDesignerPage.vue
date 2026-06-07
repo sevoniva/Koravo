@@ -48,6 +48,29 @@
           </a-form-item>
         </a-form>
 
+        <div class="panel-title">Selected Element</div>
+        <a-alert
+          v-if="!selectedElement"
+          type="info"
+          message="Select a BPMN element to edit its properties."
+          show-icon
+        />
+        <a-form v-else layout="vertical">
+          <a-form-item label="Element type">
+            <a-input :value="selectedElement.type" disabled />
+          </a-form-item>
+          <a-form-item label="Element id">
+            <a-input v-model:value="elementForm.id" />
+          </a-form-item>
+          <a-form-item label="Element name">
+            <a-input v-model:value="elementForm.name" />
+          </a-form-item>
+          <a-form-item v-if="selectedElement.type === 'bpmn:UserTask'" label="Assignee">
+            <a-input v-model:value="elementForm.assignee" />
+          </a-form-item>
+          <a-button size="small" type="primary" @click="applyElementProperties">Apply</a-button>
+        </a-form>
+
         <div class="panel-title">Validation</div>
         <a-alert
           v-if="validation"
@@ -99,6 +122,7 @@ const route = useRoute()
 const modeler = ref<any>(null)
 const models = ref<ProcessModelItem[]>([])
 const selectedModel = ref<ProcessModelItem | null>(null)
+const selectedElement = ref<any | null>(null)
 const validation = ref<BpmnValidationResult | null>(null)
 const loadingModels = ref(false)
 const saving = ref(false)
@@ -108,6 +132,11 @@ const form = reactive({
   modelKey: 'leaveApproval',
   modelName: 'Leave Approval',
   description: 'Default approval process'
+})
+const elementForm = reactive({
+  id: '',
+  name: '',
+  assignee: ''
 })
 const canDeploySelectedModel = computed(() => selectedModel.value?.status === 'DRAFT')
 
@@ -140,6 +169,9 @@ const defaultBpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
 onMounted(async () => {
   await nextTick()
   modeler.value = new BpmnModeler({ container: canvasRef.value })
+  modeler.value.on('selection.changed', (event: { newSelection: any[] }) => {
+    selectElement(event.newSelection[0] || null)
+  })
   await modeler.value.importXML(defaultBpmnXml)
   modeler.value.get('canvas').zoom('fit-viewport')
   await loadModels()
@@ -168,6 +200,7 @@ async function openRouteModel() {
 
 async function newDiagram() {
   selectedModel.value = null
+  selectElement(null)
   validation.value = null
   form.modelKey = 'leaveApproval'
   form.modelName = 'Leave Approval'
@@ -178,6 +211,7 @@ async function newDiagram() {
 
 async function openModel(model: ProcessModelItem) {
   selectedModel.value = model
+  selectElement(null)
   validation.value = null
   form.modelKey = model.modelKey
   form.modelName = model.modelName
@@ -278,5 +312,39 @@ async function downloadSelected() {
   link.download = `${selectedModel.value.modelKey}.bpmn20.xml`
   link.click()
   URL.revokeObjectURL(url)
+}
+
+function selectElement(element: any | null) {
+  selectedElement.value = element
+  const businessObject = element?.businessObject
+  elementForm.id = businessObject?.id || ''
+  elementForm.name = businessObject?.name || ''
+  elementForm.assignee = readAssignee(businessObject)
+}
+
+function readAssignee(businessObject: any) {
+  if (!businessObject) return ''
+  return businessObject.get?.('flowable:assignee') || businessObject.$attrs?.['flowable:assignee'] || ''
+}
+
+function applyElementProperties() {
+  if (!selectedElement.value || !modeler.value) return
+  const elementId = normalizeBpmnId(elementForm.id)
+  if (!elementId) {
+    message.warning('Element id is required')
+    return
+  }
+  const modeling = modeler.value.get('modeling')
+  const properties: Record<string, string> = {
+    id: elementId,
+    name: elementForm.name
+  }
+  if (selectedElement.value.type === 'bpmn:UserTask') {
+    properties['flowable:assignee'] = elementForm.assignee
+  }
+  modeling.updateProperties(selectedElement.value, properties)
+  selectElement(selectedElement.value)
+  validation.value = null
+  message.success('Element properties updated')
 }
 </script>
