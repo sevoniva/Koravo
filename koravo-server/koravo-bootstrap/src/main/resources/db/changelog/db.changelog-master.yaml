@@ -153,3 +153,27 @@ databaseChangeLog:
               - column:
                   name: bpmn_xml
                   type: clob
+  - changeSet:
+      id: 0003-create-datasource-test-log
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_datasource_test_log
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: datasource_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: success, type: boolean, constraints: { nullable: false } }
+              - column: { name: message, type: clob }
+              - column: { name: elapsed_millis, type: bigint, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createIndex:
+            tableName: ko_datasource_test_log
+            indexName: idx_ko_datasource_test_log_tenant_ds
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: datasource_id }

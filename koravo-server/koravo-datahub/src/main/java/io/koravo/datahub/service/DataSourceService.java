@@ -33,11 +33,18 @@ public class DataSourceService {
     private final DataSourceRepository repository;
     private final SecretService secretService;
     private final AuditLogService auditLogService;
+    private final DataSourceTestLogService testLogService;
 
-    public DataSourceService(DataSourceRepository repository, SecretService secretService, AuditLogService auditLogService) {
+    public DataSourceService(
+            DataSourceRepository repository,
+            SecretService secretService,
+            AuditLogService auditLogService,
+            DataSourceTestLogService testLogService
+    ) {
         this.repository = repository;
         this.secretService = secretService;
         this.auditLogService = auditLogService;
+        this.testLogService = testLogService;
     }
 
     @Transactional
@@ -95,10 +102,12 @@ public class DataSourceService {
             };
             executor.submit(callable).get(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             DataSourceTestResponse response = new DataSourceTestResponse(true, "Connection successful", elapsed(started));
+            testLogService.record(dataSource, true, response.message(), response.elapsedMillis());
             auditLogService.record("DATASOURCE_TEST", "DATASOURCE", dataSource.getId(), Map.of("connected", true));
             return response;
         } catch (Exception e) {
             DataSourceTestResponse response = new DataSourceTestResponse(false, e.getMessage(), elapsed(started));
+            testLogService.record(dataSource, false, response.message(), response.elapsedMillis());
             auditLogService.record("DATASOURCE_TEST", "DATASOURCE", dataSource.getId(), Map.of("connected", false));
             return response;
         } finally {

@@ -21,7 +21,8 @@ class DataSourceServiceTest {
     private final DataSourceRepository repository = mock(DataSourceRepository.class);
     private final SecretService secretService = new AesSecretService("test-secret");
     private final AuditLogService auditLogService = mock(AuditLogService.class);
-    private final DataSourceService service = new DataSourceService(repository, secretService, auditLogService);
+    private final DataSourceTestLogService testLogService = mock(DataSourceTestLogService.class);
+    private final DataSourceService service = new DataSourceService(repository, secretService, auditLogService, testLogService);
 
     @AfterEach
     void tearDown() {
