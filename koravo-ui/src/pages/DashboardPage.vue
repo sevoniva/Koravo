@@ -13,6 +13,7 @@
       <a-card title="Backend"><a-tag :color="health?.status === 'UP' ? 'green' : 'red'">{{ health?.status || 'UNKNOWN' }}</a-tag><span>{{ health?.version }}</span></a-card>
       <a-card title="Tenant"><strong>{{ session.tenantId }}</strong><span>Header X-Tenant-Id</span></a-card>
       <a-card title="User"><strong>{{ session.userId }}</strong><span>Header X-User-Id</span></a-card>
+      <a-card title="Request ID"><strong>{{ session.requestId || 'auto-generated' }}</strong><span>Header X-Request-Id</span></a-card>
     </div>
 
     <JsonPreview :value="health" />
