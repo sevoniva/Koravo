@@ -38,7 +38,7 @@
       </a-form-item>
     </a-form>
 
-    <a-table :data-source="models" :columns="columns" row-key="id" :pagination="false" class="panel-block">
+    <a-table :data-source="models" :columns="columns" row-key="id" :loading="loadingModels" :pagination="false" class="panel-block">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
           <a-space wrap>
