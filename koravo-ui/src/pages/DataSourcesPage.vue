@@ -94,7 +94,7 @@ const detail = ref<DataSourceItem | null>(null)
 const form = reactive({
   name: 'Local PostgreSQL',
   type: 'POSTGRESQL',
-  jdbcUrl: 'jdbc:postgresql://localhost:5432/koravo',
+  jdbcUrl: 'jdbc:postgresql://localhost:15432/koravo',
   username: 'koravo',
   password: 'koravo',
   readOnly: true,
@@ -160,7 +160,7 @@ function reset() {
   editingId.value = null
   form.name = 'Local PostgreSQL'
   form.type = 'POSTGRESQL'
-  form.jdbcUrl = 'jdbc:postgresql://localhost:5432/koravo'
+  form.jdbcUrl = 'jdbc:postgresql://localhost:15432/koravo'
   form.username = 'koravo'
   form.password = ''
   form.readOnly = true

@@ -17,7 +17,14 @@
       <a-form-item label="End time"><a-input v-model:value="filters.endTime" placeholder="2026-06-07T23:59:59Z" /></a-form-item>
     </a-form>
 
-    <a-table :data-source="items" :columns="columns" row-key="id" :pagination="false">
+    <a-table
+      :data-source="items"
+      :columns="columns"
+      row-key="id"
+      :loading="loading"
+      :pagination="pagination"
+      @change="handleTableChange"
+    >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'detail'">
           <code>{{ record.detailJson }}</code>
@@ -28,12 +35,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import type { TablePaginationConfig } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { listAuditLogs, type AuditLogItem } from '../api/koravo'
 
 const loading = ref(false)
 const items = ref<AuditLogItem[]>([])
+const page = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
 const filters = reactive({
   userId: '',
   action: '',
@@ -52,23 +63,40 @@ const columns = [
   { title: 'Detail', key: 'detail' }
 ]
 
+const pagination = computed<TablePaginationConfig>(() => ({
+  current: page.value,
+  pageSize: pageSize.value,
+  total: total.value,
+  showSizeChanger: true,
+  showTotal: (count) => `${count} audit logs`
+}))
+
 async function load() {
   loading.value = true
   try {
-    const page = await listAuditLogs({
+    const result = await listAuditLogs({
       userId: filters.userId || undefined,
       action: filters.action || undefined,
       resourceType: filters.resourceType || undefined,
       resourceId: filters.resourceId || undefined,
       startTime: filters.startTime || undefined,
       endTime: filters.endTime || undefined,
-      page: 1,
-      pageSize: 30
+      page: page.value,
+      pageSize: pageSize.value
     })
-    items.value = page.items
+    items.value = result.items
+    total.value = result.total
+    page.value = result.page
+    pageSize.value = result.pageSize
   } finally {
     loading.value = false
   }
+}
+
+function handleTableChange(nextPagination: TablePaginationConfig) {
+  page.value = nextPagination.current || 1
+  pageSize.value = nextPagination.pageSize || 20
+  load()
 }
 
 onMounted(load)
