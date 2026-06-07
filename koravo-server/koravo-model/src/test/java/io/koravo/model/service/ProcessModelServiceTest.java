@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -140,6 +141,24 @@ class ProcessModelServiceTest {
         ));
         verify(auditLogService, never()).record("PROCESS_MODEL_CREATE", "PROCESS_MODEL", "model-import-1", Map.of(
                 "modelKey", "expenseApproval"
+        ));
+    }
+
+    @Test
+    void deployRejectsDisabledModel() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = model("model-1", ProcessModelStatus.DISABLED);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("model-1", "default")).thenReturn(Optional.of(model));
+
+        assertThatThrownBy(() -> service.deploy("model-1"))
+                .hasMessageContaining("Only draft process models can be deployed");
+
+        verify(processFacade, never()).deploy(any(DeployProcessCommand.class));
+        verify(auditLogService, never()).record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "model-1", Map.of(
+                "deploymentId", "dep-1",
+                "processDefinitionId", "pd-1",
+                "processDefinitionKey", "leaveApproval"
         ));
     }
 

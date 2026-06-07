@@ -48,7 +48,7 @@
             <a-button
               size="small"
               type="primary"
-              :disabled="record.status === 'ARCHIVED'"
+              :disabled="record.status !== 'DRAFT'"
               :loading="actionLoading === `deploy:${record.id}`"
               @click="deployDraft(record.id)"
             >

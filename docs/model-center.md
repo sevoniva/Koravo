@@ -12,6 +12,7 @@ Supported model states:
 - `ARCHIVED`
 
 The model API writes `ko_process_model` rows with model key, name, version, status, BPMN XML, Flowable deployment ID, and Flowable process definition ID.
+Only `DRAFT` models can be deployed from storage. Updating a `DEPLOYED` model returns it to `DRAFT` for review and redeploy; `DISABLED` and `ARCHIVED` models are not deployable.
 
 ## APIs
 
@@ -22,7 +23,7 @@ The model API writes `ko_process_model` rows with model key, name, version, stat
 - `PUT /api/v1/process-models/{id}`: update draft content
 - `POST /api/v1/process-models/{id}/validate`: validate stored BPMN XML
 - `POST /api/v1/process-models/validate`: validate raw BPMN XML
-- `POST /api/v1/process-models/{id}/deploy`: deploy stored BPMN XML
+- `POST /api/v1/process-models/{id}/deploy`: deploy stored draft BPMN XML
 - `POST /api/v1/process-models/{id}/disable`: disable a model
 - `POST /api/v1/process-models/{id}/archive`: archive a model
 - `GET /api/v1/process-models/{id}/export`: download BPMN XML

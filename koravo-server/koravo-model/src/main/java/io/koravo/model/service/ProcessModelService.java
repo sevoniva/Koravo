@@ -107,6 +107,9 @@ public class ProcessModelService {
     @Transactional
     public ProcessModelDeployResponse deploy(String id) {
         KoProcessModel model = find(id);
+        if (model.getStatus() != ProcessModelStatus.DRAFT) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Only draft process models can be deployed");
+        }
         BpmnValidationResult validation = validationService.validate(model.getBpmnXml());
         if (!validation.valid()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "BPMN model has validation errors");
