@@ -5,7 +5,12 @@
         <h1>Task Detail</h1>
         <p>{{ detail?.task.name || taskId }}</p>
       </div>
-      <a-button :loading="loading" @click="load"><ReloadOutlined />Reload</a-button>
+      <a-space>
+        <a-button v-if="detail?.task.processInstanceId" @click="openProcessTrace">
+          <DeploymentUnitOutlined />Trace Instance
+        </a-button>
+        <a-button :loading="loading" @click="load"><ReloadOutlined />Reload</a-button>
+      </a-space>
     </div>
 
     <a-descriptions v-if="detail" bordered :column="2" class="panel-block">
@@ -13,7 +18,9 @@
       <a-descriptions-item label="Task Key">{{ detail.task.taskDefinitionKey }}</a-descriptions-item>
       <a-descriptions-item label="Business Key">{{ detail.task.businessKey }}</a-descriptions-item>
       <a-descriptions-item label="Assignee">{{ detail.task.assignee }}</a-descriptions-item>
-      <a-descriptions-item label="Process Instance">{{ detail.task.processInstanceId }}</a-descriptions-item>
+      <a-descriptions-item label="Process Instance">
+        <a-button type="link" class="inline-link-button" @click="openProcessTrace">{{ detail.task.processInstanceId }}</a-button>
+      </a-descriptions-item>
       <a-descriptions-item label="Process Definition">{{ detail.task.processDefinitionId }}</a-descriptions-item>
     </a-descriptions>
 
@@ -32,6 +39,9 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'dataJson'">
               <code>{{ record.dataJson }}</code>
+            </template>
+            <template v-if="column.key === 'action'">
+              <a-button size="small" @click="openSnapshot(record)">View</a-button>
             </template>
           </template>
         </a-table>
@@ -97,6 +107,10 @@
     </a-form>
 
     <JsonPreview :value="detail" />
+
+    <a-modal v-model:open="snapshotModalOpen" title="Form snapshot" :footer="null" width="720px">
+      <JsonPreview :value="selectedSnapshotData" />
+    </a-modal>
   </section>
 </template>
 
@@ -104,9 +118,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { CheckCircleOutlined, DeploymentUnitOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
-import { completeTask, getTaskDetail, type JsonRecord, type TaskDetail } from '../api/koravo'
+import { completeTask, getTaskDetail, type FormSnapshotItem, type JsonRecord, type TaskDetail } from '../api/koravo'
 import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const route = useRoute()
@@ -119,6 +133,8 @@ const variablesJson = ref(JSON.stringify({ approved: true }, null, 2))
 const formDataJson = ref('{}')
 const formDataValues = ref<JsonRecord>({})
 const comment = ref('approved')
+const snapshotModalOpen = ref(false)
+const selectedSnapshotData = ref<unknown>({})
 
 type SchemaField = {
   key: string
@@ -137,7 +153,8 @@ const snapshotColumns = [
   { title: 'Task ID', dataIndex: 'taskId', key: 'taskId', width: 180 },
   { title: 'Form Schema', dataIndex: 'formSchemaId', key: 'formSchemaId', width: 180 },
   { title: 'Data', dataIndex: 'dataJson', key: 'dataJson' },
-  { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 }
+  { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 },
+  { title: 'Action', key: 'action', width: 90 }
 ]
 
 const auditColumns = [
@@ -197,6 +214,21 @@ function syncFormDataJson() {
     Object.entries(formDataValues.value).filter(([, value]) => value !== undefined && value !== '')
   )
   formDataJson.value = JSON.stringify(data, null, 2)
+}
+
+function openProcessTrace() {
+  if (detail.value?.task.processInstanceId) {
+    router.push(`/process-instances/${detail.value.task.processInstanceId}`)
+  }
+}
+
+function openSnapshot(snapshot: FormSnapshotItem) {
+  try {
+    selectedSnapshotData.value = JSON.parse(snapshot.dataJson || '{}')
+  } catch {
+    selectedSnapshotData.value = snapshot.dataJson
+  }
+  snapshotModalOpen.value = true
 }
 
 async function submit() {

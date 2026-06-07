@@ -162,6 +162,11 @@ p {
   margin-top: 18px;
 }
 
+.inline-link-button {
+  height: auto;
+  padding: 0;
+}
+
 .trace-viewer-panel {
   overflow: hidden;
   background: #f9fbfa;
