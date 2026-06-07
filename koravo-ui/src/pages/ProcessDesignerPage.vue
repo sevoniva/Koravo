@@ -13,7 +13,7 @@
         <a-button :disabled="!selectedModel" @click="downloadSelected"><DownloadOutlined />Export</a-button>
         <a-button :loading="saving" type="primary" @click="saveDraft"><SaveOutlined />Save Draft</a-button>
         <a-button :loading="validating" @click="validate"><CheckCircleOutlined />Validate</a-button>
-        <a-button :loading="deploying" :disabled="!selectedModel" type="primary" @click="deploy"><CloudUploadOutlined />Deploy</a-button>
+        <a-button :loading="deploying" :disabled="!canDeploySelectedModel" type="primary" @click="deploy"><CloudUploadOutlined />Deploy</a-button>
       </a-space>
     </div>
 
@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -109,6 +109,7 @@ const form = reactive({
   modelName: 'Leave Approval',
   description: 'Default approval process'
 })
+const canDeploySelectedModel = computed(() => selectedModel.value?.status === 'DRAFT')
 
 const defaultBpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
@@ -238,7 +239,7 @@ async function validate() {
 }
 
 async function deploy() {
-  if (!selectedModel.value) return
+  if (!canDeploySelectedModel.value || !selectedModel.value) return
   deploying.value = true
   try {
     await saveDraft()
