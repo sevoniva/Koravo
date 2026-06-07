@@ -10,6 +10,7 @@ import io.koravo.form.service.FormSnapshotService;
 import io.koravo.form.service.FormSchemaService;
 import io.koravo.form.web.FormBindingResponse;
 import io.koravo.form.web.FormSchemaResponse;
+import io.koravo.ops.audit.AuditLogQueryService;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.task.web.CompleteTaskRequest;
@@ -25,6 +26,7 @@ import java.util.Optional;
 public class TaskAppService {
     private final ProcessFacade processFacade;
     private final AuditLogService auditLogService;
+    private final AuditLogQueryService auditLogQueryService;
     private final FormSnapshotService formSnapshotService;
     private final FormBindingService formBindingService;
     private final FormSchemaService formSchemaService;
@@ -32,12 +34,14 @@ public class TaskAppService {
     public TaskAppService(
             ProcessFacade processFacade,
             AuditLogService auditLogService,
+            AuditLogQueryService auditLogQueryService,
             FormSnapshotService formSnapshotService,
             FormBindingService formBindingService,
             FormSchemaService formSchemaService
     ) {
         this.processFacade = processFacade;
         this.auditLogService = auditLogService;
+        this.auditLogQueryService = auditLogQueryService;
         this.formSnapshotService = formSnapshotService;
         this.formBindingService = formBindingService;
         this.formSchemaService = formSchemaService;
@@ -68,7 +72,8 @@ public class TaskAppService {
                 processFacade.getProcessVariables(TenantContextHolder.getTenantId(), task.processInstanceId()),
                 processFacade.getTaskVariables(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId),
                 processFacade.getTaskComments(TenantContextHolder.getTenantId(), task.processInstanceId(), taskId),
-                formSnapshotService.listByProcessInstance(task.processInstanceId())
+                formSnapshotService.listByProcessInstance(task.processInstanceId()),
+                auditLogQueryService.queryByResource("TASK", taskId, 20)
         );
     }
 

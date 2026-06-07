@@ -10,7 +10,9 @@ import io.koravo.form.service.FormSchemaService;
 import io.koravo.form.web.FormSnapshotResponse;
 import io.koravo.form.web.FormBindingResponse;
 import io.koravo.form.web.FormSchemaResponse;
+import io.koravo.ops.audit.AuditLogQueryService;
 import io.koravo.ops.audit.AuditLogService;
+import io.koravo.ops.audit.dto.AuditLogResponse;
 import io.koravo.security.UserContextHolder;
 import io.koravo.task.web.CompleteTaskRequest;
 import io.koravo.tenant.TenantContextHolder;
@@ -30,12 +32,14 @@ import static org.mockito.Mockito.verify;
 class TaskAppServiceTest {
     private final ProcessFacade processFacade = mock(ProcessFacade.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
+    private final AuditLogQueryService auditLogQueryService = mock(AuditLogQueryService.class);
     private final FormSnapshotService formSnapshotService = mock(FormSnapshotService.class);
     private final FormBindingService formBindingService = mock(FormBindingService.class);
     private final FormSchemaService formSchemaService = mock(FormSchemaService.class);
     private final TaskAppService service = new TaskAppService(
             processFacade,
             auditLogService,
+            auditLogQueryService,
             formSnapshotService,
             formBindingService,
             formSchemaService
@@ -117,6 +121,20 @@ class TaskAppServiceTest {
                         Instant.parse("2026-06-07T00:00:00Z")
                 )
         ));
+        when(auditLogQueryService.queryByResource("TASK", "task-1", 20)).thenReturn(List.of(
+                new AuditLogResponse(
+                        "audit-1",
+                        "default",
+                        "admin",
+                        "TASK_COMPLETE",
+                        "TASK",
+                        "task-1",
+                        "req-1",
+                        "127.0.0.1",
+                        "{\"taskId\":\"task-1\"}",
+                        Instant.parse("2026-06-07T00:00:00Z")
+                )
+        ));
 
         var detail = service.getTaskDetail("task-1");
 
@@ -127,5 +145,6 @@ class TaskAppServiceTest {
         assertThat(detail.taskVariables()).containsEntry("approved", true);
         assertThat(detail.comments()).extracting(TaskCommentDTO::message).containsExactly("LGTM");
         assertThat(detail.formSnapshots()).extracting(FormSnapshotResponse::id).containsExactly("snapshot-1");
+        assertThat(detail.auditLogs()).extracting(AuditLogResponse::action).containsExactly("TASK_COMPLETE");
     }
 }

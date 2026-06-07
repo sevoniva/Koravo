@@ -24,8 +24,10 @@ The task detail response includes:
 - task variables
 - task comments
 - historical form snapshots for the process instance
+- task audit logs, such as `TASK_COMPLETE`
 
 Form snapshots are stored in `ko_form_snapshot`. They preserve submitted form data at completion time, so historic review does not depend on the latest form schema or latest task variables.
+Task audit logs are queried from `ko_audit_log` by `resourceType = TASK` and `resourceId = taskId`.
 
 ## Complete Task
 

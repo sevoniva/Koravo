@@ -38,6 +38,13 @@ public class AuditLogQueryService {
         return PageResult.of(result.getContent().stream().map(this::toResponse).toList(), result.getTotalElements(), safePage, safePageSize);
     }
 
+    public List<AuditLogResponse> queryByResource(String resourceType, String resourceId, int limit) {
+        int safeLimit = limit <= 0 ? 20 : Math.min(limit, 100);
+        var result = repository.findAll(resourceSpecification(resourceType, resourceId),
+                PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "createdAt")));
+        return result.getContent().stream().map(this::toResponse).toList();
+    }
+
     private Specification<AuditLog> specification(String userId, String action, String resourceType, Instant startTime, Instant endTime) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -59,6 +66,14 @@ public class AuditLogQueryService {
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    private Specification<AuditLog> resourceSpecification(String resourceType, String resourceId) {
+        return (root, query, cb) -> cb.and(
+                cb.equal(root.get("tenantId"), TenantContextHolder.getTenantId()),
+                cb.equal(root.get("resourceType"), resourceType),
+                cb.equal(root.get("resourceId"), resourceId)
+        );
     }
 
     private AuditLogResponse toResponse(AuditLog log) {

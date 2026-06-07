@@ -162,6 +162,7 @@ export interface TaskDetail {
   taskVariables: JsonRecord
   comments: TaskCommentItem[]
   formSnapshots: FormSnapshotItem[]
+  auditLogs: AuditLogItem[]
 }
 
 export interface AuditLogItem {

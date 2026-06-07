@@ -36,6 +36,15 @@
           </template>
         </a-table>
       </a-tab-pane>
+      <a-tab-pane key="auditLogs" tab="Audit Logs">
+        <a-table :data-source="detail.auditLogs" :columns="auditColumns" row-key="id" :pagination="false" size="small">
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'detailJson'">
+              <code>{{ record.detailJson }}</code>
+            </template>
+          </template>
+        </a-table>
+      </a-tab-pane>
     </a-tabs>
 
     <a-form layout="vertical" class="form-grid">
@@ -85,6 +94,14 @@ const snapshotColumns = [
   { title: 'Task ID', dataIndex: 'taskId', key: 'taskId', width: 180 },
   { title: 'Form Schema', dataIndex: 'formSchemaId', key: 'formSchemaId', width: 180 },
   { title: 'Data', dataIndex: 'dataJson', key: 'dataJson' },
+  { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 }
+]
+
+const auditColumns = [
+  { title: 'Action', dataIndex: 'action', key: 'action', width: 190 },
+  { title: 'User', dataIndex: 'userId', key: 'userId', width: 140 },
+  { title: 'Request ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
+  { title: 'Detail', dataIndex: 'detailJson', key: 'detailJson' },
   { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 }
 ]
 
