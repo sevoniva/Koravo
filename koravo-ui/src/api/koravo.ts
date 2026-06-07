@@ -388,8 +388,8 @@ export function testDataSource(id: string) {
   return apiData(http.post(`/datasources/${id}/test`))
 }
 
-export function listDataSourceTestLogs(id: string) {
-  return apiData<PageResult<DataSourceTestLogItem>>(http.get(`/datasources/${id}/test-logs?page=1&pageSize=10`))
+export function listDataSourceTestLogs(id: string, params?: { page?: number; pageSize?: number }) {
+  return apiData<PageResult<DataSourceTestLogItem>>(http.get(`/datasources/${id}/test-logs`, { params }))
 }
 
 export function listAuditLogs(params: {

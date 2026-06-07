@@ -48,7 +48,15 @@
     </a-table>
 
     <a-modal v-model:open="logsOpen" title="Datasource test logs" :footer="null" width="760px">
-      <a-table :data-source="logs" :columns="logColumns" row-key="id" :pagination="false" size="small" />
+      <a-table
+        :data-source="logs"
+        :columns="logColumns"
+        row-key="id"
+        :loading="logsLoading"
+        :pagination="logsPagination"
+        size="small"
+        @change="handleLogsTableChange"
+      />
     </a-modal>
 
     <a-modal v-model:open="detailOpen" title="Datasource detail" :footer="null" width="760px">
@@ -68,8 +76,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { message } from 'ant-design-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { message, type TablePaginationConfig } from 'ant-design-vue'
 import { DatabaseOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
 import {
@@ -88,8 +96,13 @@ const saving = ref(false)
 const editingId = ref<string | null>(null)
 const items = ref<DataSourceItem[]>([])
 const logsOpen = ref(false)
+const logsLoading = ref(false)
 const detailOpen = ref(false)
 const logs = ref<DataSourceTestLogItem[]>([])
+const logsDataSourceId = ref<string | null>(null)
+const logsPage = ref(1)
+const logsPageSize = ref(10)
+const logsTotal = ref(0)
 const detail = ref<DataSourceItem | null>(null)
 const form = reactive({
   name: 'Local PostgreSQL',
@@ -116,6 +129,14 @@ const logColumns = [
   { title: 'Elapsed', dataIndex: 'elapsedMillis', key: 'elapsedMillis', width: 100 },
   { title: 'Message', dataIndex: 'message', key: 'message' }
 ]
+
+const logsPagination = computed<TablePaginationConfig>(() => ({
+  current: logsPage.value,
+  pageSize: logsPageSize.value,
+  total: logsTotal.value,
+  showSizeChanger: true,
+  showTotal: (count) => `${count} test logs`
+}))
 
 async function load() {
   items.value = await listDataSources()
@@ -179,9 +200,35 @@ async function openDetail(id: string) {
 }
 
 async function openLogs(id: string) {
-  const page = await listDataSourceTestLogs(id)
-  logs.value = page.items
+  logsDataSourceId.value = id
+  logsPage.value = 1
   logsOpen.value = true
+  await loadLogs()
+}
+
+async function loadLogs() {
+  if (!logsDataSourceId.value) {
+    return
+  }
+  logsLoading.value = true
+  try {
+    const page = await listDataSourceTestLogs(logsDataSourceId.value, {
+      page: logsPage.value,
+      pageSize: logsPageSize.value
+    })
+    logs.value = page.items
+    logsTotal.value = page.total
+    logsPage.value = page.page
+    logsPageSize.value = page.pageSize
+  } finally {
+    logsLoading.value = false
+  }
+}
+
+function handleLogsTableChange(nextPagination: TablePaginationConfig) {
+  logsPage.value = nextPagination.current || 1
+  logsPageSize.value = nextPagination.pageSize || 10
+  loadLogs()
 }
 
 onMounted(load)
