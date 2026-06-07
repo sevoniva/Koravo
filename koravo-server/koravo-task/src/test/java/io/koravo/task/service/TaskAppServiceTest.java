@@ -113,7 +113,7 @@ class TaskAppServiceTest {
     void getTaskDetailReturnsBoundFormSchemaVariablesCommentsAndSnapshots() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
-        when(processFacade.getTask("default", "admin", "task-1")).thenReturn(new TaskDTO(
+        when(processFacade.getTaskForDetail("default", "admin", "task-1")).thenReturn(new TaskDTO(
                 "task-1",
                 "Approve",
                 "pi-1",
@@ -136,7 +136,7 @@ class TaskAppServiceTest {
                 "ACTIVE"
         ));
         when(processFacade.getProcessVariables("default", "pi-1")).thenReturn(Map.of("days", 2));
-        when(processFacade.getTaskVariables("default", "admin", "task-1")).thenReturn(Map.of("approved", true));
+        when(processFacade.getTaskVariablesForDetail("default", "admin", "task-1")).thenReturn(Map.of("approved", true));
         when(processFacade.getTaskComments("default", "pi-1", "task-1")).thenReturn(List.of(
                 new TaskCommentDTO("comment-1", "admin", "LGTM", Instant.parse("2026-06-07T00:00:00Z"))
         ));
@@ -175,5 +175,33 @@ class TaskAppServiceTest {
         assertThat(detail.comments()).extracting(TaskCommentDTO::message).containsExactly("LGTM");
         assertThat(detail.formSnapshots()).extracting(FormSnapshotResponse::id).containsExactly("snapshot-1");
         assertThat(detail.auditLogs()).extracting(AuditLogResponse::action).containsExactly("TASK_COMPLETE");
+    }
+
+    @Test
+    void getTaskDetailUsesHistoricTaskLookupForCompletedTasks() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        when(processFacade.getTaskForDetail("default", "admin", "done-task-1")).thenReturn(new TaskDTO(
+                "done-task-1",
+                "Approve",
+                "pi-1",
+                "pd-1",
+                "biz-1",
+                null,
+                "admin",
+                "approveTask"
+        ));
+        when(processFacade.getProcessVariables("default", "pi-1")).thenReturn(Map.of("approved", true));
+        when(processFacade.getTaskVariablesForDetail("default", "admin", "done-task-1")).thenReturn(Map.of("approved", true));
+        when(processFacade.getTaskComments("default", "pi-1", "done-task-1")).thenReturn(List.of());
+        when(formSnapshotService.listByProcessInstance("pi-1")).thenReturn(List.of());
+        when(auditLogQueryService.queryByResource("TASK", "done-task-1", 20)).thenReturn(List.of());
+
+        var detail = service.getTaskDetail("done-task-1");
+
+        assertThat(detail.task().taskId()).isEqualTo("done-task-1");
+        assertThat(detail.processVariables()).containsEntry("approved", true);
+        verify(processFacade).getTaskForDetail("default", "admin", "done-task-1");
+        verify(processFacade).getTaskVariablesForDetail("default", "admin", "done-task-1");
     }
 }

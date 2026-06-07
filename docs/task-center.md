@@ -42,6 +42,8 @@ The task detail response includes:
 - historical form snapshots for the process instance
 - task audit logs, such as `TASK_COMPLETE`
 
+`GET /api/v1/tasks/{taskId}` supports both active runtime tasks and completed historic tasks assigned to the current user. For completed tasks, task variables are read from Flowable historic variables while process variables, comments, form snapshots, and audit logs remain available for review.
+
 Form snapshots are stored in `ko_form_snapshot`. They preserve submitted form data at completion time, so historic review does not depend on the latest form schema or latest task variables.
 Task audit logs are queried from `ko_audit_log` by `resourceType = TASK` and `resourceId = taskId`.
 
@@ -75,5 +77,4 @@ Completion behavior:
 
 ## Current Limits
 
-- Historic task detail for already completed tasks is still planned for the next task center iteration.
 - Form rendering is still JSON-oriented in the console; schema-driven controls are the next frontend step.

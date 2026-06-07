@@ -29,7 +29,11 @@ public interface ProcessFacade {
 
     TaskDTO getTask(String tenantId, String userId, String taskId);
 
+    TaskDTO getTaskForDetail(String tenantId, String userId, String taskId);
+
     Map<String, Object> getTaskVariables(String tenantId, String userId, String taskId);
+
+    Map<String, Object> getTaskVariablesForDetail(String tenantId, String userId, String taskId);
 
     Map<String, Object> getProcessVariables(String tenantId, String instanceId);
 

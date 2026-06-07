@@ -76,7 +76,7 @@ public class TaskAppService {
     }
 
     public TaskDetailResponse getTaskDetail(String taskId) {
-        TaskDTO task = processFacade.getTask(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
+        TaskDTO task = processFacade.getTaskForDetail(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
         Optional<FormBindingResponse> binding = formBindingService.findByProcessDefinitionTaskKey(
                 task.processDefinitionId(),
                 task.taskDefinitionKey()
@@ -89,7 +89,7 @@ public class TaskAppService {
                 binding.orElse(null),
                 schema,
                 processFacade.getProcessVariables(TenantContextHolder.getTenantId(), task.processInstanceId()),
-                processFacade.getTaskVariables(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId),
+                processFacade.getTaskVariablesForDetail(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId),
                 processFacade.getTaskComments(TenantContextHolder.getTenantId(), task.processInstanceId(), taskId),
                 formSnapshotService.listByProcessInstance(task.processInstanceId()),
                 auditLogQueryService.queryByResource("TASK", taskId, 20)

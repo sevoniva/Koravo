@@ -183,6 +183,28 @@ public class FlowableProcessFacade implements ProcessFacade {
 
     @Override
     @Transactional(readOnly = true)
+    public TaskDTO getTaskForDetail(String tenantId, String userId, String taskId) {
+        Task runtimeTask = taskService.createTaskQuery()
+                .taskId(taskId)
+                .taskTenantId(tenantId)
+                .taskAssignee(userId)
+                .singleResult();
+        if (runtimeTask != null) {
+            return toTaskDTO(runtimeTask);
+        }
+        HistoricTaskInstance historicTask = historyService.createHistoricTaskInstanceQuery()
+                .taskId(taskId)
+                .taskTenantId(tenantId)
+                .taskAssignee(userId)
+                .singleResult();
+        if (historicTask == null) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
+        }
+        return toTaskDTO(historicTask);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Map<String, Object> getTaskVariables(String tenantId, String userId, String taskId) {
         Task task = taskService.createTaskQuery()
                 .taskId(taskId)
@@ -193,6 +215,33 @@ public class FlowableProcessFacade implements ProcessFacade {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
         }
         return taskService.getVariables(taskId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTaskVariablesForDetail(String tenantId, String userId, String taskId) {
+        Task runtimeTask = taskService.createTaskQuery()
+                .taskId(taskId)
+                .taskTenantId(tenantId)
+                .taskAssignee(userId)
+                .singleResult();
+        if (runtimeTask != null) {
+            return taskService.getVariables(taskId);
+        }
+        HistoricTaskInstance historicTask = historyService.createHistoricTaskInstanceQuery()
+                .taskId(taskId)
+                .taskTenantId(tenantId)
+                .taskAssignee(userId)
+                .singleResult();
+        if (historicTask == null) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
+        }
+        Map<String, Object> variables = new HashMap<>();
+        historyService.createHistoricVariableInstanceQuery()
+                .taskId(taskId)
+                .list()
+                .forEach(variable -> variables.put(variable.getVariableName(), variable.getValue()));
+        return variables;
     }
 
     @Override
