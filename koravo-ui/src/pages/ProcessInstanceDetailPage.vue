@@ -54,12 +54,29 @@
             <template v-if="column.key === 'detailJson'">
               <code>{{ record.detailJson }}</code>
             </template>
+            <template v-if="column.key === 'action'">
+              <a-button size="small" @click="openAuditDetail(record)">View</a-button>
+            </template>
           </template>
         </a-table>
       </a-tab-pane>
     </a-tabs>
 
     <JsonPreview :value="{ instance, trace: traceDetail }" />
+
+    <a-modal v-model:open="auditDetailOpen" title="Audit detail" :footer="null" width="820px">
+      <a-descriptions v-if="selectedAuditLog" bordered :column="2" size="small" class="panel-block">
+        <a-descriptions-item label="Time">{{ selectedAuditLog.createdAt }}</a-descriptions-item>
+        <a-descriptions-item label="User">{{ selectedAuditLog.userId }}</a-descriptions-item>
+        <a-descriptions-item label="Action">{{ selectedAuditLog.action }}</a-descriptions-item>
+        <a-descriptions-item label="Resource">{{ selectedAuditLog.resourceType }}</a-descriptions-item>
+        <a-descriptions-item label="Resource ID">{{ selectedAuditLog.resourceId }}</a-descriptions-item>
+        <a-descriptions-item label="Request ID">{{ selectedAuditLog.requestId }}</a-descriptions-item>
+        <a-descriptions-item label="Client IP">{{ selectedAuditLog.clientIp }}</a-descriptions-item>
+        <a-descriptions-item label="Tenant">{{ selectedAuditLog.tenantId }}</a-descriptions-item>
+      </a-descriptions>
+      <JsonPreview :value="selectedAuditDetail" />
+    </a-modal>
   </section>
 </template>
 
@@ -72,6 +89,7 @@ import JsonPreview from '../components/JsonPreview.vue'
 import {
   getProcessInstance,
   getProcessTrace,
+  type AuditLogItem,
   type OpsProcessInstance,
   type ProcessTrace
 } from '../api/koravo'
@@ -83,6 +101,9 @@ const loading = ref(false)
 const instance = ref<OpsProcessInstance | null>(null)
 const traceDetail = ref<ProcessTrace | null>(null)
 const traceCanvasRef = ref<HTMLElement | null>(null)
+const auditDetailOpen = ref(false)
+const selectedAuditLog = ref<AuditLogItem | null>(null)
+const selectedAuditDetail = ref<unknown>({})
 
 const taskColumns = [
   { title: 'Task', dataIndex: 'name', key: 'name' },
@@ -106,7 +127,8 @@ const auditColumns = [
   { title: 'User', dataIndex: 'userId', key: 'userId', width: 140 },
   { title: 'Request ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
   { title: 'Detail', dataIndex: 'detailJson', key: 'detailJson' },
-  { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 }
+  { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 },
+  { title: 'Action', key: 'action', width: 90 }
 ]
 
 let traceViewer: any = null
@@ -162,6 +184,21 @@ function destroyTraceViewer() {
   if (traceViewer) {
     traceViewer.destroy()
     traceViewer = null
+  }
+}
+
+function openAuditDetail(record: AuditLogItem) {
+  selectedAuditLog.value = record
+  selectedAuditDetail.value = parseJsonValue(record.detailJson)
+  auditDetailOpen.value = true
+}
+
+function parseJsonValue(value?: string) {
+  if (!value) return {}
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
   }
 }
 

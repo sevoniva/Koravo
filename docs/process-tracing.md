@@ -32,6 +32,7 @@ The process instance detail page at `/process-instances/{instanceId}` renders:
 - historic activity timeline
 - process variable summary
 - recent process instance audit logs
+- audit detail modal with formatted redacted detail JSON
 
 The process instance start/list page links each started instance directly to Ops trace with `/ops?view=trace&instanceId={instanceId}`. This keeps the demo flow short after starting a process: start, open trace, inspect current tasks and completed activities.
 
