@@ -22,11 +22,11 @@ public class ConnectorExecutionLogQueryService {
         this.repository = repository;
     }
 
-    public PageResult<ConnectorExecutionLogResponse> query(String connectorType, String status, int page, int pageSize) {
+    public PageResult<ConnectorExecutionLogResponse> query(String connectorType, String status, String requestId, int page, int pageSize) {
         int safePage = Math.max(page, 1);
         int safePageSize = pageSize <= 0 ? 20 : Math.min(pageSize, 200);
         var result = repository.findAll(
-                specification(connectorType, status),
+                specification(connectorType, status, requestId),
                 PageRequest.of(safePage - 1, safePageSize, Sort.by(Sort.Direction.DESC, "createdAt"))
         );
         return PageResult.of(
@@ -38,9 +38,9 @@ public class ConnectorExecutionLogQueryService {
     }
 
     public ConnectorExecutionSummaryResponse summary(String connectorType) {
-        PageResult<ConnectorExecutionLogResponse> total = query(connectorType, null, 1, 1);
-        PageResult<ConnectorExecutionLogResponse> success = query(connectorType, "SUCCESS", 1, 1);
-        PageResult<ConnectorExecutionLogResponse> failed = query(connectorType, "FAILED", 1, 5);
+        PageResult<ConnectorExecutionLogResponse> total = query(connectorType, null, null, 1, 1);
+        PageResult<ConnectorExecutionLogResponse> success = query(connectorType, "SUCCESS", null, 1, 1);
+        PageResult<ConnectorExecutionLogResponse> failed = query(connectorType, "FAILED", null, 1, 5);
         return new ConnectorExecutionSummaryResponse(
                 total.total(),
                 success.total(),
@@ -49,7 +49,7 @@ public class ConnectorExecutionLogQueryService {
         );
     }
 
-    private Specification<KoConnectorExecutionLog> specification(String connectorType, String status) {
+    private Specification<KoConnectorExecutionLog> specification(String connectorType, String status, String requestId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("tenantId"), TenantContextHolder.getTenantId()));
@@ -58,6 +58,9 @@ public class ConnectorExecutionLogQueryService {
             }
             if (StringUtils.hasText(status)) {
                 predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (StringUtils.hasText(requestId)) {
+                predicates.add(cb.equal(root.get("requestId"), requestId));
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };

@@ -445,6 +445,7 @@ export function activateProcessInstance(instanceId: string) {
 export function listConnectorExecutionLogs(params: {
   connectorType?: string
   status?: string
+  requestId?: string
   page?: number
   pageSize?: number
 }) {

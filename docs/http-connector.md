@@ -63,6 +63,12 @@ Query logs with:
 GET /api/v1/connector-execution-logs?connectorType=http&page=1&pageSize=30
 ```
 
+Filter a single request with:
+
+```http
+GET /api/v1/connector-execution-logs?connectorType=http&requestId=req-1&page=1&pageSize=20
+```
+
 Query the corresponding audit events with:
 
 ```http

@@ -72,6 +72,9 @@
               <a-select-option value="FAILED">FAILED</a-select-option>
             </a-select>
           </a-form-item>
+          <a-form-item label="Request ID">
+            <a-input v-model:value="connectorFilters.requestId" />
+          </a-form-item>
           <a-form-item>
             <a-button type="primary" :loading="connectorLoading" @click="searchConnectorLogs">Search</a-button>
           </a-form-item>
@@ -199,7 +202,8 @@ const connectorPageSize = ref(20)
 const connectorTotal = ref(0)
 const connectorFilters = ref({
   connectorType: 'http',
-  status: undefined as string | undefined
+  status: undefined as string | undefined,
+  requestId: ''
 })
 
 const columns = [
@@ -226,6 +230,7 @@ const connectorColumns = [
   { title: 'Status', dataIndex: 'status', key: 'status', width: 110 },
   { title: 'Code', dataIndex: 'statusCode', key: 'statusCode', width: 80 },
   { title: 'Elapsed', dataIndex: 'elapsedMillis', key: 'elapsedMillis', width: 100 },
+  { title: 'Request ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
   { title: 'URL', dataIndex: 'url', key: 'url', width: 260 },
   { title: 'Summary', key: 'summary' }
 ]
@@ -307,6 +312,7 @@ async function loadConnectorLogs() {
     const page = await listConnectorExecutionLogs({
       connectorType: connectorFilters.value.connectorType || undefined,
       status: connectorFilters.value.status,
+      requestId: connectorFilters.value.requestId || undefined,
       page: connectorPage.value,
       pageSize: connectorPageSize.value
     })

@@ -21,10 +21,11 @@ public class ConnectorExecutionLogController {
     public ApiResponse<PageResult<ConnectorExecutionLogResponse>> query(
             @RequestParam(required = false) String connectorType,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String requestId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize
     ) {
-        return ApiResponse.success(queryService.query(connectorType, status, page, pageSize));
+        return ApiResponse.success(queryService.query(connectorType, status, requestId, page, pageSize));
     }
 
     @GetMapping("/api/v1/connector-execution-logs/summary")

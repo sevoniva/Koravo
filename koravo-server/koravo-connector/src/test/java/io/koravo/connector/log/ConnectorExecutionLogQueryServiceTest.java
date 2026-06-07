@@ -46,10 +46,11 @@ class ConnectorExecutionLogQueryServiceTest {
         log.setCreatedAt(Instant.parse("2026-06-07T00:00:00Z"));
         when(repository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(log)));
 
-        var result = service.query("http", "SUCCESS", 1, 20);
+        var result = service.query("http", "SUCCESS", "req-1", 1, 20);
 
         assertThat(result.total()).isEqualTo(1);
         assertThat(result.items().getFirst().connectorType()).isEqualTo("http");
+        assertThat(result.items().getFirst().requestId()).isEqualTo("req-1");
         assertThat(result.items().getFirst().url()).doesNotContain("abc");
         assertThat(result.items().getFirst().requestSummary()).doesNotContain("secret");
     }

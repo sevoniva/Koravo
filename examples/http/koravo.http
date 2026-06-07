@@ -2,6 +2,7 @@
 @tenantId = default
 @userId = admin
 @requestId = demo-request-1
+@httpRequestId = demo-http-request-1
 @processInstanceId = replace-with-instance-id
 @processModelId = replace-with-model-id
 @processDefinitionId = replace-with-process-definition-id
@@ -324,6 +325,7 @@ Content-Type: application/xml
 POST {{baseUrl}}/process-instances/start
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
+X-Request-Id: {{httpRequestId}}
 Content-Type: application/json
 
 {
@@ -364,6 +366,11 @@ X-User-Id: {{userId}}
 
 ### 25. Query HTTP connector execution logs
 GET {{baseUrl}}/connector-execution-logs?connectorType=http&page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 25a. Query HTTP connector execution logs by request ID
+GET {{baseUrl}}/connector-execution-logs?connectorType=http&requestId={{httpRequestId}}&page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
