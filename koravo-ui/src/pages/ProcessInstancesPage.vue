@@ -19,11 +19,13 @@
     </a-form>
 
     <JsonPreview :value="instance" />
+    <a-button v-if="instance" class="panel-block" @click="router.push('/ops')">Open in Ops</a-button>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { PlayCircleOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
@@ -34,6 +36,7 @@ const businessKey = ref('LEAVE-001')
 const variablesText = ref(JSON.stringify({ applicant: 'u001', approver: 'admin', days: 2 }, null, 2))
 const instance = ref<ProcessInstance | null>(null)
 const loading = ref(false)
+const router = useRouter()
 
 async function start() {
   loading.value = true

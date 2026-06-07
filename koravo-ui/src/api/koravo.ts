@@ -25,6 +25,26 @@ export interface ProcessInstance {
   status: string
 }
 
+export interface ProcessTraceNode {
+  activityId: string
+  activityName?: string
+  activityType: string
+  startTime?: string
+  endTime?: string
+  status: string
+}
+
+export interface ProcessTrace {
+  instanceId: string
+  processDefinitionId: string
+  businessKey: string
+  status: string
+  bpmnXml?: string
+  currentActivityIds: string[]
+  currentTasks: TaskItem[]
+  timeline: ProcessTraceNode[]
+}
+
 export interface TaskItem {
   taskId: string
   name: string
@@ -210,4 +230,8 @@ export function listOpsInstances() {
 
 export function getOpsInstance(instanceId: string) {
   return apiData(http.get(`/ops/process-instances/${instanceId}`))
+}
+
+export function getProcessTrace(instanceId: string) {
+  return apiData<ProcessTrace>(http.get(`/ops/process-instances/${instanceId}/trace`))
 }

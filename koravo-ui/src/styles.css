@@ -154,6 +154,10 @@ p {
   line-height: 1.55;
 }
 
+.panel-block {
+  margin-top: 18px;
+}
+
 .ant-table-wrapper {
   overflow-x: auto;
 }
