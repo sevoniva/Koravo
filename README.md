@@ -226,12 +226,16 @@ Then inspect:
 - `GET /api/v1/audit-logs?page=1&pageSize=20`
 - `GET /api/v1/audit-logs?action=PROCESS_INSTANCE_START&resourceType=PROCESS_INSTANCE&page=1&pageSize=20`
 
-The HTTP connector demo uses [examples/bpmn/http-connector-demo.bpmn20.xml](examples/bpmn/http-connector-demo.bpmn20.xml). Deploy it, start `httpConnectorDemo`, query the assigned `Review HTTP Result` task, complete it, then inspect the trace and connector logs. The service task stores the HTTP response in the `healthResult` process variable before moving to the review task.
+The HTTP connector demo uses [examples/bpmn/http-connector-demo.bpmn20.xml](examples/bpmn/http-connector-demo.bpmn20.xml). Deploy it, start `httpConnectorDemo` with an `X-Request-Id`, query the assigned `Review HTTP Result` task, complete it, then inspect the instance detail, trace, connector logs, and connector audit. The service task stores the HTTP response in the `healthResult` process variable before moving to the review task.
 
 ```http
+GET /api/v1/process-instances/{instanceId}
+GET /api/v1/ops/process-instances/{instanceId}/trace
 GET /api/v1/connector-execution-logs?connectorType=http&page=1&pageSize=20
+GET /api/v1/connector-execution-logs?connectorType=http&requestId=demo-http-request-1&page=1&pageSize=20
 GET /api/v1/connector-execution-logs/summary?connectorType=http
 GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
+GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&requestId=demo-http-request-1&page=1&pageSize=20
 ```
 
 ## Tests

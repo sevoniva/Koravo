@@ -102,6 +102,7 @@ Use:
 - `examples/http/koravo.http`
 
 The demo flow starts, executes the HTTP service task, stores the response in a process variable, then continues to a user task assigned to `${approver}`.
+After starting the demo with `X-Request-Id`, use the instance detail or trace APIs to confirm `healthResult` exists in process variables, then filter connector execution logs and connector audit events by that same request ID.
 
 ## Current Limits
 

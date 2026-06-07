@@ -369,6 +369,11 @@ GET {{baseUrl}}/ops/process-instances/{{httpProcessInstanceId}}/trace
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
+### 24a. Get HTTP connector demo instance detail and variables
+GET {{baseUrl}}/process-instances/{{httpProcessInstanceId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
 ### 25. Query HTTP connector execution logs
 GET {{baseUrl}}/connector-execution-logs?connectorType=http&page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}
@@ -386,5 +391,10 @@ X-User-Id: {{userId}}
 
 ### 27. Query HTTP connector audit logs
 GET {{baseUrl}}/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 27a. Query HTTP connector audit logs by request ID
+GET {{baseUrl}}/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&requestId={{httpRequestId}}&page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
