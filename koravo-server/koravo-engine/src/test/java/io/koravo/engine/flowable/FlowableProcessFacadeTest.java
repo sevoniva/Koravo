@@ -11,8 +11,13 @@ import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.engine.runtime.ProcessInstanceQuery;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -31,6 +36,35 @@ class FlowableProcessFacadeTest {
             historyService,
             identityService
     );
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void startAddsRequestContextVariables() {
+        ProcessInstance instance = mock(ProcessInstance.class);
+        when(instance.getId()).thenReturn("pi-1");
+        when(instance.getProcessDefinitionId()).thenReturn("pd-1");
+        when(instance.getBusinessKey()).thenReturn("biz-1");
+        when(runtimeService.startProcessInstanceByKeyAndTenantId(eq("leaveApproval"), eq("biz-1"), anyMap(), eq("default")))
+                .thenReturn(instance);
+
+        facade.start(new io.koravo.engine.command.StartProcessCommand(
+                "default",
+                "admin",
+                "req-1",
+                "leaveApproval",
+                "biz-1",
+                Map.of("approver", "admin")
+        ));
+
+        var variablesCaptor = forClass(Map.class);
+        verify(runtimeService).startProcessInstanceByKeyAndTenantId(eq("leaveApproval"), eq("biz-1"), variablesCaptor.capture(), eq("default"));
+        assertThat(variablesCaptor.getValue())
+                .containsEntry("tenantId", "default")
+                .containsEntry("startUserId", "admin")
+                .containsEntry("businessKey", "biz-1")
+                .containsEntry("requestId", "req-1")
+                .containsEntry("approver", "admin");
+    }
 
     @Test
     void terminateProcessInstanceDeletesRunningTenantInstanceWithReason() {

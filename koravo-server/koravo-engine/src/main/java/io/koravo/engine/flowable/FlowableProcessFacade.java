@@ -92,6 +92,9 @@ public class FlowableProcessFacade implements ProcessFacade {
             variables.putIfAbsent("tenantId", command.tenantId());
             variables.putIfAbsent("startUserId", command.userId());
             variables.putIfAbsent("businessKey", command.businessKey());
+            if (command.requestId() != null && !command.requestId().isBlank()) {
+                variables.putIfAbsent("requestId", command.requestId());
+            }
 
             ProcessInstance instance = runtimeService.startProcessInstanceByKeyAndTenantId(
                     command.processDefinitionKey(),

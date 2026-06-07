@@ -1,6 +1,7 @@
 package io.koravo.api.web;
 
 import io.koravo.common.api.ApiResponse;
+import io.koravo.common.web.RequestContextHolder;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.StartProcessCommand;
 import io.koravo.engine.dto.ProcessInstanceDTO;
@@ -32,6 +33,7 @@ public class ProcessInstanceController {
         ProcessInstanceDTO instance = processFacade.start(new StartProcessCommand(
                 TenantContextHolder.getTenantId(),
                 UserContextHolder.getUserId(),
+                RequestContextHolder.getRequestId(),
                 request.processDefinitionKey(),
                 request.businessKey(),
                 request.variables()

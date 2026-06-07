@@ -45,6 +45,8 @@ Every delegate execution writes `ko_connector_execution_log` with:
 - redacted response summary
 - error message when failed
 
+When a process is started through `/api/v1/process-instances/start`, Koravo stores the current request ID as a lightweight process variable. `KoravoConnectorDelegate` uses it in connector execution logs so connector calls can be correlated with the original API request.
+
 Query logs with:
 
 ```http
