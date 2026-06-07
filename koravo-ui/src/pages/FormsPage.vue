@@ -121,7 +121,53 @@
       </a-table>
     </DetailSection>
 
-    <JsonPreview :value="selected" />
+    <DetailSection v-if="selected" title="表单详情">
+      <a-descriptions bordered :column="2" size="small">
+        <a-descriptions-item label="表单 Key">{{ selected.formKey }}</a-descriptions-item>
+        <a-descriptions-item label="表单名称">{{ selected.formName }}</a-descriptions-item>
+        <a-descriptions-item label="版本">{{ selected.version }}</a-descriptions-item>
+        <a-descriptions-item label="状态"><StatusTag :status="selected.status" /></a-descriptions-item>
+        <a-descriptions-item label="字段数">{{ selectedFormSummary.fieldCount }}</a-descriptions-item>
+        <a-descriptions-item label="必填字段">{{ selectedFormSummary.requiredCount }}</a-descriptions-item>
+      </a-descriptions>
+
+      <a-table
+        class="panel-block"
+        :data-source="selectedFormSummary.fields"
+        :columns="fieldSummaryColumns"
+        row-key="name"
+        :pagination="false"
+        size="small"
+      >
+        <template #emptyText>
+          <EmptyState description="暂无字段" />
+        </template>
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'type'">
+            {{ fieldTypeText(record.type) }}
+          </template>
+          <template v-else-if="column.key === 'required'">
+            <StatusTag :status="record.required ? 'READY' : 'EMPTY'" :text="record.required ? '必填' : '选填'" />
+          </template>
+          <template v-else-if="column.key === 'options'">
+            {{ record.options || '-' }}
+          </template>
+        </template>
+      </a-table>
+
+      <a-collapse class="panel-block">
+        <a-collapse-panel key="schema" header="高级详情">
+          <a-tabs>
+            <a-tab-pane key="schema" tab="Schema">
+              <JsonPreview :value="selectedFormSchema" />
+            </a-tab-pane>
+            <a-tab-pane key="uiSchema" tab="UI Schema">
+              <JsonPreview :value="selectedFormUiSchema" />
+            </a-tab-pane>
+          </a-tabs>
+        </a-collapse-panel>
+      </a-collapse>
+    </DetailSection>
   </PageContainer>
 </template>
 
@@ -202,6 +248,9 @@ const form = reactive({
 })
 
 const selectedField = computed(() => fields.value.find((field) => field.id === selectedFieldId.value) || null)
+const selectedFormSchema = computed(() => parseJsonSafe(selected.value?.schemaJson || '{}') as SchemaJson)
+const selectedFormUiSchema = computed(() => parseJsonSafe(selected.value?.uiSchemaJson || '{}'))
+const selectedFormSummary = computed(() => formSummary(selectedFormSchema.value))
 
 const columns = [
   { title: '表单 Key', dataIndex: 'formKey', key: 'formKey' },
@@ -209,6 +258,14 @@ const columns = [
   { title: '版本', dataIndex: 'version', key: 'version', width: 100 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 110 },
   { title: '操作', key: 'action', width: 160 }
+]
+
+const fieldSummaryColumns = [
+  { title: '字段', dataIndex: 'title', key: 'title' },
+  { title: '字段名', dataIndex: 'name', key: 'name' },
+  { title: '类型', dataIndex: 'type', key: 'type', width: 120 },
+  { title: '必填', dataIndex: 'required', key: 'required', width: 100 },
+  { title: '选项', dataIndex: 'options', key: 'options' }
 ]
 
 async function load() {
@@ -420,6 +477,22 @@ function parseJsonSafe(value: string) {
     return JSON.parse(value || '{}')
   } catch {
     return {}
+  }
+}
+
+function formSummary(schema: SchemaJson) {
+  const required = new Set(schema.required || [])
+  const fields = Object.entries(schema.properties || {}).map(([name, property]) => ({
+    name,
+    title: property.title || name,
+    type: toDesignerType(property),
+    required: required.has(name),
+    options: property.enum?.join('、') || ''
+  }))
+  return {
+    fieldCount: fields.length,
+    requiredCount: fields.filter((field) => field.required).length,
+    fields
   }
 }
 

@@ -133,7 +133,19 @@
         <a-descriptions-item label="客户端 IP">{{ selectedAuditLog.clientIp }}</a-descriptions-item>
         <a-descriptions-item label="租户">{{ selectedAuditLog.tenantId }}</a-descriptions-item>
       </a-descriptions>
-      <JsonPreview :value="selectedAuditDetail" />
+      <DetailSection v-if="selectedAuditLog" title="变更摘要">
+        <a-descriptions v-if="selectedAuditSummaryItems.length" bordered :column="2" size="small">
+          <a-descriptions-item v-for="item in selectedAuditSummaryItems" :key="item.key" :label="item.label">
+            {{ item.value }}
+          </a-descriptions-item>
+        </a-descriptions>
+        <EmptyState v-else description="暂无补充摘要" />
+      </DetailSection>
+      <a-collapse v-if="selectedAuditLog" class="panel-block">
+        <a-collapse-panel key="detail" header="高级详情">
+          <JsonPreview :value="selectedAuditDetail" />
+        </a-collapse-panel>
+      </a-collapse>
     </a-modal>
   </PageContainer>
 </template>
@@ -164,6 +176,7 @@ const traceCanvasRef = ref<HTMLElement | null>(null)
 const auditDetailOpen = ref(false)
 const selectedAuditLog = ref<AuditLogItem | null>(null)
 const selectedAuditDetail = ref<unknown>({})
+const selectedAuditSummaryItems = computed(() => auditSummaryItems(selectedAuditDetail.value))
 
 const completedNodeCount = computed(() => traceDetail.value?.timeline.filter((item) => item.status === 'COMPLETED').length || 0)
 const currentNodeText = computed(() => traceDetail.value?.currentActivityIds.map(detailValueLabel).join('、') || '-')
@@ -290,12 +303,20 @@ function parseAuditDetail(value?: string) {
 function auditSummary(value?: string, action?: string) {
   const masked = parseAuditDetail(value)
   if (typeof masked === 'string') return masked || '无补充信息'
-  if (!masked || typeof masked !== 'object') return '无补充信息'
-  const entries = Object.entries(masked as Record<string, unknown>)
-    .filter(([key, item]) => !isLowSignalKey(key, item))
-    .slice(0, 3)
+  const entries = auditSummaryItems(masked).slice(0, 3)
   if (!entries.length) return emptySummary(action)
-  return entries.map(([key, item]) => `${detailKeyLabel(key)}：${formatSummaryValue(item)}`).join('，')
+  return entries.map((item) => `${item.label}：${item.value}`).join('，')
+}
+
+function auditSummaryItems(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+  return Object.entries(value as Record<string, unknown>)
+    .filter(([key, item]) => !isLowSignalKey(key, item))
+    .map(([key, item]) => ({
+      key,
+      label: detailKeyLabel(key),
+      value: formatSummaryValue(item)
+    }))
 }
 
 function isLowSignalKey(key: string, value: unknown) {
