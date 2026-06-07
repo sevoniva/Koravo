@@ -1,0 +1,84 @@
+@baseUrl = http://localhost:8080/api/v1
+@tenantId = default
+@userId = admin
+@processInstanceId = replace-with-instance-id
+@taskId = replace-with-task-id
+@datasourceId = replace-with-datasource-id
+
+### 1. Health check
+GET {{baseUrl}}/health
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 2. Deploy process model
+POST {{baseUrl}}/process-models/deploy?modelName=Leave%20Approval
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: multipart/form-data; boundary=KoravoBoundary
+
+--KoravoBoundary
+Content-Disposition: form-data; name="file"; filename="leave-approval.bpmn20.xml"
+Content-Type: application/xml
+
+< ../bpmn/leave-approval.bpmn20.xml
+--KoravoBoundary--
+
+### 3. Start process instance
+POST {{baseUrl}}/process-instances/start
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "processDefinitionKey": "leaveApproval",
+  "businessKey": "LEAVE-001",
+  "variables": {
+    "applicant": "u001",
+    "approver": "admin",
+    "days": 2
+  }
+}
+
+### 4. Query my tasks
+GET {{baseUrl}}/tasks/my?page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 5. Complete task
+POST {{baseUrl}}/tasks/{{taskId}}/complete
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "variables": {
+    "approved": true,
+    "comment": "approved"
+  }
+}
+
+### 6. Get process instance detail
+GET {{baseUrl}}/process-instances/{{processInstanceId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 7. Create datasource
+POST {{baseUrl}}/datasources
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "name": "Local PostgreSQL",
+  "type": "POSTGRESQL",
+  "jdbcUrl": "jdbc:postgresql://localhost:5432/koravo",
+  "username": "koravo",
+  "password": "koravo",
+  "readOnly": true,
+  "poolConfigJson": "{}"
+}
+
+### 8. Test datasource
+POST {{baseUrl}}/datasources/{{datasourceId}}/test
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
