@@ -3,6 +3,7 @@ package io.koravo.ops.service;
 import io.koravo.common.api.PageResult;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.InstanceQueryCommand;
+import io.koravo.engine.dto.OpsJobDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.ProcessTraceDTO;
 import io.koravo.ops.audit.AuditLogService;
@@ -34,6 +35,22 @@ public class ProcessOpsService {
 
     public ProcessTraceDTO getInstanceTrace(String instanceId) {
         return processFacade.getInstanceTrace(TenantContextHolder.getTenantId(), instanceId);
+    }
+
+    public PageResult<OpsJobDTO> listFailedJobs(int page, int pageSize) {
+        return processFacade.listFailedJobs(TenantContextHolder.getTenantId(), page, pageSize);
+    }
+
+    public PageResult<OpsJobDTO> listDeadLetterJobs(int page, int pageSize) {
+        return processFacade.listDeadLetterJobs(TenantContextHolder.getTenantId(), page, pageSize);
+    }
+
+    public OpsJobDTO getFailedJob(String jobId) {
+        return processFacade.getFailedJob(TenantContextHolder.getTenantId(), jobId);
+    }
+
+    public OpsJobDTO getDeadLetterJob(String jobId) {
+        return processFacade.getDeadLetterJob(TenantContextHolder.getTenantId(), jobId);
     }
 
     public OpsSummaryResponse summary(long connectorFailureCount) {
@@ -75,45 +92,45 @@ public class ProcessOpsService {
         return List.of(
                 new OpsCapabilityResponse(
                         "PROCESS_INSTANCE_INSPECTION",
-                        "Process instance inspection",
+                        "流程实例查看",
                         "AVAILABLE",
-                        "List, inspect, terminate, suspend, and activate process instances."
+                        "查看、终止、挂起和激活流程实例。"
                 ),
                 new OpsCapabilityResponse(
                         "PROCESS_INSTANCE_TRACE",
-                        "Process trace",
+                        "流程追踪",
                         "AVAILABLE",
-                        "Read current nodes, completed activities, variables, tasks, and BPMN XML."
+                        "查看当前节点、历史活动、变量、任务和流程图。"
                 ),
                 new OpsCapabilityResponse(
                         "CONNECTOR_EXECUTION_LOGS",
-                        "Connector execution logs",
+                        "连接器日志",
                         "AVAILABLE",
-                        "Query connector executions, summaries, and recent failures."
+                        "查询连接器调用记录、摘要和近期失败。"
                 ),
                 new OpsCapabilityResponse(
                         "FAILED_TASK_INSPECTION",
-                        "Failed task inspection",
-                        "PLANNED",
-                        "Boundary reserved for Flowable failed job and exception inspection."
+                        "失败任务查看",
+                        "AVAILABLE",
+                        "查看失败任务详情和异常信息。"
                 ),
                 new OpsCapabilityResponse(
                         "DEAD_LETTER_TASKS",
-                        "Dead letter tasks",
-                        "PLANNED",
-                        "Boundary reserved for dead letter job listing and diagnostics."
+                        "死信任务处理",
+                        "AVAILABLE",
+                        "查看、重试和删除死信任务。"
                 ),
                 new OpsCapabilityResponse(
                         "JOB_RETRY",
-                        "Job retry",
-                        "PLANNED",
-                        "Boundary reserved for audited retry actions after failure analysis."
+                        "任务重试",
+                        "AVAILABLE",
+                        "重试失败任务和死信任务，并写入审计日志。"
                 ),
                 new OpsCapabilityResponse(
                         "PROCESS_MIGRATION",
-                        "Process migration",
+                        "流程迁移",
                         "PLANNED",
-                        "Boundary reserved for controlled instance migration between definitions."
+                        "预留流程定义间实例迁移能力。"
                 )
         );
     }
@@ -133,5 +150,25 @@ public class ProcessOpsService {
     public void activateInstance(String instanceId) {
         processFacade.activateProcessInstance(TenantContextHolder.getTenantId(), instanceId);
         auditLogService.record("PROCESS_INSTANCE_ACTIVATE", "PROCESS_INSTANCE", instanceId, Map.of());
+    }
+
+    public void retryFailedJob(String jobId, int retries) {
+        processFacade.retryFailedJob(TenantContextHolder.getTenantId(), jobId, retries);
+        auditLogService.record("FAILED_JOB_RETRY", "FAILED_JOB", jobId, Map.of("retries", Math.max(retries, 1)));
+    }
+
+    public void retryDeadLetterJob(String jobId, int retries) {
+        processFacade.retryDeadLetterJob(TenantContextHolder.getTenantId(), jobId, retries);
+        auditLogService.record("DEAD_LETTER_JOB_RETRY", "DEAD_LETTER_JOB", jobId, Map.of("retries", Math.max(retries, 1)));
+    }
+
+    public void deleteFailedJob(String jobId) {
+        processFacade.deleteFailedJob(TenantContextHolder.getTenantId(), jobId);
+        auditLogService.record("FAILED_JOB_DELETE", "FAILED_JOB", jobId, Map.of());
+    }
+
+    public void deleteDeadLetterJob(String jobId) {
+        processFacade.deleteDeadLetterJob(TenantContextHolder.getTenantId(), jobId);
+        auditLogService.record("DEAD_LETTER_JOB_DELETE", "DEAD_LETTER_JOB", jobId, Map.of());
     }
 }

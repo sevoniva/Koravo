@@ -10,6 +10,7 @@ import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.engine.dto.ProcessInstanceDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.ProcessTraceDTO;
+import io.koravo.engine.dto.OpsJobDTO;
 import io.koravo.engine.dto.TaskCommentDTO;
 import io.koravo.engine.dto.TaskDTO;
 
@@ -52,6 +53,22 @@ public interface ProcessFacade {
     long countFailedJobs(String tenantId);
 
     long countDeadLetterJobs(String tenantId);
+
+    PageResult<OpsJobDTO> listFailedJobs(String tenantId, int page, int pageSize);
+
+    PageResult<OpsJobDTO> listDeadLetterJobs(String tenantId, int page, int pageSize);
+
+    OpsJobDTO getFailedJob(String tenantId, String jobId);
+
+    OpsJobDTO getDeadLetterJob(String tenantId, String jobId);
+
+    void retryFailedJob(String tenantId, String jobId, int retries);
+
+    void retryDeadLetterJob(String tenantId, String jobId, int retries);
+
+    void deleteFailedJob(String tenantId, String jobId);
+
+    void deleteDeadLetterJob(String tenantId, String jobId);
 
     void terminateProcessInstance(String tenantId, String instanceId, String reason);
 

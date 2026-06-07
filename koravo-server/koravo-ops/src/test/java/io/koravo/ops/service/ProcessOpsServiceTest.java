@@ -73,6 +73,46 @@ class ProcessOpsServiceTest {
         org.assertj.core.api.Assertions.assertThat(capabilities)
                 .filteredOn(capability -> capability.key().equals("JOB_RETRY"))
                 .extracting("status")
-                .containsExactly("PLANNED");
+                .containsExactly("AVAILABLE");
+    }
+
+    @Test
+    void retryFailedJobCallsFacadeAndWritesAuditLog() {
+        TenantContextHolder.setTenantId("default");
+
+        service.retryFailedJob("job-1", 2);
+
+        verify(processFacade).retryFailedJob("default", "job-1", 2);
+        verify(auditLogService).record(eq("FAILED_JOB_RETRY"), eq("FAILED_JOB"), eq("job-1"), eq(java.util.Map.of("retries", 2)));
+    }
+
+    @Test
+    void retryDeadLetterJobCallsFacadeAndWritesAuditLog() {
+        TenantContextHolder.setTenantId("default");
+
+        service.retryDeadLetterJob("job-1", 2);
+
+        verify(processFacade).retryDeadLetterJob("default", "job-1", 2);
+        verify(auditLogService).record(eq("DEAD_LETTER_JOB_RETRY"), eq("DEAD_LETTER_JOB"), eq("job-1"), eq(java.util.Map.of("retries", 2)));
+    }
+
+    @Test
+    void deleteFailedJobCallsFacadeAndWritesAuditLog() {
+        TenantContextHolder.setTenantId("default");
+
+        service.deleteFailedJob("job-1");
+
+        verify(processFacade).deleteFailedJob("default", "job-1");
+        verify(auditLogService).record(eq("FAILED_JOB_DELETE"), eq("FAILED_JOB"), eq("job-1"), eq(java.util.Map.of()));
+    }
+
+    @Test
+    void deleteDeadLetterJobCallsFacadeAndWritesAuditLog() {
+        TenantContextHolder.setTenantId("default");
+
+        service.deleteDeadLetterJob("job-1");
+
+        verify(processFacade).deleteDeadLetterJob("default", "job-1");
+        verify(auditLogService).record(eq("DEAD_LETTER_JOB_DELETE"), eq("DEAD_LETTER_JOB"), eq("job-1"), eq(java.util.Map.of()));
     }
 }

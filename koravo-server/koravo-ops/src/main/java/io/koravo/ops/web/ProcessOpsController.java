@@ -2,6 +2,7 @@ package io.koravo.ops.web;
 
 import io.koravo.common.api.ApiResponse;
 import io.koravo.common.api.PageResult;
+import io.koravo.engine.dto.OpsJobDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.ProcessTraceDTO;
 import io.koravo.ops.dto.OpsCapabilityResponse;
@@ -46,6 +47,62 @@ public class ProcessOpsController {
         return ApiResponse.success(processOpsService.getInstanceTrace(instanceId));
     }
 
+    @GetMapping("/api/v1/ops/failed-jobs")
+    public ApiResponse<PageResult<OpsJobDTO>> listFailedJobs(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize
+    ) {
+        return ApiResponse.success(processOpsService.listFailedJobs(page, pageSize));
+    }
+
+    @GetMapping("/api/v1/ops/failed-jobs/{jobId}")
+    public ApiResponse<OpsJobDTO> getFailedJob(@PathVariable String jobId) {
+        return ApiResponse.success(processOpsService.getFailedJob(jobId));
+    }
+
+    @PostMapping("/api/v1/ops/failed-jobs/{jobId}/retry")
+    public ApiResponse<Void> retryFailedJob(
+            @PathVariable String jobId,
+            @RequestBody(required = false) JobActionRequest request
+    ) {
+        processOpsService.retryFailedJob(jobId, request == null ? 3 : request.safeRetries());
+        return ApiResponse.success(null);
+    }
+
+    @PostMapping("/api/v1/ops/failed-jobs/{jobId}/delete")
+    public ApiResponse<Void> deleteFailedJob(@PathVariable String jobId) {
+        processOpsService.deleteFailedJob(jobId);
+        return ApiResponse.success(null);
+    }
+
+    @GetMapping("/api/v1/ops/dead-letter-jobs")
+    public ApiResponse<PageResult<OpsJobDTO>> listDeadLetterJobs(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize
+    ) {
+        return ApiResponse.success(processOpsService.listDeadLetterJobs(page, pageSize));
+    }
+
+    @GetMapping("/api/v1/ops/dead-letter-jobs/{jobId}")
+    public ApiResponse<OpsJobDTO> getDeadLetterJob(@PathVariable String jobId) {
+        return ApiResponse.success(processOpsService.getDeadLetterJob(jobId));
+    }
+
+    @PostMapping("/api/v1/ops/dead-letter-jobs/{jobId}/retry")
+    public ApiResponse<Void> retryDeadLetterJob(
+            @PathVariable String jobId,
+            @RequestBody(required = false) JobActionRequest request
+    ) {
+        processOpsService.retryDeadLetterJob(jobId, request == null ? 3 : request.safeRetries());
+        return ApiResponse.success(null);
+    }
+
+    @PostMapping("/api/v1/ops/dead-letter-jobs/{jobId}/delete")
+    public ApiResponse<Void> deleteDeadLetterJob(@PathVariable String jobId) {
+        processOpsService.deleteDeadLetterJob(jobId);
+        return ApiResponse.success(null);
+    }
+
     @PostMapping("/api/v1/ops/process-instances/{instanceId}/terminate")
     public ApiResponse<Void> terminateInstance(
             @PathVariable String instanceId,
@@ -68,5 +125,11 @@ public class ProcessOpsController {
     }
 
     public record ProcessInstanceActionRequest(String reason) {
+    }
+
+    public record JobActionRequest(Integer retries) {
+        int safeRetries() {
+            return retries == null || retries < 1 ? 3 : retries;
+        }
     }
 }

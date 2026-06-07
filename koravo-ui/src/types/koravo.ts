@@ -296,6 +296,24 @@ export interface OpsCapabilityItem {
   description: string
 }
 
+export interface OpsJobItem {
+  id: string
+  type: string
+  tenantId: string
+  processInstanceId?: string
+  processDefinitionId?: string
+  executionId?: string
+  elementId?: string
+  elementName?: string
+  handlerType?: string
+  handlerConfiguration?: string
+  retries: number
+  exceptionMessage?: string
+  exceptionStacktrace?: string
+  dueDate?: string
+  createTime?: string
+}
+
 export interface OpsSummary {
   runningInstanceCount: number
   failedJobCount: number

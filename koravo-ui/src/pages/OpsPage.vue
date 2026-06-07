@@ -130,35 +130,125 @@
           <a-card title="失败任务"><strong>{{ opsSummary?.failedJobCount ?? 0 }}</strong><span>Flowable 异常作业</span></a-card>
           <a-card title="运行中实例"><strong>{{ opsSummary?.runningInstanceCount ?? 0 }}</strong><span>当前租户</span></a-card>
         </div>
-        <a-empty v-if="!(opsSummary?.failedJobCount)" description="暂无失败任务" />
-        <a-alert
-          v-else
-          type="warning"
-          show-icon
-          message="存在失败任务"
-          description="当前版本只显示摘要；重试和删除需接入作业详情后开放。"
-        />
+        <a-table
+          class="panel-block"
+          :data-source="failedJobs"
+          :columns="jobColumns"
+          row-key="id"
+          :loading="failedJobLoading"
+          :pagination="failedJobPagination"
+          size="small"
+          @change="handleFailedJobTableChange"
+        >
+          <template #emptyText>
+            <a-empty description="暂无失败任务" />
+          </template>
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'status'">
+              <a-tag color="red">失败</a-tag>
+            </template>
+            <template v-if="column.key === 'created'">
+              {{ formatDateTime(record.createTime) }}
+            </template>
+            <template v-if="column.key === 'exception'">
+              <code>{{ maskText(record.exceptionMessage) || '-' }}</code>
+            </template>
+            <template v-if="column.key === 'action'">
+              <a-space wrap>
+                <a-button size="small" @click="openJobDetail('failed', record.id)">查看</a-button>
+                <a-button
+                  v-if="record.processInstanceId"
+                  size="small"
+                  @click="router.push(`/process-instances/${record.processInstanceId}`)"
+                >
+                  流程详情
+                </a-button>
+                <a-popconfirm
+                  title="确认重试该失败任务？"
+                  ok-text="重试"
+                  cancel-text="取消"
+                  @confirm="retryJob('failed', record.id)"
+                >
+                  <a-button size="small" type="primary" :loading="jobActionLoading === `failed:retry:${record.id}`">重试</a-button>
+                </a-popconfirm>
+                <a-popconfirm
+                  title="确认删除该失败任务？"
+                  ok-text="删除"
+                  cancel-text="取消"
+                  @confirm="removeJob('failed', record.id)"
+                >
+                  <a-button size="small" danger :loading="jobActionLoading === `failed:delete:${record.id}`">删除</a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
+          </template>
+        </a-table>
       </a-tab-pane>
 
       <a-tab-pane key="dead-letter" tab="死信任务">
         <div class="metric-grid panel-block">
-          <a-card title="死信任务"><strong>{{ opsSummary?.deadLetterJobCount ?? 0 }}</strong><span>Dead letter jobs</span></a-card>
+          <a-card title="死信任务"><strong>{{ opsSummary?.deadLetterJobCount ?? 0 }}</strong><span>Flowable 死信作业</span></a-card>
           <a-card title="连接器失败"><strong>{{ opsSummary?.connectorFailureCount ?? 0 }}</strong><span>连接器日志</span></a-card>
         </div>
-        <a-empty v-if="!(opsSummary?.deadLetterJobCount)" description="暂无死信任务" />
-        <a-alert
-          v-else
-          type="warning"
-          show-icon
-          message="存在死信任务"
-          description="当前版本只显示摘要；删除需接入作业详情后开放。"
-        />
+        <a-table
+          class="panel-block"
+          :data-source="deadLetterJobs"
+          :columns="jobColumns"
+          row-key="id"
+          :loading="deadLetterJobLoading"
+          :pagination="deadLetterJobPagination"
+          size="small"
+          @change="handleDeadLetterJobTableChange"
+        >
+          <template #emptyText>
+            <a-empty description="暂无死信任务" />
+          </template>
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'status'">
+              <a-tag color="red">死信</a-tag>
+            </template>
+            <template v-if="column.key === 'created'">
+              {{ formatDateTime(record.createTime) }}
+            </template>
+            <template v-if="column.key === 'exception'">
+              <code>{{ maskText(record.exceptionMessage) || '-' }}</code>
+            </template>
+            <template v-if="column.key === 'action'">
+              <a-space wrap>
+                <a-button size="small" @click="openJobDetail('dead-letter', record.id)">查看</a-button>
+                <a-button
+                  v-if="record.processInstanceId"
+                  size="small"
+                  @click="router.push(`/process-instances/${record.processInstanceId}`)"
+                >
+                  流程详情
+                </a-button>
+                <a-popconfirm
+                  title="确认重试该死信任务？"
+                  ok-text="重试"
+                  cancel-text="取消"
+                  @confirm="retryJob('dead-letter', record.id)"
+                >
+                  <a-button size="small" type="primary" :loading="jobActionLoading === `dead-letter:retry:${record.id}`">重试</a-button>
+                </a-popconfirm>
+                <a-popconfirm
+                  title="确认删除该死信任务？"
+                  ok-text="删除"
+                  cancel-text="取消"
+                  @confirm="removeJob('dead-letter', record.id)"
+                >
+                  <a-button size="small" danger :loading="jobActionLoading === `dead-letter:delete:${record.id}`">删除</a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
+          </template>
+        </a-table>
       </a-tab-pane>
 
       <a-tab-pane key="exceptions" tab="异常摘要">
         <div class="metric-grid panel-block">
           <a-card title="失败任务"><strong>{{ opsSummary?.failedJobCount ?? 0 }}</strong><span>Flowable 作业异常</span></a-card>
-          <a-card title="死信任务"><strong>{{ opsSummary?.deadLetterJobCount ?? 0 }}</strong><span>Dead letter jobs</span></a-card>
+          <a-card title="死信任务"><strong>{{ opsSummary?.deadLetterJobCount ?? 0 }}</strong><span>Flowable 死信作业</span></a-card>
           <a-card title="连接器失败"><strong>{{ opsSummary?.connectorFailureCount ?? 0 }}</strong><span>当前租户</span></a-card>
         </div>
         <a-table
@@ -242,6 +332,33 @@
         </a-tab-pane>
       </a-tabs>
     </a-modal>
+
+    <a-modal v-model:open="jobDetailOpen" title="任务异常详情" :footer="null" width="900px">
+      <a-descriptions v-if="selectedJob" bordered :column="2" size="small" class="panel-block">
+        <a-descriptions-item label="任务 ID">{{ selectedJob.id }}</a-descriptions-item>
+        <a-descriptions-item label="状态">
+          <a-tag :color="selectedJob.type === 'DEAD_LETTER' ? 'red' : 'orange'">
+            {{ selectedJob.type === 'DEAD_LETTER' ? '死信' : '失败' }}
+          </a-tag>
+        </a-descriptions-item>
+        <a-descriptions-item label="流程实例">{{ selectedJob.processInstanceId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="流程定义">{{ selectedJob.processDefinitionId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="节点 ID">{{ selectedJob.elementId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="节点名称">{{ selectedJob.elementName || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="处理器">{{ selectedJob.handlerType || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="剩余重试">{{ selectedJob.retries }}</a-descriptions-item>
+        <a-descriptions-item label="创建时间">{{ formatDateTime(selectedJob.createTime) }}</a-descriptions-item>
+        <a-descriptions-item label="到期时间">{{ formatDateTime(selectedJob.dueDate) }}</a-descriptions-item>
+      </a-descriptions>
+      <a-tabs v-if="selectedJob">
+        <a-tab-pane key="message" tab="异常摘要">
+          <JsonPreview :value="selectedJob.exceptionMessage ? { message: maskText(selectedJob.exceptionMessage) } : {}" />
+        </a-tab-pane>
+        <a-tab-pane key="stacktrace" tab="异常堆栈">
+          <JsonPreview :value="selectedJob.exceptionStacktrace ? { stacktrace: maskText(selectedJob.exceptionStacktrace) } : {}" />
+        </a-tab-pane>
+      </a-tabs>
+    </a-modal>
   </section>
 </template>
 
@@ -254,22 +371,32 @@ import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import JsonPreview from '../components/JsonPreview.vue'
 import {
   activateProcessInstance,
+  deleteDeadLetterJob,
+  deleteFailedJob,
+  getDeadLetterJob,
   getConnectorExecutionSummary,
+  getFailedJob,
   getOpsInstance,
   getOpsSummary,
   getProcessTrace,
   listConnectorExecutionLogs,
+  listDeadLetterJobs,
+  listFailedJobs,
   listOpsCapabilities,
   listOpsInstances,
+  retryDeadLetterJob,
+  retryFailedJob,
   suspendProcessInstance,
   terminateProcessInstance,
   type ConnectorExecutionLogItem,
   type ConnectorExecutionSummary,
   type OpsCapabilityItem,
+  type OpsJobItem,
   type OpsSummary,
   type OpsProcessInstance,
   type ProcessTrace
 } from '../api/koravo'
+import { formatDateTime, maskSecret } from '../utils/format'
 
 const loading = ref(false)
 const router = useRouter()
@@ -297,6 +424,19 @@ const capabilityLoading = ref(false)
 const connectorPage = ref(1)
 const connectorPageSize = ref(20)
 const connectorTotal = ref(0)
+const failedJobs = ref<OpsJobItem[]>([])
+const deadLetterJobs = ref<OpsJobItem[]>([])
+const failedJobLoading = ref(false)
+const deadLetterJobLoading = ref(false)
+const failedJobPage = ref(1)
+const failedJobPageSize = ref(20)
+const failedJobTotal = ref(0)
+const deadLetterJobPage = ref(1)
+const deadLetterJobPageSize = ref(20)
+const deadLetterJobTotal = ref(0)
+const jobActionLoading = ref<string | null>(null)
+const jobDetailOpen = ref(false)
+const selectedJob = ref<OpsJobItem | null>(null)
 const connectorFilters = ref({
   connectorType: 'http',
   status: undefined as string | undefined,
@@ -349,6 +489,18 @@ const summaryColumns = [
   { title: '说明', dataIndex: 'message', key: 'message' }
 ]
 
+const jobColumns = [
+  { title: '任务 ID', dataIndex: 'id', key: 'id', width: 220 },
+  { title: '状态', key: 'status', width: 80 },
+  { title: '节点', dataIndex: 'elementName', key: 'elementName', width: 150 },
+  { title: '流程实例', dataIndex: 'processInstanceId', key: 'processInstanceId', width: 220 },
+  { title: '处理器', dataIndex: 'handlerType', key: 'handlerType', width: 150 },
+  { title: '剩余重试', dataIndex: 'retries', key: 'retries', width: 90 },
+  { title: '创建时间', key: 'created', width: 170 },
+  { title: '异常', key: 'exception' },
+  { title: '操作', key: 'action', width: 260 }
+]
+
 const capabilityColumns = [
   { title: '能力', dataIndex: 'name', key: 'name', width: 240 },
   { title: '状态', key: 'status', width: 130 },
@@ -372,6 +524,22 @@ const instancePagination = computed<TablePaginationConfig>(() => ({
   showTotal: (count) => `共 ${count} 个流程实例`
 }))
 
+const failedJobPagination = computed<TablePaginationConfig>(() => ({
+  current: failedJobPage.value,
+  pageSize: failedJobPageSize.value,
+  total: failedJobTotal.value,
+  showSizeChanger: true,
+  showTotal: (count) => `共 ${count} 个失败任务`
+}))
+
+const deadLetterJobPagination = computed<TablePaginationConfig>(() => ({
+  current: deadLetterJobPage.value,
+  pageSize: deadLetterJobPageSize.value,
+  total: deadLetterJobTotal.value,
+  showSizeChanger: true,
+  showTotal: (count) => `共 ${count} 个死信任务`
+}))
+
 let traceViewer: any = null
 
 async function load() {
@@ -381,7 +549,11 @@ async function load() {
       await loadConnectorLogs()
     } else if (activeTab.value === 'capabilities') {
       await loadCapabilities()
-    } else if (['exceptions', 'failed', 'dead-letter'].includes(activeTab.value)) {
+    } else if (activeTab.value === 'failed') {
+      await Promise.all([loadOpsSummary(), loadFailedJobs()])
+    } else if (activeTab.value === 'dead-letter') {
+      await Promise.all([loadOpsSummary(), loadDeadLetterJobs()])
+    } else if (activeTab.value === 'exceptions') {
       await loadOpsSummary()
     } else {
       const page = await listOpsInstances({
@@ -411,10 +583,54 @@ async function loadOpsSummary() {
   opsSummary.value = await getOpsSummary()
 }
 
+async function loadFailedJobs() {
+  failedJobLoading.value = true
+  try {
+    const page = await listFailedJobs({
+      page: failedJobPage.value,
+      pageSize: failedJobPageSize.value
+    })
+    failedJobs.value = page.items
+    failedJobTotal.value = page.total
+    failedJobPage.value = page.page
+    failedJobPageSize.value = page.pageSize
+  } finally {
+    failedJobLoading.value = false
+  }
+}
+
+async function loadDeadLetterJobs() {
+  deadLetterJobLoading.value = true
+  try {
+    const page = await listDeadLetterJobs({
+      page: deadLetterJobPage.value,
+      pageSize: deadLetterJobPageSize.value
+    })
+    deadLetterJobs.value = page.items
+    deadLetterJobTotal.value = page.total
+    deadLetterJobPage.value = page.page
+    deadLetterJobPageSize.value = page.pageSize
+  } finally {
+    deadLetterJobLoading.value = false
+  }
+}
+
 function handleInstanceTableChange(nextPagination: TablePaginationConfig) {
   instancePage.value = nextPagination.current || 1
   instancePageSize.value = nextPagination.pageSize || 20
   load()
+}
+
+function handleFailedJobTableChange(nextPagination: TablePaginationConfig) {
+  failedJobPage.value = nextPagination.current || 1
+  failedJobPageSize.value = nextPagination.pageSize || 20
+  loadFailedJobs()
+}
+
+function handleDeadLetterJobTableChange(nextPagination: TablePaginationConfig) {
+  deadLetterJobPage.value = nextPagination.current || 1
+  deadLetterJobPageSize.value = nextPagination.pageSize || 20
+  loadDeadLetterJobs()
 }
 
 async function loadConnectorLogs() {
@@ -446,6 +662,54 @@ function handleConnectorTableChange(nextPagination: TablePaginationConfig) {
   connectorPage.value = nextPagination.current || 1
   connectorPageSize.value = nextPagination.pageSize || 20
   loadConnectorLogs()
+}
+
+async function openJobDetail(kind: 'failed' | 'dead-letter', jobId: string) {
+  selectedJob.value = kind === 'failed'
+    ? await getFailedJob(jobId)
+    : await getDeadLetterJob(jobId)
+  jobDetailOpen.value = true
+}
+
+async function retryJob(kind: 'failed' | 'dead-letter', jobId: string) {
+  await runJobAction(`${kind}:retry:${jobId}`, async () => {
+    if (kind === 'failed') {
+      await retryFailedJob(jobId)
+      await loadFailedJobs()
+    } else {
+      await retryDeadLetterJob(jobId)
+      await loadDeadLetterJobs()
+    }
+    await loadOpsSummary()
+    message.success('任务已提交重试')
+  })
+}
+
+async function removeJob(kind: 'failed' | 'dead-letter', jobId: string) {
+  await runJobAction(`${kind}:delete:${jobId}`, async () => {
+    if (kind === 'failed') {
+      await deleteFailedJob(jobId)
+      await loadFailedJobs()
+    } else {
+      await deleteDeadLetterJob(jobId)
+      await loadDeadLetterJobs()
+    }
+    await loadOpsSummary()
+    if (selectedJob.value?.id === jobId) {
+      selectedJob.value = null
+      jobDetailOpen.value = false
+    }
+    message.success('任务已删除')
+  })
+}
+
+async function runJobAction(actionKey: string, action: () => Promise<void>) {
+  jobActionLoading.value = actionKey
+  try {
+    await action()
+  } finally {
+    jobActionLoading.value = null
+  }
 }
 
 async function inspect(instanceId: string) {
@@ -550,6 +814,11 @@ function parseJsonValue(value?: string) {
   }
 }
 
+function maskText(value?: string) {
+  const masked = maskSecret(value)
+  return typeof masked === 'string' ? masked : ''
+}
+
 onMounted(async () => {
   const routeTab = typeof route.query.tab === 'string' ? route.query.tab : ''
   if (routeTab === 'connectors') {
@@ -560,6 +829,8 @@ onMounted(async () => {
   await load()
   await loadConnectorLogs()
   await loadOpsSummary()
+  await loadFailedJobs()
+  await loadDeadLetterJobs()
   await loadCapabilities()
   await loadRouteTrace()
 })

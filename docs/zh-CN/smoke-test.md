@@ -31,7 +31,8 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 表单设计器：通过。`/forms` 渲染字段列表和表单预览，点击“新增字段”后生成 `field8`，JSON Schema 和预览同步更新。
 - 审计日志：通过。可查询 `TASK_COMPLETE`，任务详情返回对应审计记录。
 - HTTP Connector 示例：通过。部署 `httpConnectorDemo`，启动实例 `cb7fb909-625a-11f1-ab24-c232b2af3b82`，`httpResult.statusCode=200`，连接器日志为 `SUCCESS`。
-- 运维 tabs：通过。实例列表、异常摘要、运行中实例和完成实例可见。
+- 运维 tabs：通过。实例列表、失败任务、死信任务、连接器日志、异常摘要可见；失败/死信无数据时显示表格空状态。
+- 运维失败/死信接口：通过。`GET /api/v1/ops/failed-jobs` 和 `GET /api/v1/ops/dead-letter-jobs` 返回统一分页结构；能力清单中失败任务查看、死信任务处理、任务重试均为 `AVAILABLE`。
 - 系统设置切换租户用户：通过。请求上下文、请求头预览、系统健康、依赖状态和 URL 策略可见。
 - 刷新页面路由：通过。`/dashboard`、`/connector-demo`、`/ops`、`/system-settings` 直接访问正常。
 - 启动日志：通过。后端启动后未出现 `Using generated security password` 或 `generated password`。
@@ -41,6 +42,8 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 连接器详情接口 `GET /api/v1/connector-execution-logs/{id}` 在 PostgreSQL LOB 字段读取时曾返回 500，已通过只读事务边界修复并复验通过。
 - 首页和连接器示例的指标卡曾在未传入状态时显示“缺失”，已修复为仅在明确传入状态时显示状态标签。
 - Spring Security 默认开发密码曾出现在启动日志，已通过显式 `UserDetailsService` 配置关闭。
+- 运维中心失败任务和死信任务曾只显示摘要，已补列表、详情、重试、删除和审计记录。
+- `/favicon.ico` 曾在浏览器冒烟中返回 404，已添加 `favicon.svg` 并复验无控制台错误。
 
 ## 已知问题
 

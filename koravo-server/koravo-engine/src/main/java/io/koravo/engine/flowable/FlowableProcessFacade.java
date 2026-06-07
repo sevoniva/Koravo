@@ -14,6 +14,7 @@ import io.koravo.engine.dto.ProcessInstanceDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.ProcessTraceDTO;
 import io.koravo.engine.dto.ProcessTraceNodeDTO;
+import io.koravo.engine.dto.OpsJobDTO;
 import io.koravo.engine.dto.TaskCommentDTO;
 import io.koravo.engine.dto.TaskDTO;
 import org.flowable.engine.HistoryService;
@@ -27,6 +28,7 @@ import org.flowable.engine.history.HistoricActivityInstance;
 import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.job.api.Job;
 import org.flowable.task.api.Task;
 import org.flowable.task.api.history.HistoricTaskInstance;
 import org.springframework.stereotype.Service;
@@ -403,6 +405,89 @@ public class FlowableProcessFacade implements ProcessFacade {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PageResult<OpsJobDTO> listFailedJobs(String tenantId, int page, int pageSize) {
+        int safePage = Math.max(page, 1);
+        int safePageSize = Math.max(pageSize, 1);
+        long total = managementService.createJobQuery()
+                .jobTenantId(tenantId)
+                .withException()
+                .count();
+        List<OpsJobDTO> jobs = managementService.createJobQuery()
+                .jobTenantId(tenantId)
+                .withException()
+                .orderByJobCreateTime()
+                .desc()
+                .listPage((safePage - 1) * safePageSize, safePageSize)
+                .stream()
+                .map(job -> toOpsJobDTO(job, "FAILED", null))
+                .toList();
+        return PageResult.of(jobs, total, safePage, safePageSize);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResult<OpsJobDTO> listDeadLetterJobs(String tenantId, int page, int pageSize) {
+        int safePage = Math.max(page, 1);
+        int safePageSize = Math.max(pageSize, 1);
+        long total = managementService.createDeadLetterJobQuery()
+                .jobTenantId(tenantId)
+                .count();
+        List<OpsJobDTO> jobs = managementService.createDeadLetterJobQuery()
+                .jobTenantId(tenantId)
+                .orderByJobCreateTime()
+                .desc()
+                .listPage((safePage - 1) * safePageSize, safePageSize)
+                .stream()
+                .map(job -> toOpsJobDTO(job, "DEAD_LETTER", null))
+                .toList();
+        return PageResult.of(jobs, total, safePage, safePageSize);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OpsJobDTO getFailedJob(String tenantId, String jobId) {
+        Job job = findFailedJob(tenantId, jobId);
+        return toOpsJobDTO(job, "FAILED", managementService.getJobExceptionStacktrace(jobId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OpsJobDTO getDeadLetterJob(String tenantId, String jobId) {
+        Job job = findDeadLetterJob(tenantId, jobId);
+        return toOpsJobDTO(job, "DEAD_LETTER", managementService.getDeadLetterJobExceptionStacktrace(jobId));
+    }
+
+    @Override
+    @Transactional
+    public void retryFailedJob(String tenantId, String jobId, int retries) {
+        findFailedJob(tenantId, jobId);
+        managementService.setJobRetries(jobId, Math.max(retries, 1));
+        managementService.executeJob(jobId);
+    }
+
+    @Override
+    @Transactional
+    public void retryDeadLetterJob(String tenantId, String jobId, int retries) {
+        findDeadLetterJob(tenantId, jobId);
+        managementService.moveDeadLetterJobToExecutableJob(jobId, Math.max(retries, 1));
+    }
+
+    @Override
+    @Transactional
+    public void deleteFailedJob(String tenantId, String jobId) {
+        findFailedJob(tenantId, jobId);
+        managementService.deleteJob(jobId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteDeadLetterJob(String tenantId, String jobId) {
+        findDeadLetterJob(tenantId, jobId);
+        managementService.deleteDeadLetterJob(jobId);
+    }
+
+    @Override
     @Transactional
     public void terminateProcessInstance(String tenantId, String instanceId, String reason) {
         ensureRunningInstance(tenantId, instanceId);
@@ -586,6 +671,49 @@ public class FlowableProcessFacade implements ProcessFacade {
                 .limit(command.pageSize())
                 .toList();
         return PageResult.of(pageItems, items.size(), command.page(), command.pageSize());
+    }
+
+    private Job findFailedJob(String tenantId, String jobId) {
+        Job job = managementService.createJobQuery()
+                .jobTenantId(tenantId)
+                .jobId(jobId)
+                .withException()
+                .singleResult();
+        if (job == null) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "失败任务不存在");
+        }
+        return job;
+    }
+
+    private Job findDeadLetterJob(String tenantId, String jobId) {
+        Job job = managementService.createDeadLetterJobQuery()
+                .jobTenantId(tenantId)
+                .jobId(jobId)
+                .singleResult();
+        if (job == null) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "死信任务不存在");
+        }
+        return job;
+    }
+
+    private OpsJobDTO toOpsJobDTO(Job job, String type, String exceptionStacktrace) {
+        return new OpsJobDTO(
+                job.getId(),
+                type,
+                job.getTenantId(),
+                job.getProcessInstanceId(),
+                job.getProcessDefinitionId(),
+                job.getExecutionId(),
+                job.getElementId(),
+                job.getElementName(),
+                job.getJobHandlerType(),
+                job.getJobHandlerConfiguration(),
+                job.getRetries(),
+                job.getExceptionMessage(),
+                exceptionStacktrace,
+                toInstant(job.getDuedate()),
+                toInstant(job.getCreateTime())
+        );
     }
 
     private Instant toInstant(java.util.Date date) {

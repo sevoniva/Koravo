@@ -2,6 +2,7 @@ import { apiData, http } from './http'
 import type {
   BpmnTaskDefinition,
   DashboardSummary,
+  OpsJobItem,
   OpsSummary,
   SystemHealth
 } from '../types/koravo'
@@ -9,6 +10,7 @@ import type {
 export type {
   BpmnTaskDefinition,
   DashboardSummary,
+  OpsJobItem,
   OpsSummary,
   SystemHealth
 } from '../types/koravo'
@@ -516,6 +518,38 @@ export function listOpsCapabilities() {
 
 export function getOpsSummary() {
   return apiData<OpsSummary>(http.get('/ops/summary'))
+}
+
+export function listFailedJobs(params?: { page?: number; pageSize?: number }) {
+  return apiData<PageResult<OpsJobItem>>(http.get('/ops/failed-jobs', { params }))
+}
+
+export function getFailedJob(jobId: string) {
+  return apiData<OpsJobItem>(http.get(`/ops/failed-jobs/${jobId}`))
+}
+
+export function retryFailedJob(jobId: string, retries = 3) {
+  return apiData(http.post(`/ops/failed-jobs/${jobId}/retry`, { retries }))
+}
+
+export function deleteFailedJob(jobId: string) {
+  return apiData(http.post(`/ops/failed-jobs/${jobId}/delete`))
+}
+
+export function listDeadLetterJobs(params?: { page?: number; pageSize?: number }) {
+  return apiData<PageResult<OpsJobItem>>(http.get('/ops/dead-letter-jobs', { params }))
+}
+
+export function getDeadLetterJob(jobId: string) {
+  return apiData<OpsJobItem>(http.get(`/ops/dead-letter-jobs/${jobId}`))
+}
+
+export function retryDeadLetterJob(jobId: string, retries = 3) {
+  return apiData(http.post(`/ops/dead-letter-jobs/${jobId}/retry`, { retries }))
+}
+
+export function deleteDeadLetterJob(jobId: string) {
+  return apiData(http.post(`/ops/dead-letter-jobs/${jobId}/delete`))
 }
 
 export function getOpsInstance(instanceId: string) {
