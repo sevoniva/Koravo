@@ -175,11 +175,34 @@ async function openModel(model: ProcessModelItem) {
 }
 
 async function currentXml() {
+  syncNewDraftProcessMetadata()
   const result = await modeler.value.saveXML({ format: true })
   return result.xml as string
 }
 
+function syncNewDraftProcessMetadata() {
+  if (selectedModel.value || !modeler.value) return
+  const modelKey = normalizeBpmnId(form.modelKey)
+  if (!modelKey) return
+  form.modelKey = modelKey
+  const rootElement = modeler.value.get('canvas').getRootElement()
+  const process = rootElement?.businessObject
+  if (!process) return
+  process.id = modelKey
+  process.name = form.modelName || modelKey
+}
+
+function normalizeBpmnId(value: string) {
+  const normalized = value.trim().replace(/[^A-Za-z0-9_]/g, '_')
+  if (!normalized) return ''
+  return /^[A-Za-z_]/.test(normalized) ? normalized : `Process_${normalized}`
+}
+
 async function saveDraft() {
+  if (!normalizeBpmnId(form.modelKey) || !form.modelName.trim()) {
+    message.warning('Model key and name are required')
+    return
+  }
   saving.value = true
   try {
     const bpmnXml = await currentXml()

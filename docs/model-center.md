@@ -55,6 +55,8 @@ startEvent -> userTask -> endEvent
 
 The default user task assignee is `${approver}`.
 
+For newly created drafts, the designer synchronizes the BPMN process `id` and `name` with the Model key and Model name fields before validation or saving. Existing models keep their stored BPMN identity unless edited directly in the canvas/XML.
+
 ## Current Limits
 
 - Visual property editing is still minimal. Advanced extension editing is done through BPMN XML or bpmn-js canvas editing.
