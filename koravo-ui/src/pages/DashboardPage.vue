@@ -7,31 +7,32 @@
       </template>
     </PageHeader>
 
-    <div class="workbench-grid">
-      <MetricCard label="当前租户" :value="summary?.tenantId || session.tenantId" description="X-Tenant-Id" />
-      <MetricCard label="当前用户" :value="summary?.userId || session.userId" description="X-User-Id" />
+    <div class="dashboard-action-row">
+      <div class="dashboard-context">
+        <strong>运行上下文</strong>
+        <span>
+          租户 {{ summary?.tenantId || session.tenantId }} · 用户 {{ summary?.userId || session.userId }} ·
+          追踪 {{ requestIdLabel(session.requestId || session.lastRequestId) || '自动生成' }}
+        </span>
+      </div>
+      <a-space wrap>
+        <a-button @click="router.push('/process-instances')"><PlayCircleOutlined />启动请假流程</a-button>
+        <a-button @click="router.push('/tasks')"><CheckCircleOutlined />我的待办</a-button>
+        <a-button @click="router.push('/connector-demo')"><ApiOutlined />HTTP 连接器</a-button>
+        <a-button @click="router.push('/ops')"><ControlOutlined />运维中心</a-button>
+      </a-space>
+    </div>
+
+    <div class="workbench-grid compact-metric-grid">
       <MetricCard label="后端健康" :value="summary?.healthStatus || '-'" :status="summary?.healthStatus" :description="summary?.version" clickable @click="router.push('/system-settings')" />
       <MetricCard label="流程模型" :value="summary?.processModelCount ?? 0" :description="`已部署 ${summary?.deployedProcessModelCount ?? 0}`" clickable @click="router.push('/process-models')" />
       <MetricCard label="运行中实例" :value="summary?.runningInstanceCount ?? 0" description="当前租户" clickable @click="router.push('/process-instances')" />
       <MetricCard label="我的待办" :value="summary?.myTodoCount ?? 0" description="当前用户" clickable @click="router.push('/tasks')" />
       <MetricCard label="今日完成" :value="summary?.todayCompletedCount ?? 0" description="已办任务" clickable @click="router.push('/tasks')" />
-      <MetricCard label="HTTP Connector" :value="`${summary?.connectorSuccessCount ?? 0} / ${summary?.connectorFailedCount ?? 0}`" description="成功 / 失败" clickable @click="router.push('/connector-demo')" />
+      <MetricCard label="HTTP 调用" :value="`${summary?.connectorSuccessCount ?? 0} / ${summary?.connectorFailedCount ?? 0}`" description="成功 / 失败" clickable @click="router.push('/connector-demo')" />
       <MetricCard label="失败任务" :value="summary?.failedJobCount ?? 0" :status="(summary?.failedJobCount ?? 0) > 0 ? 'WARN' : 'OK'" description="待处理异常" clickable @click="router.push('/ops?tab=failed')" />
       <MetricCard label="死信任务" :value="summary?.deadLetterJobCount ?? 0" :status="(summary?.deadLetterJobCount ?? 0) > 0 ? 'WARN' : 'OK'" description="需人工处理" clickable @click="router.push('/ops?tab=dead-letter')" />
-      <MetricCard label="请求追踪" :value="session.requestId || '自动生成'" description="可在顶部修改" />
-      <MetricCard label="最近响应" :value="session.lastRequestId || '-'" description="请求追踪号" />
     </div>
-
-    <DetailSection title="快捷入口">
-      <a-space wrap>
-        <a-button type="primary" :loading="initLoading" @click="initDemo"><ThunderboltOutlined />准备基础数据</a-button>
-        <a-button @click="router.push('/process-instances')"><PlayCircleOutlined />启动请假流程</a-button>
-        <a-button @click="router.push('/tasks')"><CheckCircleOutlined />我的待办</a-button>
-        <a-button @click="router.push('/process-instances')"><PartitionOutlined />流程实例</a-button>
-        <a-button @click="router.push('/connector-demo')"><ApiOutlined />HTTP 连接器</a-button>
-        <a-button @click="router.push('/ops')"><ControlOutlined />运维中心</a-button>
-      </a-space>
-    </DetailSection>
 
     <div class="two-column-grid">
       <DetailSection title="最近审计">
@@ -74,7 +75,6 @@ import {
   ApiOutlined,
   CheckCircleOutlined,
   ControlOutlined,
-  PartitionOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
   ThunderboltOutlined

@@ -2,8 +2,8 @@
   <PageContainer>
     <PageHeader title="HTTP 连接器" description="发起健康检查调用，查看流程、任务和执行日志。">
       <template #actions>
-        <a-button :loading="initLoading" @click="initConnectorDemo"><ThunderboltOutlined />准备流程</a-button>
-        <a-button type="primary" :loading="startLoading" @click="startDemo"><PlayCircleOutlined />启动流程</a-button>
+        <a-button :loading="initLoading" @click="prepareConnectorFlow"><ThunderboltOutlined />准备流程</a-button>
+        <a-button type="primary" :loading="startLoading" @click="startHealthCheck"><PlayCircleOutlined />发起健康检查</a-button>
         <a-button @click="router.push('/ops?tab=connectors')"><ApiOutlined />执行日志</a-button>
       </template>
     </PageHeader>
@@ -15,7 +15,7 @@
       description="目标为本机健康检查接口，响应会写入流程变量。"
     />
 
-    <div class="connector-result-grid panel-block">
+    <div class="connector-result-grid compact-metric-grid panel-block">
       <MetricCard label="流程状态" :value="processModelStatusText" :status="processModel?.status" :description="processModelDescription" />
       <MetricCard label="调用目标" value="GET /api/v1/health" description="本机服务" />
       <MetricCard label="最近执行" :value="latestExecutionText" :status="latestLog?.status" :description="latestExecutionDescription" />
@@ -222,7 +222,7 @@ const selectedLogSummaryDescription = computed(() => {
   return `${status}，${version}。`
 })
 
-async function initConnectorDemo() {
+async function prepareConnectorFlow() {
   initLoading.value = true
   error.value = ''
   try {
@@ -235,7 +235,7 @@ async function initConnectorDemo() {
   }
 }
 
-async function startDemo() {
+async function startHealthCheck() {
   startLoading.value = true
   error.value = ''
   try {
@@ -252,7 +252,7 @@ async function startDemo() {
     instanceId.value = instance.instanceId
     trace.value = await getProcessTrace(instance.instanceId)
     await loadLogs()
-    message.success('HTTP Connector 流程已启动')
+    message.success('HTTP 健康检查流程已启动')
   } catch (nextError: any) {
     error.value = nextError?.message || '启动失败，请检查后端服务和连接器配置'
   } finally {

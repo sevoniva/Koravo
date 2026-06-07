@@ -6,7 +6,7 @@
       </template>
     </PageHeader>
 
-    <div class="connector-result-grid panel-block">
+    <div class="connector-result-grid compact-metric-grid panel-block">
       <MetricCard label="数据源" :value="items.length" description="当前租户" />
       <MetricCard label="可用连接" :value="activeCount" status="READY" description="已启用" />
       <MetricCard label="只读连接" :value="readOnlyCount" status="OK" description="禁止写入操作" />
@@ -25,7 +25,7 @@
           </a-button>
         </a-space>
       </template>
-      <a-form layout="vertical" class="form-grid datasource-form">
+      <a-form layout="vertical" class="form-grid compact-form-surface datasource-form">
         <a-form-item label="名称"><a-input v-model:value="form.name" /></a-form-item>
         <a-form-item label="类型">
           <a-select v-model:value="form.type" @change="applyTemplate(form.type)">
