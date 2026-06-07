@@ -49,7 +49,7 @@ When completing a task, clients can submit:
 }
 ```
 
-If `formData` and `formSchemaId` are present, Koravo writes a `ko_form_snapshot` row with:
+If `formData` is present, Koravo writes a `ko_form_snapshot` row when the request includes `formSchemaId` or the task has a bound form schema:
 
 - process instance ID
 - task ID

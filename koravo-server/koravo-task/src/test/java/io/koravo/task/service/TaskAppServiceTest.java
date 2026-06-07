@@ -118,6 +118,44 @@ class TaskAppServiceTest {
     }
 
     @Test
+    void completeTaskUsesBoundFormSchemaWhenRequestOmitsFormSchemaId() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        when(processFacade.getTask("default", "admin", "task-1")).thenReturn(new TaskDTO(
+                "task-1",
+                "Approve",
+                "pi-1",
+                "pd-1",
+                "biz-1",
+                null,
+                "admin",
+                "approveTask"
+        ));
+        when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(java.util.Optional.of(
+                new FormBindingResponse("binding-1", null, "pd-1", "approveTask", "form-1", 1)
+        ));
+
+        service.completeTask(
+                "task-1",
+                new CompleteTaskRequest(
+                        Map.of("approved", true),
+                        Map.of("reason", "ok"),
+                        null,
+                        "LGTM"
+                )
+        );
+
+        verify(formSnapshotService).saveSnapshot("pi-1", "task-1", "form-1", Map.of("reason", "ok"));
+        verify(auditLogService).record(eq("TASK_COMPLETE"), eq("TASK"), eq("task-1"), eq(Map.of(
+                "taskId", "task-1",
+                "processInstanceId", "pi-1",
+                "businessKey", "biz-1",
+                "taskDefinitionKey", "approveTask",
+                "formSchemaId", "form-1"
+        )));
+    }
+
+    @Test
     void getTaskDetailReturnsBoundFormSchemaVariablesCommentsAndSnapshots() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");

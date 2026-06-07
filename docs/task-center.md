@@ -70,7 +70,7 @@ Body:
 
 Completion behavior:
 
-- saves `formData` as a form snapshot when `formSchemaId` is present
+- saves `formData` as a form snapshot when `formSchemaId` is present or the task has a bound form schema
 - writes Flowable task comments when `comment` is present
 - completes the Flowable task through `ProcessFacade`
 - writes a `TASK_COMPLETE` audit log with task ID, process instance ID, business key, task definition key, and form schema ID when available

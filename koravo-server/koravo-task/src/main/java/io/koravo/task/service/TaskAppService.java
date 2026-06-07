@@ -100,8 +100,9 @@ public class TaskAppService {
     public void completeTask(String taskId, CompleteTaskRequest request) {
         CompleteTaskRequest safeRequest = request == null ? new CompleteTaskRequest(Map.of(), null, null, null) : request;
         TaskDTO task = processFacade.getTask(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
-        if (safeRequest.formData() != null && StringUtils.hasText(safeRequest.formSchemaId())) {
-            formSnapshotService.saveSnapshot(task.processInstanceId(), taskId, safeRequest.formSchemaId(), safeRequest.formData());
+        String formSchemaId = resolveFormSchemaId(task, safeRequest);
+        if (safeRequest.formData() != null && StringUtils.hasText(formSchemaId)) {
+            formSnapshotService.saveSnapshot(task.processInstanceId(), taskId, formSchemaId, safeRequest.formData());
         }
         processFacade.completeTask(new CompleteTaskCommand(
                 TenantContextHolder.getTenantId(),
@@ -110,17 +111,26 @@ public class TaskAppService {
                 safeRequest.variables() == null ? Map.of() : safeRequest.variables(),
                 safeRequest.comment()
         ));
-        auditLogService.record("TASK_COMPLETE", "TASK", taskId, taskCompleteAuditDetail(task, safeRequest));
+        auditLogService.record("TASK_COMPLETE", "TASK", taskId, taskCompleteAuditDetail(task, formSchemaId));
     }
 
-    private Map<String, Object> taskCompleteAuditDetail(TaskDTO task, CompleteTaskRequest request) {
+    private String resolveFormSchemaId(TaskDTO task, CompleteTaskRequest request) {
+        if (StringUtils.hasText(request.formSchemaId())) {
+            return request.formSchemaId();
+        }
+        return formBindingService.findByProcessDefinitionTaskKey(task.processDefinitionId(), task.taskDefinitionKey())
+                .map(FormBindingResponse::formSchemaId)
+                .orElse(null);
+    }
+
+    private Map<String, Object> taskCompleteAuditDetail(TaskDTO task, String formSchemaId) {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("taskId", task.taskId());
         detail.put("processInstanceId", task.processInstanceId());
         detail.put("businessKey", task.businessKey());
         detail.put("taskDefinitionKey", task.taskDefinitionKey());
-        if (StringUtils.hasText(request.formSchemaId())) {
-            detail.put("formSchemaId", request.formSchemaId());
+        if (StringUtils.hasText(formSchemaId)) {
+            detail.put("formSchemaId", formSchemaId);
         }
         return detail;
     }
