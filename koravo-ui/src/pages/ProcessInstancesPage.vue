@@ -5,10 +5,23 @@
         <h1>Process Instances</h1>
         <p>Start process instances and inspect their current state.</p>
       </div>
-      <a-button :loading="listLoading" @click="loadStartedInstances"><ReloadOutlined />Reload</a-button>
+      <a-button :loading="listLoading || modelLoading" @click="load"><ReloadOutlined />Reload</a-button>
     </div>
 
     <a-form layout="vertical" class="form-grid">
+      <a-form-item label="Deployed model">
+        <a-select
+          v-model:value="selectedModelId"
+          allow-clear
+          :loading="modelLoading"
+          placeholder="Select a deployed model"
+          @change="selectModel"
+        >
+          <a-select-option v-for="model in deployedModels" :key="model.id" :value="model.id">
+            {{ model.modelName }} / {{ model.modelKey }} v{{ model.version }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
       <a-form-item label="Process definition key"><a-input v-model:value="processDefinitionKey" /></a-form-item>
       <a-form-item label="Business key"><a-input v-model:value="businessKey" /></a-form-item>
       <a-form-item label="Variables JSON" class="span-2">
@@ -49,16 +62,26 @@ import { useRouter } from 'vue-router'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
 import { PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
-import { listStartedInstances, startProcessInstance, type OpsProcessInstance, type ProcessInstance } from '../api/koravo'
+import {
+  listProcessModels,
+  listStartedInstances,
+  startProcessInstance,
+  type OpsProcessInstance,
+  type ProcessInstance,
+  type ProcessModelItem
+} from '../api/koravo'
 import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const processDefinitionKey = ref('leaveApproval')
+const selectedModelId = ref<string | undefined>()
 const businessKey = ref('LEAVE-001')
 const variablesText = ref(JSON.stringify({ applicant: 'u001', approver: 'admin', days: 2 }, null, 2))
 const instance = ref<ProcessInstance | null>(null)
 const loading = ref(false)
 const listLoading = ref(false)
+const modelLoading = ref(false)
 const startedInstances = ref<OpsProcessInstance[]>([])
+const deployedModels = ref<ProcessModelItem[]>([])
 const startedPage = ref(1)
 const startedPageSize = ref(20)
 const startedTotal = ref(0)
@@ -114,11 +137,35 @@ async function loadStartedInstances() {
   }
 }
 
+async function loadDeployedModels() {
+  modelLoading.value = true
+  try {
+    deployedModels.value = await listProcessModels('DEPLOYED')
+    if (!selectedModelId.value && deployedModels.value.length > 0) {
+      selectModel(deployedModels.value[0].id)
+    }
+  } finally {
+    modelLoading.value = false
+  }
+}
+
+async function load() {
+  await Promise.all([loadStartedInstances(), loadDeployedModels()])
+}
+
+function selectModel(modelId?: string) {
+  selectedModelId.value = modelId
+  const model = deployedModels.value.find((item) => item.id === modelId)
+  if (model?.modelKey) {
+    processDefinitionKey.value = model.modelKey
+  }
+}
+
 function handleStartedTableChange(nextPagination: TablePaginationConfig) {
   startedPage.value = nextPagination.current || 1
   startedPageSize.value = nextPagination.pageSize || 20
   loadStartedInstances()
 }
 
-onMounted(loadStartedInstances)
+onMounted(load)
 </script>
