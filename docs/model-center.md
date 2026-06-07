@@ -43,6 +43,8 @@ The model service records audit events:
 
 ## Console
 
+Use `/process-models` to list models by status, inspect metadata, deploy stored drafts, export BPMN XML, disable models, and archive models.
+
 Use `/process-designer` to create, edit, import, export, validate, save, and deploy BPMN with `bpmn-js`.
 
 The default new process is:

@@ -2,6 +2,7 @@
 @tenantId = default
 @userId = admin
 @processInstanceId = replace-with-instance-id
+@processModelId = replace-with-model-id
 @taskId = replace-with-task-id
 @datasourceId = replace-with-datasource-id
 @httpProcessInstanceId = replace-with-http-instance-id
@@ -23,6 +24,21 @@ Content-Type: application/xml
 
 < ../bpmn/leave-approval.bpmn20.xml
 --KoravoBoundary--
+
+### 2a. Query process models
+GET {{baseUrl}}/process-models?status=DEPLOYED
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 2b. Disable process model
+POST {{baseUrl}}/process-models/{{processModelId}}/disable
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 2c. Archive process model
+POST {{baseUrl}}/process-models/{{processModelId}}/archive
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
 
 ### 3. Start process instance
 POST {{baseUrl}}/process-instances/start

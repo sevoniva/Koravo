@@ -217,6 +217,10 @@ export function listProcessModels(status?: string) {
   return apiData<ProcessModelItem[]>(http.get('/process-models', { params: { status } }))
 }
 
+export function getProcessModel(id: string) {
+  return apiData<ProcessModelItem>(http.get(`/process-models/${id}`))
+}
+
 export function createProcessModel(payload: {
   modelKey: string
   modelName: string
@@ -250,6 +254,14 @@ export function validateProcessModelXml(bpmnXml: string) {
 
 export function deployProcessModelDraft(id: string) {
   return apiData<ProcessModelDeployResult>(http.post(`/process-models/${id}/deploy`))
+}
+
+export function disableProcessModel(id: string) {
+  return apiData<ProcessModelItem>(http.post(`/process-models/${id}/disable`))
+}
+
+export function archiveProcessModel(id: string) {
+  return apiData<ProcessModelItem>(http.post(`/process-models/${id}/archive`))
 }
 
 export async function exportProcessModel(id: string) {
