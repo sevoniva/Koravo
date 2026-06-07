@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for v0.1.
+Accepted for v0.1 and still active during the v0.2/v0.3 consolidation work.
 
 ## Decision
 
@@ -39,4 +39,4 @@ PostgreSQL is the first database because it is stable, open-source, and works we
 
 ## Frontend
 
-Vue 3, TypeScript, Vite, Pinia, Vue Router, Axios, and Ant Design Vue provide a practical open-source console stack. bpmn-js is included as the future modeler foundation but the v0.1 modeler UI is not implemented yet.
+Vue 3, TypeScript, Vite, Pinia, Vue Router, Axios, and Ant Design Vue provide a practical open-source console stack. bpmn-js is used by the process designer and process trace viewer, so the console can edit BPMN drafts and inspect runtime or historic process paths without exposing Flowable native services to controllers.

@@ -2,7 +2,7 @@
 
 Koravo is an open-source process and data orchestration platform based on Flowable.
 
-Koravo is not an OA approval clone and is not a thin Flowable admin console. The v0.1 foundation keeps Flowable as the process execution kernel and adds platform boundaries for process models, task center, form schema, datasource governance, connectors, audit logs, and operations.
+Koravo is not an OA approval clone and is not a thin Flowable admin console. The current foundation keeps Flowable as the process execution kernel and adds platform boundaries for process models, BPMN design, task center, form schema and bindings, datasource governance, connectors, audit logs, and operations.
 
 ## Architecture
 
@@ -40,7 +40,7 @@ Controllers never use Flowable native services directly. `ProcessFacade` is the 
 - Vue Router
 - Axios
 - Ant Design Vue
-- bpmn-js as a reserved modeler dependency
+- bpmn-js modeler/viewer for process design and tracing
 
 Spring Boot 4.x and Flowable 8.x are not used in this baseline because compatible open-source Flowable 8 Spring Boot starters were not available from Maven Central during implementation. See [ADR 0001](docs/adr/0001-tech-stack.md).
 
@@ -50,12 +50,12 @@ Spring Boot 4.x and Flowable 8.x are not used in this baseline because compatibl
 - `koravo-tenant`: `X-Tenant-Id` based tenant context with `default` fallback.
 - `koravo-security`: development authentication from `X-User-Id` with `anonymous` fallback.
 - `koravo-engine`: Flowable adapter and `ProcessFacade`.
-- `koravo-model`: platform process model metadata and BPMN deployment API.
-- `koravo-task`: current user's pending tasks and completion API.
-- `koravo-form`: form schema and snapshot table boundary.
-- `koravo-datahub`: JDBC datasource management, secret encryption, connection test.
-- `koravo-connector`: connector abstraction, HTTP connector, JDBC placeholder.
-- `koravo-ops`: process instance inspection and audit log.
+- `koravo-model`: platform process model drafts, validation, lifecycle, BPMN import/export, and Flowable deployment API.
+- `koravo-task`: pending/done/started task queries, runtime and historic task detail, completion, comments, form snapshots, and task audit views.
+- `koravo-form`: form schema, form binding, and immutable form snapshot table boundary.
+- `koravo-datahub`: JDBC datasource management, secret encryption, connection tests, test logs, update, and soft delete.
+- `koravo-connector`: connector abstraction, HTTP connector, execution logs, connector audit, JDBC placeholder.
+- `koravo-ops`: process instance inspection, trace, runtime actions, connector exception summaries, and audit log.
 - `koravo-api`: request ID filter, health API, OpenAPI, exception handling, instance APIs.
 - `koravo-bootstrap`: Spring Boot entrypoint, application config, Liquibase changelog.
 
@@ -140,12 +140,13 @@ Open:
 http://localhost:5173
 ```
 
-## Minimal Closed Loop
+## Console Demo Loop
 
 1. Start PostgreSQL, Redis, and MinIO with Docker Compose.
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
-3. Deploy `examples/bpmn/leave-approval.bpmn20.xml`.
-4. Start a process with `processDefinitionKey = leaveApproval` and variables:
+3. Start frontend and open `http://localhost:5173`.
+4. Use `Process Designer` to create or import `examples/bpmn/leave-approval.bpmn20.xml`, validate it, save the draft, and deploy it.
+5. Create a form schema in `Forms`, bind it to `approveTask` in `Form Bindings`, then start a process with `processDefinitionKey = leaveApproval` and variables:
 
 ```json
 {
@@ -155,24 +156,14 @@ http://localhost:5173
 }
 ```
 
-5. Query `GET /api/v1/tasks/my` with `X-User-Id: admin`.
-6. Complete the task with:
-
-```json
-{
-  "variables": {
-    "approved": true,
-    "comment": "approved"
-  }
-}
-```
-
-7. Inspect the process instance with `GET /api/v1/process-instances/{instanceId}`.
-8. Create and test a datasource with `/api/v1/datasources`.
+6. Open `Tasks`, enter the task detail page, fill bound form fields or raw JSON form data, and complete the task with variables and an approval comment.
+7. Open `Process Instances` or `Ops` to inspect the process trace, current/completed nodes, variables, and timeline.
+8. Open `Audit Logs` to review model, start, task, form, datasource, connector, and ops events.
+9. Create, update, test, and inspect datasource test logs in `Data Sources`.
 
 The same calls are available in [examples/http/koravo.http](examples/http/koravo.http).
 
-## API Examples
+## API Demo Loop
 
 Deploy BPMN:
 
@@ -191,6 +182,36 @@ curl -X POST http://localhost:8080/api/v1/process-instances/start \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: admin' \
   -d '{"processDefinitionKey":"leaveApproval","businessKey":"LEAVE-001","variables":{"applicant":"u001","approver":"admin","days":2}}'
+```
+
+Complete a task:
+
+```json
+{
+  "variables": {
+    "approved": true
+  },
+  "formData": {
+    "reason": "approved from Koravo demo"
+  },
+  "formSchemaId": "replace-with-form-schema-id",
+  "comment": "approved"
+}
+```
+
+Then inspect:
+
+- `GET /api/v1/tasks/my?page=1&pageSize=20`
+- `GET /api/v1/tasks/done?page=1&pageSize=20`
+- `GET /api/v1/tasks/{taskId}`
+- `GET /api/v1/process-instances/{instanceId}`
+- `GET /api/v1/ops/process-instances/{instanceId}/trace`
+- `GET /api/v1/audit-logs?page=1&pageSize=20`
+
+The HTTP connector demo uses [examples/bpmn/http-connector-demo.bpmn20.xml](examples/bpmn/http-connector-demo.bpmn20.xml). Deploy it, start `httpConnectorDemo`, and query connector logs with:
+
+```http
+GET /api/v1/connector-execution-logs?connectorType=http&page=1&pageSize=20
 ```
 
 ## Tests
@@ -216,7 +237,7 @@ The Flowable integration test class is present but disabled until a Docker-backe
 - `X-Tenant-Id` defaults to `default` in development.
 - `X-User-Id` defaults to `anonymous`; the console sends `admin`.
 - The console header lets you switch Tenant, User, and optional Request ID; values persist in browser local storage and are sent as API headers.
-- The first frontend bundle is large because Ant Design Vue and bpmn-js are present in the v0.1 foundation.
+- The first frontend bundle is large because Ant Design Vue and bpmn-js are both used by the console.
 
 ## License
 
@@ -224,9 +245,9 @@ Apache License 2.0. See [LICENSE](LICENSE).
 
 ## Roadmap
 
-- Model Center property panel and richer version comparison.
-- Task Center historic task detail, copy, transfer, and delegate features.
-- Form Center schema-driven rendering and binding management.
-- Data Hub datasource secret backends and query governance.
-- Connector Hub registry, config, and execution policies.
-- Ops Center dead-letter jobs, migrations, and audit search.
+- Model Center richer property panels and version diff/merge UI.
+- Task Center copy, transfer, delegate, and richer assignment features.
+- Form Center advanced JSON Schema widgets, nested objects, arrays, and conditional forms.
+- Data Hub external secret backends and query governance.
+- Connector Hub registry UI, config templates, retry policies, OAuth, and mTLS.
+- Ops Center dead-letter jobs, retries, migrations, and deeper operational search.
