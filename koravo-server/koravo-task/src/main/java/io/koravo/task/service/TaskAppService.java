@@ -19,6 +19,7 @@ import io.koravo.task.web.CompleteTaskRequest;
 import io.koravo.task.web.TaskDetailResponse;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.LinkedHashMap;
@@ -80,6 +81,7 @@ public class TaskAppService {
         ));
     }
 
+    @Transactional(readOnly = true)
     public TaskDetailResponse getTaskDetail(String taskId) {
         TaskDTO task = processFacade.getTaskForDetail(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
         Optional<FormBindingResponse> binding = resolveFormBinding(task);
@@ -98,6 +100,7 @@ public class TaskAppService {
         );
     }
 
+    @Transactional
     public void completeTask(String taskId, CompleteTaskRequest request) {
         CompleteTaskRequest safeRequest = request == null ? new CompleteTaskRequest(Map.of(), null, null, null) : request;
         TaskDTO task = processFacade.getTask(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);

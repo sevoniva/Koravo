@@ -24,6 +24,7 @@ import io.koravo.task.web.CompleteTaskRequest;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -54,6 +55,21 @@ class TaskAppServiceTest {
             formSchemaService,
             processModelRepository
     );
+
+    @Test
+    void taskDetailAndCompletionRunInsideTransactions() throws NoSuchMethodException {
+        Transactional detailTransaction = TaskAppService.class
+                .getMethod("getTaskDetail", String.class)
+                .getAnnotation(Transactional.class);
+        Transactional completionTransaction = TaskAppService.class
+                .getMethod("completeTask", String.class, CompleteTaskRequest.class)
+                .getAnnotation(Transactional.class);
+
+        assertThat(detailTransaction).isNotNull();
+        assertThat(detailTransaction.readOnly()).isTrue();
+        assertThat(completionTransaction).isNotNull();
+        assertThat(completionTransaction.readOnly()).isFalse();
+    }
 
     @AfterEach
     void tearDown() {

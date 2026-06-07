@@ -96,11 +96,14 @@ cp .env.example .env
 docker compose up -d postgres redis minio
 ```
 
+If Docker Hub is slow or rate-limited, edit `.env` and point `POSTGRES_IMAGE`, `REDIS_IMAGE`, or `MINIO_IMAGE` to a domestic mirror or a pre-pulled local tag.
+
 PostgreSQL defaults:
 
 - database: `koravo`
 - username: `koravo`
 - password: `koravo`
+- host port: `15432`
 
 MinIO API and console listen on `MINIO_API_PORT` and `MINIO_CONSOLE_PORT`; by default the console is available at `http://localhost:9001`.
 
@@ -108,7 +111,10 @@ MinIO API and console listen on `MINIO_API_PORT` and `MINIO_CONSOLE_PORT`; by de
 
 ```bash
 cd koravo-server
-mvn -pl koravo-bootstrap -am spring-boot:run
+mvn -pl koravo-bootstrap -am -DskipTests package
+POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=15432 \
+REDIS_HOST=127.0.0.1 REDIS_PORT=6379 \
+java -jar koravo-bootstrap/target/koravo-bootstrap-0.1.0-SNAPSHOT.jar
 ```
 
 OpenAPI UI:
