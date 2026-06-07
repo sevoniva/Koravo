@@ -33,6 +33,7 @@ Error:
 - `POST /api/v1/process-instances/start`
 - `GET /api/v1/process-instances/{instanceId}`
 - `GET /api/v1/tasks/my`
+- `GET /api/v1/tasks/{taskId}`
 - `POST /api/v1/tasks/{taskId}/complete`
 - `POST /api/v1/forms/schemas`
 - `GET /api/v1/forms/schemas/{id}`

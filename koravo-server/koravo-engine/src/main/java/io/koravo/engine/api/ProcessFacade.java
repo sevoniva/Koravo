@@ -10,7 +10,11 @@ import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.engine.dto.ProcessInstanceDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.ProcessTraceDTO;
+import io.koravo.engine.dto.TaskCommentDTO;
 import io.koravo.engine.dto.TaskDTO;
+
+import java.util.List;
+import java.util.Map;
 
 public interface ProcessFacade {
     ProcessDeploymentDTO deploy(DeployProcessCommand command);
@@ -20,6 +24,12 @@ public interface ProcessFacade {
     PageResult<TaskDTO> queryMyTasks(TaskQueryCommand command);
 
     TaskDTO getTask(String tenantId, String userId, String taskId);
+
+    Map<String, Object> getTaskVariables(String tenantId, String userId, String taskId);
+
+    Map<String, Object> getProcessVariables(String tenantId, String instanceId);
+
+    List<TaskCommentDTO> getTaskComments(String tenantId, String processInstanceId, String taskId);
 
     void completeTask(CompleteTaskCommand command);
 

@@ -17,6 +17,27 @@
       <a-descriptions-item label="Process Definition">{{ detail.task.processDefinitionId }}</a-descriptions-item>
     </a-descriptions>
 
+    <a-tabs v-if="detail" class="panel-block">
+      <a-tab-pane key="processVariables" tab="Process Variables">
+        <JsonPreview :value="detail.processVariables" />
+      </a-tab-pane>
+      <a-tab-pane key="taskVariables" tab="Task Variables">
+        <JsonPreview :value="detail.taskVariables" />
+      </a-tab-pane>
+      <a-tab-pane key="comments" tab="Comments">
+        <a-table :data-source="detail.comments" :columns="commentColumns" row-key="id" :pagination="false" size="small" />
+      </a-tab-pane>
+      <a-tab-pane key="snapshots" tab="Form Snapshots">
+        <a-table :data-source="detail.formSnapshots" :columns="snapshotColumns" row-key="id" :pagination="false" size="small">
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'dataJson'">
+              <code>{{ record.dataJson }}</code>
+            </template>
+          </template>
+        </a-table>
+      </a-tab-pane>
+    </a-tabs>
+
     <a-form layout="vertical" class="form-grid">
       <a-form-item label="Variables JSON" class="span-2">
         <a-textarea v-model:value="variablesJson" :rows="5" />
@@ -53,6 +74,19 @@ const detail = ref<TaskDetail | null>(null)
 const variablesJson = ref(JSON.stringify({ approved: true }, null, 2))
 const formDataJson = ref('{}')
 const comment = ref('approved')
+
+const commentColumns = [
+  { title: 'User', dataIndex: 'userId', key: 'userId', width: 140 },
+  { title: 'Message', dataIndex: 'message', key: 'message' },
+  { title: 'Time', dataIndex: 'time', key: 'time', width: 220 }
+]
+
+const snapshotColumns = [
+  { title: 'Task ID', dataIndex: 'taskId', key: 'taskId', width: 180 },
+  { title: 'Form Schema', dataIndex: 'formSchemaId', key: 'formSchemaId', width: 180 },
+  { title: 'Data', dataIndex: 'dataJson', key: 'dataJson' },
+  { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 }
+]
 
 async function load() {
   loading.value = true

@@ -14,6 +14,7 @@ import io.koravo.engine.dto.ProcessInstanceDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.ProcessTraceDTO;
 import io.koravo.engine.dto.ProcessTraceNodeDTO;
+import io.koravo.engine.dto.TaskCommentDTO;
 import io.koravo.engine.dto.TaskDTO;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.IdentityService;
@@ -26,6 +27,7 @@ import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
+import org.flowable.task.api.history.HistoricTaskInstance;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -134,6 +136,67 @@ public class FlowableProcessFacade implements ProcessFacade {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
         }
         return toTaskDTO(task);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTaskVariables(String tenantId, String userId, String taskId) {
+        Task task = taskService.createTaskQuery()
+                .taskId(taskId)
+                .taskTenantId(tenantId)
+                .taskAssignee(userId)
+                .singleResult();
+        if (task == null) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
+        }
+        return taskService.getVariables(taskId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getProcessVariables(String tenantId, String instanceId) {
+        ProcessInstance runtimeInstance = runtimeService.createProcessInstanceQuery()
+                .processInstanceId(instanceId)
+                .processInstanceTenantId(tenantId)
+                .singleResult();
+        if (runtimeInstance != null) {
+            return runtimeService.getVariables(instanceId);
+        }
+        HistoricProcessInstance historic = historyService.createHistoricProcessInstanceQuery()
+                .processInstanceId(instanceId)
+                .processInstanceTenantId(tenantId)
+                .singleResult();
+        if (historic == null) {
+            throw new BusinessException(ErrorCode.PROCESS_INSTANCE_NOT_FOUND, "Process instance not found");
+        }
+        Map<String, Object> variables = new HashMap<>();
+        historyService.createHistoricVariableInstanceQuery()
+                .processInstanceId(instanceId)
+                .list()
+                .forEach(variable -> variables.put(variable.getVariableName(), variable.getValue()));
+        return variables;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TaskCommentDTO> getTaskComments(String tenantId, String processInstanceId, String taskId) {
+        HistoricTaskInstance task = historyService.createHistoricTaskInstanceQuery()
+                .taskId(taskId)
+                .taskTenantId(tenantId)
+                .processInstanceId(processInstanceId)
+                .singleResult();
+        if (task == null) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found");
+        }
+        return taskService.getTaskComments(taskId)
+                .stream()
+                .map(comment -> new TaskCommentDTO(
+                        comment.getId(),
+                        comment.getUserId(),
+                        comment.getFullMessage(),
+                        toInstant(comment.getTime())
+                ))
+                .toList();
     }
 
     @Override

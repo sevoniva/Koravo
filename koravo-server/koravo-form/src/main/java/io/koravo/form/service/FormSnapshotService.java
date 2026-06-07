@@ -6,11 +6,13 @@ import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
 import io.koravo.form.domain.KoFormSnapshot;
 import io.koravo.form.repo.FormSnapshotRepository;
+import io.koravo.form.web.FormSnapshotResponse;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -34,6 +36,28 @@ public class FormSnapshotService {
         snapshot.setFormSchemaId(formSchemaId);
         snapshot.setDataJson(toJson(formData == null ? Map.of() : formData));
         repository.save(snapshot);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FormSnapshotResponse> listByProcessInstance(String processInstanceId) {
+        return repository.findByTenantIdAndProcessInstanceIdOrderByCreatedAtAsc(
+                        TenantContextHolder.getTenantId(),
+                        processInstanceId
+                )
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private FormSnapshotResponse toResponse(KoFormSnapshot snapshot) {
+        return new FormSnapshotResponse(
+                snapshot.getId(),
+                snapshot.getProcessInstanceId(),
+                snapshot.getTaskId(),
+                snapshot.getFormSchemaId(),
+                snapshot.getDataJson(),
+                snapshot.getCreatedAt()
+        );
     }
 
     private String toJson(Map<String, Object> data) {

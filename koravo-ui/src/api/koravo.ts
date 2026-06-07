@@ -138,10 +138,30 @@ export interface FormBindingItem {
   formSchemaVersion: number
 }
 
+export interface TaskCommentItem {
+  id: string
+  userId?: string
+  message?: string
+  time?: string
+}
+
+export interface FormSnapshotItem {
+  id: string
+  processInstanceId: string
+  taskId?: string
+  formSchemaId: string
+  dataJson: string
+  createdAt?: string
+}
+
 export interface TaskDetail {
   task: TaskItem
   formBinding?: FormBindingItem
   formSchema?: FormSchemaItem
+  processVariables: JsonRecord
+  taskVariables: JsonRecord
+  comments: TaskCommentItem[]
+  formSnapshots: FormSnapshotItem[]
 }
 
 export interface AuditLogItem {

@@ -61,7 +61,15 @@ public class TaskAppService {
         FormSchemaResponse schema = binding
                 .map(value -> formSchemaService.get(value.formSchemaId()))
                 .orElse(null);
-        return new TaskDetailResponse(task, binding.orElse(null), schema);
+        return new TaskDetailResponse(
+                task,
+                binding.orElse(null),
+                schema,
+                processFacade.getProcessVariables(TenantContextHolder.getTenantId(), task.processInstanceId()),
+                processFacade.getTaskVariables(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId),
+                processFacade.getTaskComments(TenantContextHolder.getTenantId(), task.processInstanceId(), taskId),
+                formSnapshotService.listByProcessInstance(task.processInstanceId())
+        );
     }
 
     public void completeTask(String taskId, CompleteTaskRequest request) {

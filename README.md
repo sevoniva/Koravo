@@ -66,6 +66,7 @@ Spring Boot 4.x and Flowable 8.x are not used in this baseline because compatibl
 - [Deployment guide](docs/deployment-guide.md)
 - [Development guide](docs/development-guide.md)
 - [Ops and audit](docs/ops-and-audit.md)
+- [Task center](docs/task-center.md)
 - [Connector design](docs/connector-design.md)
 
 ## Package Sources
