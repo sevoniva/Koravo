@@ -37,7 +37,18 @@
           <a-descriptions-item label="表单"><CopyableText :value="demoStatus?.formSchemaId" /></a-descriptions-item>
           <a-descriptions-item label="绑定"><CopyableText :value="demoStatus?.formBindingId" /></a-descriptions-item>
         </a-descriptions>
-        <JsonPreview :value="demoStatus?.defaultStartVariables || defaultVariables" />
+        <DetailSection title="请假申请摘要">
+          <a-descriptions bordered :column="1" size="small">
+            <a-descriptions-item v-for="item in defaultVariableSummaryItems" :key="item.key" :label="item.label">
+              {{ item.value }}
+            </a-descriptions-item>
+          </a-descriptions>
+        </DetailSection>
+        <a-collapse class="panel-block">
+          <a-collapse-panel key="variables" header="高级详情">
+            <JsonPreview :value="defaultStartVariables" />
+          </a-collapse-panel>
+        </a-collapse>
       </DetailSection>
     </div>
   </PageContainer>
@@ -74,6 +85,10 @@ const defaultVariables: JsonRecord = {
   reason: '家庭事务',
   attachmentNote: ''
 }
+
+const defaultStartVariables = computed(() => demoStatus.value?.defaultStartVariables || defaultVariables)
+
+const defaultVariableSummaryItems = computed(() => variableSummaryItems(defaultStartVariables.value))
 
 const statusDescription = computed(() => {
   if (!demoStatus.value) return '请确认后端服务已启动。'
@@ -189,6 +204,35 @@ async function startLeaveProcess() {
   } finally {
     startLoading.value = false
   }
+}
+
+function variableSummaryItems(value: JsonRecord) {
+  return Object.entries(value)
+    .filter(([, item]) => item !== undefined && item !== null && item !== '')
+    .map(([key, item]) => ({
+      key,
+      label: fieldLabel(key),
+      value: formatSummaryValue(item)
+    }))
+}
+
+function fieldLabel(key: string) {
+  const mapping: Record<string, string> = {
+    applicant: '申请人',
+    approver: '审批人',
+    leaveType: '请假类型',
+    startDate: '开始日期',
+    endDate: '结束日期',
+    days: '请假天数',
+    reason: '请假原因',
+    attachmentNote: '附件说明'
+  }
+  return mapping[key] || key
+}
+
+function formatSummaryValue(value: unknown) {
+  if (typeof value === 'boolean') return value ? '是' : '否'
+  return String(value)
 }
 
 onMounted(loadStatus)
