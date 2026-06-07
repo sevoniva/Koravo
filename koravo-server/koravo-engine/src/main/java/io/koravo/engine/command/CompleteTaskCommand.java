@@ -6,6 +6,7 @@ public record CompleteTaskCommand(
         String tenantId,
         String userId,
         String taskId,
-        Map<String, Object> variables
+        Map<String, Object> variables,
+        String comment
 ) {
 }

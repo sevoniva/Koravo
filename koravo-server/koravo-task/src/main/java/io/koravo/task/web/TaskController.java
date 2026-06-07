@@ -31,7 +31,7 @@ public class TaskController {
 
     @PostMapping("/api/v1/tasks/{taskId}/complete")
     public ApiResponse<Map<String, String>> complete(@PathVariable String taskId, @RequestBody CompleteTaskRequest request) {
-        taskAppService.completeTask(taskId, request == null ? Map.of() : request.variables());
+        taskAppService.completeTask(taskId, request);
         return ApiResponse.success(Map.of("taskId", taskId, "status", "COMPLETED"));
     }
 }

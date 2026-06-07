@@ -21,4 +21,36 @@ public class KoFormSnapshot extends BaseEntity {
     @Lob
     @Column(name = "data_json", nullable = false)
     private String dataJson;
+
+    public String getProcessInstanceId() {
+        return processInstanceId;
+    }
+
+    public void setProcessInstanceId(String processInstanceId) {
+        this.processInstanceId = processInstanceId;
+    }
+
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
+
+    public String getFormSchemaId() {
+        return formSchemaId;
+    }
+
+    public void setFormSchemaId(String formSchemaId) {
+        this.formSchemaId = formSchemaId;
+    }
+
+    public String getDataJson() {
+        return dataJson;
+    }
+
+    public void setDataJson(String dataJson) {
+        this.dataJson = dataJson;
+    }
 }

@@ -5,10 +5,13 @@ import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.CompleteTaskCommand;
 import io.koravo.engine.command.TaskQueryCommand;
 import io.koravo.engine.dto.TaskDTO;
+import io.koravo.form.service.FormSnapshotService;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
+import io.koravo.task.web.CompleteTaskRequest;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 
@@ -16,10 +19,16 @@ import java.util.Map;
 public class TaskAppService {
     private final ProcessFacade processFacade;
     private final AuditLogService auditLogService;
+    private final FormSnapshotService formSnapshotService;
 
-    public TaskAppService(ProcessFacade processFacade, AuditLogService auditLogService) {
+    public TaskAppService(
+            ProcessFacade processFacade,
+            AuditLogService auditLogService,
+            FormSnapshotService formSnapshotService
+    ) {
         this.processFacade = processFacade;
         this.auditLogService = auditLogService;
+        this.formSnapshotService = formSnapshotService;
     }
 
     public PageResult<TaskDTO> queryMyTasks(int page, int pageSize) {
@@ -31,12 +40,18 @@ public class TaskAppService {
         ));
     }
 
-    public void completeTask(String taskId, Map<String, Object> variables) {
+    public void completeTask(String taskId, CompleteTaskRequest request) {
+        CompleteTaskRequest safeRequest = request == null ? new CompleteTaskRequest(Map.of(), null, null, null) : request;
+        TaskDTO task = processFacade.getTask(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
+        if (safeRequest.formData() != null && StringUtils.hasText(safeRequest.formSchemaId())) {
+            formSnapshotService.saveSnapshot(task.processInstanceId(), taskId, safeRequest.formSchemaId(), safeRequest.formData());
+        }
         processFacade.completeTask(new CompleteTaskCommand(
                 TenantContextHolder.getTenantId(),
                 UserContextHolder.getUserId(),
                 taskId,
-                variables
+                safeRequest.variables() == null ? Map.of() : safeRequest.variables(),
+                safeRequest.comment()
         ));
         auditLogService.record("TASK_COMPLETE", "TASK", taskId, Map.of("taskId", taskId));
     }

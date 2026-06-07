@@ -18,6 +18,8 @@ public interface ProcessFacade {
 
     PageResult<TaskDTO> queryMyTasks(TaskQueryCommand command);
 
+    TaskDTO getTask(String tenantId, String userId, String taskId);
+
     void completeTask(CompleteTaskCommand command);
 
     ProcessInstanceDetailDTO getInstance(String tenantId, String instanceId);

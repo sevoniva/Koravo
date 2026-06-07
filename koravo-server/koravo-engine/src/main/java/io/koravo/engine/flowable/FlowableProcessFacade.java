@@ -117,6 +117,20 @@ public class FlowableProcessFacade implements ProcessFacade {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public TaskDTO getTask(String tenantId, String userId, String taskId) {
+        Task task = taskService.createTaskQuery()
+                .taskId(taskId)
+                .taskTenantId(tenantId)
+                .taskAssignee(userId)
+                .singleResult();
+        if (task == null) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
+        }
+        return toTaskDTO(task);
+    }
+
+    @Override
     @Transactional
     public void completeTask(CompleteTaskCommand command) {
         Task task = taskService.createTaskQuery()
@@ -129,6 +143,9 @@ public class FlowableProcessFacade implements ProcessFacade {
         }
         identityService.setAuthenticatedUserId(command.userId());
         try {
+            if (command.comment() != null && !command.comment().isBlank()) {
+                taskService.addComment(command.taskId(), task.getProcessInstanceId(), command.comment());
+            }
             taskService.complete(command.taskId(), command.variables() == null ? Map.of() : command.variables());
         } finally {
             identityService.setAuthenticatedUserId(null);
