@@ -24,10 +24,10 @@
           </a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label="资源 ID">
+      <a-form-item label="对象">
         <a-input v-model:value="filters.resourceId" allow-clear />
       </a-form-item>
-      <a-form-item label="请求 ID">
+      <a-form-item label="请求">
         <a-input v-model:value="filters.requestId" allow-clear />
       </a-form-item>
       <a-form-item label="开始时间">
@@ -120,8 +120,12 @@
         <a-descriptions-item label="用户">{{ selectedAudit.userId }}</a-descriptions-item>
         <a-descriptions-item label="动作">{{ actionLabel(selectedAudit.action) }}</a-descriptions-item>
         <a-descriptions-item label="资源">{{ resourceLabel(selectedAudit.resourceType) }}</a-descriptions-item>
-        <a-descriptions-item label="资源 ID"><CopyableText :value="selectedAudit.resourceId" /></a-descriptions-item>
-        <a-descriptions-item label="请求 ID"><CopyableText :value="selectedAudit.requestId" /></a-descriptions-item>
+        <a-descriptions-item label="对象">
+          <CopyableText :value="selectedAudit.resourceId" :display-value="resourceIdLabel(selectedAudit.resourceId)" />
+        </a-descriptions-item>
+        <a-descriptions-item label="请求">
+          <CopyableText :value="selectedAudit.requestId" :display-value="shortTraceLabel(selectedAudit.requestId)" />
+        </a-descriptions-item>
         <a-descriptions-item label="客户端 IP">{{ selectedAudit.clientIp || '-' }}</a-descriptions-item>
         <a-descriptions-item label="租户">{{ selectedAudit.tenantId }}</a-descriptions-item>
       </a-descriptions>
@@ -150,6 +154,7 @@ import JsonPreview from '../components/JsonPreview.vue'
 import { CopyableText, DetailSection, EmptyState, PageContainer, PageHeader, Toolbar } from '../components/ui'
 import { listAuditLogs, type AuditLogItem } from '../api/koravo'
 import { formatDateTime, maskSecret, parseJsonSafe } from '../utils/format'
+import { processDisplayName, shortTraceLabel, taskDefinitionLabel } from '../utils/display'
 
 const loading = ref(false)
 const items = ref<AuditLogItem[]>([])
@@ -184,7 +189,7 @@ const actionOptions = [
   { value: 'CONNECTOR_EXECUTE', label: '执行连接器' },
   { value: 'PROCESS_MODEL_DEPLOY', label: '部署模型' },
   { value: 'PROCESS_MODEL_IMPORT', label: '导入模型' },
-  { value: 'DEMO_INIT', label: '初始化演示' },
+  { value: 'DEMO_INIT', label: '准备基础数据' },
   { value: 'DATASOURCE_CREATE', label: '创建数据源' },
   { value: 'DATASOURCE_TEST', label: '测试数据源' },
   { value: 'DATASOURCE_DELETE', label: '删除数据源' },
@@ -201,7 +206,7 @@ const resourceOptions = [
   { value: 'PROCESS_MODEL', label: '流程模型' },
   { value: 'CONNECTOR_EXECUTION', label: '连接器日志' },
   { value: 'DATASOURCE', label: '数据源' },
-  { value: 'DEMO', label: '演示数据' },
+  { value: 'DEMO', label: '基础数据' },
   { value: 'FORM_SCHEMA', label: '表单' },
   { value: 'FORM_BINDING', label: '表单绑定' }
 ]
@@ -305,7 +310,7 @@ function actionLabel(action?: string) {
     CONNECTOR_EXECUTE: '执行连接器',
     PROCESS_MODEL_DEPLOY: '部署模型',
     PROCESS_MODEL_IMPORT: '导入模型',
-    DEMO_INIT: '初始化演示',
+    DEMO_INIT: '准备基础数据',
     DATASOURCE_CREATE: '创建数据源',
     DATASOURCE_TEST: '测试数据源',
     DATASOURCE_DELETE: '删除数据源',
@@ -325,7 +330,7 @@ function resourceLabel(resourceType?: string) {
     PROCESS_MODEL: '流程模型',
     CONNECTOR_EXECUTION: '连接器日志',
     DATASOURCE: '数据源',
-    DEMO: '演示数据',
+    DEMO: '基础数据',
     FORM_SCHEMA: '表单',
     FORM_BINDING: '表单绑定'
   }
@@ -335,14 +340,14 @@ function resourceLabel(resourceType?: string) {
 function resourceIdLabel(resourceId?: string) {
   if (!resourceId) return '-'
   const mapping: Record<string, string> = {
-    'leave-approval': '请假审批演示'
+    'leave-approval': '请假审批'
   }
-  return mapping[resourceId] || resourceId
+  return mapping[resourceId] || shortTraceLabel(resourceId)
 }
 
 function emptySummary(action?: string) {
   const mapping: Record<string, string> = {
-    DEMO_INIT: '演示数据已就绪',
+    DEMO_INIT: '基础数据已就绪',
     FORM_BINDING_CREATE: '绑定已创建',
     FORM_BINDING_UPDATE: '绑定已更新',
     FORM_BINDING_DELETE: '绑定已删除'
@@ -354,12 +359,12 @@ function detailKeyLabel(key: string) {
   const mapping: Record<string, string> = {
     status: '状态',
     businessKey: '业务编号',
-    processDefinitionId: '流程定义',
-    processDefinitionKey: '流程 Key',
+    processDefinitionId: '流程',
+    processDefinitionKey: '流程',
     statusCode: '状态码',
     connectorType: '连接器',
     elapsedMillis: '耗时',
-    requestId: '请求 ID',
+    requestId: '请求',
     taskId: '任务',
     processInstanceId: '流程实例',
     taskDefinitionKey: '任务节点',
@@ -370,8 +375,8 @@ function detailKeyLabel(key: string) {
     connected: '连接',
     name: '名称',
     deploymentId: '部署',
-    modelKey: '模型 Key',
-    formKey: '表单 Key',
+    modelKey: '模型',
+    formKey: '表单',
     formName: '表单名称',
     version: '版本'
   }
@@ -396,12 +401,15 @@ function detailValueLabel(value: string) {
     DISABLED: '已禁用',
     ARCHIVED: '已归档',
     approveTask: '审批请假',
+    reviewTask: '确认调用结果',
     leaveApproval: '请假审批',
-    httpConnectorDemo: 'HTTP Connector 示例',
+    httpConnectorDemo: 'HTTP 健康检查',
+    http: 'HTTP 调用',
+    'leave-form': '请假申请表',
     true: '是',
     false: '否'
   }
-  return mapping[value] || value
+  return mapping[value] || processDisplayName(value, taskDefinitionLabel(value))
 }
 
 onMounted(load)

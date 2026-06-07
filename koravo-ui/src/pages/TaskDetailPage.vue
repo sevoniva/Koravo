@@ -13,15 +13,19 @@
 
     <a-descriptions v-if="detail" bordered :column="2" class="panel-block">
       <a-descriptions-item label="任务名称">{{ detail.task.name }}</a-descriptions-item>
-      <a-descriptions-item label="任务节点">{{ detail.task.taskDefinitionKey }}</a-descriptions-item>
+      <a-descriptions-item label="任务节点">{{ taskLabel(detail.task.taskDefinitionKey) }}</a-descriptions-item>
       <a-descriptions-item label="状态"><StatusTag :status="detail.task.status" /></a-descriptions-item>
       <a-descriptions-item label="业务编号">{{ detail.task.businessKey }}</a-descriptions-item>
       <a-descriptions-item label="处理人">{{ detail.task.assignee }}</a-descriptions-item>
       <a-descriptions-item label="创建时间">{{ formatDateTime(detail.task.createTime) }}</a-descriptions-item>
       <a-descriptions-item label="流程实例">
-        <a-button type="link" class="inline-link-button" @click="openProcessTrace">{{ detail.task.processInstanceId }}</a-button>
+        <a-button type="link" class="inline-link-button" @click="openProcessTrace">
+          {{ shortTraceLabel(detail.task.processInstanceId) }}
+        </a-button>
       </a-descriptions-item>
-      <a-descriptions-item label="流程定义">{{ detail.task.processDefinitionId }}</a-descriptions-item>
+      <a-descriptions-item label="流程">
+        <CopyableText :value="detail.task.processDefinitionId" :display-value="processDefinitionLabel(detail.task.processDefinitionId)" />
+      </a-descriptions-item>
       <a-descriptions-item label="表单信息" :span="2">
         {{ detail.formSchema ? `${detail.formSchema.formName} v${detail.formSchema.version}` : '未绑定表单' }}
       </a-descriptions-item>
@@ -44,7 +48,7 @@
         <a-form-item v-if="detail.formSchema" label="绑定表单" class="span-2">
           <a-alert
             :message="`${detail.formSchema.formName} v${detail.formSchema.version}`"
-            :description="`表单 Key：${detail.formSchema.formKey}`"
+            description="按当前表单办理，提交后写入任务记录。"
             type="info"
             show-icon
           />
@@ -110,7 +114,13 @@
             <EmptyState description="暂无表单快照" />
           </template>
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'dataJson'">
+            <template v-if="column.key === 'taskId'">
+              <CopyableText :value="record.taskId" :display-value="shortTraceLabel(record.taskId)" />
+            </template>
+            <template v-else-if="column.key === 'formSchemaId'">
+              <CopyableText :value="record.formSchemaId" :display-value="shortTraceLabel(record.formSchemaId)" />
+            </template>
+            <template v-else-if="column.key === 'dataJson'">
               <span class="task-summary-text">{{ snapshotSummary(record.dataJson) }}</span>
             </template>
             <template v-else-if="column.key === 'createdAt'">
@@ -131,7 +141,10 @@
             <template v-if="column.key === 'actionLabel'">
               {{ actionLabel(record.action) }}
             </template>
-            <template v-if="column.key === 'detailJson'">
+            <template v-else-if="column.key === 'requestId'">
+              <CopyableText :value="record.requestId" :display-value="shortTraceLabel(record.requestId)" />
+            </template>
+            <template v-else-if="column.key === 'detailJson'">
               <span class="task-summary-text">{{ auditSummary(record.detailJson, record.action) }}</span>
             </template>
             <template v-else-if="column.key === 'createdAt'">
@@ -160,8 +173,12 @@
 
     <a-modal v-model:open="snapshotModalOpen" title="表单快照" :footer="null" width="840px">
       <a-descriptions v-if="selectedSnapshot" bordered :column="2" size="small" class="panel-block">
-        <a-descriptions-item label="任务 ID">{{ selectedSnapshot.taskId }}</a-descriptions-item>
-        <a-descriptions-item label="表单">{{ selectedSnapshot.formSchemaId }}</a-descriptions-item>
+        <a-descriptions-item label="任务">
+          <CopyableText :value="selectedSnapshot.taskId" :display-value="shortTraceLabel(selectedSnapshot.taskId)" />
+        </a-descriptions-item>
+        <a-descriptions-item label="表单">
+          <CopyableText :value="selectedSnapshot.formSchemaId" :display-value="shortTraceLabel(selectedSnapshot.formSchemaId)" />
+        </a-descriptions-item>
         <a-descriptions-item label="版本">{{ selectedSnapshot.formSchemaVersion }}</a-descriptions-item>
         <a-descriptions-item label="创建时间">{{ formatDateTime(selectedSnapshot.createdAt) }}</a-descriptions-item>
       </a-descriptions>
@@ -196,9 +213,10 @@ import { message } from 'ant-design-vue'
 import { CheckCircleOutlined, DeploymentUnitOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
 import SchemaForm from '../components/SchemaForm.vue'
-import { DetailSection, EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
+import { CopyableText, DetailSection, EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
 import { completeTask, getTaskDetail, type FormSnapshotItem, type JsonRecord, type TaskDetail } from '../api/koravo'
 import { formatDateTime, maskSecret, parseJsonSafe } from '../utils/format'
+import { processDefinitionLabel, shortTraceLabel, taskDefinitionLabel } from '../utils/display'
 import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 type SchemaField = {
@@ -233,7 +251,7 @@ const commentColumns = [
 ]
 
 const snapshotColumns = [
-  { title: '任务 ID', dataIndex: 'taskId', key: 'taskId', width: 180 },
+  { title: '任务', dataIndex: 'taskId', key: 'taskId', width: 150 },
   { title: '表单', dataIndex: 'formSchemaId', key: 'formSchemaId', width: 180 },
   { title: '版本', dataIndex: 'formSchemaVersion', key: 'formSchemaVersion', width: 90 },
   { title: '摘要', dataIndex: 'dataJson', key: 'dataJson' },
@@ -244,7 +262,7 @@ const snapshotColumns = [
 const auditColumns = [
   { title: '动作', key: 'actionLabel', width: 190 },
   { title: '用户', dataIndex: 'userId', key: 'userId', width: 140 },
-  { title: '请求 ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
+  { title: '请求', dataIndex: 'requestId', key: 'requestId', width: 150 },
   { title: '摘要', dataIndex: 'detailJson', key: 'detailJson' },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 220 }
 ]
@@ -364,6 +382,10 @@ function actionLabel(action?: string) {
   return mapping[action || ''] || action || '无补充信息'
 }
 
+function taskLabel(key?: string) {
+  return taskDefinitionLabel(key)
+}
+
 function fieldLabel(key: string) {
   const mapping: Record<string, string> = {
     applicant: '申请人',
@@ -389,7 +411,7 @@ function fieldLabel(key: string) {
 function formatSummaryValue(value: unknown) {
   if (typeof value === 'boolean') return value ? '是' : '否'
   if (value === undefined || value === null || value === '') return '-'
-  const text = String(value)
+  const text = taskDefinitionLabel(String(value))
   return text.length > 48 ? `${text.slice(0, 48)}...` : text
 }
 
