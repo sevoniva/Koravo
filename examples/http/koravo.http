@@ -232,3 +232,18 @@ Content-Type: application/json
 GET {{baseUrl}}/ops/process-instances/{{httpProcessInstanceId}}/trace
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
+
+### 22. Query HTTP connector execution logs
+GET {{baseUrl}}/connector-execution-logs?connectorType=http&page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 23. Query HTTP connector exception summary
+GET {{baseUrl}}/connector-execution-logs/summary?connectorType=http
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 24. Query HTTP connector audit logs
+GET {{baseUrl}}/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}

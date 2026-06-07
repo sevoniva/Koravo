@@ -5,16 +5,21 @@ import io.koravo.connector.core.ConnectorRequest;
 import io.koravo.connector.core.ConnectorResponse;
 import io.koravo.connector.domain.KoConnectorExecutionLog;
 import io.koravo.connector.repo.ConnectorExecutionLogRepository;
+import io.koravo.ops.audit.AuditLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Map;
+
 @Service
 public class ConnectorExecutionLogService {
     private final ConnectorExecutionLogRepository repository;
+    private final AuditLogService auditLogService;
 
-    public ConnectorExecutionLogService(ConnectorExecutionLogRepository repository) {
+    public ConnectorExecutionLogService(ConnectorExecutionLogRepository repository, AuditLogService auditLogService) {
         this.repository = repository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -29,7 +34,9 @@ public class ConnectorExecutionLogService {
         log.setStatus("SUCCESS");
         log.setStatusCode(response.statusCode());
         log.setResponseSummary(redact("statusCode=" + response.statusCode() + ", body=" + response.body()));
-        return repository.save(log);
+        KoConnectorExecutionLog saved = repository.save(log);
+        recordAudit(saved);
+        return saved;
     }
 
     @Transactional
@@ -43,7 +50,19 @@ public class ConnectorExecutionLogService {
         KoConnectorExecutionLog log = base(connectorType, context, request, elapsedMillis);
         log.setStatus("FAILED");
         log.setErrorMessage(redact(error.getMessage()));
-        return repository.save(log);
+        KoConnectorExecutionLog saved = repository.save(log);
+        recordAudit(saved);
+        return saved;
+    }
+
+    private void recordAudit(KoConnectorExecutionLog log) {
+        auditLogService.record("CONNECTOR_EXECUTE", "CONNECTOR_EXECUTION", log.getId(), Map.of(
+                "connectorType", log.getConnectorType(),
+                "status", log.getStatus(),
+                "statusCode", log.getStatusCode() == null ? "" : log.getStatusCode(),
+                "requestId", log.getRequestId() == null ? "" : log.getRequestId(),
+                "elapsedMillis", log.getElapsedMillis()
+        ));
     }
 
     private KoConnectorExecutionLog base(

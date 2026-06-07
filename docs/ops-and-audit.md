@@ -25,6 +25,7 @@ Ops also exposes connector exception summaries:
 - `GET /api/v1/connector-execution-logs/summary?connectorType=http`
 
 The summary returns total, success, failed, and recent failed connector executions for the current tenant.
+Each connector execution also writes a `CONNECTOR_EXECUTE` audit record with a minimal, redacted detail payload.
 
 Terminate accepts an optional JSON body:
 
@@ -43,11 +44,18 @@ Ops actions write audit records:
 - `PROCESS_INSTANCE_SUSPEND`
 - `PROCESS_INSTANCE_ACTIVATE`
 - `PROCESS_INSTANCE_TERMINATE`
+- `CONNECTOR_EXECUTE`
 
 Query audit logs with:
 
 ```http
 GET /api/v1/audit-logs?action=PROCESS_INSTANCE_SUSPEND&resourceType=PROCESS_INSTANCE&page=1&pageSize=20
+```
+
+Connector audit events can be queried with:
+
+```http
+GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
 ```
 
 Time range filters use ISO-8601 instants:

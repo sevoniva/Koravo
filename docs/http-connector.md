@@ -47,10 +47,24 @@ Every delegate execution writes `ko_connector_execution_log` with:
 
 When a process is started through `/api/v1/process-instances/start`, Koravo stores the current request ID as a lightweight process variable. `KoravoConnectorDelegate` uses it in connector execution logs so connector calls can be correlated with the original API request.
 
+Each connector call also writes a platform audit event:
+
+- action: `CONNECTOR_EXECUTE`
+- resource type: `CONNECTOR_EXECUTION`
+- resource ID: connector execution log ID
+
+Audit details intentionally keep only connector type, status, status code, request ID, and elapsed time. URL, headers, request body, response body, and error payloads stay out of audit records to reduce secret leakage risk.
+
 Query logs with:
 
 ```http
 GET /api/v1/connector-execution-logs?connectorType=http&page=1&pageSize=30
+```
+
+Query the corresponding audit events with:
+
+```http
+GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
 ```
 
 ## URL Access Policy
