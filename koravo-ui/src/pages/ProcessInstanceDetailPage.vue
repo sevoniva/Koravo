@@ -24,7 +24,7 @@
       <a-card title="当前任务"><strong>{{ traceDetail.currentTasks.length }}</strong><span>{{ currentTaskText }}</span></a-card>
       <a-card title="已完成节点"><strong>{{ completedNodeCount }}</strong><span>历史活动完成数</span></a-card>
       <a-card title="当前节点"><strong>{{ traceDetail.currentActivityIds.length }}</strong><span>{{ currentNodeText }}</span></a-card>
-      <a-card title="变量摘要"><strong>{{ Object.keys(traceDetail.variables || {}).length }}</strong><span>流程变量数量</span></a-card>
+      <a-card title="变量摘要"><strong>{{ variableSummaryItems.length }}</strong><span>{{ variableSummaryText }}</span></a-card>
     </div>
 
     <div v-if="traceDetail" class="trace-viewer-panel panel-block">
@@ -51,6 +51,9 @@
             <template v-else-if="column.key === 'createTime'">
               {{ formatDateTime(record.createTime) }}
             </template>
+            <template v-else-if="column.key === 'taskDefinitionKey'">
+              {{ detailValueLabel(record.taskDefinitionKey) }}
+            </template>
             <template v-else-if="column.key === 'action'">
               <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">详情</a-button>
             </template>
@@ -76,7 +79,12 @@
         </a-table>
       </a-tab-pane>
       <a-tab-pane key="variables" tab="变量摘要">
-        <JsonPreview :value="maskedVariables" />
+        <EmptyState v-if="!variableSummaryItems.length" description="暂无流程变量" />
+        <a-descriptions v-else bordered :column="2" size="small">
+          <a-descriptions-item v-for="item in variableSummaryItems" :key="item.key" :label="item.label">
+            {{ item.value }}
+          </a-descriptions-item>
+        </a-descriptions>
       </a-tab-pane>
       <a-tab-pane key="auditLogs" tab="审计日志">
         <a-table :data-source="instance?.auditLogs || []" :columns="auditColumns" row-key="id" :pagination="false" size="small">
@@ -84,8 +92,11 @@
             <EmptyState description="暂无审计日志" />
           </template>
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'detailJson'">
-              <code>{{ maskedAuditDetailText(record.detailJson) }}</code>
+            <template v-if="column.key === 'auditAction'">
+              {{ actionLabel(record.action) }}
+            </template>
+            <template v-else-if="column.key === 'summary'">
+              <span class="audit-summary">{{ auditSummary(record.detailJson, record.action) }}</span>
             </template>
             <template v-else-if="column.key === 'createdAt'">
               {{ formatDateTime(record.createdAt) }}
@@ -99,8 +110,15 @@
     </a-tabs>
 
     <a-collapse v-if="traceDetail" class="panel-block">
-      <a-collapse-panel key="detail" header="详情数据">
-        <JsonPreview :value="{ instance: maskedInstanceDetail, trace: maskedTraceDetail }" />
+      <a-collapse-panel key="detail" header="高级详情">
+        <a-tabs>
+          <a-tab-pane key="variables" tab="流程变量">
+            <JsonPreview :value="maskedVariables" />
+          </a-tab-pane>
+          <a-tab-pane key="detail" tab="实例数据">
+            <JsonPreview :value="{ instance: maskedInstanceDetail, trace: maskedTraceDetail }" />
+          </a-tab-pane>
+        </a-tabs>
       </a-collapse-panel>
     </a-collapse>
 
@@ -108,8 +126,8 @@
       <a-descriptions v-if="selectedAuditLog" bordered :column="2" size="small" class="panel-block">
         <a-descriptions-item label="时间">{{ formatDateTime(selectedAuditLog.createdAt) }}</a-descriptions-item>
         <a-descriptions-item label="用户">{{ selectedAuditLog.userId }}</a-descriptions-item>
-        <a-descriptions-item label="动作">{{ selectedAuditLog.action }}</a-descriptions-item>
-        <a-descriptions-item label="资源">{{ selectedAuditLog.resourceType }}</a-descriptions-item>
+        <a-descriptions-item label="动作">{{ actionLabel(selectedAuditLog.action) }}</a-descriptions-item>
+        <a-descriptions-item label="资源">{{ resourceLabel(selectedAuditLog.resourceType) }}</a-descriptions-item>
         <a-descriptions-item label="资源 ID">{{ selectedAuditLog.resourceId }}</a-descriptions-item>
         <a-descriptions-item label="请求 ID">{{ selectedAuditLog.requestId }}</a-descriptions-item>
         <a-descriptions-item label="客户端 IP">{{ selectedAuditLog.clientIp }}</a-descriptions-item>
@@ -148,9 +166,17 @@ const selectedAuditLog = ref<AuditLogItem | null>(null)
 const selectedAuditDetail = ref<unknown>({})
 
 const completedNodeCount = computed(() => traceDetail.value?.timeline.filter((item) => item.status === 'COMPLETED').length || 0)
-const currentNodeText = computed(() => traceDetail.value?.currentActivityIds.join('、') || '-')
+const currentNodeText = computed(() => traceDetail.value?.currentActivityIds.map(detailValueLabel).join('、') || '-')
 const currentTaskText = computed(() => traceDetail.value?.currentTasks.map((item) => item.name).join('、') || '-')
 const maskedVariables = computed(() => maskSecret(traceDetail.value?.variables || {}))
+const variableSummaryItems = computed(() => Object.entries(maskedVariables.value as Record<string, unknown>)
+  .filter(([key, value]) => !isLowSignalKey(key, value))
+  .map(([key, value]) => ({
+    key,
+    label: detailKeyLabel(key),
+    value: formatSummaryValue(value)
+  })))
+const variableSummaryText = computed(() => variableSummaryItems.value.slice(0, 2).map((item) => `${item.label}：${item.value}`).join('，') || '无补充信息')
 const maskedTraceDetail = computed(() => traceDetail.value ? { ...traceDetail.value, variables: maskedVariables.value } : null)
 const maskedInstanceDetail = computed(() => {
   if (!instance.value) return null
@@ -182,11 +208,10 @@ const timelineColumns = [
 ]
 
 const auditColumns = [
-  { title: '动作', dataIndex: 'action', key: 'auditAction', width: 210 },
+  { title: '动作', dataIndex: 'action', key: 'auditAction', width: 180 },
   { title: '用户', dataIndex: 'userId', key: 'userId', width: 140 },
-  { title: '请求 ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
-  { title: '详情', dataIndex: 'detailJson', key: 'detailJson' },
-  { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 220 },
+  { title: '摘要', key: 'summary' },
+  { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 180 },
   { title: '操作', key: 'action', width: 90 }
 ]
 
@@ -262,9 +287,130 @@ function parseAuditDetail(value?: string) {
   return maskSecret(parseJsonSafe(value, value))
 }
 
+function auditSummary(value?: string, action?: string) {
+  const masked = parseAuditDetail(value)
+  if (typeof masked === 'string') return masked || '无补充信息'
+  if (!masked || typeof masked !== 'object') return '无补充信息'
+  const entries = Object.entries(masked as Record<string, unknown>)
+    .filter(([key, item]) => !isLowSignalKey(key, item))
+    .slice(0, 3)
+  if (!entries.length) return emptySummary(action)
+  return entries.map(([key, item]) => `${detailKeyLabel(key)}：${formatSummaryValue(item)}`).join('，')
+}
+
+function isLowSignalKey(key: string, value: unknown) {
+  if (value === undefined || value === null || value === '') return true
+  if (Array.isArray(value) && value.length === 0) return true
+  return /(^id$|id$|requestId|deploymentId|formSchemaId|formBindingId|processInstanceId|processDefinitionId)/i.test(key)
+}
+
+function actionLabel(action?: string) {
+  const mapping: Record<string, string> = {
+    TASK_COMPLETE: '完成任务',
+    PROCESS_INSTANCE_START: '启动流程',
+    CONNECTOR_EXECUTE: '执行连接器',
+    PROCESS_MODEL_DEPLOY: '部署模型',
+    PROCESS_MODEL_IMPORT: '导入模型',
+    DEMO_INIT: '初始化演示',
+    DATASOURCE_CREATE: '创建数据源',
+    DATASOURCE_TEST: '测试数据源',
+    DATASOURCE_DELETE: '删除数据源',
+    FORM_BINDING_CREATE: '创建绑定',
+    FORM_BINDING_UPDATE: '更新绑定',
+    FORM_BINDING_DELETE: '删除绑定'
+  }
+  return mapping[action || ''] || action || '-'
+}
+
+function resourceLabel(resourceType?: string) {
+  const mapping: Record<string, string> = {
+    TASK: '任务',
+    PROCESS_INSTANCE: '流程实例',
+    PROCESS_MODEL: '流程模型',
+    CONNECTOR_EXECUTION: '连接器日志',
+    DATASOURCE: '数据源',
+    DEMO: '演示数据',
+    FORM_BINDING: '表单绑定'
+  }
+  return mapping[resourceType || ''] || resourceType || '-'
+}
+
+function emptySummary(action?: string) {
+  const mapping: Record<string, string> = {
+    PROCESS_INSTANCE_START: '流程已启动',
+    TASK_COMPLETE: '任务已完成',
+    CONNECTOR_EXECUTE: '连接器已执行'
+  }
+  return mapping[action || ''] || '无补充信息'
+}
+
+function detailKeyLabel(key: string) {
+  const mapping: Record<string, string> = {
+    applicant: '申请人',
+    approver: '审批人',
+    leaveType: '请假类型',
+    startDate: '开始日期',
+    endDate: '结束日期',
+    days: '请假天数',
+    reason: '请假原因',
+    attachmentNote: '附件说明',
+    approved: '审批结果',
+    approvalAction: '审批动作',
+    status: '状态',
+    businessKey: '业务编号',
+    processDefinitionKey: '流程',
+    statusCode: '状态码',
+    connectorType: '连接器',
+    elapsedMillis: '耗时',
+    taskDefinitionKey: '任务节点',
+    name: '名称',
+    modelKey: '模型',
+    version: '版本'
+  }
+  return mapping[key] || key
+}
+
+function formatSummaryValue(value: unknown) {
+  if (typeof value === 'boolean') return value ? '是' : '否'
+  if (value === undefined || value === null || value === '') return '-'
+  const text = detailValueLabel(String(value))
+  return text.length > 48 ? `${text.slice(0, 48)}...` : text
+}
+
+function detailValueLabel(value: string) {
+  const mapping: Record<string, string> = {
+    RUNNING: '运行中',
+    SUCCESS: '成功',
+    FAILED: '失败',
+    DRAFT: '草稿',
+    DEPLOYED: '已部署',
+    COMPLETED: '已完成',
+    DISABLED: '已禁用',
+    ARCHIVED: '已归档',
+    approveTask: '审批请假',
+    reviewTask: '确认调用结果',
+    leaveApproval: '请假审批',
+    httpConnectorDemo: 'HTTP Connector 示例',
+    true: '是',
+    false: '否'
+  }
+  return mapping[value] || value
+}
+
 onMounted(load)
 
 onBeforeUnmount(() => {
   destroyTraceViewer()
 })
 </script>
+
+<style scoped>
+.audit-summary {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 420px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+</style>
