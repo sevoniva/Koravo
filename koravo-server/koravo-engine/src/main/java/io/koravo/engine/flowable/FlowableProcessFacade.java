@@ -217,7 +217,8 @@ public class FlowableProcessFacade implements ProcessFacade {
                 task.getProcessDefinitionId(),
                 businessKey,
                 toInstant(task.getCreateTime()),
-                task.getAssignee()
+                task.getAssignee(),
+                task.getTaskDefinitionKey()
         );
     }
 

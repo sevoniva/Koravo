@@ -5,30 +5,42 @@ import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.CompleteTaskCommand;
 import io.koravo.engine.command.TaskQueryCommand;
 import io.koravo.engine.dto.TaskDTO;
+import io.koravo.form.service.FormBindingService;
 import io.koravo.form.service.FormSnapshotService;
+import io.koravo.form.service.FormSchemaService;
+import io.koravo.form.web.FormBindingResponse;
+import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.task.web.CompleteTaskRequest;
+import io.koravo.task.web.TaskDetailResponse;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class TaskAppService {
     private final ProcessFacade processFacade;
     private final AuditLogService auditLogService;
     private final FormSnapshotService formSnapshotService;
+    private final FormBindingService formBindingService;
+    private final FormSchemaService formSchemaService;
 
     public TaskAppService(
             ProcessFacade processFacade,
             AuditLogService auditLogService,
-            FormSnapshotService formSnapshotService
+            FormSnapshotService formSnapshotService,
+            FormBindingService formBindingService,
+            FormSchemaService formSchemaService
     ) {
         this.processFacade = processFacade;
         this.auditLogService = auditLogService;
         this.formSnapshotService = formSnapshotService;
+        this.formBindingService = formBindingService;
+        this.formSchemaService = formSchemaService;
     }
 
     public PageResult<TaskDTO> queryMyTasks(int page, int pageSize) {
@@ -38,6 +50,18 @@ public class TaskAppService {
                 page,
                 pageSize
         ));
+    }
+
+    public TaskDetailResponse getTaskDetail(String taskId) {
+        TaskDTO task = processFacade.getTask(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
+        Optional<FormBindingResponse> binding = formBindingService.findByProcessDefinitionTaskKey(
+                task.processDefinitionId(),
+                task.taskDefinitionKey()
+        );
+        FormSchemaResponse schema = binding
+                .map(value -> formSchemaService.get(value.formSchemaId()))
+                .orElse(null);
+        return new TaskDetailResponse(task, binding.orElse(null), schema);
     }
 
     public void completeTask(String taskId, CompleteTaskRequest request) {

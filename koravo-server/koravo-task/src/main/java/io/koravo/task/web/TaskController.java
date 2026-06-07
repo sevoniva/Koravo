@@ -29,6 +29,11 @@ public class TaskController {
         return ApiResponse.success(taskAppService.queryMyTasks(page, pageSize));
     }
 
+    @GetMapping("/api/v1/tasks/{taskId}")
+    public ApiResponse<TaskDetailResponse> detail(@PathVariable String taskId) {
+        return ApiResponse.success(taskAppService.getTaskDetail(taskId));
+    }
+
     @PostMapping("/api/v1/tasks/{taskId}/complete")
     public ApiResponse<Map<String, String>> complete(@PathVariable String taskId, @RequestBody CompleteTaskRequest request) {
         taskAppService.completeTask(taskId, request);
