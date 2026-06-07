@@ -16,6 +16,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DataSourceServiceTest {
@@ -100,5 +101,87 @@ class DataSourceServiceTest {
 
         assertThat(response.toString()).doesNotContain("secret-password");
         assertThat(response.toString()).doesNotContain(dataSource.getPasswordCipher());
+    }
+
+    @Test
+    void updatePreservesPasswordWhenBlankAndWritesAudit() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoDataSource dataSource = existingPostgresDataSource();
+        String originalCipher = dataSource.getPasswordCipher();
+        when(repository.findByIdAndTenantIdAndDeletedFalse("ds-1", "default")).thenReturn(Optional.of(dataSource));
+        when(repository.save(any(KoDataSource.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = service.update("ds-1", new DataSourceCreateRequest(
+                "pg updated",
+                DataSourceType.POSTGRESQL,
+                "jdbc:postgresql://localhost:5432/koravo_updated",
+                "koravo_user",
+                "",
+                null,
+                false,
+                "{\"maximumPoolSize\":3}"
+        ));
+
+        assertThat(response.name()).isEqualTo("pg updated");
+        assertThat(response.username()).isEqualTo("koravo_user");
+        assertThat(response.readOnly()).isFalse();
+        assertThat(dataSource.getPasswordCipher()).isEqualTo(originalCipher);
+        assertThat(response.toString()).doesNotContain(originalCipher);
+        verify(auditLogService).record("DATASOURCE_UPDATE", "DATASOURCE", "ds-1", java.util.Map.of("name", "pg updated"));
+    }
+
+    @Test
+    void updateEncryptsNewPassword() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoDataSource dataSource = existingPostgresDataSource();
+        String originalCipher = dataSource.getPasswordCipher();
+        when(repository.findByIdAndTenantIdAndDeletedFalse("ds-1", "default")).thenReturn(Optional.of(dataSource));
+        when(repository.save(any(KoDataSource.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.update("ds-1", new DataSourceCreateRequest(
+                "pg",
+                DataSourceType.POSTGRESQL,
+                "jdbc:postgresql://localhost:5432/koravo",
+                "koravo",
+                "new-secret",
+                null,
+                true,
+                "{}"
+        ));
+
+        assertThat(dataSource.getPasswordCipher()).isNotEqualTo(originalCipher);
+        assertThat(secretService.decrypt(dataSource.getPasswordCipher())).isEqualTo("new-secret");
+    }
+
+    @Test
+    void deleteSoftDeletesDatasourceAndWritesAudit() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoDataSource dataSource = existingPostgresDataSource();
+        when(repository.findByIdAndTenantIdAndDeletedFalse("ds-1", "default")).thenReturn(Optional.of(dataSource));
+
+        service.delete("ds-1");
+
+        assertThat(dataSource.isDeleted()).isTrue();
+        assertThat(dataSource.getUpdatedBy()).isEqualTo("admin");
+        verify(auditLogService).record("DATASOURCE_DELETE", "DATASOURCE", "ds-1", java.util.Map.of("name", "pg"));
+    }
+
+    private KoDataSource existingPostgresDataSource() {
+        KoDataSource dataSource = new KoDataSource();
+        dataSource.setId("ds-1");
+        dataSource.setTenantId("default");
+        dataSource.setName("pg");
+        dataSource.setType(DataSourceType.POSTGRESQL);
+        dataSource.setJdbcUrl("jdbc:postgresql://localhost:5432/koravo");
+        dataSource.setUsername("koravo");
+        dataSource.setPasswordCipher(secretService.encrypt("secret-password"));
+        dataSource.setDriverClassName(DataSourceType.POSTGRESQL.defaultDriverClassName());
+        dataSource.setReadOnly(true);
+        dataSource.setPoolConfigJson("{}");
+        dataSource.setStatus(DataSourceStatus.ACTIVE);
+        return dataSource;
     }
 }

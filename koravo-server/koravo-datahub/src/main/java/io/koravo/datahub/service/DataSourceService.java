@@ -82,6 +82,35 @@ public class DataSourceService {
         return toResponse(find(id));
     }
 
+    @Transactional
+    public DataSourceResponse update(String id, DataSourceCreateRequest request) {
+        KoDataSource dataSource = find(id);
+        dataSource.setUpdatedBy(UserContextHolder.getUserId());
+        dataSource.setName(request.name());
+        dataSource.setType(request.type());
+        dataSource.setJdbcUrl(request.jdbcUrl());
+        dataSource.setUsername(request.username());
+        if (StringUtils.hasText(request.password())) {
+            dataSource.setPasswordCipher(secretService.encrypt(request.password()));
+        }
+        dataSource.setDriverClassName(StringUtils.hasText(request.driverClassName())
+                ? request.driverClassName()
+                : request.type().defaultDriverClassName());
+        dataSource.setReadOnly(request.readOnly());
+        dataSource.setPoolConfigJson(request.poolConfigJson());
+        KoDataSource saved = repository.save(dataSource);
+        auditLogService.record("DATASOURCE_UPDATE", "DATASOURCE", saved.getId(), Map.of("name", saved.getName()));
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void delete(String id) {
+        KoDataSource dataSource = find(id);
+        dataSource.setUpdatedBy(UserContextHolder.getUserId());
+        dataSource.setDeleted(true);
+        auditLogService.record("DATASOURCE_DELETE", "DATASOURCE", dataSource.getId(), Map.of("name", dataSource.getName()));
+    }
+
     @Transactional(readOnly = true)
     public DataSourceTestResponse test(String id) {
         KoDataSource dataSource = find(id);

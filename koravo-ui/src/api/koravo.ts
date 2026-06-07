@@ -368,6 +368,14 @@ export function createDataSource(payload: JsonRecord) {
   return apiData<DataSourceItem>(http.post('/datasources', payload))
 }
 
+export function updateDataSource(id: string, payload: JsonRecord) {
+  return apiData<DataSourceItem>(http.put(`/datasources/${id}`, payload))
+}
+
+export function deleteDataSource(id: string) {
+  return apiData(http.delete(`/datasources/${id}`))
+}
+
 export function listDataSources() {
   return apiData<DataSourceItem[]>(http.get('/datasources'))
 }

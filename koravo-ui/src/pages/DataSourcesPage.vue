@@ -22,7 +22,12 @@
       <a-form-item label="Password"><a-input-password v-model:value="form.password" /></a-form-item>
       <a-form-item label="Read only"><a-switch v-model:checked="form.readOnly" /></a-form-item>
       <a-form-item>
-        <a-button type="primary" :loading="saving" @click="create"><DatabaseOutlined />Create</a-button>
+        <a-space>
+          <a-button type="primary" :loading="saving" @click="save">
+            <DatabaseOutlined />{{ editingId ? 'Update' : 'Create' }}
+          </a-button>
+          <a-button v-if="editingId" @click="reset">Cancel</a-button>
+        </a-space>
       </a-form-item>
     </a-form>
 
@@ -31,8 +36,12 @@
         <template v-if="column.key === 'action'">
           <a-space>
             <a-button size="small" @click="openDetail(record.id)">Detail</a-button>
+            <a-button size="small" @click="edit(record)">Edit</a-button>
             <a-button size="small" @click="test(record.id)">Test</a-button>
             <a-button size="small" @click="openLogs(record.id)">Logs</a-button>
+            <a-popconfirm title="Delete this datasource?" @confirm="remove(record.id)">
+              <a-button size="small" danger>Delete</a-button>
+            </a-popconfirm>
           </a-space>
         </template>
       </template>
@@ -65,15 +74,18 @@ import { DatabaseOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
 import {
   createDataSource,
+  deleteDataSource,
   getDataSource,
   listDataSources,
   listDataSourceTestLogs,
   testDataSource,
+  updateDataSource,
   type DataSourceItem,
   type DataSourceTestLogItem
 } from '../api/koravo'
 
 const saving = ref(false)
+const editingId = ref<string | null>(null)
 const items = ref<DataSourceItem[]>([])
 const logsOpen = ref(false)
 const detailOpen = ref(false)
@@ -95,7 +107,7 @@ const columns = [
   { title: 'URL', dataIndex: 'jdbcUrl', key: 'jdbcUrl' },
   { title: 'User', dataIndex: 'username', key: 'username' },
   { title: 'Status', dataIndex: 'status', key: 'status' },
-  { title: 'Action', key: 'action', width: 210 }
+  { title: 'Action', key: 'action', width: 330 }
 ]
 
 const logColumns = [
@@ -109,16 +121,50 @@ async function load() {
   items.value = await listDataSources()
 }
 
-async function create() {
+async function save() {
   saving.value = true
   try {
-    await createDataSource(form)
-    message.success('Datasource created')
-    form.password = ''
+    const payload = { ...form }
+    if (editingId.value) {
+      await updateDataSource(editingId.value, payload)
+    } else {
+      await createDataSource(payload)
+    }
+    message.success(editingId.value ? 'Datasource updated' : 'Datasource created')
+    reset()
     await load()
   } finally {
     saving.value = false
   }
+}
+
+function edit(record: DataSourceItem) {
+  editingId.value = record.id
+  form.name = record.name
+  form.type = record.type
+  form.jdbcUrl = record.jdbcUrl
+  form.username = record.username || ''
+  form.password = ''
+  form.readOnly = record.readOnly
+  form.poolConfigJson = record.poolConfigJson || '{}'
+}
+
+async function remove(id: string) {
+  await deleteDataSource(id)
+  if (editingId.value === id) reset()
+  message.success('Datasource deleted')
+  await load()
+}
+
+function reset() {
+  editingId.value = null
+  form.name = 'Local PostgreSQL'
+  form.type = 'POSTGRESQL'
+  form.jdbcUrl = 'jdbc:postgresql://localhost:5432/koravo'
+  form.username = 'koravo'
+  form.password = ''
+  form.readOnly = true
+  form.poolConfigJson = '{}'
 }
 
 async function test(id: string) {

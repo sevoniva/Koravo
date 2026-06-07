@@ -199,6 +199,27 @@ GET {{baseUrl}}/datasources/{{datasourceId}}/test-logs?page=1&pageSize=10
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
+### 11c. Update datasource
+PUT {{baseUrl}}/datasources/{{datasourceId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "name": "Local PostgreSQL Updated",
+  "type": "POSTGRESQL",
+  "jdbcUrl": "jdbc:postgresql://localhost:5432/koravo",
+  "username": "koravo",
+  "password": "",
+  "readOnly": true,
+  "poolConfigJson": "{\"maximumPoolSize\":3}"
+}
+
+### 11d. Delete datasource
+DELETE {{baseUrl}}/datasources/{{datasourceId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
 ### 12. Query audit logs
 GET {{baseUrl}}/audit-logs?page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}
