@@ -48,6 +48,15 @@
       <a-tab-pane key="variables" tab="Variables">
         <JsonPreview :value="traceDetail.variables" />
       </a-tab-pane>
+      <a-tab-pane key="auditLogs" tab="Audit Logs">
+        <a-table :data-source="instance?.auditLogs || []" :columns="auditColumns" row-key="id" :pagination="false" size="small">
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'detailJson'">
+              <code>{{ record.detailJson }}</code>
+            </template>
+          </template>
+        </a-table>
+      </a-tab-pane>
     </a-tabs>
 
     <JsonPreview :value="{ instance, trace: traceDetail }" />
@@ -90,6 +99,14 @@ const timelineColumns = [
   { title: 'Status', dataIndex: 'status', key: 'status', width: 110 },
   { title: 'Start', dataIndex: 'startTime', key: 'startTime' },
   { title: 'End', dataIndex: 'endTime', key: 'endTime' }
+]
+
+const auditColumns = [
+  { title: 'Action', dataIndex: 'action', key: 'action', width: 210 },
+  { title: 'User', dataIndex: 'userId', key: 'userId', width: 140 },
+  { title: 'Request ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
+  { title: 'Detail', dataIndex: 'detailJson', key: 'detailJson' },
+  { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 220 }
 ]
 
 let traceViewer: any = null

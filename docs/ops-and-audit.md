@@ -79,6 +79,8 @@ GET /api/v1/audit-logs?action=PROCESS_INSTANCE_START&resourceType=PROCESS_INSTAN
 
 Process start audit details include the process definition key, Flowable process definition ID, business key, and runtime status. Process variables are intentionally excluded from audit details.
 
+The application instance detail API, `GET /api/v1/process-instances/{instanceId}`, includes the latest process instance audit records so the console can show start and ops events next to the trace.
+
 Connector audit events can be queried with:
 
 ```http

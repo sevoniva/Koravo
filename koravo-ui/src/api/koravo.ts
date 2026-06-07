@@ -88,6 +88,7 @@ export interface OpsProcessInstance {
   endTime?: string
   status: string
   currentTasks: TaskItem[]
+  auditLogs?: AuditLogItem[]
 }
 
 export interface TaskItem {

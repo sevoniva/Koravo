@@ -1,11 +1,13 @@
 package io.koravo.api.service;
 
 import io.koravo.api.web.StartProcessRequest;
+import io.koravo.api.web.ProcessInstanceDetailResponse;
 import io.koravo.common.web.RequestContextHolder;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.StartProcessCommand;
 import io.koravo.engine.dto.ProcessInstanceDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
+import io.koravo.ops.audit.AuditLogQueryService;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
@@ -17,10 +19,12 @@ import java.util.Map;
 public class ProcessInstanceAppService {
     private final ProcessFacade processFacade;
     private final AuditLogService auditLogService;
+    private final AuditLogQueryService auditLogQueryService;
 
-    public ProcessInstanceAppService(ProcessFacade processFacade, AuditLogService auditLogService) {
+    public ProcessInstanceAppService(ProcessFacade processFacade, AuditLogService auditLogService, AuditLogQueryService auditLogQueryService) {
         this.processFacade = processFacade;
         this.auditLogService = auditLogService;
+        this.auditLogQueryService = auditLogQueryService;
     }
 
     public ProcessInstanceDTO start(StartProcessRequest request) {
@@ -41,7 +45,11 @@ public class ProcessInstanceAppService {
         return instance;
     }
 
-    public ProcessInstanceDetailDTO get(String instanceId) {
-        return processFacade.getInstance(TenantContextHolder.getTenantId(), instanceId);
+    public ProcessInstanceDetailResponse get(String instanceId) {
+        ProcessInstanceDetailDTO instance = processFacade.getInstance(TenantContextHolder.getTenantId(), instanceId);
+        return ProcessInstanceDetailResponse.from(
+                instance,
+                auditLogQueryService.queryByResource("PROCESS_INSTANCE", instanceId, 20)
+        );
     }
 }

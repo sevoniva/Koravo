@@ -7,6 +7,7 @@ Koravo exposes process tracing through platform APIs, not Flowable native servic
 - `GET /api/v1/ops/process-instances?page=1&pageSize=20`
 - `GET /api/v1/ops/process-instances/{instanceId}`
 - `GET /api/v1/ops/process-instances/{instanceId}/trace`
+- `GET /api/v1/process-instances/{instanceId}`
 
 Trace includes:
 
@@ -19,6 +20,7 @@ Trace includes:
 - current tasks
 - process variables
 - historic activity timeline
+- recent process instance audit logs from the application instance-detail API
 
 ## Console
 
@@ -29,6 +31,7 @@ The process instance detail page at `/process-instances/{instanceId}` renders:
 - current tasks
 - historic activity timeline
 - process variable summary
+- recent process instance audit logs
 
 The process instance start/list page links each started instance directly to Ops trace with `/ops?view=trace&instanceId={instanceId}`. This keeps the demo flow short after starting a process: start, open trace, inspect current tasks and completed activities.
 
