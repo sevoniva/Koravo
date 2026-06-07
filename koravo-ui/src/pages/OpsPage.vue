@@ -16,6 +16,31 @@
               <a-space>
                 <a-button size="small" @click="inspect(record.instanceId)">Inspect</a-button>
                 <a-button size="small" type="primary" @click="trace(record.instanceId)">Trace</a-button>
+                <a-button
+                  v-if="record.status === 'RUNNING'"
+                  size="small"
+                  :loading="actionLoading === `suspend:${record.instanceId}`"
+                  @click="suspend(record.instanceId)"
+                >
+                  Suspend
+                </a-button>
+                <a-button
+                  v-if="record.status === 'SUSPENDED'"
+                  size="small"
+                  :loading="actionLoading === `activate:${record.instanceId}`"
+                  @click="activate(record.instanceId)"
+                >
+                  Activate
+                </a-button>
+                <a-popconfirm
+                  v-if="record.status !== 'COMPLETED'"
+                  title="Terminate this process instance?"
+                  ok-text="Terminate"
+                  cancel-text="Cancel"
+                  @confirm="terminate(record.instanceId)"
+                >
+                  <a-button size="small" danger :loading="actionLoading === `terminate:${record.instanceId}`">Terminate</a-button>
+                </a-popconfirm>
               </a-space>
             </template>
           </template>
@@ -76,22 +101,28 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import JsonPreview from '../components/JsonPreview.vue'
 import {
+  activateProcessInstance,
   getOpsInstance,
   getProcessTrace,
   listConnectorExecutionLogs,
   listOpsInstances,
+  suspendProcessInstance,
+  terminateProcessInstance,
   type ConnectorExecutionLogItem,
+  type OpsProcessInstance,
   type ProcessTrace
 } from '../api/koravo'
 
 const loading = ref(false)
-const instances = ref<unknown[]>([])
+const instances = ref<OpsProcessInstance[]>([])
 const detail = ref<unknown>(null)
 const traceDetail = ref<ProcessTrace | null>(null)
 const traceCanvasRef = ref<HTMLElement | null>(null)
+const actionLoading = ref<string | null>(null)
 const activeTab = ref('instances')
 const connectorLoading = ref(false)
 const connectorLogs = ref<ConnectorExecutionLogItem[]>([])
@@ -105,7 +136,7 @@ const columns = [
   { title: 'Business Key', dataIndex: 'businessKey', key: 'businessKey' },
   { title: 'Status', dataIndex: 'status', key: 'status' },
   { title: 'Started', dataIndex: 'startTime', key: 'startTime' },
-  { title: 'Action', key: 'action', width: 100 }
+  { title: 'Action', key: 'action', width: 320 }
 ]
 
 const traceColumns = [
@@ -169,6 +200,40 @@ async function trace(instanceId: string) {
   traceDetail.value = await getProcessTrace(instanceId)
   detail.value = traceDetail.value
   await renderTraceDiagram()
+}
+
+async function terminate(instanceId: string) {
+  await runInstanceAction(`terminate:${instanceId}`, instanceId, async () => {
+    await terminateProcessInstance(instanceId, 'Terminated from Ops')
+    message.success('Process terminated')
+  })
+}
+
+async function suspend(instanceId: string) {
+  await runInstanceAction(`suspend:${instanceId}`, instanceId, async () => {
+    await suspendProcessInstance(instanceId)
+    message.success('Process suspended')
+  })
+}
+
+async function activate(instanceId: string) {
+  await runInstanceAction(`activate:${instanceId}`, instanceId, async () => {
+    await activateProcessInstance(instanceId)
+    message.success('Process activated')
+  })
+}
+
+async function runInstanceAction(actionKey: string, instanceId: string, action: () => Promise<void>) {
+  actionLoading.value = actionKey
+  try {
+    await action()
+    await load()
+    if (traceDetail.value?.instanceId === instanceId) {
+      await trace(instanceId)
+    }
+  } finally {
+    actionLoading.value = null
+  }
 }
 
 async function renderTraceDiagram() {

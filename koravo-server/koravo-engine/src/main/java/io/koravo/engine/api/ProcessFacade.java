@@ -28,4 +28,10 @@ public interface ProcessFacade {
     ProcessTraceDTO getInstanceTrace(String tenantId, String instanceId);
 
     PageResult<ProcessInstanceDetailDTO> listInstances(InstanceQueryCommand command);
+
+    void terminateProcessInstance(String tenantId, String instanceId, String reason);
+
+    void suspendProcessInstance(String tenantId, String instanceId);
+
+    void activateProcessInstance(String tenantId, String instanceId);
 }

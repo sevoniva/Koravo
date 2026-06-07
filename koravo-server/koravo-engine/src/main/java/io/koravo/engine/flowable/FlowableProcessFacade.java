@@ -200,7 +200,7 @@ public class FlowableProcessFacade implements ProcessFacade {
                 historic.getId(),
                 historic.getProcessDefinitionId(),
                 historic.getBusinessKey(),
-                historic.getEndTime() == null ? "RUNNING" : "COMPLETED",
+                toInstanceStatus(historic),
                 readBpmnXml(historic.getProcessDefinitionId()),
                 currentTasks.stream().map(TaskDTO::taskDefinitionKey).toList(),
                 currentTasks,
@@ -225,6 +225,30 @@ public class FlowableProcessFacade implements ProcessFacade {
         return PageResult.of(instances, total, command.page(), command.pageSize());
     }
 
+    @Override
+    @Transactional
+    public void terminateProcessInstance(String tenantId, String instanceId, String reason) {
+        ensureRunningInstance(tenantId, instanceId);
+        runtimeService.deleteProcessInstance(
+                instanceId,
+                reason == null || reason.isBlank() ? "Terminated by ops" : reason
+        );
+    }
+
+    @Override
+    @Transactional
+    public void suspendProcessInstance(String tenantId, String instanceId) {
+        ensureRunningInstance(tenantId, instanceId);
+        runtimeService.suspendProcessInstanceById(instanceId);
+    }
+
+    @Override
+    @Transactional
+    public void activateProcessInstance(String tenantId, String instanceId) {
+        ensureRunningInstance(tenantId, instanceId);
+        runtimeService.activateProcessInstanceById(instanceId);
+    }
+
     private ProcessInstanceDetailDTO toInstanceDetail(HistoricProcessInstance instance) {
         List<TaskDTO> currentTasks = taskService.createTaskQuery()
                 .processInstanceId(instance.getId())
@@ -240,7 +264,7 @@ public class FlowableProcessFacade implements ProcessFacade {
                 instance.getStartUserId(),
                 toInstant(instance.getStartTime()),
                 toInstant(instance.getEndTime()),
-                instance.getEndTime() == null ? "RUNNING" : "COMPLETED",
+                toInstanceStatus(instance),
                 currentTasks
         );
     }
@@ -291,6 +315,27 @@ public class FlowableProcessFacade implements ProcessFacade {
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Failed to read BPMN XML");
         }
+    }
+
+    private void ensureRunningInstance(String tenantId, String instanceId) {
+        ProcessInstance instance = runtimeService.createProcessInstanceQuery()
+                .processInstanceId(instanceId)
+                .processInstanceTenantId(tenantId)
+                .singleResult();
+        if (instance == null) {
+            throw new BusinessException(ErrorCode.PROCESS_INSTANCE_NOT_FOUND, "Running process instance not found");
+        }
+    }
+
+    private String toInstanceStatus(HistoricProcessInstance instance) {
+        if (instance.getEndTime() != null) {
+            return "COMPLETED";
+        }
+        ProcessInstance runtimeInstance = runtimeService.createProcessInstanceQuery()
+                .processInstanceId(instance.getId())
+                .processInstanceTenantId(instance.getTenantId())
+                .singleResult();
+        return runtimeInstance != null && runtimeInstance.isSuspended() ? "SUSPENDED" : "RUNNING";
     }
 
     private Instant toInstant(java.util.Date date) {

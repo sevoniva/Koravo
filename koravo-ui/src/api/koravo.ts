@@ -78,6 +78,17 @@ export interface ProcessTrace {
   timeline: ProcessTraceNode[]
 }
 
+export interface OpsProcessInstance {
+  instanceId: string
+  processDefinitionId: string
+  businessKey?: string
+  startUserId?: string
+  startTime?: string
+  endTime?: string
+  status: string
+  currentTasks: TaskItem[]
+}
+
 export interface TaskItem {
   taskId: string
   name: string
@@ -317,15 +328,27 @@ export function listAuditLogs(params: {
 }
 
 export function listOpsInstances() {
-  return apiData<PageResult<unknown>>(http.get('/ops/process-instances?page=1&pageSize=20'))
+  return apiData<PageResult<OpsProcessInstance>>(http.get('/ops/process-instances?page=1&pageSize=20'))
 }
 
 export function getOpsInstance(instanceId: string) {
-  return apiData(http.get(`/ops/process-instances/${instanceId}`))
+  return apiData<OpsProcessInstance>(http.get(`/ops/process-instances/${instanceId}`))
 }
 
 export function getProcessTrace(instanceId: string) {
   return apiData<ProcessTrace>(http.get(`/ops/process-instances/${instanceId}/trace`))
+}
+
+export function terminateProcessInstance(instanceId: string, reason: string) {
+  return apiData(http.post(`/ops/process-instances/${instanceId}/terminate`, { reason }))
+}
+
+export function suspendProcessInstance(instanceId: string) {
+  return apiData(http.post(`/ops/process-instances/${instanceId}/suspend`))
+}
+
+export function activateProcessInstance(instanceId: string) {
+  return apiData(http.post(`/ops/process-instances/${instanceId}/activate`))
 }
 
 export function listConnectorExecutionLogs(params: {
