@@ -42,6 +42,8 @@ Datasource create/update/delete/test operations write audit events:
 - `DATASOURCE_DELETE`
 - `DATASOURCE_TEST`
 
+`DATASOURCE_TEST` audit details include datasource name, type, success flag, and elapsed milliseconds; password and cipher fields are never included.
+
 ## Console
 
 Use `/datasources` to create, edit, delete, inspect detail responses, run connection tests, and review recent test logs. Detail and list responses intentionally omit password fields.

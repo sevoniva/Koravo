@@ -10,13 +10,16 @@ import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -81,6 +84,13 @@ class DataSourceServiceTest {
         assertThat(response.connected()).isTrue();
         assertThat(response.message()).isEqualTo("Connection successful");
         verify(testLogService).record(dataSource, true, "Connection successful", response.elapsedMillis());
+        ArgumentCaptor<Map<String, Object>> auditDetail = ArgumentCaptor.captor();
+        verify(auditLogService).record(eq("DATASOURCE_TEST"), eq("DATASOURCE"), eq("ds-h2"), auditDetail.capture());
+        assertThat(auditDetail.getValue()).containsEntry("name", "h2");
+        assertThat(auditDetail.getValue()).containsEntry("type", "H2");
+        assertThat(auditDetail.getValue()).containsEntry("connected", true);
+        assertThat(auditDetail.getValue()).containsKey("elapsedMillis");
+        assertThat(auditDetail.getValue().toString()).doesNotContain("secret", "password", "passwordCipher");
     }
 
     @Test

@@ -132,12 +132,12 @@ public class DataSourceService {
             executor.submit(callable).get(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             DataSourceTestResponse response = new DataSourceTestResponse(true, "Connection successful", elapsed(started));
             testLogService.record(dataSource, true, response.message(), response.elapsedMillis());
-            auditLogService.record("DATASOURCE_TEST", "DATASOURCE", dataSource.getId(), Map.of("connected", true));
+            auditLogService.record("DATASOURCE_TEST", "DATASOURCE", dataSource.getId(), testAuditDetail(dataSource, true, response.elapsedMillis()));
             return response;
         } catch (Exception e) {
             DataSourceTestResponse response = new DataSourceTestResponse(false, e.getMessage(), elapsed(started));
             testLogService.record(dataSource, false, response.message(), response.elapsedMillis());
-            auditLogService.record("DATASOURCE_TEST", "DATASOURCE", dataSource.getId(), Map.of("connected", false));
+            auditLogService.record("DATASOURCE_TEST", "DATASOURCE", dataSource.getId(), testAuditDetail(dataSource, false, response.elapsedMillis()));
             return response;
         } finally {
             executor.shutdownNow();
@@ -165,5 +165,14 @@ public class DataSourceService {
 
     private long elapsed(Instant started) {
         return Duration.between(started, Instant.now()).toMillis();
+    }
+
+    private Map<String, Object> testAuditDetail(KoDataSource dataSource, boolean connected, long elapsedMillis) {
+        return Map.of(
+                "name", dataSource.getName(),
+                "type", dataSource.getType().name(),
+                "connected", connected,
+                "elapsedMillis", elapsedMillis
+        );
     }
 }
