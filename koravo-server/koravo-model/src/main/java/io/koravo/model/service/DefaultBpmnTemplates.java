@@ -1,0 +1,31 @@
+package io.koravo.model.service;
+
+public final class DefaultBpmnTemplates {
+    private DefaultBpmnTemplates() {
+    }
+
+    public static String approval(String processId, String processName) {
+        return """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                             xmlns:flowable="http://flowable.org/bpmn"
+                             targetNamespace="https://koravo.io/model">
+                  <process id="%s" name="%s" isExecutable="true">
+                    <startEvent id="start" name="Start"/>
+                    <sequenceFlow id="flow_start_approve" sourceRef="start" targetRef="approveTask"/>
+                    <userTask id="approveTask" name="Approve" flowable:assignee="${approver}"/>
+                    <sequenceFlow id="flow_approve_end" sourceRef="approveTask" targetRef="end"/>
+                    <endEvent id="end" name="End"/>
+                  </process>
+                </definitions>
+                """.formatted(escape(processId), escape(processName));
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value
+                .replace("&", "&amp;")
+                .replace("\"", "&quot;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+    }
+}

@@ -143,3 +143,13 @@ databaseChangeLog:
             columns:
               - column: { name: tenant_id }
               - column: { name: action }
+  - changeSet:
+      id: 0002-add-process-model-bpmn-xml
+      author: koravo
+      changes:
+        - addColumn:
+            tableName: ko_process_model
+            columns:
+              - column:
+                  name: bpmn_xml
+                  type: clob
