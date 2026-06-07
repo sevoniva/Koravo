@@ -126,6 +126,46 @@ public class FlowableProcessFacade implements ProcessFacade {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResult<TaskDTO> queryDoneTasks(TaskQueryCommand command) {
+        long total = historyService.createHistoricTaskInstanceQuery()
+                .taskTenantId(command.tenantId())
+                .taskAssignee(command.userId())
+                .finished()
+                .count();
+        List<TaskDTO> tasks = historyService.createHistoricTaskInstanceQuery()
+                .taskTenantId(command.tenantId())
+                .taskAssignee(command.userId())
+                .finished()
+                .orderByHistoricTaskInstanceEndTime()
+                .desc()
+                .listPage(command.offset(), command.pageSize())
+                .stream()
+                .map(this::toTaskDTO)
+                .toList();
+        return PageResult.of(tasks, total, command.page(), command.pageSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResult<ProcessInstanceDetailDTO> queryStartedInstances(TaskQueryCommand command) {
+        long total = historyService.createHistoricProcessInstanceQuery()
+                .processInstanceTenantId(command.tenantId())
+                .startedBy(command.userId())
+                .count();
+        List<ProcessInstanceDetailDTO> instances = historyService.createHistoricProcessInstanceQuery()
+                .processInstanceTenantId(command.tenantId())
+                .startedBy(command.userId())
+                .orderByProcessInstanceStartTime()
+                .desc()
+                .listPage(command.offset(), command.pageSize())
+                .stream()
+                .map(this::toInstanceDetail)
+                .toList();
+        return PageResult.of(instances, total, command.page(), command.pageSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TaskDTO getTask(String tenantId, String userId, String taskId) {
         Task task = taskService.createTaskQuery()
                 .taskId(taskId)
@@ -333,6 +373,26 @@ public class FlowableProcessFacade implements ProcessFacade {
     }
 
     private TaskDTO toTaskDTO(Task task) {
+        String businessKey = null;
+        HistoricProcessInstance instance = historyService.createHistoricProcessInstanceQuery()
+                .processInstanceId(task.getProcessInstanceId())
+                .singleResult();
+        if (instance != null) {
+            businessKey = instance.getBusinessKey();
+        }
+        return new TaskDTO(
+                task.getId(),
+                task.getName(),
+                task.getProcessInstanceId(),
+                task.getProcessDefinitionId(),
+                businessKey,
+                toInstant(task.getCreateTime()),
+                task.getAssignee(),
+                task.getTaskDefinitionKey()
+        );
+    }
+
+    private TaskDTO toTaskDTO(HistoricTaskInstance task) {
         String businessKey = null;
         HistoricProcessInstance instance = historyService.createHistoricProcessInstanceQuery()
                 .processInstanceId(task.getProcessInstanceId())

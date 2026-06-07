@@ -2,6 +2,7 @@ package io.koravo.task.web;
 
 import io.koravo.common.api.ApiResponse;
 import io.koravo.common.api.PageResult;
+import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.TaskDTO;
 import io.koravo.task.service.TaskAppService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,22 @@ public class TaskController {
             @RequestParam(defaultValue = "20") int pageSize
     ) {
         return ApiResponse.success(taskAppService.queryMyTasks(page, pageSize));
+    }
+
+    @GetMapping("/api/v1/tasks/done")
+    public ApiResponse<PageResult<TaskDTO>> doneTasks(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize
+    ) {
+        return ApiResponse.success(taskAppService.queryDoneTasks(page, pageSize));
+    }
+
+    @GetMapping("/api/v1/tasks/started")
+    public ApiResponse<PageResult<ProcessInstanceDetailDTO>> startedInstances(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize
+    ) {
+        return ApiResponse.success(taskAppService.queryStartedInstances(page, pageSize));
     }
 
     @GetMapping("/api/v1/tasks/{taskId}")

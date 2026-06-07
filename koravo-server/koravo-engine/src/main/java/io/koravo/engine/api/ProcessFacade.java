@@ -23,6 +23,10 @@ public interface ProcessFacade {
 
     PageResult<TaskDTO> queryMyTasks(TaskQueryCommand command);
 
+    PageResult<TaskDTO> queryDoneTasks(TaskQueryCommand command);
+
+    PageResult<ProcessInstanceDetailDTO> queryStartedInstances(TaskQueryCommand command);
+
     TaskDTO getTask(String tenantId, String userId, String taskId);
 
     Map<String, Object> getTaskVariables(String tenantId, String userId, String taskId);

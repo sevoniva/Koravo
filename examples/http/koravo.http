@@ -45,12 +45,22 @@ GET {{baseUrl}}/tasks/my?page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 5. Get task detail
+### 5. Query done tasks
+GET {{baseUrl}}/tasks/done?page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 6. Query started process instances
+GET {{baseUrl}}/tasks/started?page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 7. Get task detail
 GET {{baseUrl}}/tasks/{{taskId}}
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 6. Complete task
+### 8. Complete task
 POST {{baseUrl}}/tasks/{{taskId}}/complete
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -67,12 +77,12 @@ Content-Type: application/json
   "comment": "approved"
 }
 
-### 7. Get process instance detail
+### 9. Get process instance detail
 GET {{baseUrl}}/process-instances/{{processInstanceId}}
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 8. Create datasource
+### 10. Create datasource
 POST {{baseUrl}}/datasources
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -88,32 +98,32 @@ Content-Type: application/json
   "poolConfigJson": "{}"
 }
 
-### 9. Test datasource
+### 11. Test datasource
 POST {{baseUrl}}/datasources/{{datasourceId}}/test
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 10. Query audit logs
+### 12. Query audit logs
 GET {{baseUrl}}/audit-logs?page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 11. Trace process instance
+### 13. Trace process instance
 GET {{baseUrl}}/ops/process-instances/{{processInstanceId}}/trace
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 12. Suspend process instance
+### 14. Suspend process instance
 POST {{baseUrl}}/ops/process-instances/{{processInstanceId}}/suspend
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 13. Activate process instance
+### 15. Activate process instance
 POST {{baseUrl}}/ops/process-instances/{{processInstanceId}}/activate
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 14. Terminate process instance
+### 16. Terminate process instance
 POST {{baseUrl}}/ops/process-instances/{{processInstanceId}}/terminate
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -123,12 +133,12 @@ Content-Type: application/json
   "reason": "Manual ops cleanup"
 }
 
-### 15. Query process ops audit logs
+### 17. Query process ops audit logs
 GET {{baseUrl}}/audit-logs?action=PROCESS_INSTANCE_SUSPEND&resourceType=PROCESS_INSTANCE&page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 16. Deploy HTTP connector demo
+### 18. Deploy HTTP connector demo
 POST {{baseUrl}}/process-models/deploy?modelName=HTTP%20Connector%20Demo
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -141,7 +151,7 @@ Content-Type: application/xml
 < ../bpmn/http-connector-demo.bpmn20.xml
 --KoravoBoundary--
 
-### 17. Start HTTP connector demo
+### 19. Start HTTP connector demo
 POST {{baseUrl}}/process-instances/start
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -155,7 +165,7 @@ Content-Type: application/json
   }
 }
 
-### 18. Trace HTTP connector demo
+### 20. Trace HTTP connector demo
 GET {{baseUrl}}/ops/process-instances/{{httpProcessInstanceId}}/trace
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}

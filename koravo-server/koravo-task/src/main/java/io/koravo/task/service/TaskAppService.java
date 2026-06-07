@@ -4,6 +4,7 @@ import io.koravo.common.api.PageResult;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.CompleteTaskCommand;
 import io.koravo.engine.command.TaskQueryCommand;
+import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.TaskDTO;
 import io.koravo.form.service.FormBindingService;
 import io.koravo.form.service.FormSnapshotService;
@@ -49,6 +50,24 @@ public class TaskAppService {
 
     public PageResult<TaskDTO> queryMyTasks(int page, int pageSize) {
         return processFacade.queryMyTasks(new TaskQueryCommand(
+                TenantContextHolder.getTenantId(),
+                UserContextHolder.getUserId(),
+                page,
+                pageSize
+        ));
+    }
+
+    public PageResult<TaskDTO> queryDoneTasks(int page, int pageSize) {
+        return processFacade.queryDoneTasks(new TaskQueryCommand(
+                TenantContextHolder.getTenantId(),
+                UserContextHolder.getUserId(),
+                page,
+                pageSize
+        ));
+    }
+
+    public PageResult<ProcessInstanceDetailDTO> queryStartedInstances(int page, int pageSize) {
+        return processFacade.queryStartedInstances(new TaskQueryCommand(
                 TenantContextHolder.getTenantId(),
                 UserContextHolder.getUserId(),
                 page,

@@ -10,6 +10,22 @@ GET /api/v1/tasks/my?page=1&pageSize=20
 
 The response contains the current user's assigned runtime tasks.
 
+## Done Tasks
+
+```http
+GET /api/v1/tasks/done?page=1&pageSize=20
+```
+
+The response contains finished historic tasks assigned to the current user.
+
+## Started Instances
+
+```http
+GET /api/v1/tasks/started?page=1&pageSize=20
+```
+
+The response contains process instances started by the current user. The console shows these under the Started tab and links the user to Ops for tracing and operational inspection.
+
 ## Task Detail
 
 ```http
@@ -59,5 +75,5 @@ Completion behavior:
 
 ## Current Limits
 
-- Done tasks and initiated-by-me lists are still planned for the next task center iteration.
+- Historic task detail for already completed tasks is still planned for the next task center iteration.
 - Form rendering is still JSON-oriented in the console; schema-driven controls are the next frontend step.
