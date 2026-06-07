@@ -12,6 +12,7 @@
 - 任务中心已支持关键词、状态和日期范围筛选。
 - 表单管理已支持可视化字段编辑、JSON Schema 预览和表单预览。
 - 表单绑定已支持从 BPMN 自动加载任务节点，默认展示已有绑定对应的流程模型。
+- 审计日志已支持统一筛选、分页、详情查看和审计详情脱敏。
 - 系统设置已显示请求头预览和系统健康。
 - 数据源页保留连接测试，不提供任意 SQL 执行入口。
 
@@ -35,6 +36,7 @@
 - 任务详情已接入 PageContainer、PageHeader、StatusTag、EmptyState、DetailSection、Toolbar；任务时间、审批意见、表单快照和操作记录统一格式化。
 - 任务详情流程变量、任务变量、表单快照、操作记录和详情数据已脱敏展示；提交前校验绑定表单必填项。
 - 表单绑定已接入 PageContainer、PageHeader、DetailSection、Toolbar、StatusTag、CopyableText、ConfirmAction、EmptyState；新增和编辑不再手填流程模型、流程定义和任务节点。
+- 审计日志已接入 PageContainer、PageHeader、DetailSection、Toolbar、EmptyState、CopyableText；列表和弹窗时间格式统一，详情 JSON 脱敏展示。
 - 前端 `npm run build` 已通过。
 - 后端 `mvn -s .mvn/settings-cn.xml test` 已通过。
 
