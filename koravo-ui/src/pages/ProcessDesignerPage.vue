@@ -68,6 +68,35 @@
           <a-form-item v-if="selectedElement.type === 'bpmn:UserTask'" label="Assignee">
             <a-input v-model:value="elementForm.assignee" />
           </a-form-item>
+          <template v-if="selectedElement.type === 'bpmn:ServiceTask'">
+            <a-form-item label="Delegate expression">
+              <a-input v-model:value="elementForm.delegateExpression" />
+            </a-form-item>
+            <a-form-item label="Connector type">
+              <a-input v-model:value="elementForm.connectorType" />
+            </a-form-item>
+            <a-form-item label="Method">
+              <a-select v-model:value="elementForm.method">
+                <a-select-option value="GET">GET</a-select-option>
+                <a-select-option value="POST">POST</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="URL">
+              <a-input v-model:value="elementForm.url" />
+            </a-form-item>
+            <a-form-item label="Headers JSON">
+              <a-textarea v-model:value="elementForm.headers" :rows="3" />
+            </a-form-item>
+            <a-form-item label="Body">
+              <a-textarea v-model:value="elementForm.body" :rows="3" />
+            </a-form-item>
+            <a-form-item label="Timeout millis">
+              <a-input v-model:value="elementForm.timeoutMillis" />
+            </a-form-item>
+            <a-form-item label="Output variable">
+              <a-input v-model:value="elementForm.outputVariable" />
+            </a-form-item>
+          </template>
           <a-button size="small" type="primary" @click="applyElementProperties">Apply</a-button>
         </a-form>
 
@@ -136,9 +165,49 @@ const form = reactive({
 const elementForm = reactive({
   id: '',
   name: '',
-  assignee: ''
+  assignee: '',
+  delegateExpression: '',
+  connectorType: 'http',
+  method: 'GET',
+  url: '',
+  headers: '{}',
+  body: '',
+  timeoutMillis: '5000',
+  outputVariable: 'connectorResult'
 })
 const canDeploySelectedModel = computed(() => selectedModel.value?.status === 'DRAFT')
+const flowableModdle = {
+  name: 'Flowable',
+  uri: 'http://flowable.org/bpmn',
+  prefix: 'flowable',
+  xml: {
+    tagAlias: 'lowerCase'
+  },
+  types: [
+    {
+      name: 'UserTask',
+      extends: ['bpmn:UserTask'],
+      properties: [
+        { name: 'assignee', isAttr: true, type: 'String' }
+      ]
+    },
+    {
+      name: 'ServiceTask',
+      extends: ['bpmn:ServiceTask'],
+      properties: [
+        { name: 'delegateExpression', isAttr: true, type: 'String' }
+      ]
+    },
+    {
+      name: 'Field',
+      superClass: ['Element'],
+      properties: [
+        { name: 'name', isAttr: true, type: 'String' },
+        { name: 'stringValue', isAttr: true, type: 'String' }
+      ]
+    }
+  ]
+}
 
 const defaultBpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
@@ -168,7 +237,12 @@ const defaultBpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
 
 onMounted(async () => {
   await nextTick()
-  modeler.value = new BpmnModeler({ container: canvasRef.value })
+  modeler.value = new BpmnModeler({
+    container: canvasRef.value,
+    moddleExtensions: {
+      flowable: flowableModdle
+    }
+  })
   modeler.value.on('selection.changed', (event: { newSelection: any[] }) => {
     selectElement(event.newSelection[0] || null)
   })
@@ -320,6 +394,14 @@ function selectElement(element: any | null) {
   elementForm.id = businessObject?.id || ''
   elementForm.name = businessObject?.name || ''
   elementForm.assignee = readAssignee(businessObject)
+  elementForm.delegateExpression = businessObject?.get?.('flowable:delegateExpression') || businessObject?.$attrs?.['flowable:delegateExpression'] || ''
+  elementForm.connectorType = readConnectorField(businessObject, 'connectorType') || 'http'
+  elementForm.method = readConnectorField(businessObject, 'method') || 'GET'
+  elementForm.url = readConnectorField(businessObject, 'url') || ''
+  elementForm.headers = readConnectorField(businessObject, 'headers') || '{}'
+  elementForm.body = readConnectorField(businessObject, 'body') || ''
+  elementForm.timeoutMillis = readConnectorField(businessObject, 'timeoutMillis') || '5000'
+  elementForm.outputVariable = readConnectorField(businessObject, 'outputVariable') || 'connectorResult'
 }
 
 function readAssignee(businessObject: any) {
@@ -342,9 +424,52 @@ function applyElementProperties() {
   if (selectedElement.value.type === 'bpmn:UserTask') {
     properties['flowable:assignee'] = elementForm.assignee
   }
+  if (selectedElement.value.type === 'bpmn:ServiceTask') {
+    properties['flowable:delegateExpression'] = elementForm.delegateExpression || '${koravoConnectorDelegate}'
+  }
   modeling.updateProperties(selectedElement.value, properties)
+  if (selectedElement.value.type === 'bpmn:ServiceTask') {
+    applyConnectorFields(selectedElement.value)
+  }
   selectElement(selectedElement.value)
   validation.value = null
   message.success('Element properties updated')
+}
+
+function readConnectorField(businessObject: any, name: string) {
+  const values = businessObject?.extensionElements?.values || []
+  const field = values.find((item: any) => item.name === name)
+  return field?.stringValue || ''
+}
+
+function applyConnectorFields(element: any) {
+  const businessObject = element.businessObject
+  const modeling = modeler.value.get('modeling')
+  const moddle = modeler.value.get('moddle')
+  if (!businessObject.extensionElements) {
+    modeling.updateProperties(element, {
+      extensionElements: moddle.create('bpmn:ExtensionElements', { values: [] })
+    })
+  }
+  setConnectorField(businessObject, 'connectorType', elementForm.connectorType || 'http')
+  setConnectorField(businessObject, 'method', elementForm.method || 'GET')
+  setConnectorField(businessObject, 'url', elementForm.url)
+  setConnectorField(businessObject, 'headers', elementForm.headers)
+  setConnectorField(businessObject, 'body', elementForm.body)
+  setConnectorField(businessObject, 'timeoutMillis', elementForm.timeoutMillis || '5000')
+  setConnectorField(businessObject, 'outputVariable', elementForm.outputVariable || 'connectorResult')
+}
+
+function setConnectorField(businessObject: any, name: string, value: string) {
+  const moddle = modeler.value.get('moddle')
+  const extensionElements = businessObject.extensionElements
+  const values = extensionElements.values || []
+  let field = values.find((item: any) => item.name === name)
+  if (!field) {
+    field = moddle.create('flowable:Field', { name })
+    values.push(field)
+    extensionElements.values = values
+  }
+  field.stringValue = value || ''
 }
 </script>

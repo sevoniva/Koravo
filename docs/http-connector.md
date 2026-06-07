@@ -20,6 +20,8 @@ Configure it with Flowable field extensions:
 - `timeoutMillis`: optional timeout, defaults to 5000
 - `outputVariable`: variable name for the connector response
 
+In the console designer, select a `bpmn:ServiceTask` to edit the delegate expression and the basic HTTP connector fields above. This covers the demo configuration path without requiring raw XML edits.
+
 The output variable contains:
 
 ```json
@@ -98,4 +100,4 @@ The demo flow starts, executes the HTTP service task, stores the response in a p
 ## Current Limits
 
 - Only GET and POST are supported.
-- OAuth, mTLS, retry policies, and connector configuration UI are planned.
+- OAuth, mTLS, retry policies, and advanced connector configuration UI are planned.
