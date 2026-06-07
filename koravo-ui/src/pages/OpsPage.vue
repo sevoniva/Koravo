@@ -66,11 +66,19 @@
             </a-select>
           </a-form-item>
           <a-form-item>
-            <a-button type="primary" :loading="connectorLoading" @click="loadConnectorLogs">Search</a-button>
+            <a-button type="primary" :loading="connectorLoading" @click="searchConnectorLogs">Search</a-button>
           </a-form-item>
         </a-form>
 
-        <a-table :data-source="connectorLogs" :columns="connectorColumns" row-key="id" :pagination="false" size="small">
+        <a-table
+          :data-source="connectorLogs"
+          :columns="connectorColumns"
+          row-key="id"
+          :loading="connectorLoading"
+          :pagination="connectorPagination"
+          size="small"
+          @change="handleConnectorTableChange"
+        >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'summary'">
               <code>{{ record.errorMessage || record.responseSummary || record.requestSummary }}</code>
@@ -122,10 +130,10 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ReloadOutlined } from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
+import { message, type TablePaginationConfig } from 'ant-design-vue'
 import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import JsonPreview from '../components/JsonPreview.vue'
 import {
@@ -154,6 +162,9 @@ const activeTab = ref('instances')
 const connectorLoading = ref(false)
 const connectorLogs = ref<ConnectorExecutionLogItem[]>([])
 const connectorSummary = ref<ConnectorExecutionSummary | null>(null)
+const connectorPage = ref(1)
+const connectorPageSize = ref(20)
+const connectorTotal = ref(0)
 const connectorFilters = ref({
   connectorType: 'http',
   status: undefined as string | undefined
@@ -195,6 +206,14 @@ const connectorFailureColumns = [
   { title: 'Error', key: 'error' }
 ]
 
+const connectorPagination = computed<TablePaginationConfig>(() => ({
+  current: connectorPage.value,
+  pageSize: connectorPageSize.value,
+  total: connectorTotal.value,
+  showSizeChanger: true,
+  showTotal: (count) => `${count} connector executions`
+}))
+
 let traceViewer: any = null
 
 async function load() {
@@ -218,13 +237,27 @@ async function loadConnectorLogs() {
     const page = await listConnectorExecutionLogs({
       connectorType: connectorFilters.value.connectorType || undefined,
       status: connectorFilters.value.status,
-      page: 1,
-      pageSize: 30
+      page: connectorPage.value,
+      pageSize: connectorPageSize.value
     })
     connectorLogs.value = page.items
+    connectorTotal.value = page.total
+    connectorPage.value = page.page
+    connectorPageSize.value = page.pageSize
   } finally {
     connectorLoading.value = false
   }
+}
+
+async function searchConnectorLogs() {
+  connectorPage.value = 1
+  await loadConnectorLogs()
+}
+
+function handleConnectorTableChange(nextPagination: TablePaginationConfig) {
+  connectorPage.value = nextPagination.current || 1
+  connectorPageSize.value = nextPagination.pageSize || 20
+  loadConnectorLogs()
 }
 
 async function inspect(instanceId: string) {
