@@ -12,7 +12,7 @@
 
     <serviceTask id="callKoravoHealth"
                  name="Call Koravo Health"
-                 flowable:class="io.koravo.connector.flowable.KoravoConnectorDelegate">
+                 flowable:delegateExpression="${koravoConnectorDelegate}">
       <extensionElements>
         <flowable:field name="connectorType" stringValue="http"/>
         <flowable:field name="method" stringValue="GET"/>

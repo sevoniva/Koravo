@@ -21,7 +21,7 @@ The HTTP connector supports:
 - timeout
 - status code, headers, and body response
 
-Flowable service tasks can call it through `io.koravo.connector.flowable.KoravoConnectorDelegate`.
+Flowable service tasks can call it through Spring delegate expression `${koravoConnectorDelegate}`.
 Configure the delegate with Flowable field extensions:
 
 - `connectorType`: currently `http`.

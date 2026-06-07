@@ -2,12 +2,12 @@
 
 Koravo includes a real HTTP connector that can be executed from Flowable service tasks through `KoravoConnectorDelegate`.
 
-## Delegate Class
+## Delegate Expression
 
-Use this Flowable class in BPMN service tasks:
+Use this Spring delegate expression in BPMN service tasks:
 
 ```text
-io.koravo.connector.flowable.KoravoConnectorDelegate
+${koravoConnectorDelegate}
 ```
 
 Configure it with Flowable field extensions:

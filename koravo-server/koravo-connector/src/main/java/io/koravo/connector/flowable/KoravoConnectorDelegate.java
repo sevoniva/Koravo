@@ -12,6 +12,8 @@ import io.koravo.connector.log.ConnectorExecutionLogService;
 import org.flowable.common.engine.api.delegate.Expression;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.flowable.engine.delegate.JavaDelegate;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -20,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class KoravoConnectorDelegate implements JavaDelegate {
     private static final TypeReference<Map<String, String>> STRING_MAP_TYPE = new TypeReference<>() {
     };

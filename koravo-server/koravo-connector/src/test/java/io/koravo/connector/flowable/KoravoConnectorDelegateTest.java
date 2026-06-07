@@ -10,11 +10,16 @@ import io.koravo.connector.log.ConnectorExecutionLogService;
 import org.flowable.common.engine.api.delegate.Expression;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -22,6 +27,22 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class KoravoConnectorDelegateTest {
+    @Test
+    void delegateIsPrototypeBeanForFlowableFieldInjection() {
+        Scope scope = KoravoConnectorDelegate.class.getAnnotation(Scope.class);
+
+        assertThat(scope).isNotNull();
+        assertThat(scope.value()).isEqualTo(ConfigurableBeanFactory.SCOPE_PROTOTYPE);
+    }
+
+    @Test
+    void httpConnectorDemoUsesSpringDelegateExpression() throws Exception {
+        String bpmnXml = Files.readString(Path.of("..", "..", "examples", "bpmn", "http-connector-demo.bpmn20.xml"));
+
+        assertThat(bpmnXml).contains("flowable:delegateExpression=\"${koravoConnectorDelegate}\"");
+        assertThat(bpmnXml).doesNotContain("flowable:class=\"io.koravo.connector.flowable.KoravoConnectorDelegate\"");
+    }
+
     @Test
     void executesConfiguredConnectorAndWritesOutputVariable() {
         Connector connector = mock(Connector.class);
