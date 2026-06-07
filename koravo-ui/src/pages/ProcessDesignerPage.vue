@@ -69,6 +69,7 @@
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
   CheckCircleOutlined,
@@ -84,6 +85,7 @@ import {
   createProcessModel,
   deployProcessModelDraft,
   exportProcessModel,
+  getProcessModel,
   importProcessModel,
   listProcessModels,
   updateProcessModel,
@@ -93,6 +95,7 @@ import {
 } from '../api/koravo'
 
 const canvasRef = ref<HTMLDivElement | null>(null)
+const route = useRoute()
 const modeler = ref<any>(null)
 const models = ref<ProcessModelItem[]>([])
 const selectedModel = ref<ProcessModelItem | null>(null)
@@ -139,6 +142,7 @@ onMounted(async () => {
   await modeler.value.importXML(defaultBpmnXml)
   modeler.value.get('canvas').zoom('fit-viewport')
   await loadModels()
+  await openRouteModel()
 })
 
 onBeforeUnmount(() => {
@@ -152,6 +156,13 @@ async function loadModels() {
   } finally {
     loadingModels.value = false
   }
+}
+
+async function openRouteModel() {
+  const modelId = typeof route.query.modelId === 'string' ? route.query.modelId : ''
+  if (!modelId) return
+  const model = await getProcessModel(modelId)
+  await openModel(model)
 }
 
 async function newDiagram() {

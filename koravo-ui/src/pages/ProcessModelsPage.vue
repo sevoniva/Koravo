@@ -43,6 +43,7 @@
         <template v-if="column.key === 'action'">
           <a-space wrap>
             <a-button size="small" @click="inspect(record.id)">Detail</a-button>
+            <a-button size="small" @click="router.push(`/process-designer?modelId=${record.id}`)">Edit</a-button>
             <a-button size="small" @click="exportModel(record)">Export</a-button>
             <a-button
               size="small"
@@ -115,7 +116,7 @@ const columns = [
   { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
   { title: 'Definition', dataIndex: 'flowableDefinitionId', key: 'flowableDefinitionId' },
   { title: 'Updated', dataIndex: 'updatedAt', key: 'updatedAt', width: 210 },
-  { title: 'Action', key: 'action', width: 390 }
+  { title: 'Action', key: 'action', width: 430 }
 ]
 
 function beforeUpload(nextFile: File) {
