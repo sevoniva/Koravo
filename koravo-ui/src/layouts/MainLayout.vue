@@ -9,10 +9,12 @@
         </div>
       </div>
       <a-menu :selectedKeys="[activeMenuKey]" theme="dark" mode="inline" @click="handleNav">
-        <a-menu-item v-for="item in navItems" :key="item.path">
-          <component :is="item.icon" />
-          {{ item.title }}
-        </a-menu-item>
+        <a-menu-item-group v-for="group in navGroups" :key="group.key" :title="group.title">
+          <a-menu-item v-for="item in group.items" :key="item.path">
+            <component :is="item.icon" />
+            {{ item.title }}
+          </a-menu-item>
+        </a-menu-item-group>
       </a-menu>
     </a-layout-sider>
     <a-layout>
@@ -71,6 +73,22 @@ const iconMap = {
   settings: SettingOutlined
 }
 
+const navGroupMap: Record<string, string[]> = {
+  start: ['/dashboard', '/quick-start'],
+  process: ['/process-models', '/process-designer', '/process-instances', '/tasks'],
+  forms: ['/forms', '/form-bindings'],
+  integration: ['/datasources', '/connector-demo'],
+  ops: ['/ops', '/audit-logs', '/system-settings']
+}
+
+const navGroupTitles: Record<string, string> = {
+  start: '工作台',
+  process: '流程',
+  forms: '表单',
+  integration: '集成',
+  ops: '运维'
+}
+
 const navItems = menuRoutes
   .filter((item) => item.meta?.menu)
   .map((item) => ({
@@ -78,6 +96,14 @@ const navItems = menuRoutes
     title: String(item.meta?.title || item.path),
     icon: iconMap[String(item.meta?.icon) as keyof typeof iconMap] || DashboardOutlined
   }))
+
+const navGroups = Object.entries(navGroupMap).map(([key, paths]) => ({
+  key,
+  title: navGroupTitles[key],
+  items: paths
+    .map((path) => navItems.find((item) => item.path === path))
+    .filter((item): item is typeof navItems[number] => Boolean(item))
+}))
 
 const activeMenuKey = computed(() => {
   const match = navItems.find((item) => route.path === item.path || route.path.startsWith(`${item.path}/`))

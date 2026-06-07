@@ -1,12 +1,10 @@
 <template>
-  <section class="page">
-    <div class="page-heading">
-      <div>
-        <h1>运维中心</h1>
-        <p>查看流程实例、流程追踪、连接器日志和异常摘要。</p>
-      </div>
+  <PageContainer wide>
+    <PageHeader title="运维中心" description="查看实例、连接器日志、失败任务和异常摘要。">
+      <template #actions>
       <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
-    </div>
+      </template>
+    </PageHeader>
 
     <a-tabs v-model:activeKey="activeTab" @change="load">
       <a-tab-pane key="instances" tab="流程实例">
@@ -19,10 +17,16 @@
           @change="handleInstanceTableChange"
         >
           <template #emptyText>
-            <a-empty description="暂无流程实例" />
+            <EmptyState description="暂无流程实例" />
           </template>
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'action'">
+            <template v-if="column.key === 'status'">
+              <StatusTag :status="record.status" />
+            </template>
+            <template v-else-if="column.key === 'startTime'">
+              {{ formatDateTime(record.startTime) }}
+            </template>
+            <template v-else-if="column.key === 'action'">
               <a-space wrap>
                 <a-button size="small" @click="inspect(record.instanceId)">实例详情</a-button>
                 <a-button size="small" type="primary" @click="trace(record.instanceId)">流程追踪</a-button>
@@ -93,7 +97,7 @@
           @change="handleConnectorTableChange"
         >
           <template #emptyText>
-            <a-empty description="暂无连接器日志" />
+            <EmptyState description="暂无连接器日志" />
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'summary'">
@@ -141,7 +145,7 @@
           @change="handleFailedJobTableChange"
         >
           <template #emptyText>
-            <a-empty description="暂无失败任务" />
+            <EmptyState description="暂无失败任务" />
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'status'">
@@ -201,7 +205,7 @@
           @change="handleDeadLetterJobTableChange"
         >
           <template #emptyText>
-            <a-empty description="暂无死信任务" />
+            <EmptyState description="暂无死信任务" />
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'status'">
@@ -260,7 +264,7 @@
           size="small"
         >
           <template #emptyText>
-            <a-empty description="暂无异常摘要" />
+            <EmptyState description="暂无异常摘要" />
           </template>
         </a-table>
       </a-tab-pane>
@@ -275,7 +279,7 @@
           size="small"
         >
           <template #emptyText>
-            <a-empty description="暂无能力清单" />
+            <EmptyState description="暂无能力清单" />
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'status'">
@@ -307,7 +311,9 @@
       size="small"
     />
 
-    <JsonPreview :value="detail" />
+    <DetailSection v-if="detail" title="实例详情">
+      <JsonPreview :value="detail" />
+    </DetailSection>
 
     <a-modal v-model:open="connectorDetailOpen" title="连接器执行详情" :footer="null" width="860px">
       <a-descriptions v-if="selectedConnectorLog" bordered :column="2" size="small" class="panel-block">
@@ -359,7 +365,7 @@
         </a-tab-pane>
       </a-tabs>
     </a-modal>
-  </section>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -369,6 +375,7 @@ import { ReloadOutlined } from '@ant-design/icons-vue'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
 import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import JsonPreview from '../components/JsonPreview.vue'
+import { DetailSection, EmptyState, PageContainer, PageHeader, StatusTag } from '../components/ui'
 import {
   activateProcessInstance,
   deleteDeadLetterJob,

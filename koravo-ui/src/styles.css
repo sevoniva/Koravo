@@ -39,6 +39,28 @@ body {
   background: #16211f !important;
 }
 
+.app-sider .ant-menu {
+  padding: 4px 10px 16px;
+  background: transparent;
+}
+
+.app-sider .ant-menu-item {
+  height: 36px;
+  margin: 2px 0;
+  border-radius: 6px;
+}
+
+.app-sider .ant-menu-item-group-title {
+  padding: 14px 12px 6px;
+  color: #7f968d;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.app-sider .ant-menu-inline-collapsed .ant-menu-item-group-title {
+  display: none;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -583,6 +605,24 @@ p {
   .trace-viewer-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .app-content {
+    padding: 16px;
+  }
+
+  .designer-shell {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .designer-sidebar,
+  .designer-properties {
+    max-height: none;
+  }
+
+  .designer-canvas {
+    min-height: 520px;
   }
 
   .span-2 {

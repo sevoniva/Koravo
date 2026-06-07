@@ -1,11 +1,7 @@
 <template>
-  <section class="designer-page">
-    <div class="page-heading">
-      <div>
-        <h1>流程设计器</h1>
-        <p>{{ selectedModel ? `${selectedModel.modelName} · 版本 ${selectedModel.version} · ${selectedModel.status}` : '请假审批流程草稿' }}</p>
-      </div>
-      <a-space wrap>
+  <PageContainer wide class="designer-page">
+    <PageHeader title="流程设计器" :description="designerDescription">
+      <template #actions>
         <a-button @click="newDiagram"><PlusOutlined />新建</a-button>
         <a-button @click="loadLeaveDemo"><PlusOutlined />加载请假审批示例</a-button>
         <a-upload :before-upload="beforeImport" :show-upload-list="false" accept=".xml,.bpmn,.bpmn20.xml">
@@ -15,8 +11,8 @@
         <a-button :loading="saving" type="primary" @click="saveDraft"><SaveOutlined />保存草稿</a-button>
         <a-button :loading="validating" @click="validate"><CheckCircleOutlined />校验</a-button>
         <a-button :loading="deploying" :disabled="!canDeploySelectedModel" type="primary" @click="deploy"><CloudUploadOutlined />部署</a-button>
-      </a-space>
-    </div>
+      </template>
+    </PageHeader>
 
     <div class="designer-shell">
       <aside class="designer-sidebar">
@@ -28,7 +24,7 @@
           </template>
           <template #renderItem="{ item }">
             <a-list-item :class="{ active: item.id === selectedModel?.id }" @click="openModel(item)">
-              <a-list-item-meta :title="item.modelName" :description="`${item.modelKey} · ${item.status}`" />
+              <a-list-item-meta :title="item.modelName" :description="`${item.modelKey} · ${statusText(item.status)}`" />
             </a-list-item>
           </template>
         </a-list>
@@ -56,8 +52,8 @@
         <a-alert
           v-if="!selectedElement"
           type="info"
-          message="选择 BPMN 节点后可编辑基础属性。"
-          description="当前版本支持节点 ID、名称、用户任务处理人和 HTTP Service Task 基础 XML 配置。"
+          message="选择画布节点后编辑属性。"
+          description="支持节点 ID、名称、处理人和 HTTP 服务任务配置。"
           show-icon
         />
         <a-form v-else layout="vertical">
@@ -70,11 +66,11 @@
           <a-form-item label="节点名称">
             <a-input v-model:value="elementForm.name" />
           </a-form-item>
-          <a-form-item v-if="selectedElement.type === 'bpmn:UserTask'" label="处理人 Assignee">
+          <a-form-item v-if="selectedElement.type === 'bpmn:UserTask'" label="处理人">
             <a-input v-model:value="elementForm.assignee" />
           </a-form-item>
           <template v-if="selectedElement.type === 'bpmn:ServiceTask'">
-            <a-form-item label="Delegate expression">
+            <a-form-item label="执行器">
               <a-input v-model:value="elementForm.delegateExpression" />
             </a-form-item>
             <a-form-item label="连接器类型">
@@ -89,7 +85,7 @@
             <a-form-item label="URL">
               <a-input v-model:value="elementForm.url" />
             </a-form-item>
-            <a-form-item label="请求头 JSON">
+            <a-form-item label="请求头配置">
               <a-textarea v-model:value="elementForm.headers" :rows="3" />
             </a-form-item>
             <a-form-item label="请求体">
@@ -109,7 +105,7 @@
         <a-alert
           v-if="validation"
           :type="validation.valid ? 'success' : 'error'"
-          :message="validation.valid ? 'BPMN 校验通过' : 'BPMN 存在错误'"
+          :message="validation.valid ? '校验通过' : '存在校验错误'"
           show-icon
         />
         <a-list v-if="validation" :data-source="[...validation.errors, ...validation.warnings]" size="small">
@@ -121,7 +117,7 @@
         </a-list>
       </aside>
     </div>
-  </section>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -138,6 +134,7 @@ import {
   UploadOutlined
 } from '@ant-design/icons-vue'
 import BpmnModeler from 'bpmn-js/lib/Modeler'
+import { PageContainer, PageHeader } from '../components/ui'
 import {
   createProcessModel,
   deployProcessModelDraft,
@@ -182,6 +179,11 @@ const elementForm = reactive({
   outputVariable: 'connectorResult'
 })
 const canDeploySelectedModel = computed(() => selectedModel.value?.status === 'DRAFT')
+const designerDescription = computed(() => (
+  selectedModel.value
+    ? `${selectedModel.value.modelName} · 版本 ${selectedModel.value.version} · ${statusText(selectedModel.value.status)}`
+    : '请假审批流程草稿'
+))
 const flowableModdle = {
   name: 'Flowable',
   uri: 'http://flowable.org/bpmn',
@@ -351,7 +353,7 @@ async function validate() {
   validating.value = true
   try {
     validation.value = await validateProcessModelXml(await currentXml())
-    message[validation.value.valid ? 'success' : 'warning'](validation.value.valid ? 'BPMN 校验通过' : 'BPMN 存在校验错误')
+    message[validation.value.valid ? 'success' : 'warning'](validation.value.valid ? '校验通过' : '存在校验错误')
   } finally {
     validating.value = false
   }
@@ -505,5 +507,15 @@ function validateConnectorFields() {
     return false
   }
   return true
+}
+
+function statusText(status?: string) {
+  const mapping: Record<string, string> = {
+    DRAFT: '草稿',
+    DEPLOYED: '已部署',
+    DISABLED: '已禁用',
+    ARCHIVED: '已归档'
+  }
+  return mapping[status || ''] || status || '-'
 }
 </script>

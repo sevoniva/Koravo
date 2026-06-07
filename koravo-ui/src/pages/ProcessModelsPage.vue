@@ -1,15 +1,11 @@
 <template>
-  <section class="page">
-    <div class="page-heading">
-      <div>
-        <h1>流程模型</h1>
-        <p>管理 BPMN 草稿、部署版本、禁用模型和归档模型。</p>
-      </div>
-      <a-space>
+  <PageContainer wide>
+    <PageHeader title="流程模型" description="管理流程草稿、部署版本和模型状态。">
+      <template #actions>
         <a-button :loading="loadingModels" @click="loadModels"><ReloadOutlined />刷新</a-button>
         <a-button type="primary" @click="router.push('/process-designer')"><EditOutlined />打开设计器</a-button>
-      </a-space>
-    </div>
+      </template>
+    </PageHeader>
 
     <a-form layout="vertical" class="form-grid">
       <a-form-item label="模型名称">
@@ -25,26 +21,49 @@
       </a-form-item>
     </a-form>
 
-    <JsonPreview :value="deployment" />
+    <DetailSection v-if="deployment" title="部署结果">
+      <a-descriptions bordered :column="2" size="small">
+        <a-descriptions-item label="模型">{{ deployment.platformModelId }}</a-descriptions-item>
+        <a-descriptions-item label="流程 Key">{{ deployment.processDefinitionKey }}</a-descriptions-item>
+        <a-descriptions-item label="版本">{{ deployment.version }}</a-descriptions-item>
+        <a-descriptions-item label="部署 ID">{{ deployment.deploymentId }}</a-descriptions-item>
+        <a-descriptions-item label="流程定义" :span="2">{{ deployment.processDefinitionId }}</a-descriptions-item>
+      </a-descriptions>
+    </DetailSection>
 
     <a-form layout="vertical" class="form-grid panel-block">
       <a-form-item label="状态">
         <a-select v-model:value="statusFilter" allow-clear @change="loadModels">
-          <a-select-option value="DRAFT">DRAFT</a-select-option>
-          <a-select-option value="DEPLOYED">DEPLOYED</a-select-option>
-          <a-select-option value="DISABLED">DISABLED</a-select-option>
-          <a-select-option value="ARCHIVED">ARCHIVED</a-select-option>
+          <a-select-option value="DRAFT">草稿</a-select-option>
+          <a-select-option value="DEPLOYED">已部署</a-select-option>
+          <a-select-option value="DISABLED">已禁用</a-select-option>
+          <a-select-option value="ARCHIVED">已归档</a-select-option>
         </a-select>
       </a-form-item>
     </a-form>
 
-    <a-table :data-source="models" :columns="columns" row-key="id" :loading="loadingModels" :pagination="false" class="panel-block">
+    <a-table
+      :data-source="models"
+      :columns="columns"
+      row-key="id"
+      :loading="loadingModels"
+      :pagination="false"
+      class="panel-block"
+      size="small"
+      :scroll="{ x: 1080 }"
+    >
       <template #emptyText>
-        <a-empty description="暂无流程模型" />
+        <EmptyState description="暂无流程模型" />
       </template>
       <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'status'">
+          <StatusTag :status="record.status" />
+        </template>
+        <template v-else-if="column.key === 'updatedAt'">
+          {{ formatDateTime(record.updatedAt) }}
+        </template>
         <template v-if="column.key === 'action'">
-          <a-space wrap>
+          <Toolbar>
             <a-button size="small" @click="inspect(record.id)">详情</a-button>
             <a-button size="small" @click="router.push(`/process-designer?modelId=${record.id}`)">编辑</a-button>
             <a-button size="small" :loading="actionLoading === `validate:${record.id}`" @click="validateModel(record.id)">校验</a-button>
@@ -75,22 +94,52 @@
             >
               <a-button size="small" danger :loading="actionLoading === `archive:${record.id}`">归档</a-button>
             </a-popconfirm>
-          </a-space>
+          </Toolbar>
         </template>
       </template>
     </a-table>
 
-    <JsonPreview :value="selectedModel" />
-    <JsonPreview :value="validation" />
-  </section>
+    <DetailSection v-if="selectedModel" title="模型详情">
+      <a-descriptions bordered :column="2" size="small">
+        <a-descriptions-item label="模型名称">{{ selectedModel.modelName }}</a-descriptions-item>
+        <a-descriptions-item label="状态"><StatusTag :status="selectedModel.status" /></a-descriptions-item>
+        <a-descriptions-item label="模型 Key">{{ selectedModel.modelKey }}</a-descriptions-item>
+        <a-descriptions-item label="版本">{{ selectedModel.version }}</a-descriptions-item>
+        <a-descriptions-item label="流程定义">{{ selectedModel.flowableDefinitionId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="部署 ID">{{ selectedModel.flowableDeploymentId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="更新时间">{{ formatDateTime(selectedModel.updatedAt) }}</a-descriptions-item>
+        <a-descriptions-item label="说明">{{ selectedModel.description || '-' }}</a-descriptions-item>
+      </a-descriptions>
+    </DetailSection>
+
+    <DetailSection v-if="validation" title="校验结果">
+      <a-alert
+        :type="validation.valid ? 'success' : 'error'"
+        :message="validation.valid ? '校验通过' : '校验未通过'"
+        show-icon
+      />
+      <a-table
+        class="panel-block"
+        :data-source="validationIssues"
+        :columns="validationColumns"
+        row-key="key"
+        :pagination="false"
+        size="small"
+      >
+        <template #emptyText>
+          <EmptyState description="暂无校验问题" />
+        </template>
+      </a-table>
+    </DetailSection>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { EditOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons-vue'
-import JsonPreview from '../components/JsonPreview.vue'
+import { DetailSection, EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
 import {
   archiveProcessModel,
   deployProcessModel,
@@ -104,6 +153,7 @@ import {
   type ProcessDeployment,
   type ProcessModelItem
 } from '../api/koravo'
+import { formatDateTime } from '../utils/format'
 
 const modelName = ref('请假审批流程')
 const router = useRouter()
@@ -118,14 +168,26 @@ const validation = ref<BpmnValidationResult | null>(null)
 const statusFilter = ref<string | undefined>()
 
 const columns = [
-  { title: '模型名称', dataIndex: 'modelName', key: 'modelName' },
-  { title: '模型 Key', dataIndex: 'modelKey', key: 'modelKey' },
+  { title: '模型名称', dataIndex: 'modelName', key: 'modelName', width: 220 },
+  { title: '模型 Key', dataIndex: 'modelKey', key: 'modelKey', width: 180 },
   { title: '版本', dataIndex: 'version', key: 'version', width: 90 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
-  { title: '流程定义', dataIndex: 'flowableDefinitionId', key: 'flowableDefinitionId' },
-  { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 210 },
+  { title: '流程定义', dataIndex: 'flowableDefinitionId', key: 'flowableDefinitionId', width: 240 },
+  { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 170 },
   { title: '操作', key: 'action', width: 520 }
 ]
+
+const validationColumns = [
+  { title: '类型', dataIndex: 'type', key: 'type', width: 90 },
+  { title: '节点', dataIndex: 'elementId', key: 'elementId', width: 160 },
+  { title: '编码', dataIndex: 'code', key: 'code', width: 160 },
+  { title: '说明', dataIndex: 'message', key: 'message' }
+]
+
+const validationIssues = computed(() => [
+  ...(validation.value?.errors || []).map((item, index) => ({ ...item, key: `error:${index}`, type: '错误' })),
+  ...(validation.value?.warnings || []).map((item, index) => ({ ...item, key: `warning:${index}`, type: '警告' }))
+])
 
 function beforeUpload(nextFile: File) {
   file.value = nextFile
