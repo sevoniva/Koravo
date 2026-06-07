@@ -155,7 +155,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
 import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
@@ -179,6 +179,7 @@ import {
 
 const loading = ref(false)
 const router = useRouter()
+const route = useRoute()
 const instances = ref<OpsProcessInstance[]>([])
 const instancePage = ref(1)
 const instancePageSize = ref(20)
@@ -336,6 +337,7 @@ async function inspect(instanceId: string) {
 }
 
 async function trace(instanceId: string) {
+  activeTab.value = 'instances'
   traceDetail.value = await getProcessTrace(instanceId)
   detail.value = traceDetail.value
   await renderTraceDiagram()
@@ -417,9 +419,17 @@ onMounted(async () => {
   await load()
   await loadConnectorLogs()
   await loadCapabilities()
+  await loadRouteTrace()
 })
 
 onBeforeUnmount(() => {
   destroyTraceViewer()
 })
+
+async function loadRouteTrace() {
+  const instanceId = typeof route.query.instanceId === 'string' ? route.query.instanceId : undefined
+  if (route.query.view === 'trace' && instanceId) {
+    await trace(instanceId)
+  }
+}
 </script>

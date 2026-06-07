@@ -33,7 +33,10 @@
     </a-form>
 
     <JsonPreview :value="instance" />
-    <a-button v-if="instance" class="panel-block" @click="router.push(`/process-instances/${instance.instanceId}`)">Detail</a-button>
+    <a-space v-if="instance" class="panel-block">
+      <a-button @click="router.push(`/process-instances/${instance.instanceId}`)">Detail</a-button>
+      <a-button type="primary" @click="openOpsTrace(instance.instanceId)">Trace</a-button>
+    </a-space>
 
     <a-table
       class="panel-block"
@@ -48,7 +51,7 @@
         <template v-if="column.key === 'action'">
           <a-space>
             <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">Detail</a-button>
-            <a-button size="small" @click="router.push('/ops')">Ops</a-button>
+            <a-button size="small" type="primary" @click="openOpsTrace(record.instanceId)">Trace</a-button>
           </a-space>
         </template>
       </template>
@@ -165,6 +168,13 @@ function handleStartedTableChange(nextPagination: TablePaginationConfig) {
   startedPage.value = nextPagination.current || 1
   startedPageSize.value = nextPagination.pageSize || 20
   loadStartedInstances()
+}
+
+function openOpsTrace(instanceId: string) {
+  router.push({
+    path: '/ops',
+    query: { view: 'trace', instanceId }
+  })
 }
 
 onMounted(load)
