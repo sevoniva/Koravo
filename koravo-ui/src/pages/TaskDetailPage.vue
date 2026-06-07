@@ -118,8 +118,24 @@
 
     <JsonPreview :value="detail" />
 
-    <a-modal v-model:open="snapshotModalOpen" title="Form snapshot" :footer="null" width="720px">
-      <JsonPreview :value="selectedSnapshotData" />
+    <a-modal v-model:open="snapshotModalOpen" title="Form snapshot" :footer="null" width="840px">
+      <a-descriptions v-if="selectedSnapshot" bordered :column="2" size="small" class="panel-block">
+        <a-descriptions-item label="Task ID">{{ selectedSnapshot.taskId }}</a-descriptions-item>
+        <a-descriptions-item label="Form Schema">{{ selectedSnapshot.formSchemaId }}</a-descriptions-item>
+        <a-descriptions-item label="Version">{{ selectedSnapshot.formSchemaVersion }}</a-descriptions-item>
+        <a-descriptions-item label="Created">{{ selectedSnapshot.createdAt }}</a-descriptions-item>
+      </a-descriptions>
+      <a-tabs v-if="selectedSnapshot">
+        <a-tab-pane key="data" tab="Data">
+          <JsonPreview :value="selectedSnapshotData" />
+        </a-tab-pane>
+        <a-tab-pane key="schema" tab="Schema">
+          <JsonPreview :value="selectedSnapshotSchema" />
+        </a-tab-pane>
+        <a-tab-pane key="uiSchema" tab="UI Schema">
+          <JsonPreview :value="selectedSnapshotUiSchema" />
+        </a-tab-pane>
+      </a-tabs>
     </a-modal>
   </section>
 </template>
@@ -144,7 +160,10 @@ const formDataJson = ref('{}')
 const formDataValues = ref<JsonRecord>({})
 const comment = ref('approved')
 const snapshotModalOpen = ref(false)
+const selectedSnapshot = ref<FormSnapshotItem | null>(null)
 const selectedSnapshotData = ref<unknown>({})
+const selectedSnapshotSchema = ref<unknown>({})
+const selectedSnapshotUiSchema = ref<unknown>({})
 
 type SchemaField = {
   key: string
@@ -235,12 +254,20 @@ function openProcessTrace() {
 }
 
 function openSnapshot(snapshot: FormSnapshotItem) {
-  try {
-    selectedSnapshotData.value = JSON.parse(snapshot.dataJson || '{}')
-  } catch {
-    selectedSnapshotData.value = snapshot.dataJson
-  }
+  selectedSnapshot.value = snapshot
+  selectedSnapshotData.value = parseJsonValue(snapshot.dataJson)
+  selectedSnapshotSchema.value = parseJsonValue(snapshot.schemaJson)
+  selectedSnapshotUiSchema.value = parseJsonValue(snapshot.uiSchemaJson)
   snapshotModalOpen.value = true
+}
+
+function parseJsonValue(value?: string) {
+  if (!value) return {}
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
 }
 
 async function submit() {
