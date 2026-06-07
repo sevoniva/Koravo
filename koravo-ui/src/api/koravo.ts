@@ -122,6 +122,21 @@ export interface DataSourceTestLogItem {
   createdAt: string
 }
 
+export interface ConnectorExecutionLogItem {
+  id: string
+  connectorType: string
+  method?: string
+  url?: string
+  status: string
+  statusCode?: number
+  elapsedMillis: number
+  requestId?: string
+  requestSummary?: string
+  responseSummary?: string
+  errorMessage?: string
+  createdAt: string
+}
+
 export function getHealth() {
   return apiData<HealthInfo>(http.get('/health'))
 }
@@ -234,4 +249,13 @@ export function getOpsInstance(instanceId: string) {
 
 export function getProcessTrace(instanceId: string) {
   return apiData<ProcessTrace>(http.get(`/ops/process-instances/${instanceId}/trace`))
+}
+
+export function listConnectorExecutionLogs(params: {
+  connectorType?: string
+  status?: string
+  page?: number
+  pageSize?: number
+}) {
+  return apiData<PageResult<ConnectorExecutionLogItem>>(http.get('/connector-execution-logs', { params }))
 }
