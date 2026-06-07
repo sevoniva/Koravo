@@ -65,8 +65,14 @@ Spring Boot 4.x and Flowable 8.x are not used in this baseline because compatibl
 - [API design](docs/api-design.md)
 - [Deployment guide](docs/deployment-guide.md)
 - [Development guide](docs/development-guide.md)
+- [Model center](docs/model-center.md)
+- [Form binding](docs/form-binding.md)
+- [Process tracing](docs/process-tracing.md)
 - [Ops and audit](docs/ops-and-audit.md)
 - [Task center](docs/task-center.md)
+- [HTTP connector](docs/http-connector.md)
+- [Data source](docs/data-source.md)
+- [Security notes](docs/security-notes.md)
 - [Connector design](docs/connector-design.md)
 
 ## Package Sources
@@ -217,9 +223,9 @@ Apache License 2.0. See [LICENSE](LICENSE).
 
 ## Roadmap
 
-- Model Center visual modeler.
-- Task Center done/start/copy/transfer/delegate features.
-- Form Center schema versioning and node binding.
+- Model Center property panel and richer version comparison.
+- Task Center historic task detail, copy, transfer, and delegate features.
+- Form Center schema-driven rendering and binding management.
 - Data Hub datasource secret backends and query governance.
 - Connector Hub registry, config, and execution policies.
 - Ops Center dead-letter jobs, migrations, and audit search.
