@@ -69,6 +69,7 @@ Spring Boot 4.x and Flowable 8.x are not used in this baseline because compatibl
 - [Form binding](docs/form-binding.md)
 - [Process tracing](docs/process-tracing.md)
 - [Ops and audit](docs/ops-and-audit.md)
+- [Audit](docs/audit.md)
 - [Task center](docs/task-center.md)
 - [HTTP connector](docs/http-connector.md)
 - [Data source](docs/data-source.md)
