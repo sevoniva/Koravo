@@ -45,6 +45,7 @@ Datasource create/update/delete/test operations write audit events:
 ## Console
 
 Use `/datasources` to create, edit, delete, inspect detail responses, run connection tests, and review recent test logs. Detail and list responses intentionally omit password fields.
+When editing in the console, leaving the password field blank keeps the existing encrypted password; entering a value rotates it.
 
 ## Current Limits
 

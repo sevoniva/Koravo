@@ -19,7 +19,12 @@
       </a-form-item>
       <a-form-item label="JDBC URL" class="span-2"><a-input v-model:value="form.jdbcUrl" /></a-form-item>
       <a-form-item label="Username"><a-input v-model:value="form.username" /></a-form-item>
-      <a-form-item label="Password"><a-input-password v-model:value="form.password" /></a-form-item>
+      <a-form-item label="Password" :extra="editingId ? 'Leave blank to keep the existing encrypted password.' : undefined">
+        <a-input-password
+          v-model:value="form.password"
+          :placeholder="editingId ? 'Keep existing password' : 'Datasource password'"
+        />
+      </a-form-item>
       <a-form-item label="Read only"><a-switch v-model:checked="form.readOnly" /></a-form-item>
       <a-form-item>
         <a-space>
