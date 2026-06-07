@@ -25,7 +25,7 @@
       <a-descriptions-item label="流程实例">
         <a-button type="link" class="inline-link-button" @click="openProcessTrace">{{ detail.task.processInstanceId }}</a-button>
       </a-descriptions-item>
-      <a-descriptions-item label="流程定义 Process Definition">{{ detail.task.processDefinitionId }}</a-descriptions-item>
+      <a-descriptions-item label="流程定义">{{ detail.task.processDefinitionId }}</a-descriptions-item>
       <a-descriptions-item label="表单信息" :span="2">
         {{ detail.formSchema ? `${detail.formSchema.formName} v${detail.formSchema.version}` : '未绑定表单' }}
       </a-descriptions-item>

@@ -1,26 +1,22 @@
 <template>
-  <section class="page">
-    <div class="page-heading">
-      <div>
-        <h1>流程实例详情</h1>
-        <p>{{ instance?.businessKey || instanceId }}</p>
-      </div>
-      <a-space>
+  <PageContainer wide>
+    <PageHeader title="流程实例详情" :description="instance?.businessKey || instanceId">
+      <template #actions>
         <a-button @click="router.push('/process-instances')">启动流程</a-button>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
-      </a-space>
-    </div>
+      </template>
+    </PageHeader>
 
-    <a-empty v-if="!loading && !instance" description="暂无流程实例详情" />
+    <EmptyState v-if="!loading && !instance" description="暂无流程实例详情" />
 
     <a-descriptions v-if="instance" bordered :column="2" class="panel-block">
       <a-descriptions-item label="实例 ID">{{ instance.instanceId }}</a-descriptions-item>
-      <a-descriptions-item label="实例状态">{{ instance.status }}</a-descriptions-item>
+      <a-descriptions-item label="实例状态"><StatusTag :status="instance.status" /></a-descriptions-item>
       <a-descriptions-item label="业务编号">{{ instance.businessKey }}</a-descriptions-item>
       <a-descriptions-item label="发起人">{{ instance.startUserId }}</a-descriptions-item>
-      <a-descriptions-item label="流程定义 Process Definition">{{ instance.processDefinitionId }}</a-descriptions-item>
-      <a-descriptions-item label="发起时间">{{ instance.startTime }}</a-descriptions-item>
-      <a-descriptions-item label="结束时间">{{ instance.endTime || '-' }}</a-descriptions-item>
+      <a-descriptions-item label="流程定义">{{ instance.processDefinitionId }}</a-descriptions-item>
+      <a-descriptions-item label="发起时间">{{ formatDateTime(instance.startTime) }}</a-descriptions-item>
+      <a-descriptions-item label="结束时间">{{ formatDateTime(instance.endTime) }}</a-descriptions-item>
       <a-descriptions-item label="当前节点">{{ currentNodeText }}</a-descriptions-item>
     </a-descriptions>
 
@@ -46,31 +42,55 @@
       <a-tab-pane key="tasks" tab="当前任务">
         <a-table :data-source="traceDetail.currentTasks" :columns="taskColumns" row-key="taskId" :pagination="false" size="small">
           <template #emptyText>
-            <a-empty description="暂无当前任务" />
+            <EmptyState description="暂无当前任务" />
           </template>
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'action'">
+            <template v-if="column.key === 'status'">
+              <StatusTag :status="record.status" />
+            </template>
+            <template v-else-if="column.key === 'createTime'">
+              {{ formatDateTime(record.createTime) }}
+            </template>
+            <template v-else-if="column.key === 'action'">
               <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">详情</a-button>
             </template>
           </template>
         </a-table>
       </a-tab-pane>
       <a-tab-pane key="timeline" tab="历史活动">
-        <a-table :data-source="traceDetail.timeline" :columns="timelineColumns" row-key="activityId" :pagination="false" size="small" />
+        <a-table :data-source="traceDetail.timeline" :columns="timelineColumns" row-key="activityId" :pagination="false" size="small">
+          <template #emptyText>
+            <EmptyState description="暂无历史活动" />
+          </template>
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'status'">
+              <StatusTag :status="record.status" />
+            </template>
+            <template v-else-if="column.key === 'startTime'">
+              {{ formatDateTime(record.startTime) }}
+            </template>
+            <template v-else-if="column.key === 'endTime'">
+              {{ formatDateTime(record.endTime) }}
+            </template>
+          </template>
+        </a-table>
       </a-tab-pane>
       <a-tab-pane key="variables" tab="变量摘要">
-        <JsonPreview :value="traceDetail.variables" />
+        <JsonPreview :value="maskedVariables" />
       </a-tab-pane>
       <a-tab-pane key="auditLogs" tab="审计日志">
         <a-table :data-source="instance?.auditLogs || []" :columns="auditColumns" row-key="id" :pagination="false" size="small">
           <template #emptyText>
-            <a-empty description="暂无审计日志" />
+            <EmptyState description="暂无审计日志" />
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'detailJson'">
-              <code>{{ record.detailJson }}</code>
+              <code>{{ maskedAuditDetailText(record.detailJson) }}</code>
             </template>
-            <template v-if="column.key === 'action'">
+            <template v-else-if="column.key === 'createdAt'">
+              {{ formatDateTime(record.createdAt) }}
+            </template>
+            <template v-else-if="column.key === 'action'">
               <a-button size="small" @click="openAuditDetail(record)">查看</a-button>
             </template>
           </template>
@@ -78,11 +98,15 @@
       </a-tab-pane>
     </a-tabs>
 
-    <JsonPreview :value="{ instance, trace: traceDetail }" />
+    <a-collapse v-if="traceDetail" class="panel-block">
+      <a-collapse-panel key="detail" header="详情数据">
+        <JsonPreview :value="{ instance: maskedInstanceDetail, trace: maskedTraceDetail }" />
+      </a-collapse-panel>
+    </a-collapse>
 
     <a-modal v-model:open="auditDetailOpen" title="审计详情" :footer="null" width="820px">
       <a-descriptions v-if="selectedAuditLog" bordered :column="2" size="small" class="panel-block">
-        <a-descriptions-item label="时间">{{ selectedAuditLog.createdAt }}</a-descriptions-item>
+        <a-descriptions-item label="时间">{{ formatDateTime(selectedAuditLog.createdAt) }}</a-descriptions-item>
         <a-descriptions-item label="用户">{{ selectedAuditLog.userId }}</a-descriptions-item>
         <a-descriptions-item label="动作">{{ selectedAuditLog.action }}</a-descriptions-item>
         <a-descriptions-item label="资源">{{ selectedAuditLog.resourceType }}</a-descriptions-item>
@@ -93,7 +117,7 @@
       </a-descriptions>
       <JsonPreview :value="selectedAuditDetail" />
     </a-modal>
-  </section>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -102,6 +126,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import JsonPreview from '../components/JsonPreview.vue'
+import { DetailSection, EmptyState, PageContainer, PageHeader, StatusTag } from '../components/ui'
 import {
   getProcessInstance,
   getProcessTrace,
@@ -109,6 +134,7 @@ import {
   type OpsProcessInstance,
   type ProcessTrace
 } from '../api/koravo'
+import { formatDateTime, maskSecret, parseJsonSafe } from '../utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -124,10 +150,23 @@ const selectedAuditDetail = ref<unknown>({})
 const completedNodeCount = computed(() => traceDetail.value?.timeline.filter((item) => item.status === 'COMPLETED').length || 0)
 const currentNodeText = computed(() => traceDetail.value?.currentActivityIds.join('、') || '-')
 const currentTaskText = computed(() => traceDetail.value?.currentTasks.map((item) => item.name).join('、') || '-')
+const maskedVariables = computed(() => maskSecret(traceDetail.value?.variables || {}))
+const maskedTraceDetail = computed(() => traceDetail.value ? { ...traceDetail.value, variables: maskedVariables.value } : null)
+const maskedInstanceDetail = computed(() => {
+  if (!instance.value) return null
+  return {
+    ...instance.value,
+    auditLogs: instance.value.auditLogs?.map((item) => ({
+      ...item,
+      detailJson: maskedAuditDetailText(item.detailJson)
+    }))
+  }
+})
 
 const taskColumns = [
   { title: '任务名称', dataIndex: 'name', key: 'name' },
   { title: '任务节点', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey' },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '处理人', dataIndex: 'assignee', key: 'assignee', width: 140 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 220 },
   { title: '操作', key: 'action', width: 100 }
@@ -143,7 +182,7 @@ const timelineColumns = [
 ]
 
 const auditColumns = [
-  { title: '动作', dataIndex: 'action', key: 'action', width: 210 },
+  { title: '动作', dataIndex: 'action', key: 'auditAction', width: 210 },
   { title: '用户', dataIndex: 'userId', key: 'userId', width: 140 },
   { title: '请求 ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
   { title: '详情', dataIndex: 'detailJson', key: 'detailJson' },
@@ -209,17 +248,18 @@ function destroyTraceViewer() {
 
 function openAuditDetail(record: AuditLogItem) {
   selectedAuditLog.value = record
-  selectedAuditDetail.value = parseJsonValue(record.detailJson)
+  selectedAuditDetail.value = parseAuditDetail(record.detailJson)
   auditDetailOpen.value = true
 }
 
-function parseJsonValue(value?: string) {
+function maskedAuditDetailText(value?: string) {
+  const masked = parseAuditDetail(value)
+  return typeof masked === 'string' ? masked : JSON.stringify(masked)
+}
+
+function parseAuditDetail(value?: string) {
   if (!value) return {}
-  try {
-    return JSON.parse(value)
-  } catch {
-    return value
-  }
+  return maskSecret(parseJsonSafe(value, value))
 }
 
 onMounted(load)

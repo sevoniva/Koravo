@@ -28,6 +28,8 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 任务中心筛选：通过。`/tasks/my` 支持 `keyword`、`status`、`startTime`、`endTime`；浏览器输入无匹配关键词显示空状态，输入“确认”恢复待办行。
 - 任务详情提交表单：通过。绑定“请假申请表 v1”，提交“同意”后写入审批变量、意见和表单快照。
 - 流程追踪：通过。请假实例完成后状态为 `COMPLETED`，流程图 SVG 渲染，变量包含 `approved=true` 和 `approvalAction=同意`。
+- 流程实例列表：通过。`/process-instances` 使用统一状态标签和时间格式；选择 HTTP Connector 模型后自动切换为 HTTP 业务编号和审批人变量模板。
+- 流程实例详情：通过。`/process-instances/cb7fb909-625a-11f1-ab24-c232b2af3b82` 渲染实例状态、流程图、当前任务和折叠详情数据；变量、审计详情脱敏展示；接口返回 200 且控制台无错误。
 - 表单设计器：通过。`/forms` 渲染字段列表和表单预览，点击“新增字段”后生成 `field8`，JSON Schema 和预览同步更新。
 - 审计日志：通过。可查询 `TASK_COMPLETE`，任务详情返回对应审计记录。
 - HTTP Connector 示例：通过。部署 `httpConnectorDemo`，启动实例 `cb7fb909-625a-11f1-ab24-c232b2af3b82`，`httpResult.statusCode=200`，连接器日志为 `SUCCESS`。

@@ -122,7 +122,7 @@ const columns = [
   { title: '模型 Key', dataIndex: 'modelKey', key: 'modelKey' },
   { title: '版本', dataIndex: 'version', key: 'version', width: 90 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
-  { title: '流程定义 Process Definition', dataIndex: 'flowableDefinitionId', key: 'flowableDefinitionId' },
+  { title: '流程定义', dataIndex: 'flowableDefinitionId', key: 'flowableDefinitionId' },
   { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 210 },
   { title: '操作', key: 'action', width: 520 }
 ]
