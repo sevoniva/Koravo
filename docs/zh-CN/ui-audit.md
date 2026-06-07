@@ -43,6 +43,7 @@
 - 任务列表办理弹窗和任务详情办理区默认展示中文表单，表单数据和流程变量收进高级配置。
 - 表单绑定已接入 PageContainer、PageHeader、DetailSection、Toolbar、StatusTag、CopyableText、ConfirmAction、EmptyState；新增和编辑不再手填流程模型、流程定义和任务节点。
 - 审计日志已接入 PageContainer、PageHeader、DetailSection、Toolbar、EmptyState、CopyableText；列表和弹窗时间格式统一，详情 JSON 脱敏展示。
+- 审计日志默认展示中文动作、对象和变更摘要；表单审计枚举已中文化，原始脱敏详情移入高级详情。
 - 流程模型页已移除主视图裸 JSON，部署结果、模型详情和校验结果改为中文详情区。
 - 运维中心流程实例状态和时间已中文化，默认不再展示空 JSON 详情。
 - 运维中心连接器日志已移除默认代码块和原始响应体，表格展示格式化时间、中文状态、耗时和健康摘要；执行详情默认展示调用摘要，原始请求/响应移入高级详情。

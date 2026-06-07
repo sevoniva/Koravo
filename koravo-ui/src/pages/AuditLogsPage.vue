@@ -103,7 +103,7 @@
           </div>
           <div class="audit-card-target">
             <span>{{ resourceLabel(record.resourceType) }}</span>
-            <code>{{ resourceIdLabel(record.resourceId) }}</code>
+            <strong>{{ resourceIdLabel(record.resourceId) }}</strong>
           </div>
           <p>{{ detailSummary(record.detailJson, record.action) }}</p>
           <Toolbar>
@@ -125,7 +125,19 @@
         <a-descriptions-item label="客户端 IP">{{ selectedAudit.clientIp || '-' }}</a-descriptions-item>
         <a-descriptions-item label="租户">{{ selectedAudit.tenantId }}</a-descriptions-item>
       </a-descriptions>
-      <JsonPreview :value="selectedAuditDetail" />
+      <DetailSection v-if="selectedAudit" title="变更摘要">
+        <a-descriptions v-if="selectedAuditSummaryItems.length" bordered :column="2" size="small">
+          <a-descriptions-item v-for="item in selectedAuditSummaryItems" :key="item.key" :label="item.label">
+            {{ item.value }}
+          </a-descriptions-item>
+        </a-descriptions>
+        <EmptyState v-else description="暂无补充摘要" />
+      </DetailSection>
+      <a-collapse v-if="selectedAudit" class="panel-block">
+        <a-collapse-panel key="detail" header="高级详情">
+          <JsonPreview :value="selectedAuditDetail" />
+        </a-collapse-panel>
+      </a-collapse>
     </a-modal>
   </PageContainer>
 </template>
@@ -176,6 +188,8 @@ const actionOptions = [
   { value: 'DATASOURCE_CREATE', label: '创建数据源' },
   { value: 'DATASOURCE_TEST', label: '测试数据源' },
   { value: 'DATASOURCE_DELETE', label: '删除数据源' },
+  { value: 'FORM_SCHEMA_CREATE', label: '创建表单' },
+  { value: 'FORM_SCHEMA_UPDATE', label: '更新表单' },
   { value: 'FORM_BINDING_CREATE', label: '创建绑定' },
   { value: 'FORM_BINDING_UPDATE', label: '更新绑定' },
   { value: 'FORM_BINDING_DELETE', label: '删除绑定' }
@@ -188,6 +202,7 @@ const resourceOptions = [
   { value: 'CONNECTOR_EXECUTION', label: '连接器日志' },
   { value: 'DATASOURCE', label: '数据源' },
   { value: 'DEMO', label: '演示数据' },
+  { value: 'FORM_SCHEMA', label: '表单' },
   { value: 'FORM_BINDING', label: '表单绑定' }
 ]
 
@@ -198,6 +213,8 @@ const pagination = computed<TablePaginationConfig>(() => ({
   showSizeChanger: true,
   showTotal: (count) => `共 ${count} 条审计日志`
 }))
+
+const selectedAuditSummaryItems = computed(() => detailSummaryItems(selectedAuditDetail.value))
 
 async function load() {
   loading.value = true
@@ -259,12 +276,20 @@ function parseAuditDetail(value?: string) {
 function detailSummary(value?: string, action?: string) {
   const masked = parseAuditDetail(value)
   if (typeof masked === 'string') return masked || '-'
-  if (!masked || typeof masked !== 'object') return '-'
-  const usableEntries = Object.entries(masked as Record<string, unknown>)
-    .filter(([key, item]) => !isLowSignalDetail(key, item))
-  const entries = usableEntries.slice(0, 3)
+  const entries = detailSummaryItems(masked).slice(0, 3)
   if (!entries.length) return emptySummary(action)
-  return entries.map(([key, item]) => `${detailKeyLabel(key)}：${formatSummaryValue(item)}`).join('，')
+  return entries.map((item) => `${item.label}：${item.value}`).join('，')
+}
+
+function detailSummaryItems(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+  return Object.entries(value as Record<string, unknown>)
+    .filter(([key, item]) => !isLowSignalDetail(key, item))
+    .map(([key, item]) => ({
+      key,
+      label: detailKeyLabel(key),
+      value: formatSummaryValue(item)
+    }))
 }
 
 function isLowSignalDetail(key: string, value: unknown) {
@@ -284,6 +309,8 @@ function actionLabel(action?: string) {
     DATASOURCE_CREATE: '创建数据源',
     DATASOURCE_TEST: '测试数据源',
     DATASOURCE_DELETE: '删除数据源',
+    FORM_SCHEMA_CREATE: '创建表单',
+    FORM_SCHEMA_UPDATE: '更新表单',
     FORM_BINDING_CREATE: '创建绑定',
     FORM_BINDING_UPDATE: '更新绑定',
     FORM_BINDING_DELETE: '删除绑定'
@@ -299,6 +326,7 @@ function resourceLabel(resourceType?: string) {
     CONNECTOR_EXECUTION: '连接器日志',
     DATASOURCE: '数据源',
     DEMO: '演示数据',
+    FORM_SCHEMA: '表单',
     FORM_BINDING: '表单绑定'
   }
   return mapping[resourceType || ''] || resourceType || '-'
@@ -343,6 +371,8 @@ function detailKeyLabel(key: string) {
     name: '名称',
     deploymentId: '部署',
     modelKey: '模型 Key',
+    formKey: '表单 Key',
+    formName: '表单名称',
     version: '版本'
   }
   return mapping[key] || key
@@ -449,7 +479,7 @@ onMounted(load)
 }
 
 .audit-card-head span,
-.audit-card-target code,
+.audit-card-target strong,
 .audit-card p {
   overflow-wrap: anywhere;
 }
@@ -469,8 +499,9 @@ onMounted(load)
   gap: 2px;
 }
 
-.audit-card-target code {
+.audit-card-target strong {
   color: var(--color-text);
+  font-weight: 600;
 }
 
 .audit-card p {

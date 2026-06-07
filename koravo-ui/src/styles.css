@@ -273,7 +273,7 @@ p {
   gap: 4px;
 }
 
-.copyable-text code {
+.copyable-value {
   overflow: hidden;
   max-width: min(520px, 100%);
   text-overflow: ellipsis;

@@ -1,6 +1,6 @@
 <template>
   <span class="copyable-text">
-    <code>{{ value || '-' }}</code>
+    <span class="copyable-value">{{ value || '-' }}</span>
     <a-tooltip title="复制">
       <a-button size="small" type="text" @click="copy"><CopyOutlined /></a-button>
     </a-tooltip>
