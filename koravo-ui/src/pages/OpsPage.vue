@@ -323,10 +323,75 @@
       size="small"
     />
 
-    <DetailSection v-if="detail" title="实例详情">
-      <a-collapse>
+    <DetailSection v-if="inspectedInstance" title="实例详情">
+      <a-descriptions bordered :column="2" size="small" class="panel-block">
+        <a-descriptions-item label="实例 ID">{{ inspectedInstance.instanceId }}</a-descriptions-item>
+        <a-descriptions-item label="实例状态"><StatusTag :status="inspectedInstance.status" /></a-descriptions-item>
+        <a-descriptions-item label="业务编号">{{ inspectedInstance.businessKey || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="发起人">{{ inspectedInstance.startUserId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="流程定义">{{ inspectedInstance.processDefinitionId }}</a-descriptions-item>
+        <a-descriptions-item label="当前任务">{{ inspectedInstance.currentTasks?.length || 0 }}</a-descriptions-item>
+        <a-descriptions-item label="发起时间">{{ formatDateTime(inspectedInstance.startTime) }}</a-descriptions-item>
+        <a-descriptions-item label="结束时间">{{ formatDateTime(inspectedInstance.endTime) }}</a-descriptions-item>
+      </a-descriptions>
+
+      <a-tabs class="panel-block">
+        <a-tab-pane key="tasks" tab="当前任务">
+          <a-table
+            :data-source="inspectedInstance.currentTasks || []"
+            :columns="inspectedTaskColumns"
+            row-key="taskId"
+            :pagination="false"
+            size="small"
+          >
+            <template #emptyText>
+              <EmptyState description="暂无当前任务" />
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'status'">
+                <StatusTag :status="record.status" />
+              </template>
+              <template v-else-if="column.key === 'taskDefinitionKey'">
+                {{ detailValueLabel(record.taskDefinitionKey) }}
+              </template>
+              <template v-else-if="column.key === 'createTime'">
+                {{ formatDateTime(record.createTime) }}
+              </template>
+              <template v-else-if="column.key === 'action'">
+                <a-button size="small" @click="router.push(`/tasks/${record.taskId}`)">详情</a-button>
+              </template>
+            </template>
+          </a-table>
+        </a-tab-pane>
+        <a-tab-pane key="auditLogs" tab="审计摘要">
+          <a-table
+            :data-source="inspectedInstance.auditLogs || []"
+            :columns="inspectedAuditColumns"
+            row-key="id"
+            :pagination="false"
+            size="small"
+          >
+            <template #emptyText>
+              <EmptyState description="暂无审计记录" />
+            </template>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'auditAction'">
+                {{ auditActionLabel(record.action) }}
+              </template>
+              <template v-else-if="column.key === 'summary'">
+                <span class="ops-summary-text">{{ auditDetailSummary(record.detailJson, record.action) }}</span>
+              </template>
+              <template v-else-if="column.key === 'createdAt'">
+                {{ formatDateTime(record.createdAt) }}
+              </template>
+            </template>
+          </a-table>
+        </a-tab-pane>
+      </a-tabs>
+
+      <a-collapse class="panel-block">
         <a-collapse-panel key="raw" header="高级详情">
-          <JsonPreview :value="detail" />
+          <JsonPreview :value="maskedInspectedInstance" />
         </a-collapse-panel>
       </a-collapse>
     </DetailSection>
@@ -436,7 +501,7 @@ import {
   type OpsProcessInstance,
   type ProcessTrace
 } from '../api/koravo'
-import { formatDateTime, formatDuration, maskSecret } from '../utils/format'
+import { formatDateTime, formatDuration, maskSecret, parseJsonSafe } from '../utils/format'
 
 const loading = ref(false)
 const router = useRouter()
@@ -579,6 +644,17 @@ const deadLetterJobPagination = computed<TablePaginationConfig>(() => ({
 const selectedConnectorResponseBody = computed(() => extractResponseBody(selectedConnectorLog.value?.responseSummary))
 const selectedConnectorHealthData = computed(() => asRecord(selectedConnectorResponseBody.value?.data) || selectedConnectorResponseBody.value || {})
 const maskedSelectedConnectorLog = computed(() => selectedConnectorLog.value ? maskSecret(selectedConnectorLog.value) : {})
+const inspectedInstance = computed(() => asOpsInstance(detail.value))
+const maskedInspectedInstance = computed(() => {
+  if (!inspectedInstance.value) return null
+  return {
+    ...inspectedInstance.value,
+    auditLogs: inspectedInstance.value.auditLogs?.map((item) => ({
+      ...item,
+      detailJson: maskedAuditDetailText(item.detailJson)
+    }))
+  }
+})
 const connectorDetailTitle = computed(() => {
   if (!selectedConnectorLog.value) return ''
   if (selectedConnectorLog.value.errorMessage) return '调用失败'
@@ -594,6 +670,22 @@ const connectorDetailDescription = computed(() => {
 })
 const selectedJobExceptionText = computed(() => selectedJob.value?.exceptionMessage ? maskText(selectedJob.value.exceptionMessage) : '暂无异常摘要')
 const selectedJobStacktraceText = computed(() => selectedJob.value?.exceptionStacktrace ? maskText(selectedJob.value.exceptionStacktrace) : '暂无异常堆栈')
+
+const inspectedTaskColumns = [
+  { title: '任务名称', dataIndex: 'name', key: 'name' },
+  { title: '任务节点', dataIndex: 'taskDefinitionKey', key: 'taskDefinitionKey', width: 150 },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
+  { title: '处理人', dataIndex: 'assignee', key: 'assignee', width: 140 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+  { title: '操作', key: 'action', width: 90 }
+]
+
+const inspectedAuditColumns = [
+  { title: '动作', dataIndex: 'action', key: 'auditAction', width: 180 },
+  { title: '用户', dataIndex: 'userId', key: 'userId', width: 140 },
+  { title: '摘要', key: 'summary' },
+  { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 180 }
+]
 
 let traceViewer: any = null
 
@@ -890,8 +982,122 @@ function parseBodyPayload(value: unknown) {
   return asRecord(value)
 }
 
+function asOpsInstance(value: unknown) {
+  const record = asRecord(value)
+  if (!record) return null
+  if (Array.isArray(record.timeline) || Array.isArray(record.currentActivityIds) || 'variables' in record) return null
+  if (typeof record.instanceId !== 'string' || typeof record.status !== 'string') return null
+  return {
+    ...record,
+    currentTasks: Array.isArray(record.currentTasks) ? record.currentTasks : [],
+    auditLogs: Array.isArray(record.auditLogs) ? record.auditLogs : []
+  } as OpsProcessInstance
+}
+
 function asRecord(value: unknown) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+function maskedAuditDetailText(value?: string) {
+  const masked = parseJsonValue(value)
+  return typeof masked === 'string' ? maskText(masked) : JSON.stringify(masked)
+}
+
+function parseJsonValue(value?: string) {
+  return maskSecret(parseJsonSafe(value, value || {}))
+}
+
+function auditDetailSummary(value?: string, action?: string) {
+  const parsed = parseJsonValue(value)
+  if (typeof parsed === 'string') return maskText(parsed) || emptyAuditSummary(action)
+  const entries = Object.entries(parsed as Record<string, unknown>)
+    .filter(([key, item]) => !isLowSignalAuditKey(key, item))
+    .slice(0, 3)
+    .map(([key, item]) => `${auditDetailKeyLabel(key)}：${formatAuditValue(item)}`)
+  return entries.length ? entries.join('，') : emptyAuditSummary(action)
+}
+
+function isLowSignalAuditKey(key: string, value: unknown) {
+  if (value === undefined || value === null || value === '') return true
+  if (Array.isArray(value) && value.length === 0) return true
+  return /(^id$|id$|requestId|deploymentId|formSchemaId|formBindingId|processInstanceId|processDefinitionId)/i.test(key)
+}
+
+function auditActionLabel(action?: string) {
+  const mapping: Record<string, string> = {
+    TASK_COMPLETE: '完成任务',
+    PROCESS_INSTANCE_START: '启动流程',
+    CONNECTOR_EXECUTE: '执行连接器',
+    PROCESS_MODEL_DEPLOY: '部署模型',
+    PROCESS_MODEL_IMPORT: '导入模型',
+    DEMO_INIT: '初始化演示',
+    DATASOURCE_CREATE: '创建数据源',
+    DATASOURCE_TEST: '测试数据源',
+    DATASOURCE_DELETE: '删除数据源',
+    FORM_SCHEMA_CREATE: '创建表单',
+    FORM_SCHEMA_UPDATE: '更新表单',
+    FORM_BINDING_CREATE: '创建绑定',
+    FORM_BINDING_UPDATE: '更新绑定',
+    FORM_BINDING_DELETE: '删除绑定'
+  }
+  return mapping[action || ''] || action || '-'
+}
+
+function auditDetailKeyLabel(key: string) {
+  const mapping: Record<string, string> = {
+    applicant: '申请人',
+    approver: '审批人',
+    leaveType: '请假类型',
+    startDate: '开始日期',
+    endDate: '结束日期',
+    days: '请假天数',
+    reason: '请假原因',
+    attachmentNote: '附件说明',
+    approved: '审批结果',
+    approvalAction: '审批动作',
+    businessKey: '业务编号',
+    status: '状态',
+    processDefinitionKey: '流程 Key',
+    connectorType: '连接器',
+    statusCode: '状态码',
+    elapsedMillis: '耗时',
+    taskDefinitionKey: '任务节点'
+  }
+  return mapping[key] || key
+}
+
+function formatAuditValue(value: unknown) {
+  if (typeof value === 'boolean') return value ? '是' : '否'
+  if (value === undefined || value === null || value === '') return '-'
+  const text = detailValueLabel(String(value))
+  return text.length > 48 ? `${text.slice(0, 48)}...` : text
+}
+
+function emptyAuditSummary(action?: string) {
+  const mapping: Record<string, string> = {
+    PROCESS_INSTANCE_START: '流程已启动',
+    TASK_COMPLETE: '任务已完成',
+    CONNECTOR_EXECUTE: '连接器已执行'
+  }
+  return mapping[action || ''] || '无补充信息'
+}
+
+function detailValueLabel(value?: string) {
+  const mapping: Record<string, string> = {
+    RUNNING: '运行中',
+    SUCCESS: '成功',
+    FAILED: '失败',
+    COMPLETED: '已完成',
+    SUSPENDED: '已挂起',
+    ACTIVE: '启用',
+    approveTask: '审批请假',
+    reviewTask: '确认调用结果',
+    leaveApproval: '请假审批',
+    httpConnectorDemo: 'HTTP Connector 示例',
+    true: '是',
+    false: '否'
+  }
+  return mapping[value || ''] || value || '-'
 }
 
 function statusLabel(status?: string) {
