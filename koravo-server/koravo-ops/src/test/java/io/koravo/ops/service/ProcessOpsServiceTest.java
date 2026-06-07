@@ -51,4 +51,28 @@ class ProcessOpsServiceTest {
         verify(processFacade).activateProcessInstance("default", "pi-1");
         verify(auditLogService).record(eq("PROCESS_INSTANCE_ACTIVATE"), eq("PROCESS_INSTANCE"), eq("pi-1"), eq(java.util.Map.of()));
     }
+
+    @Test
+    void capabilitiesExposeAvailableAndPlannedOpsBoundaries() {
+        var capabilities = service.capabilities();
+
+        org.assertj.core.api.Assertions.assertThat(capabilities)
+                .extracting("key")
+                .contains(
+                        "PROCESS_INSTANCE_TRACE",
+                        "CONNECTOR_EXECUTION_LOGS",
+                        "FAILED_TASK_INSPECTION",
+                        "DEAD_LETTER_TASKS",
+                        "JOB_RETRY",
+                        "PROCESS_MIGRATION"
+                );
+        org.assertj.core.api.Assertions.assertThat(capabilities)
+                .filteredOn(capability -> capability.key().equals("PROCESS_INSTANCE_TRACE"))
+                .extracting("status")
+                .containsExactly("AVAILABLE");
+        org.assertj.core.api.Assertions.assertThat(capabilities)
+                .filteredOn(capability -> capability.key().equals("JOB_RETRY"))
+                .extracting("status")
+                .containsExactly("PLANNED");
+    }
 }

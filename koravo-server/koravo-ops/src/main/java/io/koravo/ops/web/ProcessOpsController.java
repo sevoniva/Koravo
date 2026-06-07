@@ -4,6 +4,7 @@ import io.koravo.common.api.ApiResponse;
 import io.koravo.common.api.PageResult;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.ProcessTraceDTO;
+import io.koravo.ops.dto.OpsCapabilityResponse;
 import io.koravo.ops.service.ProcessOpsService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 public class ProcessOpsController {
@@ -26,6 +29,11 @@ public class ProcessOpsController {
             @RequestParam(defaultValue = "20") int pageSize
     ) {
         return ApiResponse.success(processOpsService.listInstances(page, pageSize));
+    }
+
+    @GetMapping("/api/v1/ops/capabilities")
+    public ApiResponse<List<OpsCapabilityResponse>> capabilities() {
+        return ApiResponse.success(processOpsService.capabilities());
     }
 
     @GetMapping("/api/v1/ops/process-instances/{instanceId}")

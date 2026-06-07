@@ -210,6 +210,13 @@ export interface ConnectorExecutionSummary {
   recentFailures: ConnectorExecutionLogItem[]
 }
 
+export interface OpsCapabilityItem {
+  key: string
+  name: string
+  status: string
+  description: string
+}
+
 export function getHealth() {
   return apiData<HealthInfo>(http.get('/health'))
 }
@@ -407,6 +414,10 @@ export function listAuditLogs(params: {
 
 export function listOpsInstances(params?: { page?: number; pageSize?: number }) {
   return apiData<PageResult<OpsProcessInstance>>(http.get('/ops/process-instances', { params }))
+}
+
+export function listOpsCapabilities() {
+  return apiData<OpsCapabilityItem[]>(http.get('/ops/capabilities'))
 }
 
 export function getOpsInstance(instanceId: string) {

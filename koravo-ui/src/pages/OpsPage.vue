@@ -109,6 +109,23 @@
           </template>
         </a-table>
       </a-tab-pane>
+
+      <a-tab-pane key="capabilities" tab="Capabilities">
+        <a-table
+          :data-source="capabilities"
+          :columns="capabilityColumns"
+          row-key="key"
+          :loading="capabilityLoading"
+          :pagination="false"
+          size="small"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'status'">
+              <a-tag :color="record.status === 'AVAILABLE' ? 'green' : 'orange'">{{ record.status }}</a-tag>
+            </template>
+          </template>
+        </a-table>
+      </a-tab-pane>
     </a-tabs>
 
     <div v-if="traceDetail" class="trace-viewer-panel panel-block">
@@ -149,11 +166,13 @@ import {
   getOpsInstance,
   getProcessTrace,
   listConnectorExecutionLogs,
+  listOpsCapabilities,
   listOpsInstances,
   suspendProcessInstance,
   terminateProcessInstance,
   type ConnectorExecutionLogItem,
   type ConnectorExecutionSummary,
+  type OpsCapabilityItem,
   type OpsProcessInstance,
   type ProcessTrace
 } from '../api/koravo'
@@ -172,6 +191,8 @@ const activeTab = ref('instances')
 const connectorLoading = ref(false)
 const connectorLogs = ref<ConnectorExecutionLogItem[]>([])
 const connectorSummary = ref<ConnectorExecutionSummary | null>(null)
+const capabilities = ref<OpsCapabilityItem[]>([])
+const capabilityLoading = ref(false)
 const connectorPage = ref(1)
 const connectorPageSize = ref(20)
 const connectorTotal = ref(0)
@@ -216,6 +237,13 @@ const connectorFailureColumns = [
   { title: 'Error', key: 'error' }
 ]
 
+const capabilityColumns = [
+  { title: 'Capability', dataIndex: 'name', key: 'name', width: 240 },
+  { title: 'Status', key: 'status', width: 130 },
+  { title: 'Key', dataIndex: 'key', key: 'key', width: 230 },
+  { title: 'Description', dataIndex: 'description', key: 'description' }
+]
+
 const connectorPagination = computed<TablePaginationConfig>(() => ({
   current: connectorPage.value,
   pageSize: connectorPageSize.value,
@@ -239,6 +267,8 @@ async function load() {
   try {
     if (activeTab.value === 'connectors') {
       await loadConnectorLogs()
+    } else if (activeTab.value === 'capabilities') {
+      await loadCapabilities()
     } else {
       const page = await listOpsInstances({
         page: instancePage.value,
@@ -251,6 +281,15 @@ async function load() {
     }
   } finally {
     loading.value = false
+  }
+}
+
+async function loadCapabilities() {
+  capabilityLoading.value = true
+  try {
+    capabilities.value = await listOpsCapabilities()
+  } finally {
+    capabilityLoading.value = false
   }
 }
 
@@ -377,6 +416,7 @@ function destroyTraceViewer() {
 onMounted(async () => {
   await load()
   await loadConnectorLogs()
+  await loadCapabilities()
 })
 
 onBeforeUnmount(() => {

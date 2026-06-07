@@ -27,6 +27,12 @@ Ops also exposes connector exception summaries:
 The summary returns total, success, failed, and recent failed connector executions for the current tenant.
 Each connector execution also writes a `CONNECTOR_EXECUTE` audit record with a minimal, redacted detail payload.
 
+The console also reads the operational capability matrix:
+
+- `GET /api/v1/ops/capabilities`
+
+This endpoint separates available runtime controls from reserved boundaries. Instance inspection, tracing, and connector execution logs are marked `AVAILABLE`. Failed task inspection, dead-letter tasks, job retry, and process migration are marked `PLANNED` until the underlying Flowable operations are implemented and audited.
+
 Terminate accepts an optional JSON body:
 
 ```json
@@ -89,5 +95,5 @@ The audit record stores tenant, user, request ID, client IP, action, resource ty
 
 ## Current Limits
 
-- Failed jobs, dead-letter jobs, retry, and migration APIs are still reserved for the next Ops iteration.
+- Failed jobs, dead-letter jobs, retry, and migration APIs are still reserved for the next Ops iteration and surfaced as `PLANNED` capabilities.
 - Terminated instances are visible through historic process instance queries, but runtime-only actions can only target active runtime instances.
