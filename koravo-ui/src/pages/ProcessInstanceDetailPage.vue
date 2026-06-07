@@ -10,11 +10,15 @@
     <EmptyState v-if="!loading && !instance" description="暂无流程实例详情" />
 
     <a-descriptions v-if="instance" bordered :column="2" class="panel-block">
-      <a-descriptions-item label="实例 ID">{{ instance.instanceId }}</a-descriptions-item>
+      <a-descriptions-item label="实例">
+        <CopyableText :value="instance.instanceId" :display-value="shortTraceLabel(instance.instanceId)" />
+      </a-descriptions-item>
       <a-descriptions-item label="实例状态"><StatusTag :status="instance.status" /></a-descriptions-item>
       <a-descriptions-item label="业务编号">{{ instance.businessKey }}</a-descriptions-item>
       <a-descriptions-item label="发起人">{{ instance.startUserId }}</a-descriptions-item>
-      <a-descriptions-item label="流程定义">{{ instance.processDefinitionId }}</a-descriptions-item>
+      <a-descriptions-item label="流程">
+        <CopyableText :value="instance.processDefinitionId" :display-value="processDefinitionLabel(instance.processDefinitionId)" />
+      </a-descriptions-item>
       <a-descriptions-item label="发起时间">{{ formatDateTime(instance.startTime) }}</a-descriptions-item>
       <a-descriptions-item label="结束时间">{{ formatDateTime(instance.endTime) }}</a-descriptions-item>
       <a-descriptions-item label="当前节点">{{ currentNodeText }}</a-descriptions-item>
@@ -68,6 +72,12 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'status'">
               <StatusTag :status="record.status" />
+            </template>
+            <template v-else-if="column.key === 'activity'">
+              {{ activityLabel(record) }}
+            </template>
+            <template v-else-if="column.key === 'activityType'">
+              {{ activityTypeLabel(record.activityType) }}
             </template>
             <template v-else-if="column.key === 'startTime'">
               {{ formatDateTime(record.startTime) }}
@@ -128,8 +138,12 @@
         <a-descriptions-item label="用户">{{ selectedAuditLog.userId }}</a-descriptions-item>
         <a-descriptions-item label="动作">{{ actionLabel(selectedAuditLog.action) }}</a-descriptions-item>
         <a-descriptions-item label="资源">{{ resourceLabel(selectedAuditLog.resourceType) }}</a-descriptions-item>
-        <a-descriptions-item label="资源 ID">{{ selectedAuditLog.resourceId }}</a-descriptions-item>
-        <a-descriptions-item label="请求 ID">{{ selectedAuditLog.requestId }}</a-descriptions-item>
+        <a-descriptions-item label="资源">
+          <CopyableText :value="selectedAuditLog.resourceId" :display-value="shortTraceLabel(selectedAuditLog.resourceId)" />
+        </a-descriptions-item>
+        <a-descriptions-item label="请求">
+          <CopyableText :value="selectedAuditLog.requestId" :display-value="shortTraceLabel(selectedAuditLog.requestId)" />
+        </a-descriptions-item>
         <a-descriptions-item label="客户端 IP">{{ selectedAuditLog.clientIp }}</a-descriptions-item>
         <a-descriptions-item label="租户">{{ selectedAuditLog.tenantId }}</a-descriptions-item>
       </a-descriptions>
@@ -156,7 +170,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import JsonPreview from '../components/JsonPreview.vue'
-import { DetailSection, EmptyState, PageContainer, PageHeader, StatusTag } from '../components/ui'
+import { CopyableText, DetailSection, EmptyState, PageContainer, PageHeader, StatusTag } from '../components/ui'
 import {
   getProcessInstance,
   getProcessTrace,
@@ -165,6 +179,7 @@ import {
   type ProcessTrace
 } from '../api/koravo'
 import { formatDateTime, maskSecret, parseJsonSafe } from '../utils/format'
+import { processDefinitionLabel, shortTraceLabel } from '../utils/display'
 
 const route = useRoute()
 const router = useRouter()
@@ -212,8 +227,7 @@ const taskColumns = [
 ]
 
 const timelineColumns = [
-  { title: '活动 ID', dataIndex: 'activityId', key: 'activityId' },
-  { title: '名称', dataIndex: 'activityName', key: 'activityName' },
+  { title: '节点', key: 'activity' },
   { title: '类型', dataIndex: 'activityType', key: 'activityType' },
   { title: '状态', dataIndex: 'status', key: 'status', width: 110 },
   { title: '开始时间', dataIndex: 'startTime', key: 'startTime' },
@@ -416,6 +430,21 @@ function detailValueLabel(value: string) {
     false: '否'
   }
   return mapping[value] || value
+}
+
+function activityLabel(record: { activityId: string; activityName?: string }) {
+  return record.activityName || detailValueLabel(record.activityId)
+}
+
+function activityTypeLabel(value?: string) {
+  const mapping: Record<string, string> = {
+    startEvent: '开始',
+    userTask: '人工任务',
+    serviceTask: '服务调用',
+    endEvent: '结束',
+    sequenceFlow: '流转'
+  }
+  return mapping[value || ''] || value || '-'
 }
 
 onMounted(load)

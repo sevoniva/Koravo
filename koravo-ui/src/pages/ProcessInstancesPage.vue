@@ -54,7 +54,7 @@
         <a-collapse ghost>
           <a-collapse-panel key="advanced" header="高级配置">
             <a-form layout="vertical" class="compact-form-grid">
-              <a-form-item label="流程定义 Key">
+              <a-form-item label="流程">
                 <a-input v-model:value="processDefinitionKey" />
               </a-form-item>
               <a-form-item label="流程变量" class="span-2">
@@ -73,10 +73,14 @@
 
     <DetailSection v-if="instance" title="启动结果">
       <a-descriptions bordered :column="2" size="small">
-        <a-descriptions-item label="实例 ID">{{ instance.instanceId }}</a-descriptions-item>
+        <a-descriptions-item label="实例">
+          <CopyableText :value="instance.instanceId" :display-value="shortTraceLabel(instance.instanceId)" />
+        </a-descriptions-item>
         <a-descriptions-item label="状态"><StatusTag :status="instance.status" /></a-descriptions-item>
         <a-descriptions-item label="业务编号">{{ instance.businessKey }}</a-descriptions-item>
-        <a-descriptions-item label="流程定义">{{ instance.processDefinitionId }}</a-descriptions-item>
+        <a-descriptions-item label="流程">
+          <CopyableText :value="instance.processDefinitionId" :display-value="processDefinitionLabel(instance.processDefinitionId)" />
+        </a-descriptions-item>
       </a-descriptions>
       <template #actions>
         <a-button @click="router.push(`/process-instances/${instance.instanceId}`)">详情</a-button>
@@ -97,7 +101,10 @@
         <EmptyState description="暂无流程实例" />
       </template>
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'status'">
+        <template v-if="column.key === 'instance'">
+          <CopyableText :value="record.instanceId" :display-value="shortTraceLabel(record.instanceId)" />
+        </template>
+        <template v-else-if="column.key === 'status'">
           <StatusTag :status="record.status" />
         </template>
         <template v-else-if="column.key === 'startTime'">
@@ -122,7 +129,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, type TablePaginationConfig } from 'ant-design-vue'
 import { PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons-vue'
-import { DetailSection, EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
+import { CopyableText, DetailSection, EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
 import {
   listProcessModels,
   listStartedInstances,
@@ -132,6 +139,7 @@ import {
   type ProcessModelItem
 } from '../api/koravo'
 import { formatDateTime } from '../utils/format'
+import { processDefinitionLabel, shortTraceLabel } from '../utils/display'
 import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
 
 const processDefinitionKey = ref('leaveApproval')
@@ -169,7 +177,7 @@ const connectorTarget = 'GET /api/v1/health'
 applyStartTemplate('leaveApproval')
 
 const startedColumns = [
-  { title: '实例 ID', dataIndex: 'instanceId', key: 'instanceId' },
+  { title: '实例', key: 'instance', width: 180 },
   { title: '业务编号', dataIndex: 'businessKey', key: 'businessKey' },
   { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
   { title: '发起时间', dataIndex: 'startTime', key: 'startTime' },

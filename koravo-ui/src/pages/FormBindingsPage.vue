@@ -17,7 +17,7 @@
             @change="handleModelChange"
           >
             <a-select-option v-for="model in processModels" :key="model.id" :value="model.id">
-              {{ model.modelName }} / {{ model.modelKey }} v{{ model.version }}
+              {{ modelLabel(model.id) }}
             </a-select-option>
           </a-select>
         </a-form-item>
@@ -25,11 +25,11 @@
           <StatusTag v-if="selectedModel" :status="selectedModel.status" />
           <span v-else>-</span>
         </a-form-item>
-        <a-form-item label="流程模型 ID">
-          <CopyableText :value="form.processModelId" />
+        <a-form-item label="流程模型">
+          <CopyableText :value="form.processModelId" :display-value="selectedModelLabel" />
         </a-form-item>
-        <a-form-item label="流程定义 ID">
-          <CopyableText :value="form.processDefinitionId" />
+        <a-form-item label="流程定义">
+          <CopyableText :value="form.processDefinitionId" :display-value="definitionLabel(form.processDefinitionId)" />
         </a-form-item>
         <a-form-item label="任务节点" required>
           <a-select
@@ -39,7 +39,7 @@
             placeholder="请选择任务节点"
           >
             <a-select-option v-for="task in taskDefinitions" :key="task.taskDefinitionKey" :value="task.taskDefinitionKey">
-              {{ task.name || task.taskDefinitionKey }} / {{ task.taskDefinitionKey }}
+              {{ taskLabel(task.taskDefinitionKey) }}
             </a-select-option>
           </a-select>
         </a-form-item>
@@ -72,7 +72,7 @@
             {{ modelLabel(record.processModelId) }}
           </template>
           <template v-else-if="column.key === 'processDefinitionId'">
-            <CopyableText :value="record.processDefinitionId" />
+            <CopyableText :value="record.processDefinitionId" :display-value="definitionLabel(record.processDefinitionId)" />
           </template>
           <template v-else-if="column.key === 'taskDefinitionKey'">
             {{ taskLabel(record.taskDefinitionKey) }}
@@ -112,6 +112,7 @@ import {
   type FormSchemaItem,
   type ProcessModelItem
 } from '../api/koravo'
+import { processDefinitionLabel, processDisplayName, taskDefinitionLabel } from '../utils/display'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -141,6 +142,7 @@ const columns = [
 ]
 
 const selectedModel = computed(() => processModels.value.find((item) => item.id === selectedModelId.value))
+const selectedModelLabel = computed(() => selectedModel.value ? modelLabel(selectedModel.value.id) : '')
 const canSave = computed(() => Boolean(form.processModelId && form.taskDefinitionKey && form.formSchemaId))
 
 async function load() {
@@ -321,7 +323,7 @@ function syncSelectedForm() {
 function modelLabel(id?: string) {
   const model = processModels.value.find((item) => item.id === id)
   if (!model) return id || '-'
-  return `${model.modelName} / ${model.modelKey} v${model.version}`
+  return `${processDisplayName(model.modelKey, model.modelName)} v${model.version}`
 }
 
 function findModelForBinding(binding?: FormBindingItem) {
@@ -340,7 +342,11 @@ function schemaLabel(id?: string, version?: number) {
 function taskLabel(key?: string) {
   if (!key) return '-'
   const task = taskDefinitions.value.find((item) => item.taskDefinitionKey === key)
-  return task?.name ? `${task.name} / ${key}` : key
+  return taskDefinitionLabel(key, task)
+}
+
+function definitionLabel(value?: string) {
+  return processDefinitionLabel(value) || '-'
 }
 
 onMounted(load)

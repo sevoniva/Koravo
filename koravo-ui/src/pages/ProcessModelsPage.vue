@@ -177,6 +177,7 @@ import {
   type ProcessDeployment,
   type ProcessModelItem
 } from '../api/koravo'
+import { processDefinitionLabel, processDescriptionLabel, processDisplayName, processKindLabel, shortTraceLabel } from '../utils/display'
 import { formatDateTime } from '../utils/format'
 
 const modelName = ref('请假审批流程')
@@ -314,37 +315,23 @@ async function runAction(key: string, action: () => Promise<void>, reload = true
 }
 
 function modelDisplayName(modelKey?: string, fallback?: string) {
-  const mapping: Record<string, string> = {
-    leaveApproval: '请假审批',
-    httpConnectorDemo: 'HTTP 健康检查'
-  }
-  return mapping[modelKey || ''] || fallback || modelKey || '-'
+  return processDisplayName(modelKey, fallback)
 }
 
 function modelKindLabel(modelKey?: string) {
-  const mapping: Record<string, string> = {
-    leaveApproval: '人员请假审批流程',
-    httpConnectorDemo: 'HTTP 连接器调用流程'
-  }
-  return mapping[modelKey || ''] || '流程模型'
+  return processKindLabel(modelKey)
 }
 
 function modelDescriptionLabel(model?: ProcessModelItem | null) {
-  const description = model?.description?.trim()
-  if (!description || /演示|示例|demo/i.test(description)) return modelKindLabel(model?.modelKey)
-  return description
+  return processDescriptionLabel(model)
 }
 
 function definitionLabel(value?: string) {
-  if (!value) return ''
-  const [key, version] = value.split(':')
-  const name = modelDisplayName(key)
-  return version ? `${name} v${version}` : name
+  return processDefinitionLabel(value)
 }
 
 function shortIdLabel(value?: string) {
-  if (!value) return ''
-  return value.length > 12 ? `ID ${value.slice(-8)}` : value
+  return shortTraceLabel(value)
 }
 
 onMounted(loadModels)
