@@ -350,6 +350,20 @@ export function createFormBinding(payload: {
   return apiData<FormBindingItem>(http.post('/form-bindings', payload))
 }
 
+export function updateFormBinding(id: string, payload: {
+  processModelId?: string
+  processDefinitionId?: string
+  taskDefinitionKey: string
+  formSchemaId: string
+  formSchemaVersion: number
+}) {
+  return apiData<FormBindingItem>(http.put(`/form-bindings/${id}`, payload))
+}
+
+export function deleteFormBinding(id: string) {
+  return apiData(http.delete(`/form-bindings/${id}`))
+}
+
 export function createDataSource(payload: JsonRecord) {
   return apiData<DataSourceItem>(http.post('/datasources', payload))
 }
