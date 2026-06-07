@@ -10,6 +10,7 @@ public enum ErrorCode {
     PROCESS_INSTANCE_NOT_FOUND("PROCESS_INSTANCE_NOT_FOUND", "Process instance not found"),
     TASK_NOT_FOUND("TASK_NOT_FOUND", "Task not found"),
     FORM_SCHEMA_NOT_FOUND("FORM_SCHEMA_NOT_FOUND", "Form schema not found"),
+    FORM_BINDING_NOT_FOUND("FORM_BINDING_NOT_FOUND", "Form binding not found"),
     DATASOURCE_NOT_FOUND("DATASOURCE_NOT_FOUND", "Datasource not found"),
     DATASOURCE_TEST_FAILED("DATASOURCE_TEST_FAILED", "Datasource connection test failed"),
     INTERNAL_ERROR("INTERNAL_ERROR", "Internal server error");

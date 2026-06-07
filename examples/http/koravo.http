@@ -108,6 +108,44 @@ Content-Type: application/json
   "uiSchemaJson": "{}"
 }
 
+### 7d. Bind form schema to task node
+POST {{baseUrl}}/form-bindings
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "processModelId": "{{processModelId}}",
+  "processDefinitionId": null,
+  "taskDefinitionKey": "approveTask",
+  "formSchemaId": "{{formSchemaId}}",
+  "formSchemaVersion": 1
+}
+
+### 7e. Query form bindings
+GET {{baseUrl}}/form-bindings?processModelId={{processModelId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 7f. Update form binding
+PUT {{baseUrl}}/form-bindings/replace-with-binding-id
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "processModelId": "{{processModelId}}",
+  "processDefinitionId": null,
+  "taskDefinitionKey": "approveTask",
+  "formSchemaId": "{{formSchemaId}}",
+  "formSchemaVersion": 2
+}
+
+### 7g. Delete form binding
+DELETE {{baseUrl}}/form-bindings/replace-with-binding-id
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
 ### 8. Complete task
 POST {{baseUrl}}/tasks/{{taskId}}/complete
 X-Tenant-Id: {{tenantId}}

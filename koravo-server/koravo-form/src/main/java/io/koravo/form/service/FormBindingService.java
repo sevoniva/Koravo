@@ -1,5 +1,7 @@
 package io.koravo.form.service;
 
+import io.koravo.common.exception.BusinessException;
+import io.koravo.common.exception.ErrorCode;
 import io.koravo.form.domain.KoFormBinding;
 import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.form.web.FormBindingRequest;
@@ -74,6 +76,43 @@ public class FormBindingService {
                 processDefinitionId,
                 taskDefinitionKey
         ).map(this::toResponse);
+    }
+
+    @Transactional
+    public FormBindingResponse update(String id, FormBindingRequest request) {
+        KoFormBinding binding = findActive(id);
+        binding.setUpdatedBy(UserContextHolder.getUserId());
+        binding.setProcessModelId(request.processModelId());
+        binding.setProcessDefinitionId(request.processDefinitionId());
+        binding.setTaskDefinitionKey(request.taskDefinitionKey());
+        binding.setFormSchemaId(request.formSchemaId());
+        binding.setFormSchemaVersion(request.formSchemaVersion());
+        KoFormBinding saved = repository.save(binding);
+        auditLogService.record("FORM_BIND_UPDATE", "FORM_BINDING", saved.getId(), Map.of(
+                "taskDefinitionKey", saved.getTaskDefinitionKey(),
+                "formSchemaId", saved.getFormSchemaId()
+        ));
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void delete(String id) {
+        KoFormBinding binding = findActive(id);
+        binding.setUpdatedBy(UserContextHolder.getUserId());
+        binding.setDeleted(true);
+        auditLogService.record("FORM_BIND_DELETE", "FORM_BINDING", binding.getId(), Map.of(
+                "taskDefinitionKey", binding.getTaskDefinitionKey(),
+                "formSchemaId", binding.getFormSchemaId()
+        ));
+    }
+
+    private KoFormBinding findActive(String id) {
+        KoFormBinding binding = repository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORM_BINDING_NOT_FOUND, "Form binding not found"));
+        if (binding.isDeleted() || !TenantContextHolder.getTenantId().equals(binding.getTenantId())) {
+            throw new BusinessException(ErrorCode.FORM_BINDING_NOT_FOUND, "Form binding not found");
+        }
+        return binding;
     }
 
     private FormBindingResponse toResponse(KoFormBinding binding) {

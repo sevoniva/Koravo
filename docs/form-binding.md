@@ -20,6 +20,8 @@ Schema payloads include:
 
 - `POST /api/v1/form-bindings`: bind a form schema to a task node
 - `GET /api/v1/form-bindings?processModelId={id}`: list bindings
+- `PUT /api/v1/form-bindings/{id}`: update a binding
+- `DELETE /api/v1/form-bindings/{id}`: soft delete a binding
 
 Bindings can target:
 
@@ -57,9 +59,8 @@ Task detail returns historical snapshots for the process instance so review does
 
 ## Audit
 
-Form schema create/update writes `FORM_SCHEMA_CREATE` and `FORM_SCHEMA_UPDATE`. Form binding writes `FORM_BIND`. Task completion writes `TASK_COMPLETE`.
+Form schema create/update writes `FORM_SCHEMA_CREATE` and `FORM_SCHEMA_UPDATE`. Form binding create/update/delete writes `FORM_BIND`, `FORM_BIND_UPDATE`, and `FORM_BIND_DELETE`. Task completion writes `TASK_COMPLETE`.
 
 ## Current Limits
 
 - The console currently uses JSON text areas for form data. Schema-driven form rendering is planned.
-- Binding update/delete APIs are not implemented yet.

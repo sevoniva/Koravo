@@ -14,6 +14,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FormBindingServiceTest {
@@ -59,5 +60,56 @@ class FormBindingServiceTest {
         assertThat(created.id()).isEqualTo("binding-1");
         assertThat(found.formSchemaId()).isEqualTo("form-1");
         assertThat(found.formSchemaVersion()).isEqualTo(2);
+    }
+
+    @Test
+    void updateChangesBindingAndWritesAudit() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoFormBinding existing = new KoFormBinding();
+        existing.setId("binding-1");
+        existing.setTenantId("default");
+        existing.setProcessModelId("model-1");
+        existing.setTaskDefinitionKey("approveTask");
+        existing.setFormSchemaId("form-1");
+        existing.setFormSchemaVersion(1);
+        existing.prePersist();
+        when(repository.findById("binding-1")).thenReturn(Optional.of(existing));
+        when(repository.save(any(KoFormBinding.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var updated = service.update("binding-1", new FormBindingRequest("model-1", "pd-1", "reviewTask", "form-2", 3));
+
+        assertThat(updated.processDefinitionId()).isEqualTo("pd-1");
+        assertThat(updated.taskDefinitionKey()).isEqualTo("reviewTask");
+        assertThat(updated.formSchemaId()).isEqualTo("form-2");
+        assertThat(updated.formSchemaVersion()).isEqualTo(3);
+        verify(auditLogService).record("FORM_BIND_UPDATE", "FORM_BINDING", "binding-1", java.util.Map.of(
+                "taskDefinitionKey", "reviewTask",
+                "formSchemaId", "form-2"
+        ));
+    }
+
+    @Test
+    void deleteSoftDeletesBindingAndWritesAudit() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoFormBinding existing = new KoFormBinding();
+        existing.setId("binding-1");
+        existing.setTenantId("default");
+        existing.setProcessModelId("model-1");
+        existing.setTaskDefinitionKey("approveTask");
+        existing.setFormSchemaId("form-1");
+        existing.setFormSchemaVersion(1);
+        existing.prePersist();
+        when(repository.findById("binding-1")).thenReturn(Optional.of(existing));
+
+        service.delete("binding-1");
+
+        assertThat(existing.isDeleted()).isTrue();
+        assertThat(existing.getUpdatedBy()).isEqualTo("admin");
+        verify(auditLogService).record("FORM_BIND_DELETE", "FORM_BINDING", "binding-1", java.util.Map.of(
+                "taskDefinitionKey", "approveTask",
+                "formSchemaId", "form-1"
+        ));
     }
 }
