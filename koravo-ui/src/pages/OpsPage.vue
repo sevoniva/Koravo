@@ -48,6 +48,17 @@
       </a-tab-pane>
     </a-tabs>
 
+    <div v-if="traceDetail" class="trace-viewer-panel panel-block">
+      <div class="trace-viewer-heading">
+        <strong>Process Trace</strong>
+        <a-space>
+          <span><i class="trace-dot trace-dot-completed" />Completed</span>
+          <span><i class="trace-dot trace-dot-current" />Current</span>
+        </a-space>
+      </div>
+      <div ref="traceCanvasRef" class="trace-viewer-canvas" />
+    </div>
+
     <a-table
       v-if="traceDetail"
       class="panel-block"
@@ -63,8 +74,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
+import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer'
 import JsonPreview from '../components/JsonPreview.vue'
 import {
   getOpsInstance,
@@ -79,6 +91,7 @@ const loading = ref(false)
 const instances = ref<unknown[]>([])
 const detail = ref<unknown>(null)
 const traceDetail = ref<ProcessTrace | null>(null)
+const traceCanvasRef = ref<HTMLElement | null>(null)
 const activeTab = ref('instances')
 const connectorLoading = ref(false)
 const connectorLogs = ref<ConnectorExecutionLogItem[]>([])
@@ -115,6 +128,8 @@ const connectorColumns = [
   { title: 'Summary', key: 'summary' }
 ]
 
+let traceViewer: any = null
+
 async function load() {
   loading.value = true
   try {
@@ -147,15 +162,59 @@ async function loadConnectorLogs() {
 async function inspect(instanceId: string) {
   detail.value = await getOpsInstance(instanceId)
   traceDetail.value = null
+  destroyTraceViewer()
 }
 
 async function trace(instanceId: string) {
   traceDetail.value = await getProcessTrace(instanceId)
   detail.value = traceDetail.value
+  await renderTraceDiagram()
+}
+
+async function renderTraceDiagram() {
+  if (!traceDetail.value?.bpmnXml) {
+    return
+  }
+
+  await nextTick()
+  if (!traceCanvasRef.value) {
+    return
+  }
+
+  destroyTraceViewer()
+  traceViewer = new BpmnNavigatedViewer({
+    container: traceCanvasRef.value
+  })
+
+  await traceViewer.importXML(traceDetail.value.bpmnXml)
+
+  const canvas = traceViewer.get('canvas')
+  const completedActivityIds = traceDetail.value.timeline
+    .filter((item) => item.status === 'COMPLETED')
+    .map((item) => item.activityId)
+
+  for (const activityId of completedActivityIds) {
+    canvas.addMarker(activityId, 'trace-completed')
+  }
+  for (const activityId of traceDetail.value.currentActivityIds) {
+    canvas.addMarker(activityId, 'trace-current')
+  }
+  canvas.zoom('fit-viewport')
+}
+
+function destroyTraceViewer() {
+  if (traceViewer) {
+    traceViewer.destroy()
+    traceViewer = null
+  }
 }
 
 onMounted(async () => {
   await load()
   await loadConnectorLogs()
+})
+
+onBeforeUnmount(() => {
+  destroyTraceViewer()
 })
 </script>

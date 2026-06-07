@@ -162,6 +162,67 @@ p {
   margin-top: 18px;
 }
 
+.trace-viewer-panel {
+  overflow: hidden;
+  background: #f9fbfa;
+  border: 1px solid #d9e3df;
+  border-radius: 8px;
+}
+
+.trace-viewer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  color: #24332f;
+  border-bottom: 1px solid #d9e3df;
+}
+
+.trace-viewer-heading span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #60706a;
+  font-size: 12px;
+}
+
+.trace-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.trace-dot-completed {
+  background: #2e7d5b;
+}
+
+.trace-dot-current {
+  background: #d97706;
+}
+
+.trace-viewer-canvas {
+  width: 100%;
+  height: 420px;
+  background: #fff;
+}
+
+.trace-viewer-canvas .trace-completed .djs-visual > :nth-child(1) {
+  stroke: #2e7d5b !important;
+  stroke-width: 3px !important;
+}
+
+.trace-viewer-canvas .trace-current .djs-visual > :nth-child(1) {
+  stroke: #d97706 !important;
+  stroke-width: 4px !important;
+}
+
+.trace-viewer-canvas .trace-current .djs-visual > rect,
+.trace-viewer-canvas .trace-current .djs-visual > polygon,
+.trace-viewer-canvas .trace-current .djs-visual > circle {
+  fill: #fff7ed !important;
+}
+
 .designer-page {
   max-width: none;
 }
@@ -230,6 +291,11 @@ p {
   .form-grid,
   .metric-grid {
     grid-template-columns: 1fr;
+  }
+
+  .trace-viewer-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .span-2 {
