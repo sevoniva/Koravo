@@ -33,12 +33,35 @@ GET {{baseUrl}}/process-models?status=DEPLOYED
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 2b. Disable process model
+### 2b. Get process model detail
+GET {{baseUrl}}/process-models/{{processModelId}}
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 2c. Validate stored process model
+POST {{baseUrl}}/process-models/{{processModelId}}/validate
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 2d. Export stored process model
+GET {{baseUrl}}/process-models/{{processModelId}}/export
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 2e. Validate raw BPMN XML
+POST {{baseUrl}}/process-models/validate
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+Content-Type: text/plain
+
+< ../bpmn/leave-approval.bpmn20.xml
+
+### 2f. Disable process model
 POST {{baseUrl}}/process-models/{{processModelId}}/disable
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 2c. Archive process model
+### 2g. Archive process model
 POST {{baseUrl}}/process-models/{{processModelId}}/archive
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -186,6 +209,11 @@ Content-Type: application/json
   "poolConfigJson": "{}"
 }
 
+### 10a. Query datasources
+GET {{baseUrl}}/datasources
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
 ### 11. Test datasource
 POST {{baseUrl}}/datasources/{{datasourceId}}/test
 X-Tenant-Id: {{tenantId}}
@@ -229,6 +257,11 @@ X-User-Id: {{userId}}
 
 ### 13. Trace process instance
 GET {{baseUrl}}/ops/process-instances/{{processInstanceId}}/trace
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 13a. Query ops capabilities
+GET {{baseUrl}}/ops/capabilities
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
