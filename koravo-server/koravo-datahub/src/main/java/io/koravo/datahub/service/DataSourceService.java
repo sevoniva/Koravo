@@ -111,7 +111,7 @@ public class DataSourceService {
         auditLogService.record("DATASOURCE_DELETE", "DATASOURCE", dataSource.getId(), Map.of("name", dataSource.getName()));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public DataSourceTestResponse test(String id) {
         KoDataSource dataSource = find(id);
         Instant started = Instant.now();

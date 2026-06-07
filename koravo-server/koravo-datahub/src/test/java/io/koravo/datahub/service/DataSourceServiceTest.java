@@ -10,7 +10,9 @@ import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Method;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -78,6 +80,17 @@ class DataSourceServiceTest {
 
         assertThat(response.connected()).isTrue();
         assertThat(response.message()).isEqualTo("Connection successful");
+        verify(testLogService).record(dataSource, true, "Connection successful", response.elapsedMillis());
+    }
+
+    @Test
+    void testConnectionUsesWriteTransactionForTestLogs() throws NoSuchMethodException {
+        Method method = DataSourceService.class.getMethod("test", String.class);
+
+        Transactional transactional = method.getAnnotation(Transactional.class);
+
+        assertThat(transactional).isNotNull();
+        assertThat(transactional.readOnly()).isFalse();
     }
 
     @Test
