@@ -69,6 +69,9 @@
         <a-form-item label="Variables JSON">
           <a-textarea v-model:value="completeVariables" :rows="5" />
         </a-form-item>
+        <a-form-item label="Form data JSON">
+          <a-textarea v-model:value="completeFormData" :rows="5" />
+        </a-form-item>
         <a-form-item label="Comment">
           <a-input v-model:value="comment" />
         </a-form-item>
@@ -110,6 +113,7 @@ const startedTotal = ref(0)
 const modalOpen = ref(false)
 const selectedTask = ref<TaskItem | null>(null)
 const completeVariables = ref(JSON.stringify({ approved: true, comment: 'approved' }, null, 2))
+const completeFormData = ref('{}')
 const comment = ref('approved')
 
 const columns = [
@@ -226,7 +230,8 @@ async function submitComplete() {
   if (!selectedTask.value) return
   try {
     const variables = parseJsonObject(completeVariables.value, 'Variables')
-    await completeTask(selectedTask.value.taskId, { variables, comment: comment.value })
+    const formData = parseJsonObject(completeFormData.value, 'Form data')
+    await completeTask(selectedTask.value.taskId, { variables, formData, comment: comment.value })
     message.success('Task completed')
     modalOpen.value = false
     await load()
