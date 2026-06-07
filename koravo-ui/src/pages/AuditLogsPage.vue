@@ -60,6 +60,7 @@ const columns = [
   { title: 'Action', dataIndex: 'action', key: 'action', width: 180 },
   { title: 'Resource', dataIndex: 'resourceType', key: 'resourceType', width: 140 },
   { title: 'Resource ID', dataIndex: 'resourceId', key: 'resourceId', width: 170 },
+  { title: 'Request ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
   { title: 'Detail', key: 'detail' }
 ]
 
