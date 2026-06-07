@@ -38,7 +38,7 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 表单设计器：通过。`/forms` 渲染字段列表和表单预览，点击“新增字段”后生成 `field8`，JSON Schema 和预览同步更新。
 - 表单绑定：通过。`/form-bindings` 默认展示请假审批流程的已有绑定，模型、任务节点和表单自动带出；编辑、清空选择、全量绑定列表正常，相关接口返回 200 且控制台无错误。
 - 审计日志：通过。桌面列表显示时间、用户、行为、对象和摘要；动作、资源、时间筛选正常；详情弹窗显示脱敏 JSON，移动端切换为卡片列表。
-- HTTP Connector 示例：通过。部署 `httpConnectorDemo`，启动实例 `cb7fb909-625a-11f1-ab24-c232b2af3b82`，`httpResult.statusCode=200`，连接器日志为 `SUCCESS`。
+- HTTP 连接器：通过。部署 `httpConnectorDemo`，启动实例 `cb7fb909-625a-11f1-ab24-c232b2af3b82`，`httpResult.statusCode=200`，连接器日志为 `SUCCESS`；页面默认展示健康检查摘要和格式化时间，原始变量与日志收进高级详情。
 - 运维 tabs：通过。实例列表、失败任务、死信任务、连接器日志、异常摘要可见；实例状态和时间中文展示，失败/死信无数据时显示空状态。
 - 运维失败/死信接口：通过。`GET /api/v1/ops/failed-jobs` 和 `GET /api/v1/ops/dead-letter-jobs` 返回统一分页结构；能力清单中失败任务查看、死信任务处理、任务重试均为 `AVAILABLE`。
 - 数据源 API：通过。创建临时 H2 数据源后 `POST /api/v1/datasources/{id}/test` 返回 `connected=true` 和 `连接成功`；详情响应未包含密码、密文或 secret 字段；测试日志记录成功后删除临时数据源。
@@ -50,12 +50,13 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 ## 修复记录
 
 - 连接器详情接口 `GET /api/v1/connector-execution-logs/{id}` 在 PostgreSQL LOB 字段读取时曾返回 500，已通过只读事务边界修复并复验通过。
-- 首页和连接器示例的指标卡曾在未传入状态时显示“缺失”，已修复为仅在明确传入状态时显示状态标签。
+- 首页和 HTTP 连接器的指标卡曾在未传入状态时显示“缺失”，已修复为仅在明确传入状态时显示状态标签。
 - Spring Security 默认开发密码曾出现在启动日志，已通过显式 `UserDetailsService` 配置关闭。
 - 运维中心失败任务和死信任务曾只显示摘要，已补列表、详情、重试、删除和审计记录。
 - `/favicon.ico` 曾在浏览器冒烟中返回 404，已添加 `favicon.svg` 并复验无控制台错误。
 - H2 数据源模板测试曾因运行包缺少 `org.h2.Driver` 失败，已把 H2 调整为运行期依赖并复验通过。
 - 数据源测试按钮曾按不存在的 `success` 字段判断结果，已改为后端响应的 `connected` 字段。
+- HTTP 连接器页曾在首屏显示 `httpConnectorDemo`、空 JSON 和 ISO 时间，已改为业务摘要和高级详情。
 
 ## 已知问题
 

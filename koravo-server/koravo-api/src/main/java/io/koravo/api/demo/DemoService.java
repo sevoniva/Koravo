@@ -124,7 +124,7 @@ public class DemoService {
                 new DemoStatusResponse.DemoStepStatus(
                         true,
                         "READY",
-                        "HTTP Connector 示例流程可在连接器示例页运行",
+                        "HTTP 连接器流程可在 HTTP 连接器页运行",
                         "httpConnectorDemo",
                         0
                 ),

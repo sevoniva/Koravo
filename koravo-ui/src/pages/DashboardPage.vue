@@ -28,7 +28,7 @@
         <a-button @click="router.push('/process-instances')"><PlayCircleOutlined />启动请假流程</a-button>
         <a-button @click="router.push('/tasks')"><CheckCircleOutlined />我的待办</a-button>
         <a-button @click="router.push('/process-instances')"><PartitionOutlined />流程实例</a-button>
-        <a-button @click="router.push('/connector-demo')"><ApiOutlined />连接器示例</a-button>
+        <a-button @click="router.push('/connector-demo')"><ApiOutlined />HTTP 连接器</a-button>
         <a-button @click="router.push('/ops')"><ControlOutlined />运维中心</a-button>
       </a-space>
     </DetailSection>
@@ -57,7 +57,7 @@
           type="warning"
           show-icon
           message="存在连接器失败"
-          description="进入连接器示例或运维中心查看详情。"
+          description="进入 HTTP 连接器或运维中心查看详情。"
         />
       </DetailSection>
     </div>

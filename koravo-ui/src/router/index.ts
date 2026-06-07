@@ -25,7 +25,7 @@ export const menuRoutes = [
   { path: '/forms', component: FormsPage, meta: { title: '表单管理', menu: true, icon: 'forms', breadcrumb: ['表单管理'] } },
   { path: '/form-bindings', component: FormBindingsPage, meta: { title: '表单绑定', menu: true, icon: 'bindings', breadcrumb: ['表单绑定'] } },
   { path: '/datasources', component: DataSourcesPage, meta: { title: '数据源管理', menu: true, icon: 'datasources', breadcrumb: ['数据源管理'] } },
-  { path: '/connector-demo', component: ConnectorDemoPage, meta: { title: '连接器示例', menu: true, icon: 'connectors', breadcrumb: ['连接器示例'] } },
+  { path: '/connector-demo', component: ConnectorDemoPage, meta: { title: 'HTTP 连接器', menu: true, icon: 'connectors', breadcrumb: ['HTTP 连接器'] } },
   { path: '/ops', component: OpsPage, meta: { title: '运维中心', menu: true, icon: 'ops', breadcrumb: ['运维中心'] } },
   { path: '/audit-logs', component: AuditLogsPage, meta: { title: '审计日志', menu: true, icon: 'audit', breadcrumb: ['审计日志'] } },
   { path: '/system-settings', component: SystemSettingsPage, meta: { title: '系统设置', menu: true, icon: 'settings', breadcrumb: ['系统设置'] } }
