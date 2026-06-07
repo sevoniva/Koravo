@@ -97,7 +97,7 @@ All calls should include:
 - `X-User-Id`
 - optional `X-Request-Id`
 
-The audit record stores tenant, user, request ID, client IP, action, resource type, resource ID, and JSON details.
+The audit record stores tenant, user, request ID, client IP, action, resource type, resource ID, and JSON details. Detail JSON is redacted before persistence and again when queried so common `password`, `token`, and `secret` fields are not exposed.
 
 ## Current Limits
 

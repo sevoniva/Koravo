@@ -28,7 +28,14 @@ public class AuditLogService {
         auditLog.setResourceId(resourceId);
         auditLog.setRequestId(RequestContextHolder.getRequestId());
         auditLog.setClientIp(RequestContextHolder.getClientIp());
-        auditLog.setDetailJson(detail == null ? "{}" : JsonUtils.toJson(detail));
+        auditLog.setDetailJson(redact(detail == null ? "{}" : JsonUtils.toJson(detail)));
         repository.save(auditLog);
+    }
+
+    private String redact(String detailJson) {
+        return detailJson
+                .replaceAll("(?i)\"password\"\\s*:\\s*\"[^\"]*\"", "\"password\":\"******\"")
+                .replaceAll("(?i)\"token\"\\s*:\\s*\"[^\"]*\"", "\"token\":\"******\"")
+                .replaceAll("(?i)\"secret\"\\s*:\\s*\"[^\"]*\"", "\"secret\":\"******\"");
     }
 }
