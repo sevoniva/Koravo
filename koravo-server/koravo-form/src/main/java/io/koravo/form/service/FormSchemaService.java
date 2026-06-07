@@ -12,6 +12,8 @@ import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class FormSchemaService {
     private final FormSchemaRepository repository;
@@ -36,10 +38,32 @@ public class FormSchemaService {
     }
 
     @Transactional(readOnly = true)
+    public List<FormSchemaResponse> list() {
+        return repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public FormSchemaResponse get(String id) {
         KoFormSchema schema = repository.findByIdAndTenantIdAndDeletedFalse(id, TenantContextHolder.getTenantId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema not found"));
         return toResponse(schema);
+    }
+
+    @Transactional
+    public FormSchemaResponse update(String id, FormSchemaRequest request) {
+        KoFormSchema schema = repository.findByIdAndTenantIdAndDeletedFalse(id, TenantContextHolder.getTenantId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema not found"));
+        schema.setFormKey(request.formKey());
+        schema.setFormName(request.formName());
+        schema.setSchemaJson(request.schemaJson());
+        schema.setUiSchemaJson(request.uiSchemaJson());
+        schema.setVersion(schema.getVersion() + 1);
+        schema.setStatus(FormStatus.ACTIVE);
+        schema.setUpdatedBy(UserContextHolder.getUserId());
+        return toResponse(repository.save(schema));
     }
 
     private FormSchemaResponse toResponse(KoFormSchema schema) {
