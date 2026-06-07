@@ -40,6 +40,8 @@ public class ProcessInstanceController {
         ));
         auditLogService.record("PROCESS_INSTANCE_START", "PROCESS_INSTANCE", instance.instanceId(), Map.of(
                 "processDefinitionKey", request.processDefinitionKey(),
+                "processDefinitionId", instance.processDefinitionId(),
+                "status", instance.status(),
                 "businessKey", request.businessKey()
         ));
         return ApiResponse.success(instance);

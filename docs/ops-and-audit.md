@@ -65,6 +65,8 @@ Process start audit events can be queried with:
 GET /api/v1/audit-logs?action=PROCESS_INSTANCE_START&resourceType=PROCESS_INSTANCE&page=1&pageSize=20
 ```
 
+Process start audit details include the process definition key, Flowable process definition ID, business key, and runtime status. Process variables are intentionally excluded from audit details.
+
 Connector audit events can be queried with:
 
 ```http

@@ -51,6 +51,8 @@ class ProcessInstanceControllerTest {
         assertThat(response.data()).isEqualTo(instance);
         verify(auditLogService).record(eq("PROCESS_INSTANCE_START"), eq("PROCESS_INSTANCE"), eq("pi-1"), eq(Map.of(
                 "processDefinitionKey", "leaveApproval",
+                "processDefinitionId", "pd-1",
+                "status", "RUNNING",
                 "businessKey", "LEAVE-001"
         )));
     }
