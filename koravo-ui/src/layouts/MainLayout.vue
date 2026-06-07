@@ -23,7 +23,7 @@
         <div class="identity-strip">
           <a-input v-model:value="tenantId" size="small" addon-before="租户" />
           <a-input v-model:value="userId" size="small" addon-before="用户" />
-          <a-input v-model:value="requestId" size="small" addon-before="请求 ID" placeholder="可选" />
+          <a-input v-model:value="requestId" size="small" addon-before="请求追踪" placeholder="可选" />
         </div>
       </a-layout-header>
       <a-layout-content class="app-content">

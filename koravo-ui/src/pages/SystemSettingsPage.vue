@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="系统设置" description="租户、用户、请求头和运行状态。">
+    <PageHeader title="系统设置" description="租户、用户、请求追踪和运行状态。">
       <template #actions>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
         <a-button type="primary" @click="save"><SaveOutlined />保存</a-button>
@@ -16,7 +16,7 @@
           <a-form-item label="用户">
             <a-input v-model:value="userId" />
           </a-form-item>
-          <a-form-item label="请求 ID">
+          <a-form-item label="请求追踪">
             <a-input v-model:value="requestId" placeholder="不填则后端生成" />
           </a-form-item>
         </a-form>
@@ -32,7 +32,7 @@
           <a-descriptions-item label="API 地址">/api/v1</a-descriptions-item>
           <a-descriptions-item label="X-Tenant-Id">{{ tenantId || 'default' }}</a-descriptions-item>
           <a-descriptions-item label="X-User-Id">{{ userId || 'admin' }}</a-descriptions-item>
-          <a-descriptions-item label="X-Request-Id">{{ requestId || '自动生成' }}</a-descriptions-item>
+          <a-descriptions-item label="请求追踪">{{ requestId || '自动生成' }}</a-descriptions-item>
           <a-descriptions-item label="最近响应">
             <CopyableText :value="session.lastRequestId" :display-value="requestIdLabel(session.lastRequestId)" />
           </a-descriptions-item>

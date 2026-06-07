@@ -3,7 +3,7 @@
     <PageHeader title="流程设计器" :description="designerDescription">
       <template #actions>
         <a-button @click="newDiagram"><PlusOutlined />新建</a-button>
-        <a-button @click="loadLeaveDemo"><PlusOutlined />加载请假审批示例</a-button>
+        <a-button @click="loadLeaveTemplate"><PlusOutlined />加载请假流程</a-button>
         <a-upload :before-upload="beforeImport" :show-upload-list="false" accept=".xml,.bpmn,.bpmn20.xml">
           <a-button><UploadOutlined />导入</a-button>
         </a-upload>
@@ -24,7 +24,7 @@
           </template>
           <template #renderItem="{ item }">
             <a-list-item :class="{ active: item.id === selectedModel?.id }" @click="openModel(item)">
-              <a-list-item-meta :title="item.modelName" :description="`${item.modelKey} · ${statusText(item.status)}`" />
+              <a-list-item-meta :title="modelDisplayTitle(item)" :description="modelListDescription(item)" />
             </a-list-item>
           </template>
         </a-list>
@@ -37,7 +37,7 @@
       <aside class="designer-properties">
         <div class="panel-title">模型属性</div>
         <a-form layout="vertical">
-          <a-form-item label="模型 Key">
+          <a-form-item label="模型标识">
             <a-input v-model:value="form.modelKey" :disabled="!!selectedModel" />
           </a-form-item>
           <a-form-item label="模型名称">
@@ -53,14 +53,14 @@
           v-if="!selectedElement"
           type="info"
           message="选择画布节点后编辑属性。"
-          description="支持节点 ID、名称、处理人和 HTTP 服务任务配置。"
+          description="支持节点标识、名称、处理人和 HTTP 服务任务配置。"
           show-icon
         />
         <a-form v-else layout="vertical">
           <a-form-item label="节点类型">
             <a-input :value="selectedElement.type" disabled />
           </a-form-item>
-          <a-form-item label="节点 ID">
+          <a-form-item label="节点标识">
             <a-input v-model:value="elementForm.id" />
           </a-form-item>
           <a-form-item label="节点名称">
@@ -135,6 +135,7 @@ import {
 } from '@ant-design/icons-vue'
 import BpmnModeler from 'bpmn-js/lib/Modeler'
 import { PageContainer, PageHeader } from '../components/ui'
+import { processDisplayName } from '../utils/display'
 import {
   createProcessModel,
   deployProcessModelDraft,
@@ -181,7 +182,7 @@ const elementForm = reactive({
 const canDeploySelectedModel = computed(() => selectedModel.value?.status === 'DRAFT')
 const designerDescription = computed(() => (
   selectedModel.value
-    ? `${selectedModel.value.modelName} · 版本 ${selectedModel.value.version} · ${statusText(selectedModel.value.status)}`
+    ? `${modelDisplayTitle(selectedModel.value)} · 版本 ${selectedModel.value.version} · ${statusText(selectedModel.value.status)}`
     : '请假审批流程草稿'
 ))
 const flowableModdle = {
@@ -291,9 +292,9 @@ async function newDiagram() {
   modeler.value.get('canvas').zoom('fit-viewport')
 }
 
-async function loadLeaveDemo() {
+async function loadLeaveTemplate() {
   await newDiagram()
-  message.success('已加载请假审批示例')
+  message.success('已加载请假流程')
 }
 
 async function openModel(model: ProcessModelItem) {
@@ -333,7 +334,7 @@ function normalizeBpmnId(value: string) {
 
 async function saveDraft() {
   if (!normalizeBpmnId(form.modelKey) || !form.modelName.trim()) {
-    message.warning('请输入模型 Key 和模型名称')
+    message.warning('请输入模型标识和模型名称')
     return
   }
   saving.value = true
@@ -426,7 +427,7 @@ function applyElementProperties() {
   if (!selectedElement.value || !modeler.value) return
   const elementId = normalizeBpmnId(elementForm.id)
   if (!elementId) {
-    message.warning('请输入节点 ID')
+    message.warning('请输入节点标识')
     return
   }
   const modeling = modeler.value.get('modeling')
@@ -491,7 +492,7 @@ function setConnectorField(businessObject: any, name: string, value: string) {
 
 function validateConnectorFields() {
   try {
-    parseJsonObject(elementForm.headers || '{}', '请求头 JSON')
+    parseJsonObject(elementForm.headers || '{}', '请求头配置')
   } catch (error) {
     if (error instanceof JsonInputError) {
       message.error(error.message)
@@ -517,5 +518,13 @@ function statusText(status?: string) {
     ARCHIVED: '已归档'
   }
   return mapping[status || ''] || status || '-'
+}
+
+function modelListDescription(model: ProcessModelItem) {
+  return `${statusText(model.status)} · 版本 ${model.version}`
+}
+
+function modelDisplayTitle(model: ProcessModelItem) {
+  return processDisplayName(model.modelKey, model.modelName)
 }
 </script>

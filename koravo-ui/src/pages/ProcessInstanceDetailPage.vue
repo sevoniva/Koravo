@@ -346,7 +346,7 @@ function actionLabel(action?: string) {
     CONNECTOR_EXECUTE: '执行连接器',
     PROCESS_MODEL_DEPLOY: '部署模型',
     PROCESS_MODEL_IMPORT: '导入模型',
-    DEMO_INIT: '初始化演示',
+    DEMO_INIT: '准备基础数据',
     DATASOURCE_CREATE: '创建数据源',
     DATASOURCE_TEST: '测试数据源',
     DATASOURCE_DELETE: '删除数据源',
@@ -364,7 +364,7 @@ function resourceLabel(resourceType?: string) {
     PROCESS_MODEL: '流程模型',
     CONNECTOR_EXECUTION: '连接器日志',
     DATASOURCE: '数据源',
-    DEMO: '演示数据',
+    DEMO: '基础数据',
     FORM_BINDING: '表单绑定'
   }
   return mapping[resourceType || ''] || resourceType || '-'
@@ -425,7 +425,8 @@ function detailValueLabel(value: string) {
     approveTask: '审批请假',
     reviewTask: '确认调用结果',
     leaveApproval: '请假审批',
-    httpConnectorDemo: 'HTTP Connector 示例',
+    httpConnectorDemo: 'HTTP 健康检查',
+    http: 'HTTP 调用',
     true: '是',
     false: '否'
   }

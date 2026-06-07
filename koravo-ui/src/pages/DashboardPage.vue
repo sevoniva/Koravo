@@ -18,7 +18,7 @@
       <MetricCard label="HTTP Connector" :value="`${summary?.connectorSuccessCount ?? 0} / ${summary?.connectorFailedCount ?? 0}`" description="成功 / 失败" clickable @click="router.push('/connector-demo')" />
       <MetricCard label="失败任务" :value="summary?.failedJobCount ?? 0" :status="(summary?.failedJobCount ?? 0) > 0 ? 'WARN' : 'OK'" description="待处理异常" clickable @click="router.push('/ops?tab=failed')" />
       <MetricCard label="死信任务" :value="summary?.deadLetterJobCount ?? 0" :status="(summary?.deadLetterJobCount ?? 0) > 0 ? 'WARN' : 'OK'" description="需人工处理" clickable @click="router.push('/ops?tab=dead-letter')" />
-      <MetricCard label="请求 ID" :value="session.requestId || '自动生成'" description="可在顶部修改" />
+      <MetricCard label="请求追踪" :value="session.requestId || '自动生成'" description="可在顶部修改" />
       <MetricCard label="最近响应" :value="session.lastRequestId || '-'" description="请求追踪号" />
     </div>
 
