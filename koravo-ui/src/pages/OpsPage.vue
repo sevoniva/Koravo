@@ -75,8 +75,8 @@
           </a-form-item>
           <a-form-item label="状态">
             <a-select v-model:value="connectorFilters.status" allow-clear>
-              <a-select-option value="SUCCESS">SUCCESS</a-select-option>
-              <a-select-option value="FAILED">FAILED</a-select-option>
+              <a-select-option value="SUCCESS">成功</a-select-option>
+              <a-select-option value="FAILED">失败</a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item label="请求 ID">
@@ -100,10 +100,19 @@
             <EmptyState description="暂无连接器日志" />
           </template>
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'summary'">
-              <code>{{ record.errorMessage || record.responseSummary || record.requestSummary }}</code>
+            <template v-if="column.key === 'createdAt'">
+              {{ formatDateTime(record.createdAt) }}
             </template>
-            <template v-if="column.key === 'action'">
+            <template v-else-if="column.key === 'status'">
+              <StatusTag :status="record.status" />
+            </template>
+            <template v-else-if="column.key === 'elapsedMillis'">
+              {{ formatDuration(record.elapsedMillis) }}
+            </template>
+            <template v-else-if="column.key === 'summary'">
+              <span class="ops-summary-text">{{ connectorLogSummary(record) }}</span>
+            </template>
+            <template v-else-if="column.key === 'action'">
               <a-button size="small" @click="openConnectorDetail(record)">查看</a-button>
             </template>
           </template>
@@ -120,9 +129,12 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'error'">
-              <code>{{ record.errorMessage }}</code>
+              <span class="ops-summary-text">{{ maskText(record.errorMessage) }}</span>
             </template>
-            <template v-if="column.key === 'action'">
+            <template v-else-if="column.key === 'createdAt'">
+              {{ formatDateTime(record.createdAt) }}
+            </template>
+            <template v-else-if="column.key === 'action'">
               <a-button size="small" @click="openConnectorDetail(record)">查看</a-button>
             </template>
           </template>
@@ -155,7 +167,7 @@
               {{ formatDateTime(record.createTime) }}
             </template>
             <template v-if="column.key === 'exception'">
-              <code>{{ maskText(record.exceptionMessage) || '-' }}</code>
+              <span class="ops-summary-text">{{ maskText(record.exceptionMessage) || '-' }}</span>
             </template>
             <template v-if="column.key === 'action'">
               <a-space wrap>
@@ -215,7 +227,7 @@
               {{ formatDateTime(record.createTime) }}
             </template>
             <template v-if="column.key === 'exception'">
-              <code>{{ maskText(record.exceptionMessage) || '-' }}</code>
+              <span class="ops-summary-text">{{ maskText(record.exceptionMessage) || '-' }}</span>
             </template>
             <template v-if="column.key === 'action'">
               <a-space wrap>
@@ -312,31 +324,47 @@
     />
 
     <DetailSection v-if="detail" title="实例详情">
-      <JsonPreview :value="detail" />
+      <a-collapse>
+        <a-collapse-panel key="raw" header="高级详情">
+          <JsonPreview :value="detail" />
+        </a-collapse-panel>
+      </a-collapse>
     </DetailSection>
 
     <a-modal v-model:open="connectorDetailOpen" title="连接器执行详情" :footer="null" width="860px">
       <a-descriptions v-if="selectedConnectorLog" bordered :column="2" size="small" class="panel-block">
-        <a-descriptions-item label="时间">{{ selectedConnectorLog.createdAt }}</a-descriptions-item>
+        <a-descriptions-item label="时间">{{ formatDateTime(selectedConnectorLog.createdAt) }}</a-descriptions-item>
         <a-descriptions-item label="类型">{{ selectedConnectorLog.connectorType }}</a-descriptions-item>
         <a-descriptions-item label="方法">{{ selectedConnectorLog.method }}</a-descriptions-item>
-        <a-descriptions-item label="状态">{{ selectedConnectorLog.status }}</a-descriptions-item>
+        <a-descriptions-item label="状态"><StatusTag :status="selectedConnectorLog.status" /></a-descriptions-item>
         <a-descriptions-item label="状态码">{{ selectedConnectorLog.statusCode }}</a-descriptions-item>
-        <a-descriptions-item label="耗时 ms">{{ selectedConnectorLog.elapsedMillis }}</a-descriptions-item>
+        <a-descriptions-item label="耗时">{{ formatDuration(selectedConnectorLog.elapsedMillis) }}</a-descriptions-item>
         <a-descriptions-item label="请求 ID">{{ selectedConnectorLog.requestId }}</a-descriptions-item>
         <a-descriptions-item label="URL">{{ selectedConnectorLog.url }}</a-descriptions-item>
       </a-descriptions>
-      <a-tabs v-if="selectedConnectorLog">
-        <a-tab-pane key="request" tab="请求">
-          <JsonPreview :value="selectedConnectorRequest" />
-        </a-tab-pane>
-        <a-tab-pane key="response" tab="响应">
-          <JsonPreview :value="selectedConnectorResponse" />
-        </a-tab-pane>
-        <a-tab-pane key="error" tab="错误">
-          <JsonPreview :value="selectedConnectorError" />
-        </a-tab-pane>
-      </a-tabs>
+      <a-alert
+        v-if="selectedConnectorLog"
+        class="panel-block"
+        show-icon
+        :type="selectedConnectorLog.status === 'SUCCESS' ? 'success' : 'error'"
+        :message="connectorDetailTitle"
+        :description="connectorDetailDescription"
+      />
+      <a-collapse v-if="selectedConnectorLog" class="panel-block">
+        <a-collapse-panel key="detail" header="高级详情">
+          <a-tabs>
+            <a-tab-pane key="request" tab="请求摘要">
+              <p class="ops-detail-text">{{ maskText(selectedConnectorLog.requestSummary) }}</p>
+            </a-tab-pane>
+            <a-tab-pane key="response" tab="响应摘要">
+              <p class="ops-detail-text">{{ maskText(selectedConnectorLog.responseSummary) }}</p>
+            </a-tab-pane>
+            <a-tab-pane key="raw" tab="原始日志">
+              <JsonPreview :value="maskedSelectedConnectorLog" />
+            </a-tab-pane>
+          </a-tabs>
+        </a-collapse-panel>
+      </a-collapse>
     </a-modal>
 
     <a-modal v-model:open="jobDetailOpen" title="任务异常详情" :footer="null" width="900px">
@@ -356,14 +384,19 @@
         <a-descriptions-item label="创建时间">{{ formatDateTime(selectedJob.createTime) }}</a-descriptions-item>
         <a-descriptions-item label="到期时间">{{ formatDateTime(selectedJob.dueDate) }}</a-descriptions-item>
       </a-descriptions>
-      <a-tabs v-if="selectedJob">
-        <a-tab-pane key="message" tab="异常摘要">
-          <JsonPreview :value="selectedJob.exceptionMessage ? { message: maskText(selectedJob.exceptionMessage) } : {}" />
-        </a-tab-pane>
-        <a-tab-pane key="stacktrace" tab="异常堆栈">
-          <JsonPreview :value="selectedJob.exceptionStacktrace ? { stacktrace: maskText(selectedJob.exceptionStacktrace) } : {}" />
-        </a-tab-pane>
-      </a-tabs>
+      <a-alert
+        v-if="selectedJob"
+        class="panel-block"
+        type="error"
+        show-icon
+        message="异常摘要"
+        :description="selectedJobExceptionText"
+      />
+      <a-collapse v-if="selectedJob" class="panel-block">
+        <a-collapse-panel key="stacktrace" header="异常堆栈">
+          <pre class="ops-stacktrace">{{ selectedJobStacktraceText }}</pre>
+        </a-collapse-panel>
+      </a-collapse>
     </a-modal>
   </PageContainer>
 </template>
@@ -403,7 +436,7 @@ import {
   type OpsProcessInstance,
   type ProcessTrace
 } from '../api/koravo'
-import { formatDateTime, maskSecret } from '../utils/format'
+import { formatDateTime, formatDuration, maskSecret } from '../utils/format'
 
 const loading = ref(false)
 const router = useRouter()
@@ -423,9 +456,6 @@ const connectorSummary = ref<ConnectorExecutionSummary | null>(null)
 const opsSummary = ref<OpsSummary | null>(null)
 const connectorDetailOpen = ref(false)
 const selectedConnectorLog = ref<ConnectorExecutionLogItem | null>(null)
-const selectedConnectorRequest = ref<unknown>({})
-const selectedConnectorResponse = ref<unknown>({})
-const selectedConnectorError = ref<unknown>({})
 const capabilities = ref<OpsCapabilityItem[]>([])
 const capabilityLoading = ref(false)
 const connectorPage = ref(1)
@@ -468,12 +498,12 @@ const traceColumns = [
 ]
 
 const connectorColumns = [
-  { title: '时间', dataIndex: 'createdAt', key: 'createdAt', width: 190 },
+  { title: '时间', key: 'createdAt', width: 160 },
   { title: '类型', dataIndex: 'connectorType', key: 'connectorType', width: 90 },
   { title: '方法', dataIndex: 'method', key: 'method', width: 90 },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 110 },
+  { title: '状态', key: 'status', width: 110 },
   { title: '状态码', dataIndex: 'statusCode', key: 'statusCode', width: 80 },
-  { title: '耗时 ms', dataIndex: 'elapsedMillis', key: 'elapsedMillis', width: 100 },
+  { title: '耗时', key: 'elapsedMillis', width: 100 },
   { title: '请求 ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
   { title: 'URL', dataIndex: 'url', key: 'url', width: 260 },
   { title: '摘要', key: 'summary' },
@@ -481,7 +511,7 @@ const connectorColumns = [
 ]
 
 const connectorFailureColumns = [
-  { title: '时间', dataIndex: 'createdAt', key: 'createdAt', width: 190 },
+  { title: '时间', key: 'createdAt', width: 160 },
   { title: '类型', dataIndex: 'connectorType', key: 'connectorType', width: 90 },
   { title: 'URL', dataIndex: 'url', key: 'url', width: 260 },
   { title: '请求 ID', dataIndex: 'requestId', key: 'requestId', width: 180 },
@@ -546,6 +576,24 @@ const deadLetterJobPagination = computed<TablePaginationConfig>(() => ({
   showSizeChanger: true,
   showTotal: (count) => `共 ${count} 个死信任务`
 }))
+const selectedConnectorResponseBody = computed(() => extractResponseBody(selectedConnectorLog.value?.responseSummary))
+const selectedConnectorHealthData = computed(() => asRecord(selectedConnectorResponseBody.value?.data) || selectedConnectorResponseBody.value || {})
+const maskedSelectedConnectorLog = computed(() => selectedConnectorLog.value ? maskSecret(selectedConnectorLog.value) : {})
+const connectorDetailTitle = computed(() => {
+  if (!selectedConnectorLog.value) return ''
+  if (selectedConnectorLog.value.errorMessage) return '调用失败'
+  if (selectedConnectorLog.value.statusCode) return `HTTP ${selectedConnectorLog.value.statusCode}`
+  return statusLabel(selectedConnectorLog.value.status)
+})
+const connectorDetailDescription = computed(() => {
+  if (!selectedConnectorLog.value) return ''
+  if (selectedConnectorLog.value.errorMessage) return maskText(selectedConnectorLog.value.errorMessage)
+  const status = selectedConnectorHealthData.value.status === 'UP' ? '服务正常' : `服务状态 ${selectedConnectorHealthData.value.status || '-'}`
+  const version = selectedConnectorHealthData.value.version ? `版本 ${selectedConnectorHealthData.value.version}` : '未返回版本'
+  return `${status}，${version}。`
+})
+const selectedJobExceptionText = computed(() => selectedJob.value?.exceptionMessage ? maskText(selectedJob.value.exceptionMessage) : '暂无异常摘要')
+const selectedJobStacktraceText = computed(() => selectedJob.value?.exceptionStacktrace ? maskText(selectedJob.value.exceptionStacktrace) : '暂无异常堆栈')
 
 let traceViewer: any = null
 
@@ -806,24 +854,56 @@ function destroyTraceViewer() {
 
 function openConnectorDetail(record: ConnectorExecutionLogItem) {
   selectedConnectorLog.value = record
-  selectedConnectorRequest.value = parseJsonValue(record.requestSummary)
-  selectedConnectorResponse.value = parseJsonValue(record.responseSummary)
-  selectedConnectorError.value = record.errorMessage ? { message: record.errorMessage } : {}
   connectorDetailOpen.value = true
-}
-
-function parseJsonValue(value?: string) {
-  if (!value) return {}
-  try {
-    return JSON.parse(value)
-  } catch {
-    return value
-  }
 }
 
 function maskText(value?: string) {
   const masked = maskSecret(value)
   return typeof masked === 'string' ? masked : ''
+}
+
+function connectorLogSummary(record: ConnectorExecutionLogItem) {
+  if (record.errorMessage) return maskText(record.errorMessage)
+  const body = extractResponseBody(record.responseSummary)
+  const data = asRecord(body?.data) || body || {}
+  const status = data.status === 'UP' ? '服务正常' : data.status ? `服务状态 ${data.status}` : statusLabel(record.status)
+  const version = data.version ? `，版本 ${data.version}` : ''
+  return `${status}${version}`
+}
+
+function extractResponseBody(summary?: string) {
+  if (!summary) return null
+  const bodyIndex = summary.indexOf('body=')
+  if (bodyIndex < 0) return null
+  return parseBodyPayload(summary.slice(bodyIndex + 5))
+}
+
+function parseBodyPayload(value: unknown) {
+  if (!value) return null
+  if (typeof value === 'string') {
+    try {
+      return asRecord(JSON.parse(value))
+    } catch {
+      return null
+    }
+  }
+  return asRecord(value)
+}
+
+function asRecord(value: unknown) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+function statusLabel(status?: string) {
+  const mapping: Record<string, string> = {
+    SUCCESS: '成功',
+    FAILED: '失败',
+    RUNNING: '运行中',
+    COMPLETED: '已完成',
+    ACTIVE: '启用',
+    SUSPENDED: '已挂起'
+  }
+  return mapping[status || ''] || status || '-'
 }
 
 onMounted(async () => {
@@ -853,3 +933,33 @@ async function loadRouteTrace() {
   }
 }
 </script>
+
+<style scoped>
+.ops-summary-text {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 420px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.ops-detail-text {
+  margin: 0;
+  color: #44524d;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.ops-stacktrace {
+  overflow: auto;
+  max-height: 420px;
+  margin: 0;
+  padding: 12px;
+  color: #44524d;
+  background: #f6f8f7;
+  border: 1px solid #d9e3df;
+  border-radius: 8px;
+  white-space: pre-wrap;
+}
+</style>

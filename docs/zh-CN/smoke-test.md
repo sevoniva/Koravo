@@ -39,7 +39,7 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 表单绑定：通过。`/form-bindings` 默认展示请假审批流程的已有绑定，模型、任务节点和表单自动带出；编辑、清空选择、全量绑定列表正常，相关接口返回 200 且控制台无错误。
 - 审计日志：通过。桌面列表显示时间、用户、行为、对象和摘要；动作、资源、时间筛选正常；详情弹窗显示脱敏 JSON，移动端切换为卡片列表。
 - HTTP 连接器：通过。部署 `httpConnectorDemo`，启动实例 `cb7fb909-625a-11f1-ab24-c232b2af3b82`，`httpResult.statusCode=200`，连接器日志为 `SUCCESS`；页面默认展示健康检查摘要和格式化时间，原始变量与日志收进高级详情。
-- 运维 tabs：通过。实例列表、失败任务、死信任务、连接器日志、异常摘要可见；实例状态和时间中文展示，失败/死信无数据时显示空状态。
+- 运维 tabs：通过。实例列表、失败任务、死信任务、连接器日志、异常摘要可见；连接器日志显示格式化时间、中文状态、耗时和健康摘要；执行详情默认展示调用摘要，原始报文收进高级详情；失败/死信无数据时显示空状态。
 - 运维失败/死信接口：通过。`GET /api/v1/ops/failed-jobs` 和 `GET /api/v1/ops/dead-letter-jobs` 返回统一分页结构；能力清单中失败任务查看、死信任务处理、任务重试均为 `AVAILABLE`。
 - 数据源 API：通过。创建临时 H2 数据源后 `POST /api/v1/datasources/{id}/test` 返回 `connected=true` 和 `连接成功`；详情响应未包含密码、密文或 secret 字段；测试日志记录成功后删除临时数据源。
 - 数据源页面：通过。`/datasources` 渲染 PageHeader、指标、空状态和安全提示；密码占位为“可为空”；PostgreSQL、MySQL、H2 模板切换正常；连接池参数收进高级配置；创建、测试、详情、日志弹窗、删除 H2 数据源均返回 200。
@@ -58,6 +58,7 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn -s .mvn/settings-cn.xml test
 - 数据源测试按钮曾按不存在的 `success` 字段判断结果，已改为后端响应的 `connected` 字段。
 - HTTP 连接器页曾在首屏显示 `httpConnectorDemo`、空 JSON 和 ISO 时间，已改为业务摘要和高级详情。
 - 数据源页曾在首屏显示连接池 JSON 和详情整包 JSON，已改为连接摘要和高级详情。
+- 运维中心连接器日志曾直接展示响应 JSON 和 ISO 时间，已改为中文状态、健康摘要和高级详情。
 
 ## 已知问题
 
