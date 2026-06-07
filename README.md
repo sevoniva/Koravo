@@ -253,7 +253,15 @@ cd koravo-ui
 npm run build
 ```
 
-The Flowable integration test class is present but disabled until a Docker-backed integration profile is added.
+The Flowable integration test class is isolated from the default test run.
+Run reserved integration-profile tests explicitly with:
+
+```bash
+cd koravo-server
+mvn -Pintegration-test -pl koravo-engine -am test
+```
+
+Default `mvn test` remains fast and does not require Docker-backed integration infrastructure.
 
 ## FAQ
 

@@ -1,12 +1,12 @@
 package io.koravo.engine.flowable;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
-@Disabled("Reserved for -Pintegration-test with PostgreSQL Testcontainers once CI Docker is available.")
+@EnabledIfSystemProperty(named = "koravo.integration", matches = "true")
 class FlowableProcessFacadeIntegrationTest {
     @Test
     void deployStartQueryCompleteAndInspectLeaveApproval() {
-        // Covered manually through examples/http/koravo.http in v0.1 bootstrap.
+        // Reserved for the Docker-backed Flowable/PostgreSQL integration profile.
     }
 }

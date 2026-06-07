@@ -40,6 +40,15 @@ cd koravo-server
 mvn test
 ```
 
+Docker-backed or long-running integration checks are isolated behind the `integration-test` Maven profile:
+
+```bash
+cd koravo-server
+mvn -Pintegration-test -pl koravo-engine -am test
+```
+
+Default tests must stay runnable without Docker or external services.
+
 Frontend:
 
 ```bash
