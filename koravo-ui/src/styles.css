@@ -1,3 +1,7 @@
+@import "bpmn-js/dist/assets/diagram-js.css";
+@import "bpmn-js/dist/assets/bpmn-js.css";
+@import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
+
 :root {
   color: #1f2933;
   background: #eef2f3;
@@ -156,6 +160,59 @@ p {
 
 .panel-block {
   margin-top: 18px;
+}
+
+.designer-page {
+  max-width: none;
+}
+
+.designer-shell {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr) 320px;
+  gap: 14px;
+  min-height: calc(100vh - 150px);
+}
+
+.designer-sidebar,
+.designer-properties,
+.designer-canvas-wrap {
+  overflow: hidden;
+  background: #f9fbfa;
+  border: 1px solid #d9e3df;
+  border-radius: 8px;
+}
+
+.designer-sidebar,
+.designer-properties {
+  padding: 14px;
+}
+
+.panel-title {
+  margin-bottom: 10px;
+  color: #24332f;
+  font-weight: 700;
+}
+
+.model-list {
+  margin-top: 12px;
+}
+
+.model-list .ant-list-item {
+  padding: 10px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.model-list .ant-list-item.active,
+.model-list .ant-list-item:hover {
+  background: #e3eee9;
+}
+
+.designer-canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 680px;
+  background: #fff;
 }
 
 .ant-table-wrapper {

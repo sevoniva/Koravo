@@ -5,6 +5,7 @@
         <h1>Process Models</h1>
         <p>Deploy BPMN XML into Flowable through Koravo model metadata.</p>
       </div>
+      <a-button type="primary" @click="router.push('/process-designer')"><EditOutlined />Open Designer</a-button>
     </div>
 
     <a-form layout="vertical" class="form-grid">
@@ -27,12 +28,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { UploadOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, UploadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
 import { deployProcessModel, type ProcessDeployment } from '../api/koravo'
 
 const modelName = ref('Leave Approval')
+const router = useRouter()
 const file = ref<File | null>(null)
 const loading = ref(false)
 const deployment = ref<ProcessDeployment | null>(null)

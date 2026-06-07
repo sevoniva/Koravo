@@ -18,6 +18,39 @@ export interface ProcessDeployment {
   version: number
 }
 
+export interface ProcessModelItem {
+  id: string
+  tenantId: string
+  modelKey: string
+  modelName: string
+  modelType: string
+  version: number
+  flowableDeploymentId?: string
+  flowableDefinitionId?: string
+  status: string
+  description?: string
+  bpmnXml?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface BpmnValidationIssue {
+  code: string
+  message: string
+  elementId?: string
+}
+
+export interface BpmnValidationResult {
+  valid: boolean
+  errors: BpmnValidationIssue[]
+  warnings: BpmnValidationIssue[]
+}
+
+export interface ProcessModelDeployResult {
+  model: ProcessModelItem
+  deployment: ProcessDeployment
+}
+
 export interface ProcessInstance {
   instanceId: string
   processDefinitionId: string
@@ -145,6 +178,50 @@ export function deployProcessModel(modelName: string, file: File) {
   const formData = new FormData()
   formData.append('file', file)
   return apiData<ProcessDeployment>(http.post(`/process-models/deploy?modelName=${encodeURIComponent(modelName)}`, formData))
+}
+
+export function listProcessModels(status?: string) {
+  return apiData<ProcessModelItem[]>(http.get('/process-models', { params: { status } }))
+}
+
+export function createProcessModel(payload: {
+  modelKey: string
+  modelName: string
+  description?: string
+  bpmnXml?: string
+}) {
+  return apiData<ProcessModelItem>(http.post('/process-models', payload))
+}
+
+export function importProcessModel(payload: {
+  modelName: string
+  description?: string
+  bpmnXml: string
+}) {
+  return apiData<ProcessModelItem>(http.post('/process-models/import', payload))
+}
+
+export function updateProcessModel(id: string, payload: {
+  modelName: string
+  description?: string
+  bpmnXml: string
+}) {
+  return apiData<ProcessModelItem>(http.put(`/process-models/${id}`, payload))
+}
+
+export function validateProcessModelXml(bpmnXml: string) {
+  return apiData<BpmnValidationResult>(http.post('/process-models/validate', bpmnXml, {
+    headers: { 'Content-Type': 'text/plain' }
+  }))
+}
+
+export function deployProcessModelDraft(id: string) {
+  return apiData<ProcessModelDeployResult>(http.post(`/process-models/${id}/deploy`))
+}
+
+export async function exportProcessModel(id: string) {
+  const response = await http.get(`/process-models/${id}/export`, { responseType: 'blob' })
+  return response.data as Blob
 }
 
 export function startProcessInstance(payload: { processDefinitionKey: string; businessKey: string; variables: JsonRecord }) {

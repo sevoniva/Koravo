@@ -11,6 +11,7 @@
       <a-menu :selectedKeys="[route.path]" theme="dark" mode="inline" @click="handleNav">
         <a-menu-item key="/dashboard"><DashboardOutlined />Dashboard</a-menu-item>
         <a-menu-item key="/process-models"><PartitionOutlined />Process Models</a-menu-item>
+        <a-menu-item key="/process-designer"><EditOutlined />Process Designer</a-menu-item>
         <a-menu-item key="/process-instances"><PlayCircleOutlined />Process Instances</a-menu-item>
         <a-menu-item key="/tasks"><CheckCircleOutlined />Tasks</a-menu-item>
         <a-menu-item key="/forms"><FormOutlined />Forms</a-menu-item>
@@ -41,6 +42,7 @@ import {
   ControlOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  EditOutlined,
   FileSearchOutlined,
   FormOutlined,
   LinkOutlined,

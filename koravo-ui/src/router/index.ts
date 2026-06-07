@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import DashboardPage from '../pages/DashboardPage.vue'
 import ProcessModelsPage from '../pages/ProcessModelsPage.vue'
+import ProcessDesignerPage from '../pages/ProcessDesignerPage.vue'
 import ProcessInstancesPage from '../pages/ProcessInstancesPage.vue'
 import TasksPage from '../pages/TasksPage.vue'
 import TaskDetailPage from '../pages/TaskDetailPage.vue'
@@ -16,6 +17,7 @@ const router = createRouter({
     { path: '/', redirect: '/dashboard' },
     { path: '/dashboard', component: DashboardPage },
     { path: '/process-models', component: ProcessModelsPage },
+    { path: '/process-designer', component: ProcessDesignerPage },
     { path: '/process-instances', component: ProcessInstancesPage },
     { path: '/tasks', component: TasksPage },
     { path: '/tasks/:taskId', component: TaskDetailPage },
