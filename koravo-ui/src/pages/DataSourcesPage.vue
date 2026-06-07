@@ -5,7 +5,7 @@
         <h1>Data Sources</h1>
         <p>Create JDBC datasource definitions and test connectivity.</p>
       </div>
-      <a-button @click="load"><ReloadOutlined />Reload</a-button>
+      <a-button :loading="loading" @click="load"><ReloadOutlined />Reload</a-button>
     </div>
 
     <a-form layout="vertical" class="form-grid">
@@ -31,7 +31,7 @@
       </a-form-item>
     </a-form>
 
-    <a-table :data-source="items" :columns="columns" row-key="id" :pagination="false">
+    <a-table :data-source="items" :columns="columns" row-key="id" :loading="loading" :pagination="false">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
           <a-space>
@@ -93,6 +93,7 @@ import {
 } from '../api/koravo'
 
 const saving = ref(false)
+const loading = ref(false)
 const editingId = ref<string | null>(null)
 const items = ref<DataSourceItem[]>([])
 const logsOpen = ref(false)
@@ -139,7 +140,12 @@ const logsPagination = computed<TablePaginationConfig>(() => ({
 }))
 
 async function load() {
-  items.value = await listDataSources()
+  loading.value = true
+  try {
+    items.value = await listDataSources()
+  } finally {
+    loading.value = false
+  }
 }
 
 async function save() {
