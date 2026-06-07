@@ -138,7 +138,12 @@ GET {{baseUrl}}/audit-logs?action=PROCESS_INSTANCE_SUSPEND&resourceType=PROCESS_
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 18. Deploy HTTP connector demo
+### 18. Query audit logs by time range
+GET {{baseUrl}}/audit-logs?startTime=2026-06-07T00:00:00Z&endTime=2026-06-07T23:59:59Z&page=1&pageSize=20
+X-Tenant-Id: {{tenantId}}
+X-User-Id: {{userId}}
+
+### 19. Deploy HTTP connector demo
 POST {{baseUrl}}/process-models/deploy?modelName=HTTP%20Connector%20Demo
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -151,7 +156,7 @@ Content-Type: application/xml
 < ../bpmn/http-connector-demo.bpmn20.xml
 --KoravoBoundary--
 
-### 19. Start HTTP connector demo
+### 20. Start HTTP connector demo
 POST {{baseUrl}}/process-instances/start
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -165,7 +170,7 @@ Content-Type: application/json
   }
 }
 
-### 20. Trace HTTP connector demo
+### 21. Trace HTTP connector demo
 GET {{baseUrl}}/ops/process-instances/{{httpProcessInstanceId}}/trace
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}

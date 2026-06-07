@@ -44,6 +44,12 @@ Query audit logs with:
 GET /api/v1/audit-logs?action=PROCESS_INSTANCE_SUSPEND&resourceType=PROCESS_INSTANCE&page=1&pageSize=20
 ```
 
+Time range filters use ISO-8601 instants:
+
+```http
+GET /api/v1/audit-logs?startTime=2026-06-07T00:00:00Z&endTime=2026-06-07T23:59:59Z&page=1&pageSize=20
+```
+
 All calls should include:
 
 - `X-Tenant-Id`
