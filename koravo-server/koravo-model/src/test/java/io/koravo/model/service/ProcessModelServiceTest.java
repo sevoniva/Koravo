@@ -5,6 +5,7 @@ import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
+import io.koravo.model.dto.ProcessModelImportRequest;
 import io.koravo.model.repo.ProcessModelRepository;
 import io.koravo.model.validation.BpmnValidationResult;
 import io.koravo.model.validation.BpmnValidationService;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -109,6 +111,35 @@ class ProcessModelServiceTest {
                 "deploymentId", "dep-1",
                 "processDefinitionId", "pd-1",
                 "processDefinitionKey", "leaveApproval"
+        ));
+    }
+
+    @Test
+    void importPersistsDraftAndWritesImportAudit() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        String bpmnXml = "<definitions><process id=\"expenseApproval\" /></definitions>";
+        when(validationService.validate(bpmnXml)).thenReturn(new BpmnValidationResult(true, List.of(), List.of()));
+        when(repository.save(any(KoProcessModel.class))).thenAnswer(invocation -> {
+            KoProcessModel saved = invocation.getArgument(0);
+            saved.setId("model-import-1");
+            return saved;
+        });
+
+        var response = service.importModel(new ProcessModelImportRequest(
+                "Expense Approval",
+                "Imported demo model",
+                bpmnXml
+        ));
+
+        assertThat(response.id()).isEqualTo("model-import-1");
+        assertThat(response.modelKey()).isEqualTo("expenseApproval");
+        assertThat(response.status()).isEqualTo("DRAFT");
+        verify(auditLogService).record("PROCESS_MODEL_IMPORT", "PROCESS_MODEL", "model-import-1", Map.of(
+                "modelKey", "expenseApproval"
+        ));
+        verify(auditLogService, never()).record("PROCESS_MODEL_CREATE", "PROCESS_MODEL", "model-import-1", Map.of(
+                "modelKey", "expenseApproval"
         ));
     }
 

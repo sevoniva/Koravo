@@ -52,18 +52,7 @@ public class ProcessModelService {
         String bpmnXml = StringUtils.hasText(request.bpmnXml())
                 ? request.bpmnXml()
                 : DefaultBpmnTemplates.approval(request.modelKey(), request.modelName());
-        KoProcessModel model = new KoProcessModel();
-        model.setTenantId(TenantContextHolder.getTenantId());
-        model.setCreatedBy(UserContextHolder.getUserId());
-        model.setUpdatedBy(UserContextHolder.getUserId());
-        model.setModelKey(request.modelKey());
-        model.setModelName(request.modelName());
-        model.setModelType("BPMN");
-        model.setVersion(1);
-        model.setStatus(ProcessModelStatus.DRAFT);
-        model.setDescription(request.description());
-        model.setBpmnXml(bpmnXml);
-        repository.save(model);
+        KoProcessModel model = createDraftModel(request.modelKey(), request.modelName(), request.description(), bpmnXml);
         auditLogService.record("PROCESS_MODEL_CREATE", "PROCESS_MODEL", model.getId(), Map.of("modelKey", model.getModelKey()));
         return toResponse(model);
     }
@@ -71,7 +60,9 @@ public class ProcessModelService {
     @Transactional
     public ProcessModelResponse importModel(ProcessModelImportRequest request) {
         String modelKey = extractProcessId(request.bpmnXml());
-        return create(new ProcessModelCreateRequest(modelKey, request.modelName(), request.description(), request.bpmnXml()));
+        KoProcessModel model = createDraftModel(modelKey, request.modelName(), request.description(), request.bpmnXml());
+        auditLogService.record("PROCESS_MODEL_IMPORT", "PROCESS_MODEL", model.getId(), Map.of("modelKey", model.getModelKey()));
+        return toResponse(model);
     }
 
     @Transactional(readOnly = true)
@@ -223,6 +214,22 @@ public class ProcessModelService {
     private KoProcessModel find(String id) {
         return repository.findByIdAndTenantIdAndDeletedFalse(id, TenantContextHolder.getTenantId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.MODEL_NOT_FOUND, "Process model not found"));
+    }
+
+    private KoProcessModel createDraftModel(String modelKey, String modelName, String description, String bpmnXml) {
+        KoProcessModel model = new KoProcessModel();
+        model.setTenantId(TenantContextHolder.getTenantId());
+        model.setCreatedBy(UserContextHolder.getUserId());
+        model.setUpdatedBy(UserContextHolder.getUserId());
+        model.setModelKey(modelKey);
+        model.setModelName(modelName);
+        model.setModelType("BPMN");
+        model.setVersion(1);
+        model.setStatus(ProcessModelStatus.DRAFT);
+        model.setDescription(description);
+        model.setBpmnXml(bpmnXml);
+        repository.save(model);
+        return model;
     }
 
     private ProcessModelResponse toResponse(KoProcessModel model) {

@@ -35,12 +35,13 @@ Validation returns structured `errors` and `warnings`, not a boolean-only result
 The model service records audit events:
 
 - `PROCESS_MODEL_CREATE`
+- `PROCESS_MODEL_IMPORT`
 - `PROCESS_MODEL_UPDATE`
 - `PROCESS_MODEL_DEPLOY`
 - `PROCESS_MODEL_DISABLE`
 - `PROCESS_MODEL_ARCHIVE`
 
-Both stored draft deployment and the legacy multipart deploy shortcut write `PROCESS_MODEL_DEPLOY`.
+Creating a blank/default draft writes `PROCESS_MODEL_CREATE`; importing BPMN XML writes `PROCESS_MODEL_IMPORT`. Both stored draft deployment and the legacy multipart deploy shortcut write `PROCESS_MODEL_DEPLOY`.
 
 ## Console
 
