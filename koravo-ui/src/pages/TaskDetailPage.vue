@@ -1,27 +1,23 @@
 <template>
-  <section class="page">
-    <div class="page-heading">
-      <div>
-        <h1>任务详情</h1>
-        <p>{{ detail?.task.name || taskId }}</p>
-      </div>
-      <a-space>
+  <PageContainer>
+    <PageHeader title="任务详情" :description="detail?.task.name || taskId">
+      <template #actions>
         <a-button v-if="detail?.task.processInstanceId" @click="openProcessTrace">
           <DeploymentUnitOutlined />流程追踪
         </a-button>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
-      </a-space>
-    </div>
+      </template>
+    </PageHeader>
 
-    <a-empty v-if="!loading && !detail" description="暂无任务详情" />
+    <EmptyState v-if="!loading && !detail" description="暂无任务详情" />
 
     <a-descriptions v-if="detail" bordered :column="2" class="panel-block">
       <a-descriptions-item label="任务名称">{{ detail.task.name }}</a-descriptions-item>
       <a-descriptions-item label="任务节点">{{ detail.task.taskDefinitionKey }}</a-descriptions-item>
-      <a-descriptions-item label="状态">{{ detail.task.status }}</a-descriptions-item>
+      <a-descriptions-item label="状态"><StatusTag :status="detail.task.status" /></a-descriptions-item>
       <a-descriptions-item label="业务编号">{{ detail.task.businessKey }}</a-descriptions-item>
       <a-descriptions-item label="处理人">{{ detail.task.assignee }}</a-descriptions-item>
-      <a-descriptions-item label="创建时间">{{ detail.task.createTime }}</a-descriptions-item>
+      <a-descriptions-item label="创建时间">{{ formatDateTime(detail.task.createTime) }}</a-descriptions-item>
       <a-descriptions-item label="流程实例">
         <a-button type="link" class="inline-link-button" @click="openProcessTrace">{{ detail.task.processInstanceId }}</a-button>
       </a-descriptions-item>
@@ -40,61 +36,73 @@
       description="该任务仅用于历史查看，表单快照、审批意见、流程变量和操作记录仍可查看。"
     />
 
-    <a-form v-if="detail && isCompletable" layout="vertical" class="form-grid">
-      <a-form-item label="审批结果">
-        <a-segmented v-model:value="approvalAction" :options="approvalOptions" />
-      </a-form-item>
-      <a-form-item v-if="detail.formSchema" label="绑定表单" class="span-2">
-        <a-alert
-          :message="`${detail.formSchema.formName} v${detail.formSchema.version}`"
-          :description="`表单 Key：${detail.formSchema.formKey}`"
-          type="info"
-          show-icon
+    <DetailSection v-if="detail && isCompletable" title="办理任务">
+      <a-form layout="vertical" class="form-grid">
+        <a-form-item label="审批结果">
+          <a-segmented v-model:value="approvalAction" :options="approvalOptions" />
+        </a-form-item>
+        <a-form-item v-if="detail.formSchema" label="绑定表单" class="span-2">
+          <a-alert
+            :message="`${detail.formSchema.formName} v${detail.formSchema.version}`"
+            :description="`表单 Key：${detail.formSchema.formKey}`"
+            type="info"
+            show-icon
+          />
+        </a-form-item>
+        <SchemaForm
+          v-if="detail.formSchema"
+          v-model="formDataValues"
+          :schema-json="detail.formSchema.schemaJson"
+          @fields-change="schemaFields = $event"
         />
-      </a-form-item>
-      <SchemaForm
-        v-if="detail.formSchema"
-        v-model="formDataValues"
-        :schema-json="detail.formSchema.schemaJson"
-      />
-      <a-form-item label="表单数据 JSON" class="span-2">
-        <a-textarea v-model:value="formDataJson" :rows="5" />
-      </a-form-item>
-      <a-form-item label="流程变量 JSON" class="span-2">
-        <a-textarea v-model:value="variablesJson" :rows="5" />
-      </a-form-item>
-      <a-form-item label="审批意见" class="span-2">
-        <a-input v-model:value="comment" />
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" :loading="submitting" @click="submit"><CheckCircleOutlined />提交</a-button>
-      </a-form-item>
-    </a-form>
+        <a-form-item label="表单数据 JSON" class="span-2">
+          <a-textarea v-model:value="formDataJson" :rows="5" />
+        </a-form-item>
+        <a-form-item label="流程变量 JSON" class="span-2">
+          <a-textarea v-model:value="variablesJson" :rows="5" />
+        </a-form-item>
+        <a-form-item label="审批意见" class="span-2">
+          <a-input v-model:value="comment" />
+        </a-form-item>
+      </a-form>
+      <template #actions>
+        <Toolbar>
+          <a-button type="primary" :loading="submitting" @click="submit"><CheckCircleOutlined />提交</a-button>
+          <a-button @click="router.push('/tasks')">返回列表</a-button>
+        </Toolbar>
+      </template>
+    </DetailSection>
 
     <a-tabs v-if="detail" class="panel-block">
       <a-tab-pane key="processVariables" tab="流程变量">
-        <JsonPreview :value="detail.processVariables" />
+        <JsonPreview :value="maskedProcessVariables" />
       </a-tab-pane>
       <a-tab-pane key="taskVariables" tab="任务变量">
-        <JsonPreview :value="detail.taskVariables" />
+        <JsonPreview :value="maskedTaskVariables" />
       </a-tab-pane>
       <a-tab-pane key="comments" tab="审批意见">
         <a-table :data-source="detail.comments" :columns="commentColumns" row-key="id" :pagination="false" size="small">
           <template #emptyText>
-            <a-empty description="暂无审批意见" />
+            <EmptyState description="暂无审批意见" />
+          </template>
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'time'">{{ formatDateTime(record.time) }}</template>
           </template>
         </a-table>
       </a-tab-pane>
       <a-tab-pane key="snapshots" tab="表单快照">
         <a-table :data-source="detail.formSnapshots" :columns="snapshotColumns" row-key="id" :pagination="false" size="small">
           <template #emptyText>
-            <a-empty description="暂无表单快照" />
+            <EmptyState description="暂无表单快照" />
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'dataJson'">
-              <code>{{ record.dataJson }}</code>
+              <code>{{ maskedJsonText(record.dataJson) }}</code>
             </template>
-            <template v-if="column.key === 'action'">
+            <template v-else-if="column.key === 'createdAt'">
+              {{ formatDateTime(record.createdAt) }}
+            </template>
+            <template v-else-if="column.key === 'action'">
               <a-button size="small" @click="openSnapshot(record)">查看</a-button>
             </template>
           </template>
@@ -103,25 +111,32 @@
       <a-tab-pane key="auditLogs" tab="操作记录">
         <a-table :data-source="detail.auditLogs" :columns="auditColumns" row-key="id" :pagination="false" size="small">
           <template #emptyText>
-            <a-empty description="暂无操作记录" />
+            <EmptyState description="暂无操作记录" />
           </template>
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'detailJson'">
-              <code>{{ record.detailJson }}</code>
+              <code>{{ maskedJsonText(record.detailJson) }}</code>
+            </template>
+            <template v-else-if="column.key === 'createdAt'">
+              {{ formatDateTime(record.createdAt) }}
             </template>
           </template>
         </a-table>
       </a-tab-pane>
     </a-tabs>
 
-    <JsonPreview :value="detail" />
+    <a-collapse v-if="detail" class="panel-block">
+      <a-collapse-panel key="detail" header="详情数据">
+        <JsonPreview :value="maskedDetail" />
+      </a-collapse-panel>
+    </a-collapse>
 
     <a-modal v-model:open="snapshotModalOpen" title="表单快照" :footer="null" width="840px">
       <a-descriptions v-if="selectedSnapshot" bordered :column="2" size="small" class="panel-block">
         <a-descriptions-item label="任务 ID">{{ selectedSnapshot.taskId }}</a-descriptions-item>
         <a-descriptions-item label="表单">{{ selectedSnapshot.formSchemaId }}</a-descriptions-item>
         <a-descriptions-item label="版本">{{ selectedSnapshot.formSchemaVersion }}</a-descriptions-item>
-        <a-descriptions-item label="创建时间">{{ selectedSnapshot.createdAt }}</a-descriptions-item>
+        <a-descriptions-item label="创建时间">{{ formatDateTime(selectedSnapshot.createdAt) }}</a-descriptions-item>
       </a-descriptions>
       <a-tabs v-if="selectedSnapshot">
         <a-tab-pane key="data" tab="数据">
@@ -135,7 +150,7 @@
         </a-tab-pane>
       </a-tabs>
     </a-modal>
-  </section>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -145,8 +160,16 @@ import { message } from 'ant-design-vue'
 import { CheckCircleOutlined, DeploymentUnitOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import JsonPreview from '../components/JsonPreview.vue'
 import SchemaForm from '../components/SchemaForm.vue'
+import { DetailSection, EmptyState, PageContainer, PageHeader, StatusTag, Toolbar } from '../components/ui'
 import { completeTask, getTaskDetail, type FormSnapshotItem, type JsonRecord, type TaskDetail } from '../api/koravo'
+import { formatDateTime, maskSecret, parseJsonSafe } from '../utils/format'
 import { JsonInputError, parseJsonObject } from '../utils/jsonInput'
+
+type SchemaField = {
+  key: string
+  label: string
+  required: boolean
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -165,6 +188,7 @@ const selectedSnapshot = ref<FormSnapshotItem | null>(null)
 const selectedSnapshotData = ref<unknown>({})
 const selectedSnapshotSchema = ref<unknown>({})
 const selectedSnapshotUiSchema = ref<unknown>({})
+const schemaFields = ref<SchemaField[]>([])
 
 const commentColumns = [
   { title: '用户', dataIndex: 'userId', key: 'userId', width: 140 },
@@ -190,6 +214,21 @@ const auditColumns = [
 ]
 
 const isCompletable = computed(() => detail.value?.task.status === 'RUNNING')
+const maskedProcessVariables = computed(() => maskSecret(detail.value?.processVariables || {}))
+const maskedTaskVariables = computed(() => maskSecret(detail.value?.taskVariables || {}))
+const maskedDetail = computed(() => detail.value ? {
+  ...detail.value,
+  processVariables: maskedProcessVariables.value,
+  taskVariables: maskedTaskVariables.value,
+  formSnapshots: detail.value.formSnapshots.map((item) => ({
+    ...item,
+    dataJson: maskedJsonText(item.dataJson)
+  })),
+  auditLogs: detail.value.auditLogs.map((item) => ({
+    ...item,
+    detailJson: maskedJsonText(item.detailJson)
+  }))
+} : null)
 
 watch(formDataValues, (value) => {
   formDataJson.value = JSON.stringify(value || {}, null, 2)
@@ -235,18 +274,33 @@ function openProcessTrace() {
 function openSnapshot(snapshot: FormSnapshotItem) {
   selectedSnapshot.value = snapshot
   selectedSnapshotData.value = parseJsonValue(snapshot.dataJson)
-  selectedSnapshotSchema.value = parseJsonValue(snapshot.schemaJson)
-  selectedSnapshotUiSchema.value = parseJsonValue(snapshot.uiSchemaJson)
+  selectedSnapshotSchema.value = maskSecret(parseJsonValue(snapshot.schemaJson))
+  selectedSnapshotUiSchema.value = maskSecret(parseJsonValue(snapshot.uiSchemaJson))
   snapshotModalOpen.value = true
 }
 
 function parseJsonValue(value?: string) {
-  if (!value) return {}
-  try {
-    return JSON.parse(value)
-  } catch {
-    return value
+  return maskSecret(parseJsonSafe(value, value || {}))
+}
+
+function maskedJsonText(value?: string) {
+  const masked = parseJsonValue(value)
+  return typeof masked === 'string' ? masked : JSON.stringify(masked)
+}
+
+function validateRequiredFormFields(formData: JsonRecord) {
+  const missing = schemaFields.value
+    .filter((field) => field.required && isBlank(formData[field.key]))
+    .map((field) => field.label)
+  if (missing.length) {
+    message.error(`请填写：${missing.join('、')}`)
+    return false
   }
+  return true
+}
+
+function isBlank(value: unknown) {
+  return value === undefined || value === null || value === ''
 }
 
 async function submit() {
@@ -254,6 +308,9 @@ async function submit() {
   try {
     const variables = parseJsonObject(variablesJson.value, '流程变量') as JsonRecord
     const formData = parseJsonObject(formDataJson.value, '表单数据') as JsonRecord
+    if (detail.value?.formSchema && !validateRequiredFormFields(formData)) {
+      return
+    }
     await completeTask(taskId.value, {
       variables,
       formData,

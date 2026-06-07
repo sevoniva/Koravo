@@ -77,6 +77,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: JsonRecord]
+  fieldsChange: [fields: SchemaField[]]
 }>()
 
 const model = reactive<JsonRecord>({})
@@ -132,8 +133,9 @@ watch(fields, () => {
       model[field.key] = false
     }
   }
+  emit('fieldsChange', fields.value)
   emitChange()
-})
+}, { immediate: true })
 
 function normalizeType(type?: string): SchemaField['type'] {
   if (type === 'number' || type === 'integer' || type === 'boolean') {

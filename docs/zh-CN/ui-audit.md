@@ -32,6 +32,8 @@
 - 流程实例列表和详情已接入 PageContainer、PageHeader、EmptyState、StatusTag、DetailSection；实例状态、任务状态和历史活动状态统一展示。
 - 流程实例详情已格式化时间，变量摘要、审计详情和详情数据统一脱敏展示。
 - 流程实例启动表单已按模型切换变量模板；HTTP Connector 示例使用 HTTP 业务编号和审批人变量，请假流程使用请假申请变量。
+- 任务详情已接入 PageContainer、PageHeader、StatusTag、EmptyState、DetailSection、Toolbar；任务时间、审批意见、表单快照和操作记录统一格式化。
+- 任务详情流程变量、任务变量、表单快照、操作记录和详情数据已脱敏展示；提交前校验绑定表单必填项。
 - 前端 `npm run build` 已通过。
 - 后端 `mvn -s .mvn/settings-cn.xml test` 已通过。
 
