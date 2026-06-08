@@ -1,33 +1,37 @@
 import {
   AimOutlined,
+  BarsOutlined,
   CheckCircleOutlined,
   CodeOutlined,
   DownloadOutlined,
   FileAddOutlined,
+  MoreOutlined,
+  ReloadOutlined,
   SaveOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
 import {
   PageContainer,
-  ProCard,
   ProDescriptions,
   ProForm,
   ProFormText,
-  ProTable,
-  type ProColumns,
+  ProList,
 } from '@ant-design/pro-components';
 import { useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import {
   Button,
+  Drawer,
+  Dropdown,
   Empty,
   Flex,
+  FloatButton,
   Input,
   Space,
-  Splitter,
-  Tabs,
+  Tooltip,
   Typography,
   message,
+  type MenuProps,
 } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -57,44 +61,31 @@ interface ModelFormValues {
 }
 
 const useStyles = createStyles(({ css, token }) => ({
-  workbenchCard: css`
-    .ant-pro-card-body {
-      padding: 0;
-    }
-  `,
   workbench: css`
-    min-height: 724px;
-    background: ${token.colorBgContainer};
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadius}px;
-  `,
-  panel: css`
-    height: 100%;
-    min-height: 724px;
+    position: relative;
+    height: calc(100vh - 132px);
+    min-height: 720px;
     overflow: hidden;
-    background: ${token.colorBgContainer};
-  `,
-  panelBody: css`
-    height: calc(100% - 49px);
-    overflow: auto;
-    padding: 16px;
-  `,
-  panelHeader: css`
-    height: 49px;
-    padding: 0 16px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
-  `,
-  title: css`
-    margin: 0;
+    background: ${token.colorBgLayout};
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: ${token.borderRadiusLG}px;
   `,
   editor: css`
+    display: flex;
+    flex-direction: column;
     height: 100%;
-    min-height: 724px;
+    min-height: 0;
     padding: 16px;
     background: ${token.colorBgLayout};
   `,
   editorHeader: css`
+    flex: 0 0 auto;
     margin-bottom: 12px;
+    padding: 0 4px;
+  `,
+  canvasRegion: css`
+    flex: 1 1 auto;
+    min-height: 0;
   `,
   meta: css`
     margin-bottom: 16px;
@@ -105,33 +96,66 @@ const useStyles = createStyles(({ css, token }) => ({
     font-size: ${token.fontSizeSM}px;
     line-height: 1.6;
   `,
-}));
+  modelList: css`
+    .ant-pro-list-row {
+      padding: 0;
+    }
 
-const columns: ProColumns<ProcessModelItem>[] = [
-  {
-    title: '模型名称',
-    dataIndex: 'modelName',
-    renderText: (_, record) =>
-      processDisplayName(record.modelKey, record.modelName),
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    width: 100,
-    render: (_, record) => (
-      <KoravoStatusTag
-        status={record.status}
-        text={processStatusLabel(record.status)}
-      />
-    ),
-  },
-  {
-    title: '更新时间',
-    dataIndex: 'updatedAt',
-    width: 156,
-    renderText: formatDateTime,
-  },
-];
+    .ant-list-pagination {
+      margin-block-start: 12px;
+      text-align: center;
+    }
+  `,
+  modelItem: css`
+    margin-bottom: 10px;
+    padding: 12px;
+    cursor: pointer;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: ${token.borderRadius}px;
+    background: ${token.colorBgContainer};
+    transition:
+      border-color ${token.motionDurationMid},
+      background ${token.motionDurationMid},
+      box-shadow ${token.motionDurationMid};
+
+    &:hover {
+      background: ${token.colorFillQuaternary};
+      border-color: ${token.colorPrimaryBorder};
+      box-shadow: ${token.boxShadowTertiary};
+    }
+  `,
+  modelItemSelected: css`
+    background: ${token.colorPrimaryBg};
+    border-color: ${token.colorPrimaryBorder};
+  `,
+  modelName: css`
+    max-width: 170px;
+  `,
+  modelMeta: css`
+    font-size: ${token.fontSizeSM}px;
+    color: ${token.colorTextDescription};
+  `,
+  drawerSection: css`
+    padding-bottom: 18px;
+
+    & + & {
+      padding-top: 18px;
+      border-top: 1px solid ${token.colorBorderSecondary};
+    }
+  `,
+  sectionTitle: css`
+    margin: 0 0 12px;
+    color: ${token.colorText};
+    font-size: ${token.fontSize}px;
+    font-weight: ${token.fontWeightStrong};
+  `,
+  canvasTools: css`
+    .ant-float-btn-body {
+      background: ${token.colorBgContainer};
+      box-shadow: ${token.boxShadowSecondary};
+    }
+  `,
+}));
 
 function createDraftModelKey() {
   return `koravoProcess${Date.now().toString(36)}`;
@@ -165,6 +189,9 @@ const ProcessDesigner: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string>();
   const [designerXml, setDesignerXml] = useState('');
   const [selectedElement, setSelectedElement] = useState<BpmnSelectedElement>();
+  const [modelDrawerOpen, setModelDrawerOpen] = useState(false);
+  const [inspectorDrawerOpen, setInspectorDrawerOpen] = useState(false);
+  const [xmlDrawerOpen, setXmlDrawerOpen] = useState(false);
   const [modelForm, setModelForm] = useState<ModelFormValues>({
     modelName: '新流程模型',
   });
@@ -189,7 +216,9 @@ const ProcessDesigner: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const modelId = params.get('modelId') || undefined;
-    if (modelId) setSelectedId(modelId);
+    if (modelId) {
+      setSelectedId(modelId);
+    }
   }, [location.search]);
 
   useEffect(() => {
@@ -235,6 +264,12 @@ const ProcessDesigner: React.FC = () => {
       createDefaultBpmnXml(draftModelKeyRef.current, '新流程模型'),
     );
     setSelectedElement(undefined);
+    setInspectorDrawerOpen(true);
+  }, []);
+
+  const handleSelectionChange = useCallback((element?: BpmnSelectedElement) => {
+    setSelectedElement(element);
+    if (element) setInspectorDrawerOpen(true);
   }, []);
 
   const handleValidate = useCallback(async () => {
@@ -295,6 +330,57 @@ const ProcessDesigner: React.FC = () => {
     [],
   );
 
+  const renderModelList = () => (
+    <ProList<ProcessModelItem>
+      className={styles.modelList}
+      rowKey="id"
+      dataSource={models || []}
+      loading={modelsLoading}
+      options={false}
+      search={false}
+      locale={{ emptyText: '暂无流程模型' }}
+      pagination={{
+        pageSize: 8,
+        size: 'small',
+        align: 'center',
+      }}
+      itemRender={(item) => {
+        const selected = selectedId === item.id;
+        return (
+          <div
+            className={`${styles.modelItem} ${
+              selected ? styles.modelItemSelected : ''
+            }`}
+            onClick={() => {
+              setSelectedId(item.id);
+              setModelDrawerOpen(false);
+            }}
+          >
+            <Flex vertical gap={6} style={{ width: '100%' }}>
+              <Flex align="center" justify="space-between" gap={8}>
+                <Typography.Text strong ellipsis className={styles.modelName}>
+                  {processDisplayName(item.modelKey, item.modelName)}
+                </Typography.Text>
+                <KoravoStatusTag
+                  status={item.status}
+                  text={processStatusLabel(item.status)}
+                />
+              </Flex>
+              <Flex align="center" justify="space-between" gap={8}>
+                <Typography.Text ellipsis className={styles.modelMeta}>
+                  {item.modelKey}
+                </Typography.Text>
+                <Typography.Text className={styles.modelMeta}>
+                  {formatDateTime(item.updatedAt)}
+                </Typography.Text>
+              </Flex>
+            </Flex>
+          </div>
+        );
+      }}
+    />
+  );
+
   const renderElementProperties = () => {
     if (!selectedElement) {
       return (
@@ -347,25 +433,48 @@ const ProcessDesigner: React.FC = () => {
     );
   };
 
+  const actionMenu: MenuProps = {
+    items: [
+      { key: 'new', icon: <FileAddOutlined />, label: '新建模型' },
+      { type: 'divider' },
+      { key: 'export', icon: <DownloadOutlined />, label: '导出 BPMN' },
+      { key: 'xml', icon: <CodeOutlined />, label: '查看 XML' },
+    ],
+    onClick: ({ key }) => {
+      if (key === 'new') handleNewModel();
+      if (key === 'export') void handleExport();
+      if (key === 'xml') setXmlDrawerOpen(true);
+    },
+  };
+
   return (
     <PageContainer
       title="流程设计器"
-      content="图形化编辑 BPMN 流程，校验后保存草稿。"
       extra={[
-        <Button key="new" icon={<FileAddOutlined />} onClick={handleNewModel}>
-          新建模型
-        </Button>,
-        <Button
-          key="validate"
-          icon={<CheckCircleOutlined />}
-          loading={validating}
-          onClick={handleValidate}
-        >
-          校验
-        </Button>,
-        <Button key="export" icon={<DownloadOutlined />} onClick={handleExport}>
-          导出 XML
-        </Button>,
+        <Space.Compact key="workspace">
+          <Tooltip title="模型">
+            <Button
+              icon={<BarsOutlined />}
+              onClick={() => setModelDrawerOpen(true)}
+            />
+          </Tooltip>
+          <Tooltip title="配置">
+            <Button
+              icon={<SettingOutlined />}
+              onClick={() => setInspectorDrawerOpen(true)}
+            />
+          </Tooltip>
+          <Tooltip title="校验">
+            <Button
+              icon={<CheckCircleOutlined />}
+              loading={validating}
+              onClick={handleValidate}
+            />
+          </Tooltip>
+        </Space.Compact>,
+        <Dropdown key="more" menu={actionMenu} trigger={['click']}>
+          <Button icon={<MoreOutlined />}>更多</Button>
+        </Dropdown>,
         <Button
           key="save"
           type="primary"
@@ -373,183 +482,185 @@ const ProcessDesigner: React.FC = () => {
           loading={saving}
           onClick={handleSave}
         >
-          {activeModel ? '保存草稿' : '导入模型'}
+          保存
         </Button>,
       ]}
     >
-      <ProCard className={styles.workbenchCard}>
-        <Splitter className={styles.workbench}>
-          <Splitter.Panel defaultSize={320} min={280} max={440}>
-            <section className={styles.panel}>
-              <Flex
-                align="center"
-                justify="space-between"
-                className={styles.panelHeader}
-              >
-                <Typography.Title level={5} className={styles.title}>
-                  模型列表
-                </Typography.Title>
-                <Typography.Text type="secondary">
-                  {models?.length || 0} 个
-                </Typography.Text>
-              </Flex>
-              <div className={styles.panelBody}>
-                <ProTable<ProcessModelItem>
-                  rowKey="id"
-                  columns={columns}
-                  dataSource={models || []}
-                  loading={modelsLoading}
-                  search={false}
-                  pagination={{ pageSize: 8 }}
-                  options={false}
-                  rowSelection={{
-                    type: 'radio',
-                    selectedRowKeys: selectedId ? [selectedId] : [],
-                    onChange: ([key]) => setSelectedId(String(key)),
-                  }}
-                  onRow={(record) => ({
-                    onClick: () => setSelectedId(record.id),
-                  })}
-                />
-              </div>
-            </section>
-          </Splitter.Panel>
+      <div className={styles.workbench}>
+        <section className={styles.editor}>
+          <Flex
+            align="center"
+            justify="space-between"
+            className={styles.editorHeader}
+          >
+            <Flex vertical gap={0}>
+              <Typography.Text strong>
+                {activeModel
+                  ? processDisplayName(
+                      activeModel.modelKey,
+                      activeModel.modelName,
+                    )
+                  : modelForm.modelName}
+              </Typography.Text>
+              <Typography.Text type="secondary">
+                {activeModel?.modelKey || draftModelKeyRef.current}
+              </Typography.Text>
+            </Flex>
+          </Flex>
+          <div className={styles.canvasRegion}>
+            <BpmnModelerCanvas
+              ref={modelerRef}
+              value={designerXml}
+              onXmlChange={setDesignerXml}
+              onSelectionChange={handleSelectionChange}
+            />
+          </div>
+          <FloatButton.Group
+            shape="square"
+            className={styles.canvasTools}
+            style={{ top: 156, right: 32, bottom: 'auto' }}
+          >
+            <FloatButton
+              icon={<BarsOutlined />}
+              tooltip="模型"
+              onClick={() => setModelDrawerOpen(true)}
+            />
+            <FloatButton
+              icon={<SettingOutlined />}
+              tooltip="配置"
+              onClick={() => setInspectorDrawerOpen(true)}
+            />
+            <FloatButton
+              icon={<AimOutlined />}
+              tooltip="适应画布"
+              onClick={() => modelerRef.current?.zoomToFit()}
+            />
+          </FloatButton.Group>
+        </section>
+      </div>
 
-          <Splitter.Panel min={520}>
-            <section className={styles.editor}>
-              <Flex
-                align="center"
-                justify="space-between"
-                className={styles.editorHeader}
-              >
-                <Flex vertical gap={0}>
-                  <Typography.Text strong>
-                    {activeModel
-                      ? processDisplayName(
-                          activeModel.modelKey,
-                          activeModel.modelName,
-                        )
-                      : modelForm.modelName}
-                  </Typography.Text>
-                  <Typography.Text type="secondary">
-                    {activeModel?.modelKey || draftModelKeyRef.current}
-                  </Typography.Text>
-                </Flex>
-                <Button
-                  icon={<AimOutlined />}
-                  onClick={() => modelerRef.current?.zoomToFit()}
-                >
-                  适应画布
-                </Button>
-              </Flex>
-              <BpmnModelerCanvas
-                ref={modelerRef}
-                value={designerXml}
-                onXmlChange={setDesignerXml}
-                onSelectionChange={setSelectedElement}
-              />
-            </section>
-          </Splitter.Panel>
+      <Drawer
+        title="模型"
+        placement="left"
+        open={modelDrawerOpen}
+        size={380}
+        destroyOnHidden
+        extra={
+          <Button
+            size="small"
+            icon={<ReloadOutlined />}
+            onClick={() => void reloadModels()}
+          >
+            刷新
+          </Button>
+        }
+        onClose={() => setModelDrawerOpen(false)}
+      >
+        {renderModelList()}
+      </Drawer>
 
-          <Splitter.Panel defaultSize={360} min={320} max={460}>
-            <section className={styles.panel}>
-              <Flex
-                align="center"
-                justify="space-between"
-                className={styles.panelHeader}
-              >
-                <Typography.Title level={5} className={styles.title}>
-                  配置
-                </Typography.Title>
-              </Flex>
-              <div className={styles.panelBody}>
-                <ProForm<ModelFormValues>
-                  key={activeModel?.id || draftModelKeyRef.current}
-                  initialValues={modelForm}
-                  submitter={false}
-                  onValuesChange={(_, values) => setModelForm(values)}
-                >
-                  <ProFormText
-                    name="modelName"
-                    label="模型名称"
-                    rules={[{ required: true, message: '请输入模型名称' }]}
-                  />
-                  <ProFormText name="description" label="说明" />
-                </ProForm>
+      <Drawer
+        title="配置"
+        open={inspectorDrawerOpen}
+        size={420}
+        resizable
+        destroyOnHidden
+        extra={
+          <Button
+            size="small"
+            type="primary"
+            icon={<SaveOutlined />}
+            loading={saving}
+            onClick={handleSave}
+          >
+            保存
+          </Button>
+        }
+        onClose={() => setInspectorDrawerOpen(false)}
+      >
+        <section className={styles.drawerSection}>
+          <Typography.Title level={5} className={styles.sectionTitle}>
+            模型设置
+          </Typography.Title>
+          <ProForm<ModelFormValues>
+            key={activeModel?.id || draftModelKeyRef.current}
+            initialValues={modelForm}
+            submitter={false}
+            onValuesChange={(_, values) => setModelForm(values)}
+          >
+            <ProFormText
+              name="modelName"
+              label="模型名称"
+              rules={[{ required: true, message: '请输入模型名称' }]}
+            />
+            <ProFormText name="description" label="说明" />
+          </ProForm>
 
-                {activeModel && (
-                  <ProDescriptions<ProcessModelItem>
-                    column={1}
-                    dataSource={activeModel}
-                    columns={[
-                      {
-                        title: '模型标识',
-                        dataIndex: 'modelKey',
-                        render: (_, record) => (
-                          <CopyableText value={record.modelKey} />
-                        ),
-                      },
-                      {
-                        title: '版本',
-                        dataIndex: 'version',
-                        renderText: (value) => `v${value || 1}`,
-                      },
-                      {
-                        title: '状态',
-                        dataIndex: 'status',
-                        render: (_, record) => (
-                          <KoravoStatusTag
-                            status={record.status}
-                            text={processStatusLabel(record.status)}
-                          />
-                        ),
-                      },
-                      {
-                        title: '流程定义',
-                        dataIndex: 'flowableDefinitionId',
-                        copyable: true,
-                      },
-                    ]}
-                    className={styles.meta}
-                  />
-                )}
+          {activeModel && (
+            <ProDescriptions<ProcessModelItem>
+              column={1}
+              dataSource={activeModel}
+              columns={[
+                {
+                  title: '模型标识',
+                  dataIndex: 'modelKey',
+                  render: (_, record) => (
+                    <CopyableText value={record.modelKey} />
+                  ),
+                },
+                {
+                  title: '版本',
+                  dataIndex: 'version',
+                  renderText: (value) => `v${value || 1}`,
+                },
+                {
+                  title: '状态',
+                  dataIndex: 'status',
+                  render: (_, record) => (
+                    <KoravoStatusTag
+                      status={record.status}
+                      text={processStatusLabel(record.status)}
+                    />
+                  ),
+                },
+                {
+                  title: '流程定义',
+                  dataIndex: 'flowableDefinitionId',
+                  copyable: true,
+                },
+              ]}
+              className={styles.meta}
+            />
+          )}
+        </section>
 
-                <Tabs
-                  destroyOnHidden
-                  items={[
-                    {
-                      key: 'properties',
-                      label: (
-                        <Space>
-                          <SettingOutlined />
-                          属性
-                        </Space>
-                      ),
-                      children: renderElementProperties(),
-                    },
-                    {
-                      key: 'xml',
-                      label: (
-                        <Space>
-                          <CodeOutlined />
-                          XML
-                        </Space>
-                      ),
-                      children: (
-                        <Input.TextArea
-                          readOnly
-                          value={designerXml}
-                          className={styles.xmlPreview}
-                        />
-                      ),
-                    },
-                  ]}
-                />
-              </div>
-            </section>
-          </Splitter.Panel>
-        </Splitter>
-      </ProCard>
+        <section className={styles.drawerSection}>
+          <Typography.Title level={5} className={styles.sectionTitle}>
+            节点属性
+          </Typography.Title>
+          {renderElementProperties()}
+        </section>
+      </Drawer>
+
+      <Drawer
+        title="BPMN XML"
+        open={xmlDrawerOpen}
+        size={720}
+        resizable
+        destroyOnHidden
+        extra={
+          <Button icon={<DownloadOutlined />} onClick={handleExport}>
+            导出
+          </Button>
+        }
+        onClose={() => setXmlDrawerOpen(false)}
+      >
+        <Input.TextArea
+          readOnly
+          value={designerXml}
+          className={styles.xmlPreview}
+        />
+      </Drawer>
     </PageContainer>
   );
 };

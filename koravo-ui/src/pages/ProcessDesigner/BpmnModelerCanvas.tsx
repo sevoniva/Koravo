@@ -102,21 +102,39 @@ const useStyles = createStyles(({ css, token }) => ({
     overflow: hidden;
     background: ${token.colorBgContainer};
     border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadius}px;
+    border-radius: ${token.borderRadiusLG}px;
 
     .djs-container {
       background: ${token.colorBgContainer};
     }
 
     .djs-palette {
-      border-color: ${token.colorBorderSecondary};
-      box-shadow: ${token.boxShadowTertiary};
+      top: 24px;
+      left: 24px;
+      overflow: hidden;
+      background: ${token.colorBgContainer};
+      border: 1px solid ${token.colorBorderSecondary};
+      border-radius: ${token.borderRadius}px;
+      box-shadow: ${token.boxShadowSecondary};
+    }
+
+    .djs-palette .entry {
+      color: ${token.colorTextSecondary};
+      border-radius: ${token.borderRadiusSM}px;
+      transition:
+        color ${token.motionDurationMid},
+        background ${token.motionDurationMid};
     }
 
     .djs-palette .entry:hover,
     .djs-palette .entry.active {
       color: ${token.colorPrimary};
       background: ${token.colorBgTextHover};
+    }
+
+    .djs-palette .separator {
+      margin: 6px 8px;
+      border-top-color: ${token.colorBorderSecondary};
     }
 
     .bjs-powered-by {
