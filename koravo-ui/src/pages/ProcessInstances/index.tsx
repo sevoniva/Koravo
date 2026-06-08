@@ -21,8 +21,10 @@ import {
   listOpsInstances,
   listFormBindings,
   listFormSchemas,
+  listProcessModelTaskDefinitions,
   listProcessModels,
   startProcessInstance,
+  type BpmnTaskDefinition,
   type FormBindingItem,
   type FormSchemaItem,
   type JsonRecord,
@@ -155,6 +157,24 @@ function findStartSchemaId(
   return matchedBinding?.formSchemaId;
 }
 
+function findTaskBinding(
+  model: ProcessModelItem,
+  task: BpmnTaskDefinition,
+  bindings: FormBindingItem[],
+) {
+  return bindings.find(
+    (binding) =>
+      binding.taskDefinitionKey === task.taskDefinitionKey &&
+      (binding.processDefinitionId === model.flowableDefinitionId ||
+        binding.processModelId === model.id),
+  );
+}
+
+function formSchemaLabel(schema?: FormSchemaItem, version?: number) {
+  if (!schema) return version ? `表单版本 v${version}` : '已绑定表单';
+  return `${schema.formName} v${version || schema.version}`;
+}
+
 function isBusinessStartModel(model: ProcessModelItem) {
   if (hiddenStartModelKeys.has(model.modelKey)) return false;
   return ![model.modelName, model.description, model.modelKey].some((value) =>
@@ -188,6 +208,65 @@ function normalizeStartVariables(values?: JsonRecord): JsonRecord {
 const taskBadgeStatus: Record<string, 'processing' | 'warning'> = {
   managerApprovalTask: 'processing',
   financeApprovalTask: 'warning',
+};
+
+const ProcessStartReadiness: React.FC<{
+  model?: ProcessModelItem;
+  bindings: FormBindingItem[];
+  formSchemas: FormSchemaItem[];
+}> = ({ model, bindings, formSchemas }) => {
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['process-model-task-definitions', model?.id],
+    queryFn: () => listProcessModelTaskDefinitions(model?.id || ''),
+    enabled: Boolean(model?.id),
+  });
+
+  if (!model) return null;
+  if (!tasks.length && !isLoading) return null;
+
+  const missingTasks = tasks.filter((task) => !findTaskBinding(model, task, bindings));
+
+  return (
+    <Alert
+      showIcon
+      type={missingTasks.length ? 'warning' : 'success'}
+      title={missingTasks.length ? '还有任务节点未绑定表单' : '任务节点表单已就绪'}
+      description={
+        <Flex vertical gap={8}>
+          <Typography.Text type="secondary">
+            发起后，审批人会按任务节点填写表单并留下快照。
+          </Typography.Text>
+          <Space size={[0, 6]} wrap>
+            {tasks.map((task) => {
+              const binding = findTaskBinding(model, task, bindings);
+              const schema = formSchemas.find((item) => item.id === binding?.formSchemaId);
+              return (
+                <Tag
+                  key={task.taskDefinitionKey}
+                  color={binding ? 'success' : 'warning'}
+                  variant="outlined"
+                >
+                  {taskDefinitionLabel(task.taskDefinitionKey)}：
+                  {binding ? formSchemaLabel(schema, binding.formSchemaVersion) : '未绑定'}
+                </Tag>
+              );
+            })}
+          </Space>
+        </Flex>
+      }
+      action={
+        missingTasks.length ? (
+          <Button
+            size="small"
+            onClick={() => history.push(`/form-bindings?processModelId=${model.id}`)}
+          >
+            去绑定表单
+          </Button>
+        ) : undefined
+      }
+      style={{ marginBottom: 16 }}
+    />
+  );
 };
 
 function renderCurrentTasks(record: OpsProcessInstance) {
@@ -419,6 +498,18 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
         label="业务编号"
         rules={[{ required: true, message: '请输入业务编号' }]}
       />
+      <ProFormDependency name={['processModelId']}>
+        {({ processModelId }) => {
+          const selectedModel = deployedModels.find((item) => item.id === processModelId);
+          return (
+            <ProcessStartReadiness
+              model={selectedModel}
+              bindings={formBindings}
+              formSchemas={formSchemas}
+            />
+          );
+        }}
+      </ProFormDependency>
       <ProFormDependency name={['processDefinitionKey']}>
         {({ processDefinitionKey }) => {
           if (!processDefinitionKey) {

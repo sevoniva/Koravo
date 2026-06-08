@@ -171,13 +171,13 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 
 ```json
 {
-  "applicant": "u001",
-  "department": "Engineering",
-  "itemName": "Test environment server",
-  "amount": 12000,
-  "reason": "Workflow integration testing",
-  "managerApprover": "admin",
-  "financeApprover": "admin"
+  "applicant": "zhangsan",
+  "department": "研发部",
+  "itemName": "研发环境服务器",
+  "amount": 12800,
+  "reason": "补充流程编排开发环境资源",
+  "managerApprover": "manager",
+  "financeApprover": "finance"
 }
 ```
 
@@ -193,7 +193,7 @@ The same calls are available in [examples/http/koravo.http](examples/http/koravo
 Deploy BPMN:
 
 ```bash
-curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Leave%20Approval' \
+curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Purchase%20Approval' \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: admin' \
   -F 'file=@examples/bpmn/purchase-approval.bpmn20.xml'
@@ -206,7 +206,7 @@ curl -X POST http://localhost:8080/api/v1/process-instances/start \
   -H 'Content-Type: application/json' \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: admin' \
-  -d '{"processDefinitionKey":"purchaseApproval","businessKey":"PO-001","variables":{"applicant":"u001","department":"Engineering","itemName":"Test environment server","amount":12000,"reason":"Workflow integration testing","managerApprover":"admin","financeApprover":"admin"}}'
+  -d '{"processDefinitionKey":"purchaseApproval","businessKey":"PO-001","variables":{"applicant":"zhangsan","department":"研发部","itemName":"研发环境服务器","amount":12800,"reason":"补充流程编排开发环境资源","managerApprover":"manager","financeApprover":"finance"}}'
 ```
 
 Complete a task:
