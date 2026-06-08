@@ -2,13 +2,15 @@ import { PlusOutlined } from '@ant-design/icons';
 import {
   ModalForm,
   PageContainer,
+  ProFormList,
+  ProFormSelect,
+  ProFormSwitch,
   ProFormText,
-  ProFormTextArea,
   ProTable,
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Typography, message } from 'antd';
+import { App, Button, Drawer, Empty, Space, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -22,24 +24,210 @@ import {
 interface FormSchemaForm {
   formKey: string;
   formName: string;
-  schemaJson: string;
-  uiSchemaJson?: string;
+  fields: FormFieldConfig[];
 }
 
-const defaultSchema = JSON.stringify(
+interface FormFieldConfig {
+  fieldKey: string;
+  title: string;
+  type: 'string' | 'number' | 'boolean';
+  widget?: 'input' | 'textarea' | 'number' | 'switch';
+  required?: boolean;
+}
+
+interface JsonSchemaProperty {
+  title?: string;
+  type?: string;
+}
+
+const defaultFields: FormFieldConfig[] = [
+  { fieldKey: 'applicant', title: '申请人', type: 'string', widget: 'input', required: true },
+  { fieldKey: 'department', title: '申请部门', type: 'string', widget: 'input', required: true },
+  { fieldKey: 'itemName', title: '采购事项', type: 'string', widget: 'input', required: true },
+  { fieldKey: 'amount', title: '采购金额', type: 'number', widget: 'number', required: true },
+  { fieldKey: 'reason', title: '申请事由', type: 'string', widget: 'textarea', required: true },
+  { fieldKey: 'managerApprover', title: '部门审批人', type: 'string', widget: 'input', required: true },
+  { fieldKey: 'financeApprover', title: '财务审批人', type: 'string', widget: 'input', required: true },
+];
+
+const fieldTypeOptions = [
+  { label: '文本', value: 'string' },
+  { label: '数字', value: 'number' },
+  { label: '开关', value: 'boolean' },
+];
+
+const widgetOptions = [
+  { label: '单行文本', value: 'input' },
+  { label: '多行文本', value: 'textarea' },
+  { label: '数字输入', value: 'number' },
+  { label: '开关', value: 'switch' },
+];
+
+const fieldTypeText: Record<FormFieldConfig['type'], string> = {
+  string: '文本',
+  number: '数字',
+  boolean: '开关',
+};
+
+const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
+  input: '单行文本',
+  textarea: '多行文本',
+  number: '数字输入',
+  switch: '开关',
+};
+
+const parseJsonObject = (value?: string) => {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const normalizeFieldType = (type?: string): FormFieldConfig['type'] => {
+  if (type === 'number' || type === 'integer') return 'number';
+  if (type === 'boolean') return 'boolean';
+  return 'string';
+};
+
+const normalizeWidget = (
+  widget: unknown,
+  type: FormFieldConfig['type'],
+): NonNullable<FormFieldConfig['widget']> => {
+  if (widget === 'textarea') return 'textarea';
+  if (widget === 'switch') return 'switch';
+  if (widget === 'number') return 'number';
+  if (type === 'boolean') return 'switch';
+  if (type === 'number') return 'number';
+  return 'input';
+};
+
+const schemaToFields = (
+  schemaJson?: string,
+  uiSchemaJson?: string,
+  fallback: FormFieldConfig[] = [],
+): FormFieldConfig[] => {
+  const schema = parseJsonObject(schemaJson);
+  const uiSchema = parseJsonObject(uiSchemaJson);
+  const properties = schema.properties as Record<string, JsonSchemaProperty> | undefined;
+  if (!properties || typeof properties !== 'object') return fallback;
+  const required = Array.isArray(schema.required) ? schema.required.map(String) : [];
+
+  return Object.entries(properties).map(([fieldKey, property]) => {
+    const type = normalizeFieldType(property?.type);
+    const uiField = uiSchema[fieldKey] as Record<string, unknown> | undefined;
+    return {
+      fieldKey,
+      title: property?.title || fieldKey,
+      type,
+      widget: normalizeWidget(uiField?.['ui:widget'], type),
+      required: required.includes(fieldKey),
+    };
+  });
+};
+
+const buildPayload = (values: FormSchemaForm) => {
+  const fields = (values.fields || []).map((field) => ({
+    ...field,
+    fieldKey: field.fieldKey.trim(),
+    title: field.title.trim(),
+    widget: normalizeWidget(field.widget, field.type),
+  }));
+
+  const properties = fields.reduce<Record<string, { title: string; type: string }>>(
+    (result, field) => {
+      result[field.fieldKey] = {
+        title: field.title,
+        type: field.type,
+      };
+      return result;
+    },
+    {},
+  );
+  const uiSchema = fields.reduce<Record<string, { 'ui:widget': string }>>((result, field) => {
+    result[field.fieldKey] = { 'ui:widget': field.widget || normalizeWidget(undefined, field.type) };
+    return result;
+  }, {});
+
+  return {
+    formKey: values.formKey,
+    formName: values.formName,
+    schemaJson: JSON.stringify(
+      {
+        type: 'object',
+        required: fields.filter((field) => field.required).map((field) => field.fieldKey),
+        properties,
+      },
+      null,
+      2,
+    ),
+    uiSchemaJson: JSON.stringify(uiSchema, null, 2),
+  };
+};
+
+const hasDuplicatedFieldKey = (fields: FormFieldConfig[]) => {
+  const keys = fields.map((field) => field.fieldKey.trim()).filter(Boolean);
+  return new Set(keys).size !== keys.length;
+};
+
+const fieldColumns: ProColumns<FormFieldConfig>[] = [
+  { title: '字段名称', dataIndex: 'title' },
   {
-    type: 'object',
-    required: [],
-    properties: {},
+    title: '字段标识',
+    dataIndex: 'fieldKey',
+    render: (_, record) => <CopyableText value={record.fieldKey} />,
   },
-  null,
-  2,
-);
+  {
+    title: '类型',
+    dataIndex: 'type',
+    width: 96,
+    render: (_, record) => <Tag>{fieldTypeText[record.type]}</Tag>,
+  },
+  {
+    title: '控件',
+    dataIndex: 'widget',
+    width: 120,
+    renderText: (value, record) =>
+      widgetText[normalizeWidget(value, record.type)],
+  },
+  {
+    title: '规则',
+    dataIndex: 'required',
+    width: 96,
+    render: (_, record) => (record.required ? <Tag color="red">必填</Tag> : <Tag>选填</Tag>),
+  },
+];
 
 const Forms: React.FC = () => {
+  const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormSchemaItem>();
   const [preview, setPreview] = useState<FormSchemaItem>();
+  const previewFields = schemaToFields(preview?.schemaJson, preview?.uiSchemaJson);
+
+  const saveFormSchema = async (values: FormSchemaForm, id?: string) => {
+    if (!values.fields?.length) {
+      message.error('请至少配置一个字段');
+      return false;
+    }
+    if (hasDuplicatedFieldKey(values.fields)) {
+      message.error('字段标识不能重复');
+      return false;
+    }
+    const payload = buildPayload(values);
+    if (id) {
+      await updateFormSchema(id, payload);
+      message.success('已保存');
+      setEditing(undefined);
+    } else {
+      await createFormSchema(payload);
+      message.success('已创建');
+    }
+    actionRef.current?.reload();
+    return true;
+  };
 
   const columns: ProColumns<FormSchemaItem>[] = [
     { title: '表单名称', dataIndex: 'formName' },
@@ -61,6 +249,13 @@ const Forms: React.FC = () => {
       dataIndex: 'status',
       width: 110,
       render: (_, record) => <KoravoStatusTag status={record.status} />,
+    },
+    {
+      title: '字段数',
+      dataIndex: 'schemaJson',
+      width: 96,
+      search: false,
+      renderText: (_, record) => schemaToFields(record.schemaJson, record.uiSchemaJson).length,
     },
     {
       title: '操作',
@@ -107,14 +302,9 @@ const Forms: React.FC = () => {
                 新建表单
               </Button>
             }
-            initialValues={{ schemaJson: defaultSchema }}
+            initialValues={{ fields: defaultFields }}
             modalProps={{ destroyOnHidden: true }}
-            onFinish={async (values) => {
-              await createFormSchema(values);
-              message.success('已创建');
-              actionRef.current?.reload();
-              return true;
-            }}
+            onFinish={(values) => saveFormSchema(values)}
           >
             <ProFormText
               name="formKey"
@@ -126,17 +316,48 @@ const Forms: React.FC = () => {
               label="表单名称"
               rules={[{ required: true, message: '请输入表单名称' }]}
             />
-            <ProFormTextArea
-              name="schemaJson"
-              label="Schema"
-              rules={[{ required: true, message: '请输入 Schema' }]}
-              fieldProps={{ rows: 10 }}
-            />
-            <ProFormTextArea
-              name="uiSchemaJson"
-              label="UI Schema"
-              fieldProps={{ rows: 6 }}
-            />
+            <ProFormList
+              name="fields"
+              label="字段配置"
+              creatorButtonProps={{ creatorButtonText: '添加字段' }}
+              min={1}
+            >
+              <Space align="start" wrap>
+                <ProFormText
+                  name="fieldKey"
+                  label="字段标识"
+                  width="sm"
+                  rules={[
+                    { required: true, message: '请输入字段标识' },
+                    {
+                      pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
+                      message: '仅支持字母、数字、下划线，且不能以数字开头',
+                    },
+                  ]}
+                />
+                <ProFormText
+                  name="title"
+                  label="字段名称"
+                  width="sm"
+                  rules={[{ required: true, message: '请输入字段名称' }]}
+                />
+                <ProFormSelect
+                  name="type"
+                  label="类型"
+                  width="xs"
+                  options={fieldTypeOptions}
+                  rules={[{ required: true, message: '请选择类型' }]}
+                />
+                <ProFormSelect
+                  name="widget"
+                  label="控件"
+                  width="sm"
+                  options={widgetOptions}
+                  rules={[{ required: true, message: '请选择控件' }]}
+                />
+                <ProFormSwitch name="required" label="必填" />
+              </Space>
+            </ProFormList>
           </ModalForm>,
         ]}
       />
@@ -145,7 +366,15 @@ const Forms: React.FC = () => {
         key={editing?.id || 'edit-form'}
         title="编辑表单"
         open={Boolean(editing)}
-        initialValues={editing}
+        initialValues={
+          editing
+            ? {
+                formKey: editing.formKey,
+                formName: editing.formName,
+                fields: schemaToFields(editing.schemaJson, editing.uiSchemaJson, defaultFields),
+              }
+            : undefined
+        }
         modalProps={{
           destroyOnHidden: true,
           onCancel: () => setEditing(undefined),
@@ -155,11 +384,7 @@ const Forms: React.FC = () => {
         }}
         onFinish={async (values) => {
           if (!editing) return false;
-          await updateFormSchema(editing.id, values);
-          message.success('已保存');
-          setEditing(undefined);
-          actionRef.current?.reload();
-          return true;
+          return saveFormSchema(values, editing.id);
         }}
       >
         <ProFormText
@@ -172,17 +397,48 @@ const Forms: React.FC = () => {
           label="表单名称"
           rules={[{ required: true, message: '请输入表单名称' }]}
         />
-        <ProFormTextArea
-          name="schemaJson"
-          label="Schema"
-          rules={[{ required: true, message: '请输入 Schema' }]}
-          fieldProps={{ rows: 10 }}
-        />
-        <ProFormTextArea
-          name="uiSchemaJson"
-          label="UI Schema"
-          fieldProps={{ rows: 6 }}
-        />
+        <ProFormList
+          name="fields"
+          label="字段配置"
+          creatorButtonProps={{ creatorButtonText: '添加字段' }}
+          min={1}
+        >
+          <Space align="start" wrap>
+            <ProFormText
+              name="fieldKey"
+              label="字段标识"
+              width="sm"
+              rules={[
+                { required: true, message: '请输入字段标识' },
+                {
+                  pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
+                  message: '仅支持字母、数字、下划线，且不能以数字开头',
+                },
+              ]}
+            />
+            <ProFormText
+              name="title"
+              label="字段名称"
+              width="sm"
+              rules={[{ required: true, message: '请输入字段名称' }]}
+            />
+            <ProFormSelect
+              name="type"
+              label="类型"
+              width="xs"
+              options={fieldTypeOptions}
+              rules={[{ required: true, message: '请选择类型' }]}
+            />
+            <ProFormSelect
+              name="widget"
+              label="控件"
+              width="sm"
+              options={widgetOptions}
+              rules={[{ required: true, message: '请选择控件' }]}
+            />
+            <ProFormSwitch name="required" label="必填" />
+          </Space>
+        </ProFormList>
       </ModalForm>
 
       <Drawer
@@ -191,14 +447,18 @@ const Forms: React.FC = () => {
         open={Boolean(preview)}
         onClose={() => setPreview(undefined)}
       >
-        <Typography.Title level={5}>Schema</Typography.Title>
-        <Typography.Paragraph>
-          <pre>{preview?.schemaJson || '-'}</pre>
-        </Typography.Paragraph>
-        <Typography.Title level={5}>UI Schema</Typography.Title>
-        <Typography.Paragraph>
-          <pre>{preview?.uiSchemaJson || '-'}</pre>
-        </Typography.Paragraph>
+        {previewFields.length ? (
+          <ProTable<FormFieldConfig>
+            rowKey="fieldKey"
+            columns={fieldColumns}
+            dataSource={previewFields}
+            search={false}
+            pagination={false}
+            options={false}
+          />
+        ) : (
+          <Empty description="暂无字段配置" />
+        )}
       </Drawer>
     </PageContainer>
   );
