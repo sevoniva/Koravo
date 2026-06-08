@@ -67,6 +67,9 @@ interface JsonSchemaProperty {
   'ui:widget'?: string;
 }
 
+const hiddenStartModelKeys = new Set(['httpConnectorDemo', 'leaveApproval']);
+const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
+
 function nextBusinessKey(prefix = 'REQ') {
   const now = new Date();
   const date = [
@@ -136,6 +139,13 @@ function findStartSchemaId(
       binding.processModelId === model.id,
   );
   return matchedBinding?.formSchemaId;
+}
+
+function isBusinessStartModel(model: ProcessModelItem) {
+  if (hiddenStartModelKeys.has(model.modelKey)) return false;
+  return ![model.modelName, model.description, model.modelKey].some((value) =>
+    nonBusinessModelPattern.test(String(value || '')),
+  );
 }
 
 function useQueryProcessModelId() {
@@ -238,7 +248,10 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
   const form = Form.useFormInstance();
   const { data: deployedModels = [] } = useQuery({
     queryKey: ['start-process-models'],
-    queryFn: () => listProcessModels('DEPLOYED'),
+    queryFn: async () => {
+      const models = await listProcessModels('DEPLOYED');
+      return models.filter(isBusinessStartModel);
+    },
   });
   const { data: formSchemas = [] } = useQuery({
     queryKey: ['start-form-schemas'],
