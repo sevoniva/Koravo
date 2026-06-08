@@ -28,6 +28,7 @@ import {
   Flex,
   FloatButton,
   Input,
+  Segmented,
   Space,
   Tooltip,
   Typography,
@@ -64,6 +65,11 @@ interface ModelFormValues {
   modelName: string;
   description?: string;
 }
+
+type ModelViewMode = 'business' | 'all';
+
+const hiddenBusinessModelKeys = new Set(['httpConnectorDemo', 'leaveApproval']);
+const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
 
 const useStyles = createStyles(({ css, token }) => ({
   workbench: css`
@@ -192,6 +198,13 @@ function isServiceTask(element?: BpmnSelectedElement) {
   return element?.elementType === 'bpmn:ServiceTask';
 }
 
+function isBusinessModel(record: ProcessModelItem) {
+  if (hiddenBusinessModelKeys.has(record.modelKey)) return false;
+  return ![record.modelName, record.description, record.modelKey].some((value) =>
+    nonBusinessModelPattern.test(String(value || '')),
+  );
+}
+
 const ProcessDesigner: React.FC = () => {
   const location = useLocation();
   const { message, modal } = App.useApp();
@@ -210,6 +223,7 @@ const ProcessDesigner: React.FC = () => {
   const [validating, setValidating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
+  const [modelViewMode, setModelViewMode] = useState<ModelViewMode>('business');
 
   const {
     data: models,
@@ -225,6 +239,8 @@ const ProcessDesigner: React.FC = () => {
     enabled: Boolean(selectedId),
   });
   const activeModel = selectedId ? selected : undefined;
+  const visibleModels =
+    modelViewMode === 'business' ? (models || []).filter(isBusinessModel) : models || [];
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -405,7 +421,7 @@ const ProcessDesigner: React.FC = () => {
     <ProList<ProcessModelItem>
       className={styles.modelList}
       rowKey="id"
-      dataSource={models || []}
+      dataSource={visibleModels}
       loading={modelsLoading}
       options={false}
       search={false}
@@ -629,13 +645,24 @@ const ProcessDesigner: React.FC = () => {
         size={380}
         destroyOnHidden
         extra={
-          <Button
-            size="small"
-            icon={<ReloadOutlined />}
-            onClick={() => void reloadModels()}
-          >
-            刷新
-          </Button>
+          <Space>
+            <Segmented
+              size="small"
+              value={modelViewMode}
+              options={[
+                { label: '业务', value: 'business' },
+                { label: '全部', value: 'all' },
+              ]}
+              onChange={(value) => setModelViewMode(value as ModelViewMode)}
+            />
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => void reloadModels()}
+            >
+              刷新
+            </Button>
+          </Space>
         }
         onClose={() => setModelDrawerOpen(false)}
       >
