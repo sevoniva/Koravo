@@ -49,6 +49,8 @@ interface PurchaseApprovalRecord {
   key: string;
   taskDefinitionKey: string;
   taskName: string;
+  taskId?: string;
+  status: 'PENDING' | 'COMPLETED';
   approver?: string;
   approved?: boolean;
   opinion?: string;
@@ -150,8 +152,9 @@ function purchasePendingDescription(currentTasks: TaskItem[]) {
 
 function purchaseApprovalSnapshotRecords(
   snapshots: FormSnapshotItem[] = [],
+  currentTasks: TaskItem[] = [],
 ): PurchaseApprovalRecord[] {
-  return snapshots.flatMap((snapshot) => {
+  const completedRecords = snapshots.flatMap((snapshot) => {
     const data = parseJsonSafe(snapshot.dataJson, {}) as Record<string, unknown>;
     const taskDefinitionKey = String(data.taskDefinitionKey || '');
     if (!['managerApprovalTask', 'financeApprovalTask'].includes(taskDefinitionKey)) {
@@ -162,6 +165,8 @@ function purchaseApprovalSnapshotRecords(
         key: snapshot.id,
         taskDefinitionKey,
         taskName: String(data.taskName || taskDefinitionLabel(taskDefinitionKey)),
+        taskId: snapshot.taskId,
+        status: 'COMPLETED' as const,
         approver: typeof data.approver === 'string' ? data.approver : undefined,
         approved: typeof data.approved === 'boolean' ? data.approved : undefined,
         opinion: typeof data.opinion === 'string' ? data.opinion : undefined,
@@ -169,6 +174,26 @@ function purchaseApprovalSnapshotRecords(
       },
     ];
   });
+
+  const completedTaskKeys = new Set(
+    completedRecords.map((record) => record.taskDefinitionKey),
+  );
+  const pendingRecords = currentTasks
+    .filter((task) =>
+      ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
+    )
+    .filter((task) => !completedTaskKeys.has(task.taskDefinitionKey))
+    .map((task) => ({
+      key: task.taskId,
+      taskDefinitionKey: task.taskDefinitionKey,
+      taskName: task.name || taskDefinitionLabel(task.taskDefinitionKey),
+      taskId: task.taskId,
+      status: 'PENDING' as const,
+      approver: task.assignee,
+      createdAt: task.createTime,
+    }));
+
+  return [...completedRecords, ...pendingRecords];
 }
 
 function snapshotData(record: FormSnapshotItem) {
@@ -289,19 +314,41 @@ const purchaseApprovalColumns: ProColumns<PurchaseApprovalRecord>[] = [
   },
   { title: '处理人', dataIndex: 'approver', width: 120 },
   {
+    title: '状态',
+    dataIndex: 'status',
+    width: 100,
+    render: (_, record) =>
+      record.status === 'PENDING' ? (
+        <Tag color="processing">待处理</Tag>
+      ) : (
+        <Tag color="success">已处理</Tag>
+      ),
+  },
+  {
     title: '结论',
     dataIndex: 'approved',
     width: 100,
     render: (_, record) =>
-      record.approved === undefined ? (
-        '-'
+      record.status === 'PENDING' ? (
+        <Typography.Text type="secondary">待审批</Typography.Text>
+      ) : record.approved === undefined ? (
+        <Typography.Text type="secondary">未记录</Typography.Text>
       ) : (
         <Typography.Text type={record.approved ? 'success' : 'danger'}>
           {record.approved ? '同意' : '不同意'}
         </Typography.Text>
       ),
   },
-  { title: '意见', dataIndex: 'opinion' },
+  {
+    title: '意见',
+    dataIndex: 'opinion',
+    render: (_, record) =>
+      record.opinion || (
+        <Typography.Text type="secondary">
+          {record.status === 'PENDING' ? '等待处理人提交意见' : '未填写意见'}
+        </Typography.Text>
+      ),
+  },
   {
     title: '处理时间',
     dataIndex: 'createdAt',
@@ -346,7 +393,10 @@ const ProcessInstanceDetail: React.FC = () => {
   const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
   const isPurchaseApproval = isPurchaseInstance(instance?.processDefinitionId);
   const parallelTaskCount = purchaseApprovalNodeCount(currentTasks);
-  const purchaseApprovalRecords = purchaseApprovalSnapshotRecords(formSnapshots);
+  const purchaseApprovalRecords = purchaseApprovalSnapshotRecords(
+    formSnapshots,
+    currentTasks,
+  );
   const nextApprovalTask = currentTasks.find((task) =>
     ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
   );
