@@ -381,7 +381,13 @@ export async function exportProcessModel(id: string) {
   return response.data as Blob
 }
 
-export function startProcessInstance(payload: { processDefinitionKey: string; businessKey: string; variables: JsonRecord }) {
+export function startProcessInstance(payload: {
+  processDefinitionKey: string;
+  businessKey: string;
+  variables: JsonRecord;
+  formSchemaId?: string;
+  formData?: JsonRecord;
+}) {
   return apiData<ProcessInstance>(http.post('/process-instances/start', payload))
 }
 

@@ -28,9 +28,10 @@ import {
 import { processDisplayName, taskDefinitionLabel } from '@/utils/display';
 
 interface BindingForm {
+  bindingType?: 'START' | 'TASK';
   processModelId?: string;
   processDefinitionId?: string;
-  taskDefinitionKey: string;
+  taskDefinitionKey?: string;
   formSchemaId: string;
   formSchemaVersion: number;
 }
@@ -40,11 +41,24 @@ type BindingTableItem = FormBindingItem & {
   formSchema?: FormSchemaItem;
 };
 
-function bindingPayload(values: BindingForm): BindingForm {
+const START_FORM_TASK_KEY = '__START__';
+
+function bindingPayload(values: BindingForm) {
+  const taskDefinitionKey =
+    values.bindingType === 'START'
+      ? START_FORM_TASK_KEY
+      : values.taskDefinitionKey || '';
   return {
-    ...values,
+    processModelId: values.processModelId,
+    processDefinitionId: values.processDefinitionId,
+    taskDefinitionKey,
+    formSchemaId: values.formSchemaId,
     formSchemaVersion: Number(values.formSchemaVersion || 1),
   };
+}
+
+function bindingTypeOf(binding?: Pick<FormBindingItem, 'taskDefinitionKey'>) {
+  return binding?.taskDefinitionKey === START_FORM_TASK_KEY ? 'START' : 'TASK';
 }
 
 function useQueryProcessModelId() {
@@ -169,39 +183,54 @@ const BindingFormItems: React.FC<{
             }))
         }
       />
+      <ProFormSelect
+        name="bindingType"
+        label="绑定范围"
+        initialValue="TASK"
+        rules={[{ required: true, message: '请选择绑定范围' }]}
+        options={[
+          { label: '任务表单', value: 'TASK' },
+          { label: '启动表单', value: 'START' },
+        ]}
+        fieldProps={{
+          onChange: () => form.setFieldValue('taskDefinitionKey', undefined),
+        }}
+      />
       <ProFormText
         name="processDefinitionId"
         label="流程定义"
         fieldProps={{ readOnly: true }}
         placeholder="选择已部署流程模型后自动带出"
       />
-      <ProFormDependency name={['processModelId']}>
-        {({ processModelId }) => (
-          <ProFormSelect
-            key={processModelId || 'task-definition'}
-            name="taskDefinitionKey"
-            label="任务节点"
-            disabled={!processModelId}
-            rules={[{ required: true, message: '请选择任务节点' }]}
-            params={{ processModelId }}
-            placeholder={
-              processModelId ? '请选择任务节点' : '先选择流程模型'
-            }
-            fieldProps={{
-              showSearch: true,
-              optionFilterProp: 'label',
-            }}
-            request={async () => {
-              if (!processModelId) return [];
-              return (await listProcessModelTaskDefinitions(processModelId)).map(
-                (task) => ({
-                  label: `${taskDefinitionLabel(task.taskDefinitionKey, task)}（${task.taskDefinitionKey}）`,
-                  value: task.taskDefinitionKey,
-                }),
-              );
-            }}
-          />
-        )}
+      <ProFormDependency name={['processModelId', 'bindingType']}>
+        {({ processModelId, bindingType }) =>
+          bindingType === 'START' ? null : (
+            <ProFormSelect
+              key={processModelId || 'task-definition'}
+              name="taskDefinitionKey"
+              label="任务节点"
+              disabled={!processModelId}
+              rules={[{ required: true, message: '请选择任务节点' }]}
+              params={{ processModelId }}
+              placeholder={
+                processModelId ? '请选择任务节点' : '先选择流程模型'
+              }
+              fieldProps={{
+                showSearch: true,
+                optionFilterProp: 'label',
+              }}
+              request={async () => {
+                if (!processModelId) return [];
+                return (await listProcessModelTaskDefinitions(processModelId)).map(
+                  (task) => ({
+                    label: `${taskDefinitionLabel(task.taskDefinitionKey, task)}（${task.taskDefinitionKey}）`,
+                    value: task.taskDefinitionKey,
+                  }),
+                );
+              }}
+            />
+          )
+        }
       </ProFormDependency>
       <ProFormSelect
         name="formSchemaId"
@@ -251,7 +280,9 @@ const FormBindings: React.FC = () => {
       content: (
         <Flex vertical gap={12}>
           <span>
-            已将表单绑定到任务节点 {taskDefinitionLabel(binding.taskDefinitionKey)}。
+            {binding.taskDefinitionKey === START_FORM_TASK_KEY
+              ? '已将表单绑定为流程启动表单。'
+              : `已将表单绑定到任务节点 ${taskDefinitionLabel(binding.taskDefinitionKey || '')}。`}
           </span>
           <Space wrap>
             <Button
@@ -283,6 +314,17 @@ const FormBindings: React.FC = () => {
 
   const columns: ProColumns<BindingTableItem>[] = [
     {
+      title: '绑定范围',
+      dataIndex: 'taskDefinitionKey',
+      width: 120,
+      valueType: 'select',
+      valueEnum: {
+        [START_FORM_TASK_KEY]: { text: '启动表单' },
+      },
+      renderText: (value) =>
+        value === START_FORM_TASK_KEY ? '启动表单' : '任务表单',
+    },
+    {
       title: '流程模型',
       dataIndex: 'processModelId',
       ellipsis: true,
@@ -298,7 +340,8 @@ const FormBindings: React.FC = () => {
       title: '任务节点',
       dataIndex: 'taskDefinitionKey',
       width: 160,
-      renderText: (value) => taskDefinitionLabel(value),
+      renderText: (value) =>
+        value === START_FORM_TASK_KEY ? '-' : taskDefinitionLabel(value),
     },
     {
       title: '表单编号',
@@ -458,6 +501,7 @@ const FormBindings: React.FC = () => {
               </Button>
             }
             initialValues={{
+              bindingType: 'TASK',
               processModelId: queryProcessModelId,
               formSchemaId: queryFormSchemaId,
             }}
@@ -481,7 +525,18 @@ const FormBindings: React.FC = () => {
         key={editing?.id || 'edit-binding'}
         title="编辑表单绑定"
         open={Boolean(editing)}
-        initialValues={editing}
+        initialValues={
+          editing
+            ? {
+                ...editing,
+                bindingType: bindingTypeOf(editing),
+                taskDefinitionKey:
+                  editing.taskDefinitionKey === START_FORM_TASK_KEY
+                    ? undefined
+                    : editing.taskDefinitionKey,
+              }
+            : undefined
+        }
         modalProps={{
           destroyOnHidden: true,
           onCancel: () => setEditing(undefined),

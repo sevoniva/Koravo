@@ -75,6 +75,7 @@ interface JsonSchemaProperty {
 
 const hiddenStartModelKeys = new Set(['httpConnectorDemo']);
 const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
+const START_FORM_TASK_KEY = '__START__';
 
 function nextBusinessKey(prefix = 'REQ') {
   const now = new Date();
@@ -136,17 +137,17 @@ function schemaToStartFields(formSchema?: FormSchemaItem): StartFormField[] {
   });
 }
 
-function findStartSchemaId(
+function findStartBinding(
   model: ProcessModelItem | undefined,
   bindings: FormBindingItem[],
 ) {
   if (!model) return undefined;
-  const matchedBinding = bindings.find(
+  return bindings.find(
     (binding) =>
-      binding.processDefinitionId === model.flowableDefinitionId ||
-      binding.processModelId === model.id,
+      binding.taskDefinitionKey === START_FORM_TASK_KEY &&
+      (binding.processDefinitionId === model.flowableDefinitionId ||
+        binding.processModelId === model.id),
   );
-  return matchedBinding?.formSchemaId;
 }
 
 function findTaskBinding(
@@ -202,28 +203,37 @@ const ProcessStartReadiness: React.FC<{
   bindings: FormBindingItem[];
   formSchemas: FormSchemaItem[];
 }> = ({ model, bindings, formSchemas }) => {
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [] } = useQuery({
     queryKey: ['process-model-task-definitions', model?.id],
     queryFn: () => listProcessModelTaskDefinitions(model?.id || ''),
     enabled: Boolean(model?.id),
   });
 
   if (!model) return null;
-  if (!tasks.length && !isLoading) return null;
 
   const missingTasks = tasks.filter((task) => !findTaskBinding(model, task, bindings));
+  const startBinding = findStartBinding(model, bindings);
 
   return (
     <Alert
       showIcon
-      type={missingTasks.length ? 'warning' : 'success'}
-      title={missingTasks.length ? '还有任务节点未绑定表单' : '任务节点表单已就绪'}
+      type={!startBinding || missingTasks.length ? 'warning' : 'success'}
+      title={!startBinding || missingTasks.length ? '流程表单配置不完整' : '流程表单已就绪'}
       description={
         <Flex vertical gap={8}>
           <Typography.Text type="secondary">
-            发起后，审批人会按任务节点填写表单并留下快照。
+            发起表单和任务表单都会保存快照，实例详情可追踪完整提交记录。
           </Typography.Text>
           <Space size={[0, 6]} wrap>
+            <Tag color={startBinding ? 'success' : 'warning'} variant="outlined">
+              启动表单：
+              {startBinding
+                ? formSchemaLabel(
+                    formSchemas.find((item) => item.id === startBinding.formSchemaId),
+                    startBinding.formSchemaVersion,
+                  )
+                : '未绑定'}
+            </Tag>
             {tasks.map((task) => {
               const binding = findTaskBinding(model, task, bindings);
               const schema = formSchemas.find((item) => item.id === binding?.formSchemaId);
@@ -242,7 +252,7 @@ const ProcessStartReadiness: React.FC<{
         </Flex>
       }
       action={
-        missingTasks.length ? (
+        !startBinding || missingTasks.length ? (
           <Button
             size="small"
             onClick={() => history.push(`/form-bindings?processModelId=${model.id}`)}
@@ -401,7 +411,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
           item.modelKey === processDefinitionKey ||
           item.id === processModelId,
       );
-      const startFormSchemaId = findStartSchemaId(model, formBindings);
+      const startFormSchemaId = findStartBinding(model, formBindings)?.formSchemaId;
       form.setFieldsValue({
         processDefinitionKey: model?.modelKey || processDefinitionKey,
         businessKey: nextBusinessKey(businessKeyPrefix(model?.modelKey)),
@@ -503,15 +513,13 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
               />
               {(() => {
                 const selectedModel = deployedModels.find((item) => item.id === processModelId);
-                const hasBoundForm = Boolean(
-                  selectedModel && findStartSchemaId(selectedModel, formBindings),
-                );
-                return selectedModel && !hasBoundForm ? (
+                const startBinding = findStartBinding(selectedModel, formBindings);
+                return selectedModel && !startBinding ? (
                   <Alert
                     showIcon
                     type="warning"
-                    title="该流程还没有匹配到已绑定表单"
-                    description="可以临时选择一个启动表单发起流程；正式使用前建议先完成任务节点表单绑定。"
+                    title="该流程还没有启动表单"
+                    description="请先在表单绑定中为该流程配置启动表单，再发起业务实例。"
                     action={
                       <Button
                         size="small"
@@ -526,21 +534,32 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                   />
                 ) : null;
               })()}
-              <ProFormSelect
-                name="startFormSchemaId"
-                label="启动表单"
-                disabled={!formSchemas.length}
-                rules={[{ required: true, message: '请选择启动表单' }]}
-                options={formSchemas.map((item) => ({
-                  label: `${item.formName}（${item.formKey} v${item.version}）`,
-                  value: item.id,
-                }))}
-                fieldProps={{
-                  showSearch: true,
-                  optionFilterProp: 'label',
-                  onChange: () => form.setFieldValue('formValues', {}),
-                }}
-              />
+              {(() => {
+                const selectedModel = deployedModels.find((item) => item.id === processModelId);
+                const startBinding = findStartBinding(selectedModel, formBindings);
+                const startSchema = formSchemas.find((item) => item.id === startBinding?.formSchemaId);
+                return startBinding ? (
+                  <ProFormSelect
+                    name="startFormSchemaId"
+                    label="启动表单"
+                    disabled={!startSchema}
+                    rules={[{ required: true, message: '请选择启动表单' }]}
+                    options={
+                      startSchema
+                        ? [{
+                            label: `${startSchema.formName}（${startSchema.formKey} v${startBinding.formSchemaVersion || startSchema.version}）`,
+                            value: startSchema.id,
+                          }]
+                        : []
+                    }
+                    fieldProps={{
+                      showSearch: true,
+                      optionFilterProp: 'label',
+                      onChange: () => form.setFieldValue('formValues', {}),
+                    }}
+                  />
+                ) : null;
+              })()}
               {!formSchemas.length ? (
                 <Alert
                   showIcon
@@ -747,10 +766,17 @@ const ProcessInstances: React.FC = () => {
               width: 'min(720px, calc(100vw - 16px))',
             }}
             onFinish={async (values) => {
+              if (!values.startFormSchemaId) {
+                message.warning('请先为流程配置启动表单');
+                return false;
+              }
+              const formData = buildStartVariables(values);
               const instance = await startProcessInstance({
                 processDefinitionKey: values.processDefinitionKey,
                 businessKey: values.businessKey,
-                variables: buildStartVariables(values),
+                variables: formData,
+                formSchemaId: values.startFormSchemaId,
+                formData,
               });
               message.success('已发起');
               action?.reload();
