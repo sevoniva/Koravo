@@ -128,8 +128,12 @@ const AuditRelatedActions: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
 const AuditLogs: React.FC = () => {
   const [detail, setDetail] = useState<AuditLogItem>();
   const location = useLocation();
-  const queryRequestId = React.useMemo(() => {
-    return new URLSearchParams(location.search).get('requestId') || undefined;
+  const query = React.useMemo(() => {
+    const searchParams = new URLSearchParams(location.search);
+    return {
+      requestId: searchParams.get('requestId') || undefined,
+      resourceId: searchParams.get('resourceId') || undefined,
+    };
   }, [location.search]);
 
   const columns: ProColumns<AuditLogItem>[] = [
@@ -200,14 +204,14 @@ const AuditLogs: React.FC = () => {
         columns={columns}
         scroll={{ x: 1200 }}
         search={{ labelWidth: 'auto' }}
-        params={{ requestId: queryRequestId }}
+        params={{ requestId: query.requestId, resourceId: query.resourceId }}
         request={async (params) => {
           const result = await listAuditLogs({
             userId: params.userId as string | undefined,
             action: params.action as string | undefined,
             resourceType: params.resourceType as string | undefined,
-            resourceId: params.resourceId as string | undefined,
-            requestId: (params.requestId as string | undefined) || queryRequestId,
+            resourceId: (params.resourceId as string | undefined) || query.resourceId,
+            requestId: (params.requestId as string | undefined) || query.requestId,
             page: Number(params.current || 1),
             pageSize: Number(params.pageSize || 10),
           });

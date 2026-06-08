@@ -7,7 +7,7 @@ import {
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Badge, Button, Flex, Modal, Steps, Typography } from 'antd';
+import { Alert, App, Badge, Button, Empty, Flex, Modal, Space, Steps, Typography } from 'antd';
 import type { StepsProps } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
@@ -231,6 +231,26 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     width: 170,
     render: (_, record) => <CopyableText value={record.requestId} />,
   },
+  {
+    title: '操作',
+    valueType: 'option',
+    width: 110,
+    render: (_, record) =>
+      record.requestId ? (
+        <Button
+          type="link"
+          onClick={() =>
+            history.push(
+              `/audit-logs?requestId=${encodeURIComponent(record.requestId || '')}`,
+            )
+          }
+        >
+          查看审计
+        </Button>
+      ) : (
+        '-'
+      ),
+  },
 ];
 
 const purchaseApprovalColumns: ProColumns<PurchaseApprovalRecord>[] = [
@@ -300,6 +320,16 @@ const ProcessInstanceDetail: React.FC = () => {
       extra={[
         <Button key="refresh" onClick={() => refetch()}>
           刷新
+        </Button>,
+        <Button
+          key="audit"
+          onClick={() =>
+            history.push(
+              `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
+            )
+          }
+        >
+          审计日志
         </Button>,
         <Button
           key="suspend"
@@ -473,7 +503,28 @@ const ProcessInstanceDetail: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
-            scroll={{ x: 1000 }}
+            locale={{
+              emptyText: (
+                <Empty
+                  description="暂无内嵌审计记录"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                >
+                  <Space>
+                    <Button
+                      type="primary"
+                      onClick={() =>
+                        history.push(
+                          `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
+                        )
+                      }
+                    >
+                      查看审计日志
+                    </Button>
+                  </Space>
+                </Empty>
+              ),
+            }}
+            scroll={{ x: 1100 }}
           />
         </ProCard>
       </Flex>
