@@ -29,6 +29,7 @@ import {
   type OpsProcessInstance,
   type ProcessModelItem,
 } from '@/services/koravo/api';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   processDefinitionLabel,
   processDisplayName,
@@ -309,6 +310,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
           item.modelKey === processDefinitionKey ||
           item.id === processModelId,
       );
+      const currentUser = getSessionContext().userId;
       form.setFieldsValue({
         processDefinitionKey: model?.modelKey || processDefinitionKey,
         businessKey: nextBusinessKey(businessKeyPrefix(model?.modelKey)),
@@ -316,13 +318,13 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
         processDefinitionId: model?.flowableDefinitionId,
         startFormSchemaId: findStartSchemaId(model, formBindings),
         formValues: {},
-        applicant: undefined,
+        applicant: currentUser,
         department: undefined,
         itemName: undefined,
         amount: undefined,
         reason: undefined,
-        managerApprover: undefined,
-        financeApprover: undefined,
+        managerApprover: 'manager',
+        financeApprover: 'finance',
       });
     },
     [deployedModels, form, formBindings],
@@ -399,6 +401,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                 showIcon
                 type="info"
                 title="采购申请会同时生成部门审批和财务审批两个待办。"
+                description="申请人默认使用当前运行用户，审批人默认指向 manager 和 finance，可按实际经办人调整。"
                 style={{ marginBottom: 16 }}
               />
               <ProFormText
