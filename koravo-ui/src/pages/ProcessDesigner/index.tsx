@@ -21,6 +21,7 @@ import { useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import {
   Button,
+  App,
   Drawer,
   Dropdown,
   Flex,
@@ -29,7 +30,6 @@ import {
   Space,
   Tooltip,
   Typography,
-  message,
   type MenuProps,
 } from 'antd';
 import { createStyles } from 'antd-style';
@@ -192,6 +192,7 @@ function isServiceTask(element?: BpmnSelectedElement) {
 
 const ProcessDesigner: React.FC = () => {
   const location = useLocation();
+  const { message } = App.useApp();
   const { styles } = useStyles();
   const modelerRef = useRef<BpmnModelerCanvasHandle>(null);
   const draftModelKeyRef = useRef(createDraftModelKey());

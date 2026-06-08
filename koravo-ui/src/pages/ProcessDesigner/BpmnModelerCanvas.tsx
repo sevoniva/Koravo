@@ -3,7 +3,7 @@ import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 
 import { LoadingOutlined } from '@ant-design/icons';
-import { Spin, Typography, message } from 'antd';
+import { App, Button, Result, Spin, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React, {
   forwardRef,
@@ -155,6 +155,16 @@ const useStyles = createStyles(({ css, token }) => ({
     justify-content: center;
     background: ${token.colorBgContainer};
   `,
+  error: css`
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: ${token.colorBgContainer};
+  `,
 }));
 
 function normalizeElement(element?: BpmnElement): BpmnElement | undefined {
@@ -226,6 +236,7 @@ export const BpmnModelerCanvas = forwardRef<
   BpmnModelerCanvasProps
 >(({ value, onSelectionChange, onXmlChange }, ref) => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const mountRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnModeler | undefined>(undefined);
   const selectedElementRef = useRef<BpmnElement | undefined>(undefined);
@@ -237,6 +248,7 @@ export const BpmnModelerCanvas = forwardRef<
   const onSelectionChangeRef = useRef(onSelectionChange);
   const onXmlChangeRef = useRef(onXmlChange);
   const [loading, setLoading] = useState(true);
+  const [importError, setImportError] = useState<string>();
 
   useEffect(() => {
     valueRef.current = value;
@@ -273,6 +285,7 @@ export const BpmnModelerCanvas = forwardRef<
     if (!modeler || !xml || xml === lastImportedXmlRef.current) return;
 
     setLoading(true);
+    setImportError(undefined);
     try {
       const result = await modeler.importXML(xml);
       lastImportedXmlRef.current = xml;
@@ -283,11 +296,15 @@ export const BpmnModelerCanvas = forwardRef<
         message.warning('BPMN 已加载，存在需要关注的警告');
       }
     } catch (error) {
-      message.error('BPMN XML 加载失败');
-      console.error(error);
+      setImportError(error instanceof Error ? error.message : 'BPMN XML 加载失败');
     } finally {
       setLoading(false);
     }
+  };
+
+  const retryImport = () => {
+    lastImportedXmlRef.current = undefined;
+    void importDiagram(valueRef.current);
   };
 
   useImperativeHandle(ref, () => ({
@@ -374,6 +391,20 @@ export const BpmnModelerCanvas = forwardRef<
           </Typography.Text>
         </div>
       )}
+      {importError ? (
+        <div className={styles.error}>
+          <Result
+            status="warning"
+            title="BPMN 图形无法加载"
+            subTitle="当前模型的 XML 不能渲染为流程图。可以切换模型、查看 XML，或修正后重新加载。"
+            extra={
+              <Button type="primary" onClick={retryImport}>
+                重新加载
+              </Button>
+            }
+          />
+        </div>
+      ) : null}
     </div>
   );
 });
