@@ -262,7 +262,8 @@ function snapshotSummary(record: FormSnapshotItem) {
   const taskName = typeof data.taskName === 'string' ? data.taskName : '';
 
   if (approved === undefined && !opinion && !taskName) {
-    return '-';
+    const fieldCount = Object.keys(data).length;
+    return fieldCount ? `${fieldCount} 个字段` : '-';
   }
 
   return (

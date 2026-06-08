@@ -490,7 +490,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                         showIcon
                         type="warning"
                         title="当前表单没有可填写字段"
-                        description="请先在表单管理配置字段，再回到这里启动流程。"
+                        description="请先在表单管理配置字段，再回到这里发起实例。"
                       />
                     );
                   }
@@ -584,16 +584,25 @@ const ProcessInstances: React.FC = () => {
   }, [queryProcessModelId]);
 
   return (
-    <PageContainer title="流程实例" content="启动流程并跟踪运行中的实例。">
+    <PageContainer title="流程实例" content="提交业务单据并跟踪运行中的实例。">
       <ProTable<OpsProcessInstance>
         rowKey="instanceId"
         columns={columns}
         search={{ labelWidth: 'auto' }}
         scroll={{ x: 1120 }}
         request={async (params) => {
+          const keyword = String(
+            params.instanceId ||
+              params.processDefinitionId ||
+              params.businessKey ||
+              params.startUserId ||
+              '',
+          ).trim();
           const result = await listOpsInstances({
             page: Number(params.current || 1),
             pageSize: Number(params.pageSize || 10),
+            keyword: keyword || undefined,
+            status: String(params.status || '').trim() || undefined,
           });
           return { data: result.items, total: result.total, success: true };
         }}
@@ -609,7 +618,7 @@ const ProcessInstances: React.FC = () => {
                   icon={<PlayCircleOutlined />}
                   onClick={() => setStartOpen(true)}
                 >
-                  启动流程
+                  发起实例
                 </Button>
                 <Button onClick={() => history.push('/process-models')}>
                   创建流程模型
@@ -621,12 +630,12 @@ const ProcessInstances: React.FC = () => {
         toolBarRender={(action) => [
           <ModalForm<StartInstanceForm>
             key="start"
-            title="启动流程实例"
+            title="发起流程实例"
             open={startOpen}
             onOpenChange={setStartOpen}
             trigger={
               <Button type="primary" icon={<PlayCircleOutlined />}>
-                启动流程
+                发起实例
               </Button>
             }
             modalProps={{
@@ -639,7 +648,7 @@ const ProcessInstances: React.FC = () => {
                 businessKey: values.businessKey,
                 variables: buildStartVariables(values),
               });
-              message.success('已启动');
+              message.success('已发起');
               action?.reload();
               history.push(`/process-instances/${instance.instanceId}`);
               return true;

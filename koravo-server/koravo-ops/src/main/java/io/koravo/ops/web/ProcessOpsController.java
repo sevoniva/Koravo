@@ -27,9 +27,11 @@ public class ProcessOpsController {
     @GetMapping("/api/v1/ops/process-instances")
     public ApiResponse<PageResult<ProcessInstanceDetailDTO>> listInstances(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int pageSize
+            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status
     ) {
-        return ApiResponse.success(processOpsService.listInstances(page, pageSize));
+        return ApiResponse.success(processOpsService.listInstances(page, pageSize, keyword, status));
     }
 
     @GetMapping("/api/v1/ops/capabilities")

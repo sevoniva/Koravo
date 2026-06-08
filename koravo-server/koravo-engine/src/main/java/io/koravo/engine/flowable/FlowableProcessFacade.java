@@ -362,18 +362,16 @@ public class FlowableProcessFacade implements ProcessFacade {
     @Override
     @Transactional(readOnly = true)
     public PageResult<ProcessInstanceDetailDTO> listInstances(InstanceQueryCommand command) {
-        long total = historyService.createHistoricProcessInstanceQuery()
-                .processInstanceTenantId(command.tenantId())
-                .count();
         List<ProcessInstanceDetailDTO> instances = historyService.createHistoricProcessInstanceQuery()
                 .processInstanceTenantId(command.tenantId())
                 .orderByProcessInstanceStartTime()
                 .desc()
-                .listPage(command.offset(), command.pageSize())
+                .list()
                 .stream()
                 .map(this::toInstanceDetail)
+                .filter(instance -> matchesInstanceQuery(instance, command))
                 .toList();
-        return PageResult.of(instances, total, command.page(), command.pageSize());
+        return page(instances, command);
     }
 
     @Override
@@ -631,7 +629,16 @@ public class FlowableProcessFacade implements ProcessFacade {
                 && matchesKeyword(command, instance.businessKey(), instance.instanceId(), instance.processDefinitionId(), instance.startUserId());
     }
 
+    private boolean matchesInstanceQuery(ProcessInstanceDetailDTO instance, InstanceQueryCommand command) {
+        return matchesStatus(instance.status(), command)
+                && matchesKeyword(command, instance.businessKey(), instance.instanceId(), instance.processDefinitionId(), instance.startUserId());
+    }
+
     private boolean matchesStatus(String status, TaskQueryCommand command) {
+        return !command.hasStatus() || Objects.equals(normalize(status), normalize(command.status()));
+    }
+
+    private boolean matchesStatus(String status, InstanceQueryCommand command) {
         return !command.hasStatus() || Objects.equals(normalize(status), normalize(command.status()));
     }
 
@@ -649,7 +656,17 @@ public class FlowableProcessFacade implements ProcessFacade {
         if (!command.hasKeyword()) {
             return true;
         }
-        String keyword = normalize(command.keyword());
+        return matchesKeyword(normalize(command.keyword()), values);
+    }
+
+    private boolean matchesKeyword(InstanceQueryCommand command, String... values) {
+        if (!command.hasKeyword()) {
+            return true;
+        }
+        return matchesKeyword(normalize(command.keyword()), values);
+    }
+
+    private boolean matchesKeyword(String keyword, String... values) {
         for (String value : values) {
             if (normalize(value).contains(keyword)) {
                 return true;
@@ -663,6 +680,14 @@ public class FlowableProcessFacade implements ProcessFacade {
     }
 
     private <T> PageResult<T> page(List<T> items, TaskQueryCommand command) {
+        List<T> pageItems = items.stream()
+                .skip(command.offset())
+                .limit(command.pageSize())
+                .toList();
+        return PageResult.of(pageItems, items.size(), command.page(), command.pageSize());
+    }
+
+    private <T> PageResult<T> page(List<T> items, InstanceQueryCommand command) {
         List<T> pageItems = items.stream()
                 .skip(command.offset())
                 .limit(command.pageSize())

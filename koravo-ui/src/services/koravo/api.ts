@@ -514,7 +514,7 @@ export function listAuditLogs(params: {
   return apiData<PageResult<AuditLogItem>>(http.get('/audit-logs', { params }))
 }
 
-export function listOpsInstances(params?: { page?: number; pageSize?: number }) {
+export function listOpsInstances(params?: { page?: number; pageSize?: number; keyword?: string; status?: string }) {
   return apiData<PageResult<OpsProcessInstance>>(http.get('/ops/process-instances', { params }))
 }
 

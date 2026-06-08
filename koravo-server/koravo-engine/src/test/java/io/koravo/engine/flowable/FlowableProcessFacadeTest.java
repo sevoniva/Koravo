@@ -2,6 +2,7 @@ package io.koravo.engine.flowable;
 
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
+import io.koravo.engine.command.InstanceQueryCommand;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.IdentityService;
 import org.flowable.engine.ManagementService;
@@ -20,6 +21,8 @@ import org.flowable.job.api.Job;
 import org.flowable.job.api.JobQuery;
 import org.junit.jupiter.api.Test;
 
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -176,6 +179,29 @@ class FlowableProcessFacadeTest {
     }
 
     @Test
+    void listInstancesFiltersByKeywordAndStatusBeforePaging() {
+        HistoricProcessInstanceQuery instanceQuery = mock(HistoricProcessInstanceQuery.class, RETURNS_SELF);
+        ProcessInstanceQuery runtimeQuery = mock(ProcessInstanceQuery.class, RETURNS_SELF);
+        ProcessInstance runtimeInstance = mock(ProcessInstance.class);
+        TaskQuery taskQuery = mock(TaskQuery.class, RETURNS_SELF);
+        HistoricProcessInstance purchase = mockHistoricInstance("pi-1", "purchaseApproval:1", "PO-1001", "applicant", null);
+        HistoricProcessInstance leave = mockHistoricInstance("pi-2", "leaveApproval:1", "LEAVE-1001", "hr", new Date());
+        when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
+        when(instanceQuery.list()).thenReturn(List.of(purchase, leave));
+        when(runtimeService.createProcessInstanceQuery()).thenReturn(runtimeQuery);
+        when(runtimeQuery.singleResult()).thenReturn(runtimeInstance);
+        when(runtimeInstance.isSuspended()).thenReturn(false);
+        when(taskService.createTaskQuery()).thenReturn(taskQuery);
+        when(taskQuery.list()).thenReturn(List.of());
+
+        var result = facade.listInstances(new InstanceQueryCommand("default", 1, 10, "PO-1001", "RUNNING"));
+
+        assertThat(result.total()).isEqualTo(1);
+        assertThat(result.items()).extracting("instanceId").containsExactly("pi-1");
+        verify(instanceQuery).processInstanceTenantId("default");
+    }
+
+    @Test
     void getFailedJobReturnsStacktrace() {
         JobQuery query = mock(JobQuery.class, RETURNS_SELF);
         Job job = mockJob("job-1", "FAILED");
@@ -224,6 +250,24 @@ class FlowableProcessFacadeTest {
         when(query.singleResult()).thenReturn(instance);
         when(instance.getId()).thenReturn(instanceId);
         when(instance.getTenantId()).thenReturn(tenantId);
+    }
+
+    private HistoricProcessInstance mockHistoricInstance(
+            String id,
+            String processDefinitionId,
+            String businessKey,
+            String startUserId,
+            Date endTime
+    ) {
+        HistoricProcessInstance instance = mock(HistoricProcessInstance.class);
+        when(instance.getId()).thenReturn(id);
+        when(instance.getTenantId()).thenReturn("default");
+        when(instance.getProcessDefinitionId()).thenReturn(processDefinitionId);
+        when(instance.getBusinessKey()).thenReturn(businessKey);
+        when(instance.getStartUserId()).thenReturn(startUserId);
+        when(instance.getStartTime()).thenReturn(new Date(1_700_000_000_000L));
+        when(instance.getEndTime()).thenReturn(endTime);
+        return instance;
     }
 
     private Job mockJob(String id, String type) {

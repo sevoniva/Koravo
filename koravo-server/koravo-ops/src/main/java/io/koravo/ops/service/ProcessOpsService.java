@@ -25,8 +25,8 @@ public class ProcessOpsService {
         this.auditLogService = auditLogService;
     }
 
-    public PageResult<ProcessInstanceDetailDTO> listInstances(int page, int pageSize) {
-        return processFacade.listInstances(new InstanceQueryCommand(TenantContextHolder.getTenantId(), page, pageSize));
+    public PageResult<ProcessInstanceDetailDTO> listInstances(int page, int pageSize, String keyword, String status) {
+        return processFacade.listInstances(new InstanceQueryCommand(TenantContextHolder.getTenantId(), page, pageSize, keyword, status));
     }
 
     public ProcessInstanceDetailDTO getInstance(String instanceId) {

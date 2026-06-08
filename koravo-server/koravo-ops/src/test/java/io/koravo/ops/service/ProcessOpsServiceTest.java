@@ -1,11 +1,14 @@
 package io.koravo.ops.service;
 
 import io.koravo.engine.api.ProcessFacade;
+import io.koravo.engine.command.InstanceQueryCommand;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -18,6 +21,25 @@ class ProcessOpsServiceTest {
     @AfterEach
     void tearDown() {
         TenantContextHolder.clear();
+    }
+
+    @Test
+    void listInstancesPassesKeywordAndStatusToFacade() {
+        TenantContextHolder.setTenantId("default");
+
+        service.listInstances(2, 15, "PO-1001", "COMPLETED");
+
+        var commandCaptor = forClass(InstanceQueryCommand.class);
+        verify(processFacade).listInstances(commandCaptor.capture());
+        assertThat(commandCaptor.getValue())
+                .extracting(
+                        InstanceQueryCommand::tenantId,
+                        InstanceQueryCommand::page,
+                        InstanceQueryCommand::pageSize,
+                        InstanceQueryCommand::keyword,
+                        InstanceQueryCommand::status
+                )
+                .containsExactly("default", 2, 15, "PO-1001", "COMPLETED");
     }
 
     @Test
