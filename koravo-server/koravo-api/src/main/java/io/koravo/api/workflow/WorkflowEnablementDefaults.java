@@ -1,6 +1,6 @@
-package io.koravo.api.demo;
+package io.koravo.api.workflow;
 
-public final class DemoDefaults {
+public final class WorkflowEnablementDefaults {
     public static final String TENANT_ID = "default";
     public static final String USER_ID = "admin";
     public static final String PROCESS_KEY = "leaveApproval";
@@ -9,7 +9,7 @@ public final class DemoDefaults {
     public static final String FORM_NAME = "请假申请表";
     public static final String APPROVE_TASK_KEY = "approveTask";
 
-    private DemoDefaults() {
+    private WorkflowEnablementDefaults() {
     }
 
     public static String leaveApprovalBpmn() {
@@ -20,7 +20,7 @@ public final class DemoDefaults {
                              xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
                              xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
                              xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
-                             targetNamespace="https://koravo.io/demo">
+                             targetNamespace="https://koravo.io/workflow">
                   <process id="leaveApproval" name="请假审批流程" isExecutable="true">
                     <startEvent id="start" name="开始"/>
                     <sequenceFlow id="flow_start_approve" sourceRef="start" targetRef="approveTask"/>

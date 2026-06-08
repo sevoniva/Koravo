@@ -10,7 +10,7 @@ public record SystemHealthResponse(
         String tenantId,
         String userId,
         List<SystemHealthItem> dependencies,
-        DemoModeInfo demoMode,
+        WorkflowEnablementInfo workflowEnablement,
         UrlPolicyInfo urlPolicy
 ) {
     public record SystemHealthItem(
@@ -21,7 +21,7 @@ public record SystemHealthResponse(
     ) {
     }
 
-    public record DemoModeInfo(
+    public record WorkflowEnablementInfo(
             boolean enabled,
             String message
     ) {

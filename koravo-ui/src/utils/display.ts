@@ -2,6 +2,7 @@ import type { BpmnTaskDefinition, ProcessModelItem } from '../types/koravo';
 
 const AUDIT_ACTION_LABELS: Record<string, string> = {
   DEMO_INIT: '基础配置初始化',
+  WORKFLOW_ENABLEMENT_INIT: '流程配置初始化',
   PROCESS_MODEL_CREATE: '创建流程模型',
   PROCESS_MODEL_IMPORT: '导入流程模型',
   PROCESS_MODEL_UPDATE: '更新流程模型',
@@ -27,6 +28,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
 
 const AUDIT_RESOURCE_LABELS: Record<string, string> = {
   DEMO: '基础配置',
+  WORKFLOW_ENABLEMENT: '流程配置',
   PROCESS_MODEL: '流程模型',
   PROCESS_INSTANCE: '流程实例',
   TASK: '任务',
@@ -67,6 +69,7 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
   const mapping: Record<string, string> = {
     leaveApproval: '请假审批',
     httpConnectorDemo: 'HTTP 健康检查',
+    httpHealthCheck: 'HTTP 健康检查',
   };
   return mapping[modelKey || ''] || fallback || modelKey || '-';
 }
@@ -97,6 +100,7 @@ export function processKindLabel(modelKey?: string) {
   const mapping: Record<string, string> = {
     leaveApproval: '人员请假审批流程',
     httpConnectorDemo: 'HTTP 连接器调用流程',
+    httpHealthCheck: 'HTTP 连接器调用流程',
   };
   return mapping[modelKey || ''] || '流程模型';
 }

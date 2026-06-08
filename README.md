@@ -33,13 +33,14 @@ Controllers never use Flowable native services directly. `ProcessFacade` is the 
 - Spring Security with development header authentication
 - Springdoc OpenAPI
 - JUnit 5
-- Vue 3.5
 - TypeScript
-- Vite 6
-- Pinia
-- Vue Router
-- Axios
-- Ant Design Vue
+- React 19
+- Umi Max 4
+- antd 6
+- Ant Design Pro V6 and ProComponents
+- React Query
+- Biome
+- utoopack
 - bpmn-js modeler/viewer for process design and tracing
 
 Spring Boot 4.x and Flowable 8.x are not used in this baseline because compatible open-source Flowable 8 Spring Boot starters were not available from Maven Central during implementation. See [ADR 0001](docs/adr/0001-tech-stack.md).
@@ -54,7 +55,7 @@ Spring Boot 4.x and Flowable 8.x are not used in this baseline because compatibl
 - `koravo-task`: pending/done/started task queries, runtime and historic task detail, completion, comments, form snapshots, and task audit views.
 - `koravo-form`: form schema, form binding, and immutable form snapshot table boundary.
 - `koravo-datahub`: JDBC datasource management, secret encryption, connection tests, test logs, update, and soft delete.
-- `koravo-connector`: connector abstraction, HTTP connector, execution logs, connector audit, JDBC placeholder.
+- `koravo-connector`: connector abstraction, HTTP connector, execution logs, connector audit, and JDBC extension boundary.
 - `koravo-ops`: process instance inspection, trace, runtime actions, connector exception summaries, and audit log.
 - `koravo-api`: request ID filter, health API, OpenAPI, exception handling, instance APIs.
 - `koravo-bootstrap`: Spring Boot entrypoint, application config, Liquibase changelog.
@@ -145,7 +146,7 @@ If `npm install` is slow on the domestic registry, use the proxy-backed command 
 Open:
 
 ```text
-http://localhost:5173
+http://localhost:8000
 ```
 
 To run the packaged browser console with Docker Compose:
@@ -159,11 +160,11 @@ docker compose up --build koravo-ui
 
 The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PORT`, and proxies `/api/` to the Compose backend service.
 
-## Console Demo Loop
+## Console Workflow Loop
 
 1. Start PostgreSQL, Redis, and MinIO with Docker Compose.
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
-3. Start frontend and open `http://localhost:5173`.
+3. Start frontend and open `http://localhost:8000`.
    The Dashboard shows backend health, tenant/user/request context, pending and done task totals, started instances, and HTTP connector success/failure counts.
 4. Use `Process Designer` to create or import `examples/bpmn/leave-approval.bpmn20.xml`, validate it, save the draft, and deploy it. `Process Models` can also validate a stored draft and show structured errors or warnings before deployment.
 5. Create a form schema in `Forms`, bind it to `approveTask` with either the stored `processModelId` or deployed `processDefinitionId` in `Form Bindings`, then start a process with `processDefinitionKey = leaveApproval` and variables:
@@ -183,7 +184,7 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 
 The same calls are available in [examples/http/koravo.http](examples/http/koravo.http).
 
-## API Demo Loop
+## API Workflow Loop
 
 Deploy BPMN:
 
@@ -212,7 +213,7 @@ Complete a task:
     "approved": true
   },
   "formData": {
-    "reason": "approved from Koravo demo"
+    "reason": "approved from Koravo"
   },
   "comment": "approved"
 }
@@ -228,16 +229,16 @@ Then inspect:
 - `GET /api/v1/audit-logs?page=1&pageSize=20`
 - `GET /api/v1/audit-logs?action=PROCESS_INSTANCE_START&resourceType=PROCESS_INSTANCE&page=1&pageSize=20`
 
-The HTTP connector demo uses [examples/bpmn/http-connector-demo.bpmn20.xml](examples/bpmn/http-connector-demo.bpmn20.xml). Deploy it, start `httpConnectorDemo` with an `X-Request-Id`, query the assigned `Review HTTP Result` task, complete it, then inspect the instance detail, trace, connector logs, and connector audit. The service task stores the HTTP response in the `healthResult` process variable before moving to the review task.
+The HTTP connector workflow uses [examples/bpmn/http-health-check.bpmn20.xml](examples/bpmn/http-health-check.bpmn20.xml). Deploy it, start `httpHealthCheck` with an `X-Request-Id`, query the assigned `Review HTTP Result` task, complete it, then inspect the instance detail, trace, connector logs, and connector audit. The service task stores the HTTP response in the `healthResult` process variable before moving to the review task.
 
 ```http
 GET /api/v1/process-instances/{instanceId}
 GET /api/v1/ops/process-instances/{instanceId}/trace
 GET /api/v1/connector-execution-logs?connectorType=http&page=1&pageSize=20
-GET /api/v1/connector-execution-logs?connectorType=http&requestId=demo-http-request-1&page=1&pageSize=20
+GET /api/v1/connector-execution-logs?connectorType=http&requestId=health-check-request-1&page=1&pageSize=20
 GET /api/v1/connector-execution-logs/summary?connectorType=http
 GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
-GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&requestId=demo-http-request-1&page=1&pageSize=20
+GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&requestId=health-check-request-1&page=1&pageSize=20
 ```
 
 ## Tests
@@ -271,7 +272,7 @@ Default `mvn test` remains fast and does not require Docker-backed integration i
 - `X-Tenant-Id` defaults to `default` in development.
 - `X-User-Id` defaults to `anonymous`; the console sends `admin`.
 - The console header lets you switch Tenant, User, and optional Request ID; values persist in browser local storage and are sent as API headers.
-- The first frontend bundle is large because Ant Design Vue and bpmn-js are both used by the console.
+- The first frontend bundle is large because Ant Design Pro, ProComponents, antd, and bpmn-js are all used by the console.
 
 ## License
 

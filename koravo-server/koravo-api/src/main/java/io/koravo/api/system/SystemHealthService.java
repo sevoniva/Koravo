@@ -43,7 +43,7 @@ public class SystemHealthService {
                 TenantContextHolder.getTenantId(),
                 UserContextHolder.getUserId(),
                 dependencies,
-                new SystemHealthResponse.DemoModeInfo(true, "演示接口已启用"),
+                new SystemHealthResponse.WorkflowEnablementInfo(true, "流程启用接口已启用"),
                 new SystemHealthResponse.UrlPolicyInfo(true, false, true, "允许 localhost；公网地址必须使用 HTTPS；拒绝内网地址")
         );
     }

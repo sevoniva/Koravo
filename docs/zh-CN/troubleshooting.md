@@ -14,7 +14,7 @@ curl http://localhost:8080/api/v1/health
 
 检查：
 
-- 是否已初始化演示数据
+- 是否已初始化流程配置
 - 流程模型是否已部署
 - 流程定义 Key 是否为 `leaveApproval`
 - 变量 JSON 是否是对象
@@ -42,4 +42,4 @@ curl http://localhost:8080/api/v1/health
 
 ## 前端包体积警告
 
-当前控制台使用 Ant Design Vue 和 bpmn-js，生产构建可能提示 chunk 较大。该警告不影响访问。
+当前控制台使用 Ant Design Pro、ProComponents 和 bpmn-js，生产构建可能提示 chunk 较大。该警告不影响访问。

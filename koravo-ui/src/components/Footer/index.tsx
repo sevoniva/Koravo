@@ -38,11 +38,6 @@ const Footer: React.FC = () => {
           <span className={styles.label}>版本 </span>
           {packageJson.version}
         </span>
-        <Divider orientation="vertical" />
-        <span>
-          <span className={styles.label}>Umi </span>
-          {__UMI_VERSION__}
-        </span>
       </div>
     </div>
   );

@@ -36,8 +36,8 @@ class KoravoConnectorDelegateTest {
     }
 
     @Test
-    void httpConnectorDemoUsesSpringDelegateExpression() throws Exception {
-        String bpmnXml = Files.readString(Path.of("..", "..", "examples", "bpmn", "http-connector-demo.bpmn20.xml"));
+    void httpHealthCheckUsesSpringDelegateExpression() throws Exception {
+        String bpmnXml = Files.readString(Path.of("..", "..", "examples", "bpmn", "http-health-check.bpmn20.xml"));
 
         assertThat(bpmnXml).contains("flowable:delegateExpression=\"${koravoConnectorDelegate}\"");
         assertThat(bpmnXml).doesNotContain("flowable:class=\"io.koravo.connector.flowable.KoravoConnectorDelegate\"");

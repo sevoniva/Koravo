@@ -1,8 +1,8 @@
 @baseUrl = http://localhost:8080/api/v1
 @tenantId = default
 @userId = admin
-@requestId = demo-request-1
-@httpRequestId = demo-http-request-1
+@requestId = workflow-request-1
+@httpRequestId = health-check-request-1
 @processInstanceId = replace-with-instance-id
 @processModelId = replace-with-model-id
 @processDefinitionId = replace-with-process-definition-id
@@ -190,7 +190,7 @@ Content-Type: application/json
     "approved": true
   },
   "formData": {
-    "reason": "approved from Koravo demo"
+    "reason": "approved from Koravo workflow"
   },
   "formSchemaId": "{{formSchemaId}}",
   "comment": "approved"
@@ -313,20 +313,20 @@ GET {{baseUrl}}/audit-logs?startTime=2026-06-07T00:00:00Z&endTime=2026-06-07T23:
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 19. Deploy HTTP connector demo
-POST {{baseUrl}}/process-models/deploy?modelName=HTTP%20Connector%20Demo
+### 19. Deploy HTTP connector workflow
+POST {{baseUrl}}/process-models/deploy?modelName=HTTP%20Health%20Check
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 Content-Type: multipart/form-data; boundary=KoravoBoundary
 
 --KoravoBoundary
-Content-Disposition: form-data; name="file"; filename="http-connector-demo.bpmn20.xml"
+Content-Disposition: form-data; name="file"; filename="http-health-check.bpmn20.xml"
 Content-Type: application/xml
 
-< ../bpmn/http-connector-demo.bpmn20.xml
+< ../bpmn/http-health-check.bpmn20.xml
 --KoravoBoundary--
 
-### 20. Start HTTP connector demo
+### 20. Start HTTP connector workflow
 POST {{baseUrl}}/process-instances/start
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -334,24 +334,24 @@ X-Request-Id: {{httpRequestId}}
 Content-Type: application/json
 
 {
-  "processDefinitionKey": "httpConnectorDemo",
+  "processDefinitionKey": "httpHealthCheck",
   "businessKey": "HTTP-001",
   "variables": {
     "approver": "admin"
   }
 }
 
-### 21. Query HTTP connector demo review task
+### 21. Query HTTP connector workflow review task
 GET {{baseUrl}}/tasks/my?page=1&pageSize=20
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 22. Get HTTP connector demo review task detail
+### 22. Get HTTP connector workflow review task detail
 GET {{baseUrl}}/tasks/{{httpTaskId}}
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 23. Complete HTTP connector demo review task
+### 23. Complete HTTP connector workflow review task
 POST {{baseUrl}}/tasks/{{httpTaskId}}/complete
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
@@ -364,12 +364,12 @@ Content-Type: application/json
   "comment": "reviewed connector result"
 }
 
-### 24. Trace HTTP connector demo
+### 24. Trace HTTP connector workflow
 GET {{baseUrl}}/ops/process-instances/{{httpProcessInstanceId}}/trace
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 24a. Get HTTP connector demo instance detail and variables
+### 24a. Get HTTP connector workflow instance detail and variables
 GET {{baseUrl}}/process-instances/{{httpProcessInstanceId}}
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}

@@ -1,4 +1,4 @@
-package io.koravo.api.demo;
+package io.koravo.api.workflow;
 
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.DeployProcessCommand;
@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class DemoService {
+public class WorkflowEnablementService {
     private final ProcessFacade processFacade;
     private final ProcessModelRepository processModelRepository;
     private final FormSchemaRepository formSchemaRepository;
@@ -34,7 +34,7 @@ public class DemoService {
     private final AuditLogService auditLogService;
     private final AuditLogQueryService auditLogQueryService;
 
-    public DemoService(
+    public WorkflowEnablementService(
             ProcessFacade processFacade,
             ProcessModelRepository processModelRepository,
             FormSchemaRepository formSchemaRepository,
@@ -51,13 +51,13 @@ public class DemoService {
     }
 
     @Transactional(readOnly = true)
-    public DemoStatusResponse status() {
+    public WorkflowEnablementStatusResponse status() {
         String tenantId = TenantContextHolder.getTenantId();
         KoProcessModel model = processModelRepository
-                .findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(tenantId, DemoDefaults.PROCESS_KEY)
+                .findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(tenantId, WorkflowEnablementDefaults.PROCESS_KEY)
                 .orElse(null);
         KoFormSchema form = formSchemaRepository
-                .findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(tenantId, DemoDefaults.FORM_KEY)
+                .findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(tenantId, WorkflowEnablementDefaults.FORM_KEY)
                 .orElse(null);
         KoFormBinding binding = findMatchingBinding(tenantId, model, form);
         boolean initialized = model != null
@@ -76,56 +76,56 @@ public class DemoService {
                 null
         )).total();
         long auditCount = auditLogQueryService.query(null, null, null, null, null, null, null, 1, 1).total();
-        return new DemoStatusResponse(
+        return new WorkflowEnablementStatusResponse(
                 initialized,
                 tenantId,
                 UserContextHolder.getUserId(),
                 model == null ? null : model.getId(),
                 model == null ? null : model.getFlowableDefinitionId(),
-                model == null ? DemoDefaults.PROCESS_KEY : model.getModelKey(),
+                model == null ? WorkflowEnablementDefaults.PROCESS_KEY : model.getModelKey(),
                 form == null ? null : form.getId(),
                 binding == null ? null : binding.getId(),
-                initialized ? "演示数据已就绪" : "演示数据未初始化",
-                new DemoStatusResponse.DemoStepStatus(
+                initialized ? "流程配置已就绪" : "流程配置未初始化",
+                new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         model != null && model.getStatus() == ProcessModelStatus.DEPLOYED && StringUtils.hasText(model.getFlowableDefinitionId()),
                         model == null ? "MISSING" : model.getStatus().name(),
                         model == null ? "未创建请假审批流程" : "请假审批流程已部署",
                         model == null ? null : model.getId(),
                         model == null ? 0 : 1
                 ),
-                new DemoStatusResponse.DemoStepStatus(
+                new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         form != null,
                         form == null ? "MISSING" : form.getStatus().name(),
                         form == null ? "未创建请假申请表" : "请假申请表可用",
                         form == null ? null : form.getId(),
                         form == null ? 0 : 1
                 ),
-                new DemoStatusResponse.DemoStepStatus(
+                new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         binding != null,
                         binding == null ? "MISSING" : "READY",
                         binding == null ? "审批任务未绑定表单" : "审批任务已绑定表单",
                         binding == null ? null : binding.getId(),
                         binding == null ? 0 : 1
                 ),
-                new DemoStatusResponse.DemoStepStatus(
+                new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         todoCount > 0,
                         todoCount > 0 ? "READY" : "EMPTY",
                         todoCount > 0 ? "当前用户有待办任务" : "暂无待办，请先启动请假流程",
                         null,
                         todoCount
                 ),
-                new DemoStatusResponse.DemoStepStatus(
+                new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         auditCount > 0,
                         auditCount > 0 ? "READY" : "EMPTY",
                         auditCount > 0 ? "已有审计记录" : "暂无审计记录",
                         null,
                         auditCount
                 ),
-                new DemoStatusResponse.DemoStepStatus(
+                new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         true,
                         "READY",
                         "HTTP 连接器流程可在 HTTP 连接器页运行",
-                        "httpConnectorDemo",
+                        "httpHealthCheck",
                         0
                 ),
                 defaultStartVariables()
@@ -133,20 +133,20 @@ public class DemoService {
     }
 
     @Transactional
-    public DemoInitResponse init() {
+    public WorkflowEnablementInitResponse init() {
         String tenantId = TenantContextHolder.getTenantId();
         String userId = UserContextHolder.getUserId();
         List<String> actions = new ArrayList<>();
 
         KoProcessModel model = processModelRepository
-                .findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(tenantId, DemoDefaults.PROCESS_KEY)
-                .orElseGet(() -> createDemoModel(tenantId, userId, actions));
-        ensureDemoModel(model, userId, actions);
+                .findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(tenantId, WorkflowEnablementDefaults.PROCESS_KEY)
+                .orElseGet(() -> createProcessModel(tenantId, userId, actions));
+        ensureProcessModel(model, userId, actions);
 
         KoFormSchema form = formSchemaRepository
-                .findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(tenantId, DemoDefaults.FORM_KEY)
-                .orElseGet(() -> createDemoForm(tenantId, userId, actions));
-        ensureDemoForm(form, userId, actions);
+                .findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(tenantId, WorkflowEnablementDefaults.FORM_KEY)
+                .orElseGet(() -> createFormSchema(tenantId, userId, actions));
+        ensureFormSchema(form, userId, actions);
 
         KoFormBinding binding = findMatchingBinding(tenantId, model, form);
         if (binding == null) {
@@ -158,7 +158,7 @@ public class DemoService {
             }
         }
 
-        auditLogService.record("DEMO_INIT", "DEMO", "leave-approval", Map.of(
+        auditLogService.record("WORKFLOW_ENABLEMENT_INIT", "WORKFLOW_ENABLEMENT", "leave-approval", Map.of(
                 "processModelId", model.getId(),
                 "processDefinitionId", model.getFlowableDefinitionId() == null ? "" : model.getFlowableDefinitionId(),
                 "formSchemaId", form.getId(),
@@ -166,50 +166,50 @@ public class DemoService {
                 "actions", actions
         ));
 
-        return new DemoInitResponse(
+        return new WorkflowEnablementInitResponse(
                 true,
                 model.getId(),
                 model.getFlowableDefinitionId(),
                 model.getModelKey(),
                 form.getId(),
                 binding.getId(),
-                actions.isEmpty() ? List.of("演示数据已存在，未重复创建") : actions
+                actions.isEmpty() ? List.of("流程配置已存在，未重复创建") : actions
         );
     }
 
-    private KoProcessModel createDemoModel(String tenantId, String userId, List<String> actions) {
+    private KoProcessModel createProcessModel(String tenantId, String userId, List<String> actions) {
         KoProcessModel model = new KoProcessModel();
         model.setTenantId(tenantId);
         model.setCreatedBy(userId);
         model.setUpdatedBy(userId);
-        model.setModelKey(DemoDefaults.PROCESS_KEY);
-        model.setModelName(DemoDefaults.PROCESS_NAME);
+        model.setModelKey(WorkflowEnablementDefaults.PROCESS_KEY);
+        model.setModelName(WorkflowEnablementDefaults.PROCESS_NAME);
         model.setModelType("BPMN");
         model.setVersion(1);
         model.setStatus(ProcessModelStatus.DRAFT);
-        model.setDescription("内置演示流程：提交请假申请后由 admin 审批。");
-        model.setBpmnXml(DemoDefaults.leaveApprovalBpmn());
+        model.setDescription("内置流程：提交请假申请后由 admin 审批。");
+        model.setBpmnXml(WorkflowEnablementDefaults.leaveApprovalBpmn());
         actions.add("创建请假审批流程模型");
         return processModelRepository.save(model);
     }
 
-    private void ensureDemoModel(KoProcessModel model, String userId, List<String> actions) {
+    private void ensureProcessModel(KoProcessModel model, String userId, List<String> actions) {
         boolean changed = false;
         if (!StringUtils.hasText(model.getBpmnXml())) {
-            model.setBpmnXml(DemoDefaults.leaveApprovalBpmn());
+            model.setBpmnXml(WorkflowEnablementDefaults.leaveApprovalBpmn());
             changed = true;
         }
-        if (!DemoDefaults.PROCESS_NAME.equals(model.getModelName())) {
-            model.setModelName(DemoDefaults.PROCESS_NAME);
+        if (!WorkflowEnablementDefaults.PROCESS_NAME.equals(model.getModelName())) {
+            model.setModelName(WorkflowEnablementDefaults.PROCESS_NAME);
             changed = true;
         }
         if (model.getStatus() != ProcessModelStatus.DEPLOYED || !StringUtils.hasText(model.getFlowableDefinitionId())) {
             ProcessDeploymentDTO deployment = processFacade.deploy(new DeployProcessCommand(
                     model.getTenantId(),
                     userId,
-                    DemoDefaults.PROCESS_KEY,
-                    DemoDefaults.PROCESS_NAME,
-                    DemoDefaults.PROCESS_KEY + ".bpmn20.xml",
+                    WorkflowEnablementDefaults.PROCESS_KEY,
+                    WorkflowEnablementDefaults.PROCESS_NAME,
+                    WorkflowEnablementDefaults.PROCESS_KEY + ".bpmn20.xml",
                     model.getBpmnXml()
             ));
             model.setFlowableDeploymentId(deployment.deploymentId());
@@ -226,30 +226,30 @@ public class DemoService {
         }
     }
 
-    private KoFormSchema createDemoForm(String tenantId, String userId, List<String> actions) {
+    private KoFormSchema createFormSchema(String tenantId, String userId, List<String> actions) {
         KoFormSchema form = new KoFormSchema();
         form.setTenantId(tenantId);
         form.setCreatedBy(userId);
         form.setUpdatedBy(userId);
-        form.setFormKey(DemoDefaults.FORM_KEY);
-        form.setFormName(DemoDefaults.FORM_NAME);
+        form.setFormKey(WorkflowEnablementDefaults.FORM_KEY);
+        form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
         form.setVersion(1);
-        form.setSchemaJson(DemoDefaults.leaveFormSchema());
-        form.setUiSchemaJson(DemoDefaults.leaveFormUiSchema());
+        form.setSchemaJson(WorkflowEnablementDefaults.leaveFormSchema());
+        form.setUiSchemaJson(WorkflowEnablementDefaults.leaveFormUiSchema());
         form.setStatus(FormStatus.ACTIVE);
         actions.add("创建请假申请表");
         return formSchemaRepository.save(form);
     }
 
-    private void ensureDemoForm(KoFormSchema form, String userId, List<String> actions) {
+    private void ensureFormSchema(KoFormSchema form, String userId, List<String> actions) {
         boolean changed = false;
-        if (!DemoDefaults.FORM_NAME.equals(form.getFormName())) {
-            form.setFormName(DemoDefaults.FORM_NAME);
+        if (!WorkflowEnablementDefaults.FORM_NAME.equals(form.getFormName())) {
+            form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
             changed = true;
         }
         if (!StringUtils.hasText(form.getSchemaJson()) || !form.getSchemaJson().contains("请假原因")) {
-            form.setSchemaJson(DemoDefaults.leaveFormSchema());
-            form.setUiSchemaJson(DemoDefaults.leaveFormUiSchema());
+            form.setSchemaJson(WorkflowEnablementDefaults.leaveFormSchema());
+            form.setUiSchemaJson(WorkflowEnablementDefaults.leaveFormUiSchema());
             form.setVersion(Math.max(1, form.getVersion() + 1));
             actions.add("更新请假申请表");
             changed = true;
@@ -273,7 +273,7 @@ public class DemoService {
                     .findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                             tenantId,
                             model.getFlowableDefinitionId(),
-                            DemoDefaults.APPROVE_TASK_KEY
+                            WorkflowEnablementDefaults.APPROVE_TASK_KEY
                     )
                     .orElse(null);
             if (binding != null && form.getId().equals(binding.getFormSchemaId())) {
@@ -284,7 +284,7 @@ public class DemoService {
                 .findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                         tenantId,
                         model.getId(),
-                        DemoDefaults.APPROVE_TASK_KEY
+                        WorkflowEnablementDefaults.APPROVE_TASK_KEY
                 )
                 .filter(binding -> form.getId().equals(binding.getFormSchemaId()))
                 .orElse(null);
@@ -299,7 +299,7 @@ public class DemoService {
                     .findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                             tenantId,
                             model.getFlowableDefinitionId(),
-                            DemoDefaults.APPROVE_TASK_KEY
+                            WorkflowEnablementDefaults.APPROVE_TASK_KEY
                     )
                     .orElse(null);
             if (binding != null) {
@@ -310,7 +310,7 @@ public class DemoService {
                 .findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                         tenantId,
                         model.getId(),
-                        DemoDefaults.APPROVE_TASK_KEY
+                        WorkflowEnablementDefaults.APPROVE_TASK_KEY
                 )
                 .orElse(null);
     }
@@ -328,7 +328,7 @@ public class DemoService {
         binding.setUpdatedBy(userId);
         binding.setProcessModelId(model.getId());
         binding.setProcessDefinitionId(model.getFlowableDefinitionId());
-        binding.setTaskDefinitionKey(DemoDefaults.APPROVE_TASK_KEY);
+        binding.setTaskDefinitionKey(WorkflowEnablementDefaults.APPROVE_TASK_KEY);
         binding.setFormSchemaId(form.getId());
         binding.setFormSchemaVersion(form.getVersion());
         actions.add("绑定请假申请表到审批任务");
@@ -345,7 +345,7 @@ public class DemoService {
         binding.setUpdatedBy(userId);
         binding.setProcessModelId(model.getId());
         binding.setProcessDefinitionId(model.getFlowableDefinitionId());
-        binding.setTaskDefinitionKey(DemoDefaults.APPROVE_TASK_KEY);
+        binding.setTaskDefinitionKey(WorkflowEnablementDefaults.APPROVE_TASK_KEY);
         binding.setFormSchemaId(form.getId());
         binding.setFormSchemaVersion(form.getVersion());
         formBindingRepository.save(binding);
@@ -355,7 +355,7 @@ public class DemoService {
     public Map<String, Object> defaultStartVariables() {
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("applicant", "张三");
-        variables.put("approver", DemoDefaults.USER_ID);
+        variables.put("approver", WorkflowEnablementDefaults.USER_ID);
         variables.put("leaveType", "年假");
         variables.put("startDate", "2026-06-08");
         variables.put("endDate", "2026-06-09");

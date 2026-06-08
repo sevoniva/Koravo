@@ -1,8 +1,8 @@
-package io.koravo.api.demo;
+package io.koravo.api.workflow;
 
 import java.util.List;
 
-public record DemoInitResponse(
+public record WorkflowEnablementInitResponse(
         boolean initialized,
         String processModelId,
         String processDefinitionId,

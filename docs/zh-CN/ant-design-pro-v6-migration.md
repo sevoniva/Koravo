@@ -4,18 +4,18 @@
 
 ## 目标
 
-将 `koravo-ui` 从 Vue 3 + Vite + Ant Design Vue 替换为官方 Ant Design Pro V6 技术栈：
+将 `koravo-ui` 迁移为官方 Ant Design Pro V6 技术栈：
 
 - React 19
 - antd 6
 - Umi Max 4
 - `@ant-design/pro-components` 3
 - utoopack 构建
-- Tailwind CSS v4 + `antd-style`
+- `antd-style`
 - React Query
 - Biome
 
-迁移后的页面必须是 Koravo 业务系统，不保留 Ant Design Pro 模板演示页面、演示账号文案、示例说明或 AI 味介绍文案。
+迁移后的页面必须是 Koravo 业务系统，不保留 Ant Design Pro 模板页面、测试账号文案、样板说明或 AI 味介绍文案。
 
 ## 官方能力接入
 
@@ -42,7 +42,7 @@
 - 状态展示：antd `Tag`、`Badge`、`Alert`、`Result`
 - 操作反馈：antd `App.useApp()` 的 `message`、`modal`、`notification`
 - 图标：`@ant-design/icons`
-- 样式：Tailwind CSS 负责布局，`antd-style` 消费 token，CSS Modules 只用于页面局部样式
+- 样式：优先使用 Ant Design token 和 ProComponents 布局能力，`antd-style` 消费 token，CSS Modules 只用于页面局部样式
 
 写任何 antd/ProComponents 代码前，必须用官方 CLI 查询组件 API：
 
@@ -79,9 +79,9 @@ npm exec --package @ant-design/cli -- antd info <Component> --format json --lang
 ## 技术落点
 
 - `config/routes.ts` 负责菜单、分组、图标和面包屑。
-- `src/app.tsx` 保留官方 ProLayout runtime，定制当前用户、右侧动作、请求追踪入口和设置入口。
+- `src/app.tsx` 保留官方 ProLayout runtime，定制当前用户、右侧动作和请求追踪入口。
 - `src/requestErrorConfig.ts` 统一处理后端 `ApiResponse<T>`。
-- `src/services/koravo/` 放 Koravo 后端 API，不放模板 demo service。
+- `src/services/koravo/` 放 Koravo 后端 API，不放模板服务。
 - `src/types/koravo.ts` 放业务类型。
 - `src/utils/` 放格式化、脱敏、业务标签和复制辅助。
 - `src/pages/**/service.ts` 只放页面私有请求包装。
@@ -106,7 +106,7 @@ git diff --check
 
 ## 文案规则
 
-- 不使用“演示”“示例”“Demo”“AI 助手生成”等露怯文案。
+- 不使用模板痕迹、样板说明或 AI 助手生成等露怯文案。
 - 页面描述只保留业务必要信息，不写产品宣传句。
 - 按企业后台语气命名：总览、流程启用、流程模型、流程实例、我的任务、表单管理、集成连接、运维中心、审计日志、系统设置。
 - 技术 ID 默认短显示，完整值只通过复制入口提供。

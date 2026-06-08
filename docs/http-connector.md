@@ -20,7 +20,7 @@ Configure it with Flowable field extensions:
 - `timeoutMillis`: optional timeout, defaults to 5000
 - `outputVariable`: variable name for the connector response
 
-In the console designer, select a `bpmn:ServiceTask` to edit the delegate expression and the basic HTTP connector fields above. This covers the demo configuration path without requiring raw XML edits. The designer validates headers as a JSON object and requires `timeoutMillis` to be a positive integer before applying connector properties.
+In the console designer, select a `bpmn:ServiceTask` to edit the delegate expression and the basic HTTP connector fields above. This covers the workflow configuration path without requiring raw XML edits. The designer validates headers as a JSON object and requires `timeoutMillis` to be a positive integer before applying connector properties.
 
 The output variable contains:
 
@@ -100,11 +100,11 @@ Production deployments should replace this with environment-specific allowlists 
 
 Use:
 
-- `examples/bpmn/http-connector-demo.bpmn20.xml`
+- `examples/bpmn/http-health-check.bpmn20.xml`
 - `examples/http/koravo.http`
 
-The demo flow starts, executes the HTTP service task, stores the response in a process variable, then continues to a user task assigned to `${approver}`.
-After starting the demo with `X-Request-Id`, use the instance detail or trace APIs to confirm `healthResult` exists in process variables, then filter connector execution logs and connector audit events by that same request ID.
+The workflow starts, executes the HTTP service task, stores the response in a process variable, then continues to a user task assigned to `${approver}`.
+After starting the workflow with `X-Request-Id`, use the instance detail or trace APIs to confirm `healthResult` exists in process variables, then filter connector execution logs and connector audit events by that same request ID.
 
 ## Current Limits
 

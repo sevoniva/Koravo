@@ -22,7 +22,7 @@ import {
   startProcessInstance,
   type WorkflowEnablementStepStatus,
 } from '@/services/koravo/api';
-import { productCopy } from '@/utils/display';
+import { processDisplayName, productCopy } from '@/utils/display';
 
 interface StepRow {
   key: string;
@@ -157,6 +157,7 @@ const QuickStart: React.FC = () => {
             <ProDescriptions.Item
               label="流程"
               dataIndex="processDefinitionKey"
+              renderText={(value) => processDisplayName(value)}
             />
             <ProDescriptions.Item label="初始化">
               <KoravoStatusTag status={Boolean(data?.initialized)} />

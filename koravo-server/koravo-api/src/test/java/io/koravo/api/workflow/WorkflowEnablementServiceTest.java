@@ -1,5 +1,6 @@
-package io.koravo.api.demo;
+package io.koravo.api.workflow;
 
+import io.koravo.common.api.PageResult;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.Optional;
-import io.koravo.common.api.PageResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,14 +30,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class DemoServiceTest {
+class WorkflowEnablementServiceTest {
     private final ProcessFacade processFacade = mock(ProcessFacade.class);
     private final ProcessModelRepository processModelRepository = mock(ProcessModelRepository.class);
     private final FormSchemaRepository formSchemaRepository = mock(FormSchemaRepository.class);
     private final FormBindingRepository formBindingRepository = mock(FormBindingRepository.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
     private final AuditLogQueryService auditLogQueryService = mock(AuditLogQueryService.class);
-    private final DemoService service = new DemoService(
+    private final WorkflowEnablementService service = new WorkflowEnablementService(
             processFacade,
             processModelRepository,
             formSchemaRepository,
@@ -53,16 +53,16 @@ class DemoServiceTest {
     }
 
     @Test
-    void initCreatesDeploysAndBindsDemoData() {
+    void initCreatesDeploysAndBindsWorkflowAssets() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
         when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
-                DemoDefaults.PROCESS_KEY
+                WorkflowEnablementDefaults.PROCESS_KEY
         )).thenReturn(Optional.empty());
         when(formSchemaRepository.findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
-                DemoDefaults.FORM_KEY
+                WorkflowEnablementDefaults.FORM_KEY
         )).thenReturn(Optional.empty());
         when(processModelRepository.save(any(KoProcessModel.class))).thenAnswer(invocation -> {
             KoProcessModel model = invocation.getArgument(0);
@@ -84,13 +84,13 @@ class DemoServiceTest {
         when(processFacade.deploy(new DeployProcessCommand(
                 "default",
                 "admin",
-                DemoDefaults.PROCESS_KEY,
-                DemoDefaults.PROCESS_NAME,
-                DemoDefaults.PROCESS_KEY + ".bpmn20.xml",
-                DemoDefaults.leaveApprovalBpmn()
-        ))).thenReturn(new ProcessDeploymentDTO(null, "dep-1", "pd-1", DemoDefaults.PROCESS_KEY, 1));
+                WorkflowEnablementDefaults.PROCESS_KEY,
+                WorkflowEnablementDefaults.PROCESS_NAME,
+                WorkflowEnablementDefaults.PROCESS_KEY + ".bpmn20.xml",
+                WorkflowEnablementDefaults.leaveApprovalBpmn()
+        ))).thenReturn(new ProcessDeploymentDTO(null, "dep-1", "pd-1", WorkflowEnablementDefaults.PROCESS_KEY, 1));
 
-        DemoInitResponse response = service.init();
+        WorkflowEnablementInitResponse response = service.init();
 
         assertThat(response.initialized()).isTrue();
         assertThat(response.processModelId()).isEqualTo("model-1");
@@ -103,7 +103,7 @@ class DemoServiceTest {
                 "创建请假申请表",
                 "绑定请假申请表到审批任务"
         );
-        verify(auditLogService).record(eq("DEMO_INIT"), eq("DEMO"), eq("leave-approval"), any(Map.class));
+        verify(auditLogService).record(eq("WORKFLOW_ENABLEMENT_INIT"), eq("WORKFLOW_ENABLEMENT"), eq("leave-approval"), any(Map.class));
     }
 
     @Test
@@ -115,25 +115,25 @@ class DemoServiceTest {
         KoFormBinding oldBinding = binding("binding-1", "old-form", 1);
         when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
-                DemoDefaults.PROCESS_KEY
+                WorkflowEnablementDefaults.PROCESS_KEY
         )).thenReturn(Optional.of(model));
         when(formSchemaRepository.findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
-                DemoDefaults.FORM_KEY
+                WorkflowEnablementDefaults.FORM_KEY
         )).thenReturn(Optional.of(form));
         when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "pd-1",
-                DemoDefaults.APPROVE_TASK_KEY
+                WorkflowEnablementDefaults.APPROVE_TASK_KEY
         )).thenReturn(Optional.of(oldBinding));
         when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "model-1",
-                DemoDefaults.APPROVE_TASK_KEY
+                WorkflowEnablementDefaults.APPROVE_TASK_KEY
         )).thenReturn(Optional.empty());
         when(formBindingRepository.save(any(KoFormBinding.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        DemoInitResponse response = service.init();
+        WorkflowEnablementInitResponse response = service.init();
 
         assertThat(response.formBindingId()).isEqualTo("binding-1");
         assertThat(oldBinding.getFormSchemaId()).isEqualTo("form-1");
@@ -144,7 +144,7 @@ class DemoServiceTest {
     }
 
     @Test
-    void statusReturnsInitializedWhenDemoDataIsReady() {
+    void statusReturnsInitializedWhenWorkflowAssetsAreReady() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
         KoProcessModel model = deployedModel();
@@ -152,27 +152,27 @@ class DemoServiceTest {
         KoFormBinding binding = binding("binding-1", "form-1", 2);
         when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
-                DemoDefaults.PROCESS_KEY
+                WorkflowEnablementDefaults.PROCESS_KEY
         )).thenReturn(Optional.of(model));
         when(formSchemaRepository.findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
-                DemoDefaults.FORM_KEY
+                WorkflowEnablementDefaults.FORM_KEY
         )).thenReturn(Optional.of(form));
         when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "pd-1",
-                DemoDefaults.APPROVE_TASK_KEY
+                WorkflowEnablementDefaults.APPROVE_TASK_KEY
         )).thenReturn(Optional.of(binding));
         when(processFacade.queryMyTasks(any())).thenReturn(PageResult.of(java.util.List.of(), 0, 1, 1));
         when(auditLogQueryService.query(null, null, null, null, null, null, null, 1, 1))
                 .thenReturn(PageResult.of(java.util.List.of(), 3, 1, 1));
 
-        DemoStatusResponse response = service.status();
+        WorkflowEnablementStatusResponse response = service.status();
 
         assertThat(response.initialized()).isTrue();
         assertThat(response.tenantId()).isEqualTo("default");
         assertThat(response.userId()).isEqualTo("admin");
-        assertThat(response.message()).isEqualTo("演示数据已就绪");
+        assertThat(response.message()).isEqualTo("流程配置已就绪");
         assertThat(response.process().ready()).isTrue();
         assertThat(response.form().ready()).isTrue();
         assertThat(response.binding().ready()).isTrue();
@@ -185,14 +185,14 @@ class DemoServiceTest {
         KoProcessModel model = new KoProcessModel();
         model.setId("model-1");
         model.setTenantId("default");
-        model.setModelKey(DemoDefaults.PROCESS_KEY);
-        model.setModelName(DemoDefaults.PROCESS_NAME);
+        model.setModelKey(WorkflowEnablementDefaults.PROCESS_KEY);
+        model.setModelName(WorkflowEnablementDefaults.PROCESS_NAME);
         model.setModelType("BPMN");
         model.setVersion(1);
         model.setStatus(ProcessModelStatus.DEPLOYED);
         model.setFlowableDeploymentId("dep-1");
         model.setFlowableDefinitionId("pd-1");
-        model.setBpmnXml(DemoDefaults.leaveApprovalBpmn());
+        model.setBpmnXml(WorkflowEnablementDefaults.leaveApprovalBpmn());
         return model;
     }
 
@@ -200,11 +200,11 @@ class DemoServiceTest {
         KoFormSchema form = new KoFormSchema();
         form.setId("form-1");
         form.setTenantId("default");
-        form.setFormKey(DemoDefaults.FORM_KEY);
-        form.setFormName(DemoDefaults.FORM_NAME);
+        form.setFormKey(WorkflowEnablementDefaults.FORM_KEY);
+        form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
         form.setVersion(2);
-        form.setSchemaJson(DemoDefaults.leaveFormSchema());
-        form.setUiSchemaJson(DemoDefaults.leaveFormUiSchema());
+        form.setSchemaJson(WorkflowEnablementDefaults.leaveFormSchema());
+        form.setUiSchemaJson(WorkflowEnablementDefaults.leaveFormUiSchema());
         form.setStatus(FormStatus.ACTIVE);
         return form;
     }
@@ -215,7 +215,7 @@ class DemoServiceTest {
         binding.setTenantId("default");
         binding.setProcessModelId("model-1");
         binding.setProcessDefinitionId("pd-1");
-        binding.setTaskDefinitionKey(DemoDefaults.APPROVE_TASK_KEY);
+        binding.setTaskDefinitionKey(WorkflowEnablementDefaults.APPROVE_TASK_KEY);
         binding.setFormSchemaId(formSchemaId);
         binding.setFormSchemaVersion(version);
         return binding;

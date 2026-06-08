@@ -4,7 +4,7 @@ This checklist maps the v0.2/v0.3 consolidation target to concrete Koravo verifi
 
 ## Build Gates
 
-Run these before cutting a demo branch or pull request:
+Run these before cutting a feature branch or pull request:
 
 ```bash
 cd koravo-ui
@@ -28,9 +28,9 @@ cd koravo-server
 mvn -Pintegration-test -pl koravo-engine -am test
 ```
 
-## Console Demo
+## Console Workflow Check
 
-The console demo path is:
+The console workflow check is:
 
 1. Start dependencies with `docker compose up -d postgres redis minio`.
 2. Start `koravo-bootstrap`.
@@ -43,11 +43,11 @@ The console demo path is:
 9. Inspect `Process Instance` / `Ops` trace, current and completed activities, variables, task detail, form snapshots, and audit logs.
 10. Use `Data Sources` to create, update, test, and inspect datasource test logs.
 
-## HTTP Connector Demo
+## HTTP Connector Workflow Check
 
-Use `examples/bpmn/http-connector-demo.bpmn20.xml` and `examples/http/koravo.http`:
+Use `examples/bpmn/http-health-check.bpmn20.xml` and `examples/http/koravo.http`:
 
-1. Deploy `httpConnectorDemo`.
+1. Deploy `httpHealthCheck`.
 2. Start it with `X-Request-Id`.
 3. Confirm the HTTP service task writes `healthResult`.
 4. Complete the assigned review task.
@@ -66,4 +66,4 @@ Use `examples/bpmn/http-connector-demo.bpmn20.xml` and `examples/http/koravo.htt
 ## Current Known Limits
 
 - Fine-grained production RBAC, external secret backends, connector OAuth/mTLS/retry policies, dead-letter job operations, and process migration APIs remain roadmap items.
-- The default frontend bundle is large because Ant Design Vue and bpmn-js are both used by the console.
+- The default frontend bundle is large because Ant Design Pro, ProComponents, antd, and bpmn-js are all used by the console.

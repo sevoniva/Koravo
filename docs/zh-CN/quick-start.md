@@ -14,11 +14,11 @@ docker compose up -d postgres redis minio
 
 后端启动后访问 `http://localhost:8080/swagger-ui.html` 可查看接口。
 
-前端启动后打开 `http://localhost:5173`。
+前端启动后打开 `http://localhost:8000`。
 
-## 3. 初始化演示数据
+## 3. 初始化流程配置
 
-进入「快速开始」，点击「初始化演示数据」。
+进入「快速开始」，点击「初始化配置」。
 
 初始化会创建：
 

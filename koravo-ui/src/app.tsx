@@ -4,7 +4,6 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
-import { SettingDrawer } from '@ant-design/pro-components';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
 import { Button, Tooltip } from 'antd';
@@ -32,7 +31,6 @@ export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
   currentUser?: KoravoCurrentUser;
   session: SessionContext;
-  settingDrawerOpen?: boolean;
 }> {
   const session = getSessionContext();
   return {
@@ -44,14 +42,10 @@ export async function getInitialState(): Promise<{
     },
     session,
     settings: defaultSettings as Partial<LayoutSettings>,
-    settingDrawerOpen: false,
   };
 }
 
-export const layout: RunTimeLayoutConfig = ({
-  initialState,
-  setInitialState,
-}) => {
+export const layout: RunTimeLayoutConfig = ({ initialState }) => {
   const session = initialState?.session ?? getSessionContext();
 
   return {
@@ -88,31 +82,6 @@ export const layout: RunTimeLayoutConfig = ({
     footerRender: () => <Footer />,
     ErrorBoundary,
     menuHeaderRender: undefined,
-    childrenRender: (children) => (
-      <>
-        {children}
-        <SettingDrawer
-          disableUrlParams
-          enableDarkTheme={false}
-          collapse={initialState?.settingDrawerOpen}
-          onCollapseChange={(open) => {
-            setInitialState((s) => ({
-              ...s,
-              session: s?.session ?? session,
-              settingDrawerOpen: open,
-            }));
-          }}
-          settings={initialState?.settings}
-          onSettingChange={(settings) => {
-            setInitialState((s) => ({
-              ...s,
-              session: s?.session ?? session,
-              settings,
-            }));
-          }}
-        />
-      </>
-    ),
     ...initialState?.settings,
   };
 };

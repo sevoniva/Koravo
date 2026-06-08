@@ -46,8 +46,8 @@ const SystemSettings: React.FC = () => {
       {
         key: 'initialization',
         name: '初始化接口',
-        status: data?.demoMode?.enabled ? 'READY' : 'DISABLED',
-        message: productCopy(data?.demoMode?.message),
+        status: data?.workflowEnablement?.enabled ? 'READY' : 'DISABLED',
+        message: productCopy(data?.workflowEnablement?.message),
       },
       {
         key: 'url-policy',

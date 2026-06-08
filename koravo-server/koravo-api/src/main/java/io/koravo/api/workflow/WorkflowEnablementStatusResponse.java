@@ -1,8 +1,8 @@
-package io.koravo.api.demo;
+package io.koravo.api.workflow;
 
 import java.util.Map;
 
-public record DemoStatusResponse(
+public record WorkflowEnablementStatusResponse(
         boolean initialized,
         String tenantId,
         String userId,
@@ -12,15 +12,15 @@ public record DemoStatusResponse(
         String formSchemaId,
         String formBindingId,
         String message,
-        DemoStepStatus process,
-        DemoStepStatus form,
-        DemoStepStatus binding,
-        DemoStepStatus todo,
-        DemoStepStatus audit,
-        DemoStepStatus connector,
+        WorkflowEnablementStepStatus process,
+        WorkflowEnablementStepStatus form,
+        WorkflowEnablementStepStatus binding,
+        WorkflowEnablementStepStatus todo,
+        WorkflowEnablementStepStatus audit,
+        WorkflowEnablementStepStatus connector,
         Map<String, Object> defaultStartVariables
 ) {
-    public record DemoStepStatus(
+    public record WorkflowEnablementStepStatus(
             boolean ready,
             String status,
             String message,

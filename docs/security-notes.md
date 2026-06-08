@@ -1,6 +1,6 @@
 # Security Notes
 
-Koravo is currently optimized for local development and demonstration. The codebase already enforces several platform boundaries, but production deployments must harden authentication, authorization, network policy, and secret management.
+Koravo is currently optimized for local development. The codebase already enforces several platform boundaries, but production deployments must harden authentication, authorization, network policy, and secret management.
 
 ## Current Boundaries
 

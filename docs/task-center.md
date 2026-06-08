@@ -26,7 +26,7 @@ GET /api/v1/tasks/started?page=1&pageSize=20
 
 The response contains process instances started by the current user. The console shows these under the Started tab and links the user to Ops for tracing and operational inspection.
 
-The `/process-instances` console page loads deployed process models from `GET /api/v1/process-models?status=DEPLOYED`. Selecting a model fills the process definition key for start, while the key field remains editable for direct API demos.
+The `/process-instances` console page loads deployed process models from `GET /api/v1/process-models?status=DEPLOYED`. Selecting a model fills the process definition key for start, while the key field remains editable for direct API calls.
 
 ## Task Detail
 
@@ -67,7 +67,7 @@ Body:
     "approved": true
   },
   "formData": {
-    "reason": "approved from Koravo demo"
+    "reason": "approved from Koravo workflow"
   },
   "formSchemaId": "form-1",
   "comment": "approved"

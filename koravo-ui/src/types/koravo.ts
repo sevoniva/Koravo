@@ -22,7 +22,7 @@ export interface SystemHealth {
   tenantId: string
   userId: string
   dependencies: SystemHealthItem[]
-  demoMode: {
+  workflowEnablement: {
     enabled: boolean
     message: string
   }

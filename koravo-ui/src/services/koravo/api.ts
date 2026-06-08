@@ -304,11 +304,11 @@ export function getDashboardSummary() {
 }
 
 export function getWorkflowEnablementStatus() {
-  return apiData<WorkflowEnablementStatus>(http.get('/demo/status'))
+  return apiData<WorkflowEnablementStatus>(http.get('/workflow-enablement/status'))
 }
 
 export function initializeWorkflowAssets() {
-  return apiData<WorkflowEnablementInitResult>(http.post('/demo/init'))
+  return apiData<WorkflowEnablementInitResult>(http.post('/workflow-enablement/init'))
 }
 
 export function deployProcessModel(modelName: string, file: File) {

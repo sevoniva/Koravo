@@ -17,9 +17,14 @@ Koravo v0.1 uses:
 - MinIO
 - Liquibase
 - Spring Data JPA
-- Vue 3.5
-- Vite 6
-- Ant Design Vue
+- React 19
+- Umi Max 4
+- antd 6
+- Ant Design Pro V6 and ProComponents
+- React Query
+- Biome
+- utoopack
+- antd-style
 - bpmn-js
 
 ## Compatibility Notes
@@ -39,4 +44,4 @@ PostgreSQL is the first database because it is stable, open-source, and works we
 
 ## Frontend
 
-Vue 3, TypeScript, Vite, Pinia, Vue Router, Axios, and Ant Design Vue provide a practical open-source console stack. bpmn-js is used by the process designer and process trace viewer, so the console can edit BPMN drafts and inspect runtime or historic process paths without exposing Flowable native services to controllers.
+React 19, TypeScript, Umi Max 4, antd 6, Ant Design Pro V6, ProComponents, React Query, Biome, utoopack, and antd-style provide the console stack. bpmn-js is used by the process designer and process trace viewer, so the console can edit BPMN drafts and inspect runtime or historic process paths without exposing Flowable native services to controllers.

@@ -32,7 +32,7 @@ Configure the delegate with Flowable field extensions:
 - `timeoutMillis`: optional timeout, defaults to 5000.
 - `outputVariable`: process variable name for `{ statusCode, headers, body }`.
 
-See `examples/bpmn/http-connector-demo.bpmn20.xml`.
+See `examples/bpmn/http-health-check.bpmn20.xml`.
 
 ## Security Boundary
 
@@ -48,4 +48,4 @@ Every connector delegate execution writes a row to `ko_connector_execution_log` 
 
 ## JDBC Connector
 
-The JDBC connector is a placeholder in v0.1. Datasource configuration and connection testing are implemented in `koravo-datahub`; arbitrary SQL execution is deliberately not exposed.
+The JDBC connector remains a planned extension boundary in v0.1. Datasource configuration and connection testing are implemented in `koravo-datahub`; arbitrary SQL execution is deliberately not exposed.
