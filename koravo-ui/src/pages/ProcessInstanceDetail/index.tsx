@@ -16,9 +16,11 @@ import {
   activateProcessInstance,
   getOpsInstance,
   getProcessTrace,
+  listFormSnapshots,
   suspendProcessInstance,
   terminateProcessInstance,
   type AuditLogItem,
+  type FormSnapshotItem,
   type ProcessTraceNode,
   type TaskItem,
 } from '@/services/koravo/api';
@@ -28,13 +30,23 @@ import {
   processDefinitionLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
-import { formatDateTime } from '@/utils/format';
+import { formatDateTime, parseJsonSafe } from '@/utils/format';
 
 type StepStatus = NonNullable<NonNullable<StepsProps['items']>[number]['status']>;
 
 interface PurchaseStep {
   key: string;
   title: string;
+}
+
+interface PurchaseApprovalRecord {
+  key: string;
+  taskDefinitionKey: string;
+  taskName: string;
+  approver?: string;
+  approved?: boolean;
+  opinion?: string;
+  createdAt?: string;
 }
 
 const purchaseApprovalSteps: PurchaseStep[] = [
@@ -110,6 +122,29 @@ function purchaseApprovalNodeCount(currentTasks: TaskItem[]) {
   return currentTasks.filter((task) =>
     ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
   ).length;
+}
+
+function purchaseApprovalSnapshotRecords(
+  snapshots: FormSnapshotItem[] = [],
+): PurchaseApprovalRecord[] {
+  return snapshots.flatMap((snapshot) => {
+    const data = parseJsonSafe(snapshot.dataJson, {}) as Record<string, unknown>;
+    const taskDefinitionKey = String(data.taskDefinitionKey || '');
+    if (!['managerApprovalTask', 'financeApprovalTask'].includes(taskDefinitionKey)) {
+      return [];
+    }
+    return [
+      {
+        key: snapshot.id,
+        taskDefinitionKey,
+        taskName: String(data.taskName || taskDefinitionLabel(taskDefinitionKey)),
+        approver: typeof data.approver === 'string' ? data.approver : undefined,
+        approved: typeof data.approved === 'boolean' ? data.approved : undefined,
+        opinion: typeof data.opinion === 'string' ? data.opinion : undefined,
+        createdAt: snapshot.createdAt,
+      },
+    ];
+  });
 }
 
 function instanceActionDisabled(status: string | undefined, action: 'suspend' | 'activate' | 'terminate') {
@@ -193,6 +228,36 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
   },
 ];
 
+const purchaseApprovalColumns: ProColumns<PurchaseApprovalRecord>[] = [
+  {
+    title: '审批节点',
+    dataIndex: 'taskDefinitionKey',
+    width: 150,
+    renderText: (value) => taskDefinitionLabel(String(value || '')),
+  },
+  { title: '处理人', dataIndex: 'approver', width: 120 },
+  {
+    title: '结论',
+    dataIndex: 'approved',
+    width: 100,
+    render: (_, record) =>
+      record.approved === undefined ? (
+        '-'
+      ) : (
+        <Typography.Text type={record.approved ? 'success' : 'danger'}>
+          {record.approved ? '同意' : '不同意'}
+        </Typography.Text>
+      ),
+  },
+  { title: '意见', dataIndex: 'opinion' },
+  {
+    title: '处理时间',
+    dataIndex: 'createdAt',
+    width: 170,
+    renderText: formatDateTime,
+  },
+];
+
 const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
   const instanceId = params.instanceId || '';
@@ -212,10 +277,16 @@ const ProcessInstanceDetail: React.FC = () => {
     queryFn: () => getProcessTrace(instanceId),
     enabled: Boolean(instanceId),
   });
+  const { data: formSnapshots = [] } = useQuery({
+    queryKey: ['process-instance-form-snapshots', instanceId],
+    queryFn: () => listFormSnapshots({ processInstanceId: instanceId }),
+    enabled: Boolean(instanceId),
+  });
   const currentTasks = instance?.currentTasks || [];
   const timeline = trace?.timeline || [];
   const isPurchaseApproval = isPurchaseInstance(instance?.processDefinitionId);
   const parallelTaskCount = purchaseApprovalNodeCount(currentTasks);
+  const purchaseApprovalRecords = purchaseApprovalSnapshotRecords(formSnapshots);
 
   return (
     <PageContainer
@@ -337,6 +408,26 @@ const ProcessInstanceDetail: React.FC = () => {
                 </Typography.Text>
               </Flex>
             </Flex>
+          </ProCard>
+        ) : null}
+        {isPurchaseApproval ? (
+          <ProCard
+            title={
+              <Flex align="center" gap={8}>
+                <span>审批意见</span>
+                <Badge count={purchaseApprovalRecords.length} showZero />
+              </Flex>
+            }
+          >
+            <ProTable<PurchaseApprovalRecord>
+              rowKey="key"
+              columns={purchaseApprovalColumns}
+              dataSource={purchaseApprovalRecords}
+              search={false}
+              pagination={false}
+              options={false}
+              scroll={{ x: 900 }}
+            />
           </ProCard>
         ) : null}
         <ProCard

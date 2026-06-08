@@ -440,6 +440,10 @@ export function getFormSchema(id: string) {
   return apiData<FormSchemaItem>(http.get(`/forms/schemas/${id}`))
 }
 
+export function listFormSnapshots(params: { processInstanceId: string }) {
+  return apiData<FormSnapshotItem[]>(http.get('/forms/snapshots', { params }))
+}
+
 export function listFormBindings(params?: { processModelId?: string; processDefinitionId?: string }) {
   return apiData<FormBindingItem[]>(http.get('/form-bindings', { params }))
 }
