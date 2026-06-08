@@ -30,11 +30,21 @@ describe('ProcessDesigner BPMN XML helpers', () => {
     expect(xml).not.toContain('id="123"');
   });
 
-  it('uses existing XML when present and falls back to a generated diagram when empty', () => {
+  it('uses existing renderable XML when present and falls back to a generated diagram when empty', () => {
+    const renderableXml = createDefaultBpmnXml('contractFlow', 'Contract flow');
+
+    expect(resolveDesignerXml(renderableXml, 'contractFlow', 'Contract flow')).toBe(
+      renderableXml,
+    );
+    expect(resolveDesignerXml('', 'contractFlow', 'Contract flow')).toContain(
+      'id="contractFlow"',
+    );
+  });
+
+  it('falls back to a generated diagram when XML has no renderable diagram', () => {
     expect(
       resolveDesignerXml('<definitions />', 'contractFlow', 'Contract flow'),
-    ).toBe('<definitions />');
-    expect(resolveDesignerXml('', 'contractFlow', 'Contract flow')).toContain(
+    ).toContain(
       'id="contractFlow"',
     );
   });

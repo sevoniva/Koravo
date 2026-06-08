@@ -70,6 +70,13 @@ function isBpmnDefinitionsXml(value: string) {
   return /<([a-zA-Z_][\w.-]*:)?definitions(\s|>)/.test(value);
 }
 
+function hasRenderableBpmnDiagram(value: string) {
+  return (
+    /<([a-zA-Z_][\w.-]*:)?process(\s|>)/.test(value) &&
+    /<([a-zA-Z_][\w.-]*:)?BPMNDiagram(\s|>)/.test(value)
+  );
+}
+
 function ensureFlowableNamespace(xml: string) {
   if (xml.includes('xmlns:flowable=')) {
     return xml;
@@ -112,7 +119,7 @@ export function resolveDesignerXml(
   modelName?: string,
 ) {
   const trimmed = bpmnXml?.trim();
-  if (trimmed && isBpmnDefinitionsXml(trimmed)) {
+  if (trimmed && isBpmnDefinitionsXml(trimmed) && hasRenderableBpmnDiagram(trimmed)) {
     return upgradeBpmnXml(trimmed);
   }
   return createDefaultBpmnXml(modelKey, modelName);
