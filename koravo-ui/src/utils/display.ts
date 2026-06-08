@@ -36,6 +36,33 @@ const AUDIT_RESOURCE_LABELS: Record<string, string> = {
   CONNECTOR_EXECUTION: '连接器执行',
 };
 
+const PROCESS_STATUS_LABELS: Record<string, string> = {
+  DRAFT: '草稿',
+  DEPLOYED: '已部署',
+  DISABLED: '已停用',
+  ARCHIVED: '已归档',
+};
+
+const DATASOURCE_TYPE_LABELS: Record<string, string> = {
+  POSTGRESQL: 'PostgreSQL',
+  MYSQL: 'MySQL',
+  H2: 'H2',
+};
+
+const RESOURCE_TYPE_LABELS: Record<string, string> = {
+  ...AUDIT_RESOURCE_LABELS,
+  DATASOURCE_TEST_LOG: '数据源测试',
+  FAILED_JOB: '失败任务',
+  DEAD_LETTER_JOB: '死信任务',
+};
+
+const CONNECTOR_TYPE_LABELS: Record<string, string> = {
+  http: 'HTTP',
+  jdbc: 'JDBC',
+  HTTP: 'HTTP',
+  JDBC: 'JDBC',
+};
+
 export function processDisplayName(modelKey?: string, fallback?: string) {
   const mapping: Record<string, string> = {
     leaveApproval: '请假审批',
@@ -99,6 +126,22 @@ export function auditActionLabel(value?: string | null) {
 
 export function auditResourceLabel(value?: string | null) {
   return auditCodeLabel(value, AUDIT_RESOURCE_LABELS);
+}
+
+export function processStatusLabel(value?: string | null) {
+  return auditCodeLabel(value, PROCESS_STATUS_LABELS);
+}
+
+export function dataSourceTypeLabel(value?: string | null) {
+  return auditCodeLabel(value, DATASOURCE_TYPE_LABELS);
+}
+
+export function resourceTypeLabel(value?: string | null) {
+  return auditCodeLabel(value, RESOURCE_TYPE_LABELS);
+}
+
+export function connectorTypeLabel(value?: string | null) {
+  return auditCodeLabel(value, CONNECTOR_TYPE_LABELS);
 }
 
 export function shortTraceLabel(value?: string | number | null) {
