@@ -2,25 +2,104 @@
   "name": "koravo-ui",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
+  "description": "Koravo workflow operations console",
+  "repository": "https://github.com/sevoniva/Koravo.git",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "analyze": "cross-env ANALYZE=1 max build",
+    "build": "max build",
+    "deploy": "cross-env CI=true max build",
+    "dev": "cross-env UMI_ENV=dev MOCK=none max dev",
+    "i18n-remove": "node scripts/i18n-remove.js",
+    "lint": "npm run biome:lint && npm run tsc",
+    "lint-staged": "lint-staged",
+    "biome:lint": "biome lint",
+    "biome": "biome check --write",
+    "prepare": "npx husky && max setup",
+    "preview": "max preview --port 8000",
+    "preview:build": "max build && max preview --port 8000",
+    "start": "cross-env UMI_ENV=dev max dev",
+    "start:no-mock": "cross-env MOCK=none max dev",
+    "start:pre": "cross-env UMI_ENV=pre MOCK=none max dev",
+    "start:test": "cross-env UMI_ENV=test MOCK=none max dev",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "doctor": "react-doctor .",
+    "tsc": "tsc --noEmit"
   },
+  "browserslist": [
+    "defaults"
+  ],
   "dependencies": {
-    "@ant-design/icons-vue": "^7.0.1",
-    "ant-design-vue": "^4.2.6",
-    "axios": "^1.7.9",
+    "@ant-design/icons": "^6.2.3",
+    "@ant-design/pro-components": "^3.1.12-0",
+    "@rc-component/util": "^1.11.0",
+    "@tanstack/react-query": "^5.101.0",
+    "antd": "^6.4.3",
+    "antd-style": "^4.1.0",
     "bpmn-js": "^17.11.1",
-    "pinia": "^2.3.1",
-    "vue": "^3.5.13",
-    "vue-router": "^4.5.0"
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.1",
-    "typescript": "^5.7.3",
-    "vite": "^6.0.7",
-    "vue-tsc": "^2.2.0"
+    "@ant-design/cli": "^6.4.3",
+    "@biomejs/biome": "^2.4.16",
+    "@commitlint/cli": "^21.0.0",
+    "@commitlint/config-conventional": "^21.0.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-helmet": "^6.1.11",
+    "@umijs/lint": "^4.6.51",
+    "@umijs/max": "^4.6.57",
+    "@vitest/coverage-v8": "4.1.8",
+    "@vitest/ui": "4.1.8",
+    "cross-env": "^10.1.0",
+    "happy-dom": "^20.10.1",
+    "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.2",
+    "react-doctor": "^0.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3",
+    "vitest": "4.1.8"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "create-umi": {
+    "ignoreScript": [
+      "docker*",
+      "functions*",
+      "site",
+      "generateMock"
+    ],
+    "ignoreDependencies": [
+      "netlify*",
+      "serverless"
+    ],
+    "ignore": [
+      ".dockerignore",
+      ".git",
+      ".github",
+      ".gitpod.yml",
+      "CODE_OF_CONDUCT.md",
+      "Dockerfile",
+      "Dockerfile.*",
+      "lambda",
+      "LICENSE",
+      "netlify.toml",
+      "README.*.md",
+      "azure-pipelines.yml",
+      "docker",
+      "CNAME",
+      "create-umi"
+    ]
   }
 }
