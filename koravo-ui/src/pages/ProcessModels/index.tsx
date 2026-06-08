@@ -9,18 +9,20 @@ import {
   PageContainer,
   ProFormText,
   ProFormTextArea,
+  ProFormUploadButton,
   ProTable,
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, Button, Empty, Modal, Space } from 'antd';
-import React, { useRef } from 'react';
+import { Alert, App, Button, Empty, Modal, Space, type UploadFile } from 'antd';
+import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   archiveProcessModel,
   createProcessModel,
+  deployProcessModel,
   deployProcessModelDraft,
   disableProcessModel,
   exportProcessModel,
@@ -43,6 +45,11 @@ interface ProcessModelForm {
   description?: string;
 }
 
+interface ImportProcessModelForm {
+  modelName: string;
+  file: UploadFile[];
+}
+
 function downloadModelFile(record: ProcessModelItem, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -56,6 +63,31 @@ const ProcessModels: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
   const [modal, contextHolder] = Modal.useModal();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
+  const saveProcessModel = async (values: ProcessModelForm) => {
+    const model = await createProcessModel(values);
+    message.success('已创建');
+    setCreateOpen(false);
+    actionRef.current?.reload();
+    history.push(`/process-designer?modelId=${model.id}`);
+    return true;
+  };
+
+  const importModel = async (values: ImportProcessModelForm) => {
+    const file = values.file?.[0]?.originFileObj;
+    if (!file) {
+      message.error('请选择 BPMN 文件');
+      return false;
+    }
+    const deployment = await deployProcessModel(values.modelName, file);
+    message.success('已导入并部署');
+    setImportOpen(false);
+    actionRef.current?.reload();
+    history.push(`/process-designer?modelId=${deployment.platformModelId}`);
+    return true;
+  };
 
   const columns: ProColumns<ProcessModelItem>[] = [
     {
@@ -271,13 +303,13 @@ const ProcessModels: React.FC = () => {
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => history.push('/process-designer')}
+                  onClick={() => setCreateOpen(true)}
                 >
-                  创建流程
+                  新建模型
                 </Button>
                 <Button
                   icon={<CloudUploadOutlined />}
-                  onClick={() => history.push('/process-designer')}
+                  onClick={() => setImportOpen(true)}
                 >
                   导入 BPMN
                 </Button>
@@ -293,50 +325,88 @@ const ProcessModels: React.FC = () => {
           >
             刷新
           </Button>,
-          <ModalForm<ProcessModelForm>
+          <Button
             key="create"
-            title="新建流程模型"
-            trigger={
-              <Button type="primary" icon={<PlusOutlined />}>
-                新建模型
-              </Button>
-            }
-            modalProps={{ destroyOnHidden: true }}
-            onFinish={async (values) => {
-              const model = await createProcessModel(values);
-              message.success('已创建');
-              actionRef.current?.reload();
-              history.push(`/process-designer?modelId=${model.id}`);
-              return true;
-            }}
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateOpen(true)}
           >
-            <ProFormText
-              name="modelKey"
-              label="模型标识"
-              rules={[
-                { required: true, message: '请输入模型标识' },
-                {
-                  pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
-                  message: '仅支持字母、数字、下划线，且不能以数字开头',
-                },
-              ]}
-            />
-            <ProFormText
-              name="modelName"
-              label="模型名称"
-              rules={[{ required: true, message: '请输入模型名称' }]}
-            />
-            <ProFormTextArea name="description" label="说明" />
-          </ModalForm>,
+            新建模型
+          </Button>,
           <Button
             key="import"
             icon={<CloudUploadOutlined />}
-            onClick={() => history.push('/process-designer')}
+            onClick={() => setImportOpen(true)}
           >
-            导入设计
+            导入 BPMN
           </Button>,
         ]}
       />
+
+      <ModalForm<ProcessModelForm>
+        title="新建流程模型"
+        open={createOpen}
+        modalProps={{
+          destroyOnHidden: true,
+          onCancel: () => setCreateOpen(false),
+        }}
+        onOpenChange={setCreateOpen}
+        onFinish={saveProcessModel}
+      >
+        <ProFormText
+          name="modelKey"
+          label="模型标识"
+          rules={[
+            { required: true, message: '请输入模型标识' },
+            {
+              pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
+              message: '仅支持字母、数字、下划线，且不能以数字开头',
+            },
+          ]}
+        />
+        <ProFormText
+          name="modelName"
+          label="模型名称"
+          rules={[{ required: true, message: '请输入模型名称' }]}
+        />
+        <ProFormTextArea name="description" label="说明" />
+      </ModalForm>
+
+      <ModalForm<ImportProcessModelForm>
+        title="导入 BPMN"
+        open={importOpen}
+        modalProps={{
+          destroyOnHidden: true,
+          onCancel: () => setImportOpen(false),
+        }}
+        onOpenChange={setImportOpen}
+        onFinish={importModel}
+      >
+        <Alert
+          showIcon
+          type="info"
+          title="导入后会立即部署为可运行流程"
+          description="请确认 BPMN 内的流程标识稳定，后续表单绑定和实例发起都会使用该标识。"
+          style={{ marginBottom: 16 }}
+        />
+        <ProFormText
+          name="modelName"
+          label="模型名称"
+          rules={[{ required: true, message: '请输入模型名称' }]}
+        />
+        <ProFormUploadButton
+          name="file"
+          label="BPMN 文件"
+          title="选择文件"
+          max={1}
+          fieldProps={{
+            accept: '.bpmn,.bpmn20.xml,.xml',
+            beforeUpload: () => false,
+            maxCount: 1,
+          }}
+          rules={[{ required: true, message: '请选择 BPMN 文件' }]}
+        />
+      </ModalForm>
     </PageContainer>
   );
 };
