@@ -2,6 +2,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import {
   ModalForm,
   PageContainer,
+  ProFormDependency,
   ProFormDigit,
   ProFormSelect,
   ProFormText,
@@ -9,7 +10,7 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Modal, message } from 'antd';
+import { Button, Form, Modal, Space, Typography, message } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import {
@@ -17,9 +18,12 @@ import {
   deleteFormBinding,
   listFormBindings,
   listFormSchemas,
+  listProcessModelTaskDefinitions,
   listProcessModels,
   updateFormBinding,
   type FormBindingItem,
+  type FormSchemaItem,
+  type ProcessModelItem,
 } from '@/services/koravo/api';
 import { processDisplayName, taskDefinitionLabel } from '@/utils/display';
 
@@ -31,17 +35,139 @@ interface BindingForm {
   formSchemaVersion: number;
 }
 
+type BindingTableItem = FormBindingItem & {
+  processModel?: ProcessModelItem;
+  formSchema?: FormSchemaItem;
+};
+
+function modelBindingLabel(record: BindingTableItem) {
+  if (!record.processModel) {
+    return record.processModelId ? (
+      <CopyableText value={record.processModelId} />
+    ) : (
+      '-'
+    );
+  }
+
+  return (
+    <Space orientation="vertical" size={0}>
+      <Typography.Text>
+        {processDisplayName(
+          record.processModel.modelKey,
+          record.processModel.modelName,
+        )}
+      </Typography.Text>
+      <CopyableText
+        value={record.processModelId}
+        displayValue={record.processModel.modelKey}
+      />
+    </Space>
+  );
+}
+
+function formBindingLabel(record: BindingTableItem) {
+  if (!record.formSchema) {
+    return <CopyableText value={record.formSchemaId} />;
+  }
+
+  return (
+    <Space orientation="vertical" size={0}>
+      <Typography.Text>{record.formSchema.formName}</Typography.Text>
+      <CopyableText
+        value={record.formSchemaId}
+        displayValue={`${record.formSchema.formKey} v${record.formSchema.version}`}
+      />
+    </Space>
+  );
+}
+
+const BindingFormItems: React.FC = () => {
+  const form = Form.useFormInstance();
+
+  return (
+    <>
+      <ProFormSelect
+        name="processModelId"
+        label="流程模型"
+        rules={[{ required: true, message: '请选择流程模型' }]}
+        fieldProps={{
+          showSearch: true,
+          optionFilterProp: 'label',
+          onChange: () => form.setFieldValue('taskDefinitionKey', undefined),
+        }}
+        request={async () =>
+          (await listProcessModels()).map((item) => ({
+            label: `${processDisplayName(item.modelKey, item.modelName)}（${item.modelKey}）`,
+            value: item.id,
+          }))
+        }
+      />
+      <ProFormText name="processDefinitionId" label="流程定义 ID" />
+      <ProFormDependency name={['processModelId']}>
+        {({ processModelId }) => (
+          <ProFormSelect
+            key={processModelId || 'task-definition'}
+            name="taskDefinitionKey"
+            label="任务节点"
+            disabled={!processModelId}
+            rules={[{ required: true, message: '请选择任务节点' }]}
+            params={{ processModelId }}
+            placeholder={
+              processModelId ? '请选择任务节点' : '先选择流程模型'
+            }
+            fieldProps={{
+              showSearch: true,
+              optionFilterProp: 'label',
+            }}
+            request={async () => {
+              if (!processModelId) return [];
+              return (await listProcessModelTaskDefinitions(processModelId)).map(
+                (task) => ({
+                  label: `${taskDefinitionLabel(task.taskDefinitionKey, task)}（${task.taskDefinitionKey}）`,
+                  value: task.taskDefinitionKey,
+                }),
+              );
+            }}
+          />
+        )}
+      </ProFormDependency>
+      <ProFormSelect
+        name="formSchemaId"
+        label="表单"
+        rules={[{ required: true, message: '请选择表单' }]}
+        fieldProps={{
+          showSearch: true,
+          optionFilterProp: 'label',
+        }}
+        request={async () =>
+          (await listFormSchemas()).map((item) => ({
+            label: `${item.formName}（${item.formKey} v${item.version}）`,
+            value: item.id,
+          }))
+        }
+      />
+      <ProFormDigit
+        name="formSchemaVersion"
+        label="表单版本"
+        min={1}
+        initialValue={1}
+        rules={[{ required: true, message: '请输入表单版本' }]}
+      />
+    </>
+  );
+};
+
 const FormBindings: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormBindingItem>();
   const [modal, contextHolder] = Modal.useModal();
 
-  const columns: ProColumns<FormBindingItem>[] = [
+  const columns: ProColumns<BindingTableItem>[] = [
     {
       title: '流程模型',
       dataIndex: 'processModelId',
       ellipsis: true,
-      render: (_, record) => <CopyableText value={record.processModelId} />,
+      render: (_, record) => modelBindingLabel(record),
     },
     {
       title: '流程定义',
@@ -59,7 +185,7 @@ const FormBindings: React.FC = () => {
       title: '表单编号',
       dataIndex: 'formSchemaId',
       ellipsis: true,
-      render: (_, record) => <CopyableText value={record.formSchemaId} />,
+      render: (_, record) => formBindingLabel(record),
     },
     {
       title: '表单版本',
@@ -100,57 +226,33 @@ const FormBindings: React.FC = () => {
     },
   ];
 
-  const formItems = (
-    <>
-      <ProFormSelect
-        name="processModelId"
-        label="流程模型"
-        request={async () =>
-          (await listProcessModels()).map((item) => ({
-            label: processDisplayName(item.modelKey, item.modelName),
-            value: item.id,
-          }))
-        }
-      />
-      <ProFormText name="processDefinitionId" label="流程定义 ID" />
-      <ProFormText
-        name="taskDefinitionKey"
-        label="任务节点"
-        rules={[{ required: true, message: '请输入任务节点' }]}
-      />
-      <ProFormSelect
-        name="formSchemaId"
-        label="表单"
-        rules={[{ required: true, message: '请选择表单' }]}
-        request={async () =>
-          (await listFormSchemas()).map((item) => ({
-            label: `${item.formName} v${item.version}`,
-            value: item.id,
-          }))
-        }
-      />
-      <ProFormDigit
-        name="formSchemaVersion"
-        label="表单版本"
-        min={1}
-        initialValue={1}
-        rules={[{ required: true, message: '请输入表单版本' }]}
-      />
-    </>
-  );
-
   return (
     <PageContainer title="表单绑定" content="将流程任务节点绑定到指定表单版本。">
       {contextHolder}
-      <ProTable<FormBindingItem>
+      <ProTable<BindingTableItem>
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
         scroll={{ x: 1000 }}
-        request={async () => ({
-          data: await listFormBindings(),
-          success: true,
-        })}
+        request={async () => {
+          const [bindings, models, schemas] = await Promise.all([
+            listFormBindings(),
+            listProcessModels(),
+            listFormSchemas(),
+          ]);
+          const modelMap = new Map(models.map((item) => [item.id, item]));
+          const schemaMap = new Map(schemas.map((item) => [item.id, item]));
+          return {
+            data: bindings.map((item) => ({
+              ...item,
+              processModel: item.processModelId
+                ? modelMap.get(item.processModelId)
+                : undefined,
+              formSchema: schemaMap.get(item.formSchemaId),
+            })),
+            success: true,
+          };
+        }}
         search={{ labelWidth: 'auto' }}
         toolBarRender={() => [
           <ModalForm<BindingForm>
@@ -169,7 +271,7 @@ const FormBindings: React.FC = () => {
               return true;
             }}
           >
-            {formItems}
+            <BindingFormItems />
           </ModalForm>,
         ]}
       />
@@ -195,7 +297,7 @@ const FormBindings: React.FC = () => {
           return true;
         }}
       >
-        {formItems}
+        <BindingFormItems />
       </ModalForm>
     </PageContainer>
   );
