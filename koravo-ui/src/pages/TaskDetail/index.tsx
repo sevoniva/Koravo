@@ -3,13 +3,14 @@ import {
   PageContainer,
   ProCard,
   ProDescriptions,
+  ProFormRadio,
   ProFormTextArea,
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Drawer, Flex, Typography, message } from 'antd';
+import { App, Button, Drawer, Flex, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -34,7 +35,14 @@ interface CompleteTaskForm {
   variables?: string;
   formData?: string;
   comment?: string;
+  approved?: boolean;
+  approvalComment?: string;
 }
+
+const PURCHASE_APPROVAL_TASKS = new Set([
+  'managerApprovalTask',
+  'financeApprovalTask',
+]);
 
 const commentColumns: ProColumns<TaskCommentItem>[] = [
   { title: '用户', dataIndex: 'userId', width: 140 },
@@ -61,6 +69,12 @@ const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     width: 90,
     renderText: (value) => `v${value || 1}`,
   },
+  {
+    title: '处理摘要',
+    dataIndex: 'dataJson',
+    ellipsis: true,
+    render: (_, record) => snapshotSummary(record),
+  },
   { title: '时间', dataIndex: 'createdAt', width: 170, renderText: formatDateTime },
 ];
 
@@ -86,10 +100,124 @@ function parseJsonField(value?: string): JsonRecord {
   }
 }
 
+function isPurchaseApprovalTask(task?: TaskItem) {
+  return PURCHASE_APPROVAL_TASKS.has(task?.taskDefinitionKey || '');
+}
+
+function approvalVariableKey(taskDefinitionKey: string, suffix: string) {
+  return `${taskDefinitionKey}${suffix}`;
+}
+
+function buildCompletePayload(
+  task: TaskItem,
+  formSchemaId: string | undefined,
+  values: CompleteTaskForm,
+) {
+  if (!isPurchaseApprovalTask(task)) {
+    return {
+      variables: parseJsonField(values.variables),
+      formData: parseJsonField(values.formData),
+      formSchemaId,
+      comment: values.comment,
+    };
+  }
+
+  const approved = values.approved !== false;
+  const opinion = values.approvalComment?.trim() || (approved ? '同意' : '不同意');
+  const taskLabel = taskDefinitionLabel(task.taskDefinitionKey);
+  const formData = {
+    taskDefinitionKey: task.taskDefinitionKey,
+    taskName: taskLabel,
+    businessKey: task.businessKey,
+    approver: task.assignee,
+    approved,
+    opinion,
+  };
+
+  return {
+    variables: {
+      [approvalVariableKey(task.taskDefinitionKey, 'Approved')]: approved,
+      [approvalVariableKey(task.taskDefinitionKey, 'Opinion')]: opinion,
+    },
+    formData,
+    formSchemaId,
+    comment: `${taskLabel}：${opinion}`,
+  };
+}
+
+function snapshotSummary(record: FormSnapshotItem) {
+  const data = parseJsonSafe<JsonRecord>(record.dataJson, {}) as JsonRecord;
+  const approved = data.approved;
+  const opinion = typeof data.opinion === 'string' ? data.opinion : '';
+  const taskName = typeof data.taskName === 'string' ? data.taskName : '';
+
+  if (approved === undefined && !opinion && !taskName) {
+    return '-';
+  }
+
+  return (
+    <Flex gap={8} align="center" wrap>
+      {taskName ? <Typography.Text>{taskName}</Typography.Text> : null}
+      {approved !== undefined ? (
+        <Tag color={approved ? 'success' : 'error'}>
+          {approved ? '同意' : '不同意'}
+        </Tag>
+      ) : null}
+      {opinion ? <Typography.Text type="secondary">{opinion}</Typography.Text> : null}
+    </Flex>
+  );
+}
+
+const CompleteTaskFields: React.FC<{ task?: TaskItem }> = ({ task }) => {
+  if (isPurchaseApprovalTask(task)) {
+    return (
+      <>
+        <ProFormRadio.Group
+          name="approved"
+          label="审批结论"
+          initialValue={true}
+          radioType="button"
+          options={[
+            { label: '同意', value: true },
+            { label: '不同意', value: false },
+          ]}
+          rules={[{ required: true, message: '请选择审批结论' }]}
+        />
+        <ProFormTextArea
+          name="approvalComment"
+          label="审批意见"
+          fieldProps={{ rows: 4 }}
+          placeholder="请填写处理意见"
+          rules={[{ required: true, message: '请输入审批意见' }]}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <ProFormTextArea
+        name="variables"
+        label="流程变量"
+        fieldProps={{ rows: 6 }}
+        placeholder='{"approved": true}'
+      />
+      <ProFormTextArea
+        name="formData"
+        label="表单数据"
+        fieldProps={{ rows: 6 }}
+        placeholder='{"comment": "同意"}'
+      />
+      <ProFormTextArea name="comment" label="处理意见" fieldProps={{ rows: 4 }} />
+    </>
+  );
+};
+
 const TaskDetail: React.FC = () => {
   const params = useParams();
   const taskId = params.taskId || '';
   const [snapshot, setSnapshot] = useState<FormSnapshotItem>();
+  const { message } = App.useApp();
   const {
     data,
     isLoading,
@@ -125,37 +253,23 @@ const TaskDetail: React.FC = () => {
             }
             modalProps={{ destroyOnHidden: true }}
             onFinish={async (values) => {
-              await completeTask(task.taskId, {
-                variables: parseJsonField(values.variables),
-                formData: parseJsonField(values.formData),
-                formSchemaId: data?.formSchema?.id,
-                comment: values.comment,
-              });
+              await completeTask(
+                task.taskId,
+                buildCompletePayload(task, data?.formSchema?.id, values),
+              );
               message.success('已完成');
               await refetch();
               return true;
             }}
           >
-            <ProFormTextArea
-              name="variables"
-              label="流程变量"
-              fieldProps={{ rows: 6 }}
-              placeholder='{"approved": true}'
-            />
-            <ProFormTextArea
-              name="formData"
-              label="表单数据"
-              fieldProps={{ rows: 6 }}
-              placeholder='{"comment": "同意"}'
-            />
-            <ProFormTextArea name="comment" label="处理意见" fieldProps={{ rows: 4 }} />
+            <CompleteTaskFields task={task} />
           </ModalForm>
         ),
       ].filter(Boolean)}
     >
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
         <ProDescriptions<TaskItem>
-          column={2}
+          column={{ xs: 1, sm: 1, md: 2 }}
           dataSource={task}
           columns={[
             { title: '任务编号', dataIndex: 'taskId', copyable: true },
@@ -178,7 +292,7 @@ const TaskDetail: React.FC = () => {
       <Flex vertical gap={16}>
         <ProCard title="表单">
           <ProDescriptions
-            column={2}
+            column={{ xs: 1, sm: 1, md: 2 }}
             dataSource={data?.formSchema}
             columns={[
               { title: '表单名称', dataIndex: 'formName' },

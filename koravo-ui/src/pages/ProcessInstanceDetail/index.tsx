@@ -183,7 +183,7 @@ const ProcessInstanceDetail: React.FC = () => {
       {contextHolder}
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
         <ProDescriptions
-          column={2}
+          column={{ xs: 1, sm: 1, md: 2 }}
           dataSource={instance}
           columns={[
             { title: '实例编号', dataIndex: 'instanceId', copyable: true },
@@ -214,7 +214,9 @@ const ProcessInstanceDetail: React.FC = () => {
         </ProCard>
         <ProCard title="执行轨迹">
           <ProTable<ProcessTraceNode>
-            rowKey="activityId"
+            rowKey={(record) =>
+              `${record.activityId}-${record.activityType}-${record.startTime || 'pending'}-${record.endTime || 'running'}-${record.status}`
+            }
             columns={traceColumns}
             dataSource={trace?.timeline || []}
             search={false}
