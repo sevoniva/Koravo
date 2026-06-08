@@ -15,10 +15,11 @@ import {
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Button, Drawer, Empty, Flex, Tag, Typography } from 'antd';
+import { Alert, App, Button, Drawer, Flex, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   completeTask,
   getTaskDetail,
@@ -32,7 +33,6 @@ import {
 import {
   auditActionLabel,
   auditResourceLabel,
-  businessFieldLabel,
   processDefinitionLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
@@ -43,12 +43,6 @@ interface CompleteTaskForm {
   approved?: boolean;
   approvalComment?: string;
   formValues?: JsonRecord;
-}
-
-interface SnapshotDetailRow {
-  key: string;
-  field: string;
-  value: React.ReactNode;
 }
 
 interface SchemaField {
@@ -179,40 +173,6 @@ function normalizeFormValues(values?: JsonRecord): JsonRecord {
     result[key] = value;
     return result;
   }, {});
-}
-
-function formatSnapshotField(field: string) {
-  return businessFieldLabel(field);
-}
-
-function formatSnapshotValue(value: unknown): React.ReactNode {
-  if (value === undefined || value === null || value === '') return '-';
-  if (typeof value === 'boolean') {
-    return value ? <Tag color="success">同意</Tag> : <Tag color="error">不同意</Tag>;
-  }
-  if (typeof value === 'number') return value;
-  if (Array.isArray(value)) {
-    if (!value.length) return '无';
-    return value.map((item) => String(item)).join('、');
-  }
-  return String(value);
-}
-
-function buildSnapshotRows(value: unknown, parentKey?: string): SnapshotDetailRow[] {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
-  return Object.entries(value as JsonRecord).flatMap(([key, item]) => {
-    const rowKey = parentKey ? `${parentKey}.${key}` : key;
-    if (item && typeof item === 'object' && !Array.isArray(item)) {
-      return buildSnapshotRows(item, rowKey);
-    }
-    return [
-      {
-        key: rowKey,
-        field: formatSnapshotField(key),
-        value: formatSnapshotValue(item),
-      },
-    ];
-  });
 }
 
 function buildCompletePayload(
@@ -433,9 +393,7 @@ const TaskDetail: React.FC = () => {
       task.status !== 'COMPLETED' &&
       (isPurchaseApprovalTask(task) || data?.formSchema),
   );
-  const snapshotRows = buildSnapshotRows(
-    maskSecret(parseJsonSafe(snapshot?.dataJson, {})),
-  );
+  const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
 
   return (
     <PageContainer
@@ -572,21 +530,7 @@ const TaskDetail: React.FC = () => {
         open={Boolean(snapshot)}
         onClose={() => setSnapshot(undefined)}
       >
-        {snapshotRows.length ? (
-          <ProTable<SnapshotDetailRow>
-            rowKey="key"
-            columns={[
-              { title: '字段', dataIndex: 'field', width: 180 },
-              { title: '内容', dataIndex: 'value' },
-            ]}
-            dataSource={snapshotRows}
-            search={false}
-            pagination={false}
-            options={false}
-          />
-        ) : (
-          <Empty description="暂无快照数据" />
-        )}
+        <StructuredDetailTable value={snapshotData} emptyText="暂无快照数据" />
       </Drawer>
     </PageContainer>
   );

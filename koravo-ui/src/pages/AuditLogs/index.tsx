@@ -5,9 +5,10 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
-import { Button, Drawer, Empty, Space, Typography } from 'antd';
+import { Button, Drawer, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   listAuditLogs,
   type AuditLogItem,
@@ -15,16 +16,9 @@ import {
 import {
   auditActionLabel,
   auditResourceLabel,
-  businessFieldLabel,
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
-
-interface AuditDetailRow {
-  key: string;
-  field: string;
-  value: React.ReactNode;
-}
 
 const actionOptions = {
   PROCESS_MODEL_CREATE: { text: '创建流程模型' },
@@ -46,38 +40,6 @@ const resourceOptions = {
   DATASOURCE: { text: '数据源' },
   CONNECTOR_EXECUTION: { text: '连接器执行' },
 };
-
-function formatDetailField(field: string) {
-  return businessFieldLabel(field);
-}
-
-function formatDetailValue(value: unknown): React.ReactNode {
-  if (value === undefined || value === null || value === '') return '-';
-  if (typeof value === 'boolean') return value ? '是' : '否';
-  if (typeof value === 'number') return value;
-  if (Array.isArray(value)) {
-    if (!value.length) return '无';
-    return value.map((item) => String(item)).join('、');
-  }
-  return String(value);
-}
-
-function buildDetailRows(value: unknown, parentKey?: string): AuditDetailRow[] {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
-  return Object.entries(value as Record<string, unknown>).flatMap(([key, item]) => {
-    const rowKey = parentKey ? `${parentKey}.${key}` : key;
-    if (item && typeof item === 'object' && !Array.isArray(item)) {
-      return buildDetailRows(item, rowKey);
-    }
-    return [
-      {
-        key: rowKey,
-        field: formatDetailField(key),
-        value: formatDetailValue(item),
-      },
-    ];
-  });
-}
 
 function auditDetailRecord(log?: AuditLogItem) {
   return maskSecret(parseJsonSafe<Record<string, unknown>>(log?.detailJson, {})) as Record<
@@ -195,8 +157,6 @@ const AuditLogs: React.FC = () => {
     },
   ];
 
-  const detailRows = buildDetailRows(auditDetailRecord(detail));
-
   return (
     <PageContainer title="审计日志" content="查询关键操作记录和请求追踪信息。">
       <ProTable<AuditLogItem>
@@ -241,21 +201,7 @@ const AuditLogs: React.FC = () => {
           ]}
         />
         <Typography.Title level={5}>操作明细</Typography.Title>
-        {detailRows.length ? (
-          <ProTable<AuditDetailRow>
-            rowKey="key"
-            columns={[
-              { title: '字段', dataIndex: 'field', width: 180 },
-              { title: '内容', dataIndex: 'value' },
-            ]}
-            dataSource={detailRows}
-            search={false}
-            pagination={false}
-            options={false}
-          />
-        ) : (
-          <Empty description="暂无操作明细" />
-        )}
+        <StructuredDetailTable value={auditDetailRecord(detail)} emptyText="暂无操作明细" />
       </Drawer>
     </PageContainer>
   );

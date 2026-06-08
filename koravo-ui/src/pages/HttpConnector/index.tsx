@@ -11,6 +11,7 @@ import { Alert, Button, Drawer, Flex, Statistic, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   getConnectorExecutionSummary,
   listConnectorExecutionLogs,
@@ -35,13 +36,7 @@ const DetailBlock: React.FC<{ title: string; value?: string | null }> = ({
 }) => (
   <>
     <Typography.Title level={5}>{title}</Typography.Title>
-    {value ? (
-      <Typography.Paragraph code copyable>
-        {value}
-      </Typography.Paragraph>
-    ) : (
-      <Typography.Text type="secondary">无</Typography.Text>
-    )}
+    <StructuredDetailTable value={value} emptyText="无" />
   </>
 );
 
