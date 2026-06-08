@@ -20,7 +20,7 @@ export function createDefaultBpmnXml(modelKey?: string, modelName?: string) {
     <bpmn:startEvent id="StartEvent_1" name="Start">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="Task_1" name="Submit">
+    <bpmn:userTask id="Task_1" name="Submit" flowable:assignee="\${startUserId}">
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:userTask>

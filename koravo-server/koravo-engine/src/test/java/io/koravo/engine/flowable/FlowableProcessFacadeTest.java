@@ -73,6 +73,30 @@ class FlowableProcessFacadeTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void startDefaultsApproverToCurrentUserWhenMissing() {
+        ProcessInstance instance = mock(ProcessInstance.class);
+        when(instance.getId()).thenReturn("pi-1");
+        when(instance.getProcessDefinitionId()).thenReturn("pd-1");
+        when(instance.getBusinessKey()).thenReturn("biz-1");
+        when(runtimeService.startProcessInstanceByKeyAndTenantId(eq("leaveApproval"), eq("biz-1"), anyMap(), eq("default")))
+                .thenReturn(instance);
+
+        facade.start(new io.koravo.engine.command.StartProcessCommand(
+                "default",
+                "starter",
+                "req-1",
+                "leaveApproval",
+                "biz-1",
+                Map.of()
+        ));
+
+        var variablesCaptor = forClass(Map.class);
+        verify(runtimeService).startProcessInstanceByKeyAndTenantId(eq("leaveApproval"), eq("biz-1"), variablesCaptor.capture(), eq("default"));
+        assertThat(variablesCaptor.getValue()).containsEntry("approver", "starter");
+    }
+
+    @Test
     void terminateProcessInstanceDeletesRunningTenantInstanceWithReason() {
         mockRunningInstance("default", "pi-1");
 

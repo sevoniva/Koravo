@@ -62,6 +62,19 @@ public class BpmnValidationService {
         if (document.getElementsByTagNameNS("*", "endEvent").getLength() == 0) {
             warnings.add(new BpmnValidationIssue("BPMN_END_EVENT_MISSING", "No endEvent found", null));
         }
+
+        NodeList userTasks = document.getElementsByTagNameNS("*", "userTask");
+        for (int i = 0; i < userTasks.getLength(); i++) {
+            Element userTask = (Element) userTasks.item(i);
+            String taskId = userTask.getAttribute("id");
+            if (!StringUtils.hasText(readAttribute(userTask, "assignee"))) {
+                errors.add(new BpmnValidationIssue(
+                        "BPMN_USER_TASK_ASSIGNEE_REQUIRED",
+                        "User task " + (StringUtils.hasText(taskId) ? taskId : "<unknown>") + " must define a flowable assignee",
+                        taskId
+                ));
+            }
+        }
         return BpmnValidationResult.of(errors, warnings);
     }
 
@@ -71,5 +84,15 @@ public class BpmnValidationService {
         factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
         factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
         return factory.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+    }
+
+    private String readAttribute(Element element, String name) {
+        if (element.hasAttribute(name)) {
+            return element.getAttribute(name);
+        }
+        if (element.hasAttribute("flowable:" + name)) {
+            return element.getAttribute("flowable:" + name);
+        }
+        return element.getAttributeNS("http://flowable.org/bpmn", name);
     }
 }

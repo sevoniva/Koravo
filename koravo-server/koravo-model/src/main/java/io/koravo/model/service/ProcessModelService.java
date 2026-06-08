@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 @Service
@@ -314,17 +315,22 @@ public class ProcessModelService {
         if (!validation.valid()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "BPMN model has validation errors");
         }
-        int processIndex = bpmnXml.indexOf("<process");
-        if (processIndex < 0) {
-            return "importedProcess";
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            NodeList processes = factory.newDocumentBuilder()
+                    .parse(new InputSource(new StringReader(bpmnXml)))
+                    .getElementsByTagNameNS("*", "process");
+            if (processes.getLength() == 0) {
+                return "importedProcess";
+            }
+            String processId = ((Element) processes.item(0)).getAttribute("id");
+            return StringUtils.hasText(processId) ? processId : "importedProcess";
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "BPMN model has validation errors");
         }
-        int idIndex = bpmnXml.indexOf("id=\"", processIndex);
-        if (idIndex < 0) {
-            return "importedProcess";
-        }
-        int start = idIndex + 4;
-        int end = bpmnXml.indexOf('"', start);
-        return end > start ? bpmnXml.substring(start, end) : "importedProcess";
     }
 
     private String readAttribute(Element element, String name) {

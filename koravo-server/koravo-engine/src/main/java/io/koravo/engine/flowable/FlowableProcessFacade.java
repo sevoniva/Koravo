@@ -99,6 +99,7 @@ public class FlowableProcessFacade implements ProcessFacade {
             Map<String, Object> variables = new HashMap<>(command.variables() == null ? Map.of() : command.variables());
             variables.putIfAbsent("tenantId", command.tenantId());
             variables.putIfAbsent("startUserId", command.userId());
+            variables.putIfAbsent("approver", command.userId());
             variables.putIfAbsent("businessKey", command.businessKey());
             if (command.requestId() != null && !command.requestId().isBlank()) {
                 variables.putIfAbsent("requestId", command.requestId());

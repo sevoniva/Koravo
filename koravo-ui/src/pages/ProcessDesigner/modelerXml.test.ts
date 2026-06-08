@@ -9,7 +9,10 @@ describe('ProcessDesigner BPMN XML helpers', () => {
     expect(xml).toContain('name="Leave approval"');
     expect(xml).toContain('isExecutable="true"');
     expect(xml).toContain('<bpmn:startEvent id="StartEvent_1" name="Start"');
-    expect(xml).toContain('<bpmn:userTask id="Task_1" name="Submit"');
+    expect(xml).toContain(
+      '<bpmn:userTask id="Task_1" name="Submit" flowable:assignee="$' +
+        '{startUserId}"',
+    );
     expect(xml).toContain('<bpmn:endEvent id="EndEvent_1" name="End"');
     expect(xml).toContain('<bpmndi:BPMNDiagram');
   });

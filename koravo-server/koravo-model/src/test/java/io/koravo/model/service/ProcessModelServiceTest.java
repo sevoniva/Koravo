@@ -156,6 +156,37 @@ class ProcessModelServiceTest {
     }
 
     @Test
+    void importReadsProcessIdFromNamespacedBpmn() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        String bpmnXml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+                  <bpmn:process id="contractFlow" isExecutable="true" />
+                </bpmn:definitions>
+                """;
+        when(validationService.validate(bpmnXml)).thenReturn(new BpmnValidationResult(true, List.of(), List.of()));
+        when(repository.save(any(KoProcessModel.class))).thenAnswer(invocation -> {
+            KoProcessModel saved = invocation.getArgument(0);
+            saved.setId("model-import-2");
+            return saved;
+        });
+
+        var response = service.importModel(new ProcessModelImportRequest(
+                "Contract Flow",
+                null,
+                bpmnXml
+        ));
+
+        assertThat(response.modelKey()).isEqualTo("contractFlow");
+        verify(auditLogService).record("PROCESS_MODEL_IMPORT", "PROCESS_MODEL", "model-import-2", Map.of(
+                "modelKey", "contractFlow",
+                "version", 1,
+                "status", "DRAFT"
+        ));
+    }
+
+    @Test
     void updateDeployedModelReturnsDraftAndWritesLifecycleAuditDetail() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
