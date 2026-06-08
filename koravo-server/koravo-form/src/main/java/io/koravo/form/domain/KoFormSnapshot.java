@@ -3,7 +3,6 @@ package io.koravo.form.domain;
 import io.koravo.common.model.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
@@ -21,16 +20,13 @@ public class KoFormSnapshot extends BaseEntity {
     @Column(name = "form_schema_version")
     private Integer formSchemaVersion;
 
-    @Lob
-    @Column(name = "schema_json")
+    @Column(name = "schema_json", columnDefinition = "text")
     private String schemaJson;
 
-    @Lob
-    @Column(name = "ui_schema_json")
+    @Column(name = "ui_schema_json", columnDefinition = "text")
     private String uiSchemaJson;
 
-    @Lob
-    @Column(name = "data_json", nullable = false)
+    @Column(name = "data_json", nullable = false, columnDefinition = "text")
     private String dataJson;
 
     public String getProcessInstanceId() {

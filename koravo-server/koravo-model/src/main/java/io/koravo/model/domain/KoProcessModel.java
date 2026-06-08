@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
@@ -36,8 +35,7 @@ public class KoProcessModel extends BaseEntity {
     @Column(name = "description", length = 1024)
     private String description;
 
-    @Lob
-    @Column(name = "bpmn_xml")
+    @Column(name = "bpmn_xml", columnDefinition = "text")
     private String bpmnXml;
 
     public String getModelKey() {

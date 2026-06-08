@@ -3,7 +3,6 @@ package io.koravo.datahub.domain;
 import io.koravo.common.model.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
@@ -15,8 +14,7 @@ public class KoDataSourceTestLog extends BaseEntity {
     @Column(name = "success", nullable = false)
     private boolean success;
 
-    @Lob
-    @Column(name = "message")
+    @Column(name = "message", columnDefinition = "text")
     private String message;
 
     @Column(name = "elapsed_millis", nullable = false)

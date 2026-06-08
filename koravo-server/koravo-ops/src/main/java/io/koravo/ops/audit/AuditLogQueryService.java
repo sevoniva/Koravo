@@ -4,6 +4,7 @@ import io.koravo.common.api.PageResult;
 import io.koravo.ops.audit.dto.AuditLogResponse;
 import io.koravo.tenant.TenantContextHolder;
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,9 +18,11 @@ import java.util.List;
 @Service
 public class AuditLogQueryService {
     private final AuditLogRepository repository;
+    private final JdbcTemplate jdbcTemplate;
 
-    public AuditLogQueryService(AuditLogRepository repository) {
+    public AuditLogQueryService(AuditLogRepository repository, JdbcTemplate jdbcTemplate) {
         this.repository = repository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     public PageResult<AuditLogResponse> query(
@@ -61,7 +64,11 @@ public class AuditLogQueryService {
                 predicates.add(cb.equal(root.get("resourceType"), resourceType));
             }
             if (StringUtils.hasText(resourceId)) {
-                predicates.add(cb.equal(root.get("resourceId"), resourceId));
+                List<Predicate> resourcePredicates = new ArrayList<>();
+                resourcePredicates.add(cb.equal(root.get("resourceId"), resourceId));
+                resourcePredicates.add(cb.like(root.get("detailJson"), relatedResourcePattern(resourceId), '\\'));
+                relatedTaskIds(resourceId).forEach(taskId -> resourcePredicates.add(cb.equal(root.get("resourceId"), taskId)));
+                predicates.add(cb.or(resourcePredicates.toArray(Predicate[]::new)));
             }
             if (StringUtils.hasText(requestId)) {
                 predicates.add(cb.equal(root.get("requestId"), requestId));
@@ -82,6 +89,25 @@ public class AuditLogQueryService {
                 cb.equal(root.get("resourceType"), resourceType),
                 cb.equal(root.get("resourceId"), resourceId)
         );
+    }
+
+    String relatedResourcePattern(String resourceId) {
+        return "%" + resourceId.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+    }
+
+    List<String> relatedTaskIds(String processInstanceId) {
+        return jdbcTemplate.queryForList(
+                        """
+                                select distinct task_id
+                                from ko_form_snapshot
+                                where tenant_id = ? and process_instance_id = ? and task_id is not null
+                                """,
+                        String.class,
+                        TenantContextHolder.getTenantId(),
+                        processInstanceId
+                ).stream()
+                .filter(StringUtils::hasText)
+                .toList();
     }
 
     private AuditLogResponse toResponse(AuditLog log) {

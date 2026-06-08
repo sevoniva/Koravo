@@ -3,7 +3,6 @@ package io.koravo.connector.domain;
 import io.koravo.common.model.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
@@ -30,16 +29,13 @@ public class KoConnectorExecutionLog extends BaseEntity {
     @Column(name = "request_id", length = 128)
     private String requestId;
 
-    @Lob
-    @Column(name = "request_summary")
+    @Column(name = "request_summary", columnDefinition = "text")
     private String requestSummary;
 
-    @Lob
-    @Column(name = "response_summary")
+    @Column(name = "response_summary", columnDefinition = "text")
     private String responseSummary;
 
-    @Lob
-    @Column(name = "error_message")
+    @Column(name = "error_message", columnDefinition = "text")
     private String errorMessage;
 
     public String getConnectorType() {

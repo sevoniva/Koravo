@@ -250,3 +250,44 @@ databaseChangeLog:
               - column: { name: form_schema_version, type: int }
               - column: { name: schema_json, type: clob }
               - column: { name: ui_schema_json, type: clob }
+  - changeSet:
+      id: 0007-convert-legacy-lob-oids-to-text
+      author: koravo
+      dbms: postgresql
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              do $$
+              declare
+                column_ref record;
+              begin
+                for column_ref in
+                  select *
+                  from (values
+                    ('ko_process_model', 'bpmn_xml'),
+                    ('ko_form_schema', 'schema_json'),
+                    ('ko_form_schema', 'ui_schema_json'),
+                    ('ko_form_snapshot', 'data_json'),
+                    ('ko_form_snapshot', 'schema_json'),
+                    ('ko_form_snapshot', 'ui_schema_json'),
+                    ('ko_datasource', 'password_cipher'),
+                    ('ko_datasource', 'pool_config_json'),
+                    ('ko_datasource_test_log', 'message'),
+                    ('ko_connector_config', 'config_json'),
+                    ('ko_connector_execution_log', 'request_summary'),
+                    ('ko_connector_execution_log', 'response_summary'),
+                    ('ko_connector_execution_log', 'error_message'),
+                    ('ko_audit_log', 'detail_json')
+                  ) as target(table_name, column_name)
+                loop
+                  execute format(
+                    'update %I set %I = convert_from(lo_get(%I::oid), ''UTF8'') where %I ~ ''^[0-9]+$'' and exists (select 1 from pg_largeobject_metadata where oid = %I::oid)',
+                    column_ref.table_name,
+                    column_ref.column_name,
+                    column_ref.column_name,
+                    column_ref.column_name,
+                    column_ref.column_name
+                  );
+                end loop;
+              end $$;

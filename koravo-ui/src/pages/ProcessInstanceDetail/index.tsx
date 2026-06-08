@@ -17,6 +17,7 @@ import {
   activateProcessInstance,
   getOpsInstance,
   getProcessTrace,
+  listAuditLogs,
   listFormSnapshots,
   suspendProcessInstance,
   terminateProcessInstance,
@@ -350,8 +351,14 @@ const ProcessInstanceDetail: React.FC = () => {
     queryFn: () => listFormSnapshots({ processInstanceId: instanceId }),
     enabled: Boolean(instanceId),
   });
+  const { data: auditLogs } = useQuery({
+    queryKey: ['process-instance-audit-logs', instanceId],
+    queryFn: () => listAuditLogs({ resourceId: instanceId, page: 1, pageSize: 20 }),
+    enabled: Boolean(instanceId),
+  });
   const currentTasks = instance?.currentTasks || [];
   const timeline = trace?.timeline || [];
+  const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
   const isPurchaseApproval = isPurchaseInstance(instance?.processDefinitionId);
   const parallelTaskCount = purchaseApprovalNodeCount(currentTasks);
   const purchaseApprovalRecords = purchaseApprovalSnapshotRecords(formSnapshots);
@@ -641,7 +648,7 @@ const ProcessInstanceDetail: React.FC = () => {
           <ProTable<AuditLogItem>
             rowKey="id"
             columns={auditColumns}
-            dataSource={instance?.auditLogs || []}
+            dataSource={instanceAuditLogs}
             search={false}
             pagination={false}
             options={false}

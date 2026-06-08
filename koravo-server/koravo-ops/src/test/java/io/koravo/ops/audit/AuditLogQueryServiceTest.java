@@ -6,18 +6,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class AuditLogQueryServiceTest {
     private final AuditLogRepository repository = mock(AuditLogRepository.class);
-    private final AuditLogQueryService service = new AuditLogQueryService(repository);
+    private final JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+    private final AuditLogQueryService service = new AuditLogQueryService(repository, jdbcTemplate);
 
     @AfterEach
     void tearDown() {
@@ -48,5 +51,20 @@ class AuditLogQueryServiceTest {
         assertThat(result.items().getFirst().action()).isEqualTo("PROCESS_MODEL_DEPLOY");
         assertThat(result.items().getFirst().requestId()).isEqualTo("req-1");
         assertThat(result.items().getFirst().detailJson()).doesNotContain("password");
+    }
+
+    @Test
+    void relatedResourcePatternEscapesLikeWildcards() {
+        assertThat(service.relatedResourcePattern("pi_1%2\\3"))
+                .isEqualTo("%pi\\_1\\%2\\\\3%");
+    }
+
+    @Test
+    void relatedTaskIdsReadsTaskIdsFromFormSnapshots() {
+        TenantContextHolder.setTenantId("default");
+        when(jdbcTemplate.queryForList(any(String.class), eq(String.class), any(), any()))
+                .thenReturn(List.of("task-1", "task-2"));
+
+        assertThat(service.relatedTaskIds("pi-1")).containsExactly("task-1", "task-2");
     }
 }

@@ -3,7 +3,6 @@ package io.koravo.ops.audit;
 import io.koravo.common.model.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
@@ -27,8 +26,7 @@ public class AuditLog extends BaseEntity {
     @Column(name = "client_ip", length = 128)
     private String clientIp;
 
-    @Lob
-    @Column(name = "detail_json")
+    @Column(name = "detail_json", columnDefinition = "text")
     private String detailJson;
 
     public String getUserId() {

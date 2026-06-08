@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
@@ -24,8 +23,7 @@ public class KoDataSource extends BaseEntity {
     @Column(name = "username", length = 256)
     private String username;
 
-    @Lob
-    @Column(name = "password_cipher")
+    @Column(name = "password_cipher", columnDefinition = "text")
     private String passwordCipher;
 
     @Column(name = "driver_class_name", nullable = false, length = 256)
@@ -34,8 +32,7 @@ public class KoDataSource extends BaseEntity {
     @Column(name = "read_only", nullable = false)
     private boolean readOnly;
 
-    @Lob
-    @Column(name = "pool_config_json")
+    @Column(name = "pool_config_json", columnDefinition = "text")
     private String poolConfigJson;
 
     @Enumerated(EnumType.STRING)

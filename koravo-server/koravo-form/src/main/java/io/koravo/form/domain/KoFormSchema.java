@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
@@ -20,12 +19,10 @@ public class KoFormSchema extends BaseEntity {
     @Column(name = "version", nullable = false)
     private int version;
 
-    @Lob
-    @Column(name = "schema_json", nullable = false)
+    @Column(name = "schema_json", nullable = false, columnDefinition = "text")
     private String schemaJson;
 
-    @Lob
-    @Column(name = "ui_schema_json")
+    @Column(name = "ui_schema_json", columnDefinition = "text")
     private String uiSchemaJson;
 
     @Enumerated(EnumType.STRING)
