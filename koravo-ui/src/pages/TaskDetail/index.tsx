@@ -3,9 +3,10 @@ import {
   PageContainer,
   ProCard,
   ProDescriptions,
+  ProFormDatePicker,
   ProFormDigit,
-  ProFormList,
   ProFormRadio,
+  ProFormSelect,
   ProFormSwitch,
   ProFormText,
   ProFormTextArea,
@@ -14,7 +15,7 @@ import {
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { App, Button, Drawer, Empty, Flex, Tag, Typography } from 'antd';
+import { Alert, App, Button, Drawer, Empty, Flex, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -41,7 +42,6 @@ interface CompleteTaskForm {
   approved?: boolean;
   approvalComment?: string;
   formValues?: JsonRecord;
-  fieldValues?: Array<{ fieldKey?: string; value?: string }>;
 }
 
 interface SnapshotDetailRow {
@@ -54,8 +54,10 @@ interface SchemaField {
   fieldKey: string;
   title: string;
   type: 'string' | 'number' | 'boolean';
+  format?: string;
   widget?: string;
   required?: boolean;
+  options?: Array<{ label: string; value: string }>;
 }
 
 const PURCHASE_APPROVAL_TASKS = new Set([
@@ -163,6 +165,7 @@ function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
       fieldKey,
       title: String(property.title || fieldKey),
       type,
+      format: typeof property.format === 'string' ? property.format : undefined,
       widget: String(
         property['ui:widget'] ||
           uiField?.['ui:widget'] ||
@@ -170,15 +173,25 @@ function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
           '',
       ),
       required: required.includes(fieldKey),
+      options: Array.isArray(property.enum)
+        ? property.enum.map((item) => ({ label: String(item), value: String(item) }))
+        : undefined,
     };
   });
 }
 
-function fieldListToRecord(values?: Array<{ fieldKey?: string; value?: string }>) {
-  return (values || []).reduce<JsonRecord>((result, item) => {
-    const key = item.fieldKey?.trim();
-    if (!key) return result;
-    result[key] = item.value || '';
+function normalizeFormValues(values?: JsonRecord): JsonRecord {
+  return Object.entries(values || {}).reduce<JsonRecord>((result, [key, value]) => {
+    if (
+      value &&
+      typeof value === 'object' &&
+      'format' in value &&
+      typeof (value as { format?: unknown }).format === 'function'
+    ) {
+      result[key] = (value as { format: (template: string) => string }).format('YYYY-MM-DD');
+      return result;
+    }
+    result[key] = value;
     return result;
   }, {});
 }
@@ -223,9 +236,7 @@ function buildCompletePayload(
   values: CompleteTaskForm,
 ) {
   if (!isPurchaseApprovalTask(task)) {
-    const formData = Object.keys(values.formValues || {}).length
-      ? values.formValues || {}
-      : fieldListToRecord(values.fieldValues);
+    const formData = normalizeFormValues(values.formValues);
     return {
       variables: formData,
       formData,
@@ -285,28 +296,17 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
 
   if (!fields.length) {
     return (
-      <ProFormList
-        name="fieldValues"
-        label="处理字段"
-        initialValue={[{}]}
-        min={1}
-        creatorButtonProps={{ creatorButtonText: '添加字段' }}
-      >
-        <Flex gap={12} wrap>
-          <ProFormText
-            name="fieldKey"
-            label="字段标识"
-            width="sm"
-            rules={[{ required: true, message: '请输入字段标识' }]}
-          />
-          <ProFormText
-            name="value"
-            label="字段值"
-            width="md"
-            rules={[{ required: true, message: '请输入字段值' }]}
-          />
-        </Flex>
-      </ProFormList>
+      <Alert
+        showIcon
+        type="warning"
+        title="当前任务没有可填写表单"
+        description="请先在表单绑定中为该任务节点配置表单，再回到这里处理任务。"
+        action={
+          <Button size="small" onClick={() => history.push('/form-bindings')}>
+            去绑定表单
+          </Button>
+        }
+      />
     );
   }
 
@@ -325,6 +325,36 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
               label={field.title}
               fieldProps={{ precision: 2 }}
               rules={rules}
+            />
+          );
+        }
+        if (field.options?.length) {
+          return (
+            <ProFormSelect
+              key={field.fieldKey}
+              name={name}
+              label={field.title}
+              options={field.options}
+              rules={
+                field.required
+                  ? [{ required: true, message: `请选择${field.title}` }]
+                  : undefined
+              }
+            />
+          );
+        }
+        if (field.format === 'date') {
+          return (
+            <ProFormDatePicker
+              key={field.fieldKey}
+              name={name}
+              label={field.title}
+              fieldProps={{ format: 'YYYY-MM-DD' }}
+              rules={
+                field.required
+                  ? [{ required: true, message: `请选择${field.title}` }]
+                  : undefined
+              }
             />
           );
         }
@@ -413,6 +443,11 @@ const TaskDetail: React.FC = () => {
     enabled: Boolean(taskId),
   });
   const task = data?.task;
+  const canCompleteTask = Boolean(
+    task &&
+      task.status !== 'COMPLETED' &&
+      (isPurchaseApprovalTask(task) || data?.formSchema),
+  );
   const snapshotRows = buildSnapshotRows(
     maskSecret(parseJsonSafe(snapshot?.dataJson, {})),
   );
@@ -430,7 +465,7 @@ const TaskDetail: React.FC = () => {
             key="complete"
             title="完成任务"
             trigger={
-              <Button type="primary" disabled={task.status === 'COMPLETED'}>
+              <Button type="primary" disabled={!canCompleteTask}>
                 完成任务
               </Button>
             }
