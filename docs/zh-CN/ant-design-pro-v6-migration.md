@@ -56,7 +56,7 @@ npm exec --package @ant-design/cli -- antd info <Component> --format json --lang
 
 - 总览：`/dashboard`
 - 配置检查：`/quick-start`（开发兜底入口，不作为主业务路径）
-- 我的任务：`/tasks`
+- 任务中心：`/tasks`
 - 任务详情：`/tasks/:taskId`
 - 流程实例：`/process-instances`
 - 流程实例详情：`/process-instances/:instanceId`

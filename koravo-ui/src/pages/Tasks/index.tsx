@@ -5,7 +5,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useModel } from '@umijs/max';
-import { Alert, App, Button, Space, Tabs, Tag } from 'antd';
+import { Alert, App, Button, Flex, Space, Tabs, Tag } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -170,7 +170,7 @@ const Tasks: React.FC = () => {
   );
 
   return (
-    <PageContainer title="我的任务" content="处理待办，查看已完成任务和发起记录。">
+    <PageContainer title="任务中心" content="处理待办，查看已完成任务和发起记录。">
       <Alert
         showIcon
         type="info"
@@ -182,23 +182,27 @@ const Tasks: React.FC = () => {
             <Tag>{session.tenantId}</Tag>
           </Space>
         }
-        description="采购申请会生成部门审批和财务审批两个待办。切换处理人后，任务列表会按当前请求上下文重新加载。"
-        action={
-          <Space wrap>
-            {taskUserOptions.map((item) => (
-              <Button
-                key={item.value}
-                size="small"
-                type={session.userId === item.value ? 'primary' : 'default'}
-                onClick={() => switchUser(item.value)}
-              >
-                {item.label}
+        description={
+          <Flex vertical gap={8}>
+            <span>
+              采购申请会生成部门审批和财务审批两个待办。切换处理人后，任务列表会按当前请求上下文重新加载。
+            </span>
+            <Space wrap>
+              {taskUserOptions.map((item) => (
+                <Button
+                  key={item.value}
+                  size="small"
+                  type={session.userId === item.value ? 'primary' : 'default'}
+                  onClick={() => switchUser(item.value)}
+                >
+                  {item.label}
+                </Button>
+              ))}
+              <Button size="small" onClick={() => history.push('/system-settings')}>
+                更多设置
               </Button>
-            ))}
-            <Button size="small" onClick={() => history.push('/system-settings')}>
-              更多设置
-            </Button>
-          </Space>
+            </Space>
+          </Flex>
         }
         style={{ marginBottom: 16 }}
       />

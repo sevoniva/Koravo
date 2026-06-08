@@ -348,7 +348,7 @@ const StartInstanceFields: React.FC = () => {
               <Alert
                 showIcon
                 type="info"
-                title="选择启动表单后填写业务字段，字段会作为流程变量提交。"
+                title="选择启动表单后填写业务字段，字段会随流程提交。"
                 style={{ marginBottom: 16 }}
               />
               <ProFormText name="processModelId" hidden />
