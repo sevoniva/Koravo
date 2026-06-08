@@ -2,15 +2,15 @@ import { PlusOutlined } from '@ant-design/icons';
 import {
   ModalForm,
   PageContainer,
+  ProFormDigit,
   ProFormSelect,
   ProFormSwitch,
   ProFormText,
-  ProFormTextArea,
   ProTable,
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Modal, Space, message } from 'antd';
+import { App, Button, Modal, Space } from 'antd';
 import React, { useRef, useState } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
@@ -32,7 +32,9 @@ interface DataSourceForm extends Record<string, unknown> {
   password?: string;
   driverClassName?: string;
   readOnly: boolean;
-  poolConfigJson?: string;
+  maximumPoolSize?: number;
+  minimumIdle?: number;
+  connectionTimeout?: number;
 }
 
 const typeOptions = [
@@ -41,10 +43,88 @@ const typeOptions = [
   { label: 'H2', value: 'H2' },
 ];
 
+const defaultPoolConfig = {
+  maximumPoolSize: 10,
+  minimumIdle: 2,
+  connectionTimeout: 30000,
+};
+
+function parsePoolConfig(poolConfigJson?: string) {
+  if (!poolConfigJson?.trim()) return defaultPoolConfig;
+  try {
+    const value = JSON.parse(poolConfigJson) as Record<string, unknown>;
+    return {
+      maximumPoolSize:
+        typeof value.maximumPoolSize === 'number'
+          ? value.maximumPoolSize
+          : defaultPoolConfig.maximumPoolSize,
+      minimumIdle:
+        typeof value.minimumIdle === 'number'
+          ? value.minimumIdle
+          : defaultPoolConfig.minimumIdle,
+      connectionTimeout:
+        typeof value.connectionTimeout === 'number'
+          ? value.connectionTimeout
+          : defaultPoolConfig.connectionTimeout,
+    };
+  } catch {
+    return defaultPoolConfig;
+  }
+}
+
+function toFormValues(record?: DataSourceItem): Partial<DataSourceForm> {
+  if (!record) {
+    return { type: 'POSTGRESQL', readOnly: true, ...defaultPoolConfig };
+  }
+  return {
+    ...record,
+    ...parsePoolConfig(record.poolConfigJson),
+  };
+}
+
+function buildDataSourcePayload(values: DataSourceForm) {
+  return {
+    name: values.name,
+    type: values.type,
+    jdbcUrl: values.jdbcUrl,
+    username: values.username,
+    password: values.password,
+    driverClassName: values.driverClassName,
+    readOnly: values.readOnly,
+    poolConfigJson: JSON.stringify({
+      maximumPoolSize: values.maximumPoolSize ?? defaultPoolConfig.maximumPoolSize,
+      minimumIdle: values.minimumIdle ?? defaultPoolConfig.minimumIdle,
+      connectionTimeout: values.connectionTimeout ?? defaultPoolConfig.connectionTimeout,
+    }),
+  };
+}
+
 const DataSources: React.FC = () => {
+  const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<DataSourceItem>();
   const [modal, contextHolder] = Modal.useModal();
+
+  const saveDataSource = async (values: DataSourceForm, id?: string) => {
+    if (
+      values.minimumIdle !== undefined &&
+      values.maximumPoolSize !== undefined &&
+      values.minimumIdle > values.maximumPoolSize
+    ) {
+      message.error('最小空闲连接不能大于最大连接数');
+      return false;
+    }
+    if (id) {
+      await updateDataSource(id, buildDataSourcePayload(values));
+      message.success('已保存');
+      setEditing(undefined);
+    } else {
+      await createDataSource(buildDataSourcePayload(values));
+      message.success('已创建');
+    }
+    actionRef.current?.reload();
+    return true;
+  };
 
   const columns: ProColumns<DataSourceItem>[] = [
     { title: '名称', dataIndex: 'name' },
@@ -154,10 +234,29 @@ const DataSources: React.FC = () => {
       />
       <ProFormText name="driverClassName" label="驱动类" />
       <ProFormSwitch name="readOnly" label="只读" />
-      <ProFormTextArea
-        name="poolConfigJson"
-        label="连接池配置"
-        fieldProps={{ rows: 5 }}
+      <ProFormDigit
+        name="maximumPoolSize"
+        label="最大连接数"
+        min={1}
+        max={200}
+        fieldProps={{ precision: 0 }}
+        rules={[{ required: true, message: '请输入最大连接数' }]}
+      />
+      <ProFormDigit
+        name="minimumIdle"
+        label="最小空闲连接"
+        min={0}
+        max={200}
+        fieldProps={{ precision: 0 }}
+        rules={[{ required: true, message: '请输入最小空闲连接数' }]}
+      />
+      <ProFormDigit
+        name="connectionTimeout"
+        label="连接超时"
+        min={1000}
+        max={120000}
+        fieldProps={{ precision: 0, suffix: '毫秒' }}
+        rules={[{ required: true, message: '请输入连接超时时间' }]}
       />
     </>
   );
@@ -194,14 +293,9 @@ const DataSources: React.FC = () => {
                 新建数据源
               </Button>
             }
-            initialValues={{ type: 'POSTGRESQL', readOnly: true, poolConfigJson: '{}' }}
+            initialValues={toFormValues()}
             modalProps={{ destroyOnHidden: true }}
-            onFinish={async (values) => {
-              await createDataSource(values);
-              message.success('已创建');
-              actionRef.current?.reload();
-              return true;
-            }}
+            onFinish={(values) => saveDataSource(values)}
           >
             {formItems}
           </ModalForm>,
@@ -212,7 +306,7 @@ const DataSources: React.FC = () => {
         key={editing?.id || 'edit-datasource'}
         title="编辑数据源"
         open={Boolean(editing)}
-        initialValues={editing}
+        initialValues={toFormValues(editing)}
         modalProps={{
           destroyOnHidden: true,
           onCancel: () => setEditing(undefined),
@@ -222,11 +316,7 @@ const DataSources: React.FC = () => {
         }}
         onFinish={async (values) => {
           if (!editing) return false;
-          await updateDataSource(editing.id, values);
-          message.success('已保存');
-          setEditing(undefined);
-          actionRef.current?.reload();
-          return true;
+          return saveDataSource(values, editing.id);
         }}
       >
         {formItems}
