@@ -7,12 +7,11 @@ import {
 } from '@ant-design/pro-components';
 import { history, useModel, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Steps, Tag, Typography } from 'antd';
-import type { StepsProps } from 'antd';
+import { App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Tag, Typography } from 'antd';
 import React from 'react';
+import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
-import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   activateProcessInstance,
   getOpsInstance,
@@ -37,164 +36,6 @@ import {
   taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
-
-type StepStatus = NonNullable<NonNullable<StepsProps['items']>[number]['status']>;
-
-interface PurchaseStep {
-  key: string;
-  title: string;
-}
-
-interface PurchaseApprovalRecord {
-  key: string;
-  taskDefinitionKey: string;
-  taskName: string;
-  taskId?: string;
-  status: 'PENDING' | 'COMPLETED';
-  approver?: string;
-  approved?: boolean;
-  opinion?: string;
-  createdAt?: string;
-}
-
-const purchaseApprovalSteps: PurchaseStep[] = [
-  { key: 'start', title: '提交申请' },
-  { key: 'managerApprovalTask', title: '部门审批' },
-  { key: 'financeApprovalTask', title: '财务审批' },
-  { key: 'end', title: '流程结束' },
-];
-
-function isPurchaseInstance(processDefinitionId?: string) {
-  return processDefinitionId?.startsWith('purchaseApproval:') ?? false;
-}
-
-function findTraceNode(timeline: ProcessTraceNode[], activityId: string) {
-  return timeline.find((item) => item.activityId === activityId);
-}
-
-function isTraceCompleted(timeline: ProcessTraceNode[], activityId: string) {
-  const node = findTraceNode(timeline, activityId);
-  return Boolean(node?.endTime || node?.status === 'COMPLETED');
-}
-
-function findCurrentTask(currentTasks: TaskItem[], taskDefinitionKey: string) {
-  return currentTasks.find((item) => item.taskDefinitionKey === taskDefinitionKey);
-}
-
-function purchaseStepStatus(
-  stepKey: string,
-  currentTasks: TaskItem[],
-  timeline: ProcessTraceNode[],
-): StepStatus {
-  if (findCurrentTask(currentTasks, stepKey)) return 'process';
-  if (isTraceCompleted(timeline, stepKey)) return 'finish';
-  return 'wait';
-}
-
-function purchaseStepDescription(
-  stepKey: string,
-  currentTasks: TaskItem[],
-  timeline: ProcessTraceNode[],
-) {
-  const currentTask = findCurrentTask(currentTasks, stepKey);
-  if (currentTask) {
-    return `待 ${currentTask.assignee || '未分配'} 处理`;
-  }
-
-  const traceNode = findTraceNode(timeline, stepKey);
-  if (traceNode?.endTime) return `完成于 ${formatDateTime(traceNode.endTime)}`;
-  if (traceNode?.startTime) return `开始于 ${formatDateTime(traceNode.startTime)}`;
-  return '未到达';
-}
-
-function purchaseCurrentStep(
-  currentTasks: TaskItem[],
-  timeline: ProcessTraceNode[],
-  instanceStatus?: string,
-) {
-  if (instanceStatus === 'COMPLETED') return purchaseApprovalSteps.length - 1;
-  const firstProcessingIndex = purchaseApprovalSteps.findIndex(
-    (step) => purchaseStepStatus(step.key, currentTasks, timeline) === 'process',
-  );
-  if (firstProcessingIndex >= 0) return firstProcessingIndex;
-
-  const lastFinishedIndex = purchaseApprovalSteps.reduce((lastIndex, step, index) => {
-    return purchaseStepStatus(step.key, currentTasks, timeline) === 'finish'
-      ? index
-      : lastIndex;
-  }, 0);
-  return lastFinishedIndex;
-}
-
-function purchaseApprovalNodeCount(currentTasks: TaskItem[]) {
-  return currentTasks.filter((task) =>
-    ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
-  ).length;
-}
-
-function purchaseProgressBadgeText(status?: string, pendingCount = 0) {
-  if (status === 'COMPLETED') return '流程已完成';
-  return `待处理 ${pendingCount}`;
-}
-
-function purchasePendingDescription(currentTasks: TaskItem[]) {
-  const approvalTasks = currentTasks.filter((task) =>
-    ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
-  );
-  if (!approvalTasks.length) return '当前没有审批待办。';
-  return approvalTasks
-    .map(
-      (task) =>
-        `${taskDefinitionLabel(task.taskDefinitionKey)}：${task.assignee || '未分配'}`,
-    )
-    .join('，');
-}
-
-function purchaseApprovalSnapshotRecords(
-  snapshots: FormSnapshotItem[] = [],
-  currentTasks: TaskItem[] = [],
-): PurchaseApprovalRecord[] {
-  const completedRecords = snapshots.flatMap((snapshot) => {
-    const data = parseJsonSafe(snapshot.dataJson, {}) as Record<string, unknown>;
-    const taskDefinitionKey = String(data.taskDefinitionKey || '');
-    if (!['managerApprovalTask', 'financeApprovalTask'].includes(taskDefinitionKey)) {
-      return [];
-    }
-    return [
-      {
-        key: snapshot.id,
-        taskDefinitionKey,
-        taskName: String(data.taskName || taskDefinitionLabel(taskDefinitionKey)),
-        taskId: snapshot.taskId,
-        status: 'COMPLETED' as const,
-        approver: typeof data.approver === 'string' ? data.approver : undefined,
-        approved: typeof data.approved === 'boolean' ? data.approved : undefined,
-        opinion: typeof data.opinion === 'string' ? data.opinion : undefined,
-        createdAt: snapshot.createdAt,
-      },
-    ];
-  });
-
-  const completedTaskKeys = new Set(
-    completedRecords.map((record) => record.taskDefinitionKey),
-  );
-  const pendingRecords = currentTasks
-    .filter((task) =>
-      ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
-    )
-    .filter((task) => !completedTaskKeys.has(task.taskDefinitionKey))
-    .map((task) => ({
-      key: task.taskId,
-      taskDefinitionKey: task.taskDefinitionKey,
-      taskName: task.name || taskDefinitionLabel(task.taskDefinitionKey),
-      taskId: task.taskId,
-      status: 'PENDING' as const,
-      approver: task.assignee,
-      createdAt: task.createTime,
-    }));
-
-  return [...completedRecords, ...pendingRecords];
-}
 
 function snapshotData(record: FormSnapshotItem) {
   return parseJsonSafe(record.dataJson, {}) as Record<string, unknown>;
@@ -305,78 +146,6 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
   },
 ];
 
-function buildPurchaseApprovalColumns(
-  openTaskAsAssignee: (task: TaskItem) => void,
-  currentTasks: TaskItem[],
-): ProColumns<PurchaseApprovalRecord>[] {
-  return [
-    {
-      title: '审批节点',
-      dataIndex: 'taskDefinitionKey',
-      width: 150,
-      renderText: (value) => taskDefinitionLabel(String(value || '')),
-    },
-    { title: '处理人', dataIndex: 'approver', width: 120 },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 100,
-      render: (_, record) =>
-        record.status === 'PENDING' ? (
-          <Tag color="processing">待处理</Tag>
-        ) : (
-          <Tag color="success">已处理</Tag>
-        ),
-    },
-    {
-      title: '结论',
-      dataIndex: 'approved',
-      width: 100,
-      render: (_, record) =>
-        record.status === 'PENDING' ? (
-          <Typography.Text type="secondary">待审批</Typography.Text>
-        ) : record.approved === undefined ? (
-          <Typography.Text type="secondary">未记录</Typography.Text>
-        ) : (
-          <Typography.Text type={record.approved ? 'success' : 'danger'}>
-            {record.approved ? '同意' : '不同意'}
-          </Typography.Text>
-        ),
-    },
-    {
-      title: '意见',
-      dataIndex: 'opinion',
-      render: (_, record) =>
-        record.opinion || (
-          <Typography.Text type="secondary">
-            {record.status === 'PENDING' ? '等待处理人提交意见' : '未填写意见'}
-          </Typography.Text>
-        ),
-    },
-    {
-      title: '处理时间',
-      dataIndex: 'createdAt',
-      width: 170,
-      renderText: formatDateTime,
-    },
-    {
-      title: '操作',
-      valueType: 'option',
-      width: 110,
-      render: (_, record) => {
-        const task = currentTasks.find((item) => item.taskId === record.taskId);
-        return record.status === 'PENDING' && task ? (
-          <Button type="link" onClick={() => openTaskAsAssignee(task)}>
-            处理审批
-          </Button>
-        ) : (
-          '-'
-        );
-      },
-    },
-  ];
-}
-
 const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
   const instanceId = params.instanceId || '';
@@ -411,15 +180,6 @@ const ProcessInstanceDetail: React.FC = () => {
   const currentTasks = instance?.currentTasks || [];
   const timeline = trace?.timeline || [];
   const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
-  const isPurchaseApproval = isPurchaseInstance(instance?.processDefinitionId);
-  const parallelTaskCount = purchaseApprovalNodeCount(currentTasks);
-  const purchaseApprovalRecords = purchaseApprovalSnapshotRecords(
-    formSnapshots,
-    currentTasks,
-  );
-  const nextApprovalTask = currentTasks.find((task) =>
-    ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
-  );
   const openTaskAsAssignee = React.useCallback(
     (task: TaskItem) => {
       const userId = task.assignee?.trim();
@@ -488,10 +248,6 @@ const ProcessInstanceDetail: React.FC = () => {
       },
     ],
     [openTaskAsAssignee],
-  );
-  const purchaseApprovalColumns = React.useMemo(
-    () => buildPurchaseApprovalColumns(openTaskAsAssignee, currentTasks),
-    [currentTasks, openTaskAsAssignee],
   );
   const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     {
@@ -625,96 +381,6 @@ const ProcessInstanceDetail: React.FC = () => {
       </ProCard>
 
       <Flex vertical gap={16}>
-        {isPurchaseApproval ? (
-          <ProCard title="审批进度">
-            <Flex vertical gap={16}>
-              {parallelTaskCount > 1 ? (
-                <Alert
-                  showIcon
-                  type="info"
-                  title={`当前有 ${parallelTaskCount} 个并行审批待处理`}
-                  description={purchasePendingDescription(currentTasks)}
-                />
-              ) : parallelTaskCount === 1 ? (
-                <Alert
-                  showIcon
-                  type="info"
-                  title="当前有 1 个审批待处理"
-                  description={purchasePendingDescription(currentTasks)}
-                />
-              ) : null}
-              <Steps
-                responsive
-                current={purchaseCurrentStep(
-                  currentTasks,
-                  timeline,
-                  instance?.status,
-                )}
-                items={purchaseApprovalSteps.map((step) => ({
-                  title: step.title,
-                  status: purchaseStepStatus(step.key, currentTasks, timeline),
-                  content: purchaseStepDescription(
-                    step.key,
-                    currentTasks,
-                    timeline,
-                  ),
-                }))}
-              />
-              <Flex gap={16} wrap>
-                <Badge
-                  status={parallelTaskCount ? 'processing' : 'success'}
-                  text={purchaseProgressBadgeText(instance?.status, parallelTaskCount)}
-                />
-                <Typography.Text type="secondary">
-                  业务编号：{instance?.businessKey || '-'}
-                </Typography.Text>
-              </Flex>
-            </Flex>
-          </ProCard>
-        ) : null}
-        {isPurchaseApproval ? (
-          <ProCard
-            title={
-              <Flex align="center" gap={8}>
-                <span>审批意见</span>
-                <Badge count={purchaseApprovalRecords.length} showZero />
-              </Flex>
-            }
-          >
-            <ProTable<PurchaseApprovalRecord>
-              rowKey="key"
-              columns={purchaseApprovalColumns}
-              dataSource={purchaseApprovalRecords}
-              search={false}
-              pagination={false}
-              options={false}
-              locale={{
-                emptyText: (
-                  <Empty
-                    description="暂无审批意见"
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  >
-                    <Space>
-                      {nextApprovalTask ? (
-                        <Button
-                          type="primary"
-                          onClick={() => openTaskAsAssignee(nextApprovalTask)}
-                        >
-                          处理{taskDefinitionLabel(nextApprovalTask.taskDefinitionKey)}
-                        </Button>
-                      ) : (
-                        <Button type="primary" onClick={() => history.push('/tasks')}>
-                          查看任务中心
-                        </Button>
-                      )}
-                    </Space>
-                  </Empty>
-                ),
-              }}
-              scroll={{ x: 900 }}
-            />
-          </ProCard>
-        ) : null}
         <ProCard
           title={
             <Flex align="center" gap={8}>
@@ -835,8 +501,10 @@ const ProcessInstanceDetail: React.FC = () => {
         onClose={() => setSelectedSnapshot(undefined)}
       >
         {selectedSnapshot ? (
-          <StructuredDetailTable
-            value={maskSecret(snapshotData(selectedSnapshot))}
+          <BusinessDataDescriptions
+            schemaJson={selectedSnapshot.schemaJson}
+            uiSchemaJson={selectedSnapshot.uiSchemaJson}
+            values={maskSecret(snapshotData(selectedSnapshot)) as Record<string, unknown>}
             emptyText="暂无快照数据"
           />
         ) : (

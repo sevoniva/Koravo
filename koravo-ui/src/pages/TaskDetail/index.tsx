@@ -5,7 +5,6 @@ import {
   ProDescriptions,
   ProFormDatePicker,
   ProFormDigit,
-  ProFormRadio,
   ProFormSelect,
   ProFormSwitch,
   ProFormText,
@@ -17,9 +16,9 @@ import { history, useModel, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
+import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
-import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   completeTask,
   getOpsInstance,
@@ -60,11 +59,6 @@ interface SchemaField {
   required?: boolean;
   options?: Array<{ label: string; value: string }>;
 }
-
-const PURCHASE_APPROVAL_TASKS = new Set([
-  'managerApprovalTask',
-  'financeApprovalTask',
-]);
 
 const commentColumns: ProColumns<TaskCommentItem>[] = [
   { title: '用户', dataIndex: 'userId', width: 140 },
@@ -142,58 +136,32 @@ function parseJsonObject(value?: string): JsonRecord {
   }
 }
 
-function isPurchaseApprovalTask(task?: TaskItem) {
-  return PURCHASE_APPROVAL_TASKS.has(task?.taskDefinitionKey || '');
-}
-
-function nextPurchaseApprovalTask(currentTask: TaskItem, tasks: TaskItem[]) {
+function nextPendingTask(currentTask: TaskItem, tasks: TaskItem[]) {
   return tasks.find(
     (item) =>
       item.taskId !== currentTask.taskId &&
       item.assignee &&
-      item.status !== 'COMPLETED' &&
-      isPurchaseApprovalTask(item),
+      item.status !== 'COMPLETED',
   );
 }
 
-function purchaseApprovalRole(task?: TaskItem) {
-  const completed = task?.status === 'COMPLETED';
-  if (task?.taskDefinitionKey === 'managerApprovalTask') {
-    return {
-      title: completed ? '部门审批已处理' : '部门审批待办',
-      description: completed
-        ? '该审批任务已完成，可在下方查看处理意见、表单快照和审计记录。'
-        : '请确认采购事项、金额和申请事由，处理后可在流程实例中查看部门审批意见和表单快照。',
-    };
-  }
-  if (task?.taskDefinitionKey === 'financeApprovalTask') {
-    return {
-      title: completed ? '财务审批已处理' : '财务审批待办',
-      description: completed
-        ? '该审批任务已完成，可在下方查看处理意见、表单快照和审计记录。'
-        : '请确认采购金额和预算口径，处理后可在流程实例中查看财务审批意见和表单快照。',
-    };
-  }
-  return undefined;
-}
-
-function parallelApprovalStatus(task: TaskItem, currentTask?: TaskItem) {
+function parallelTaskStatus(task: TaskItem, currentTask?: TaskItem) {
   if (currentTask?.taskId === task.taskId) return '当前任务';
   if (task.status === 'COMPLETED') return '已处理';
   return '待处理';
 }
 
-function renderParallelApprovalTasks(
+function renderParallelTasks(
   currentTask: TaskItem,
   tasks: TaskItem[],
   openTaskAsAssignee: (task: TaskItem) => void,
 ) {
-  const approvalTasks = tasks.filter(isPurchaseApprovalTask);
-  if (approvalTasks.length <= 1) return null;
+  const pendingTasks = tasks.filter((item) => item.status !== 'COMPLETED');
+  if (pendingTasks.length <= 1) return null;
 
   return (
     <ProCard
-      title="当前并行审批"
+      title="当前并行任务"
       extra={
         <Button
           type="link"
@@ -205,7 +173,7 @@ function renderParallelApprovalTasks(
       style={{ marginBottom: 16 }}
     >
       <Space size={[8, 8]} wrap>
-        {approvalTasks.map((task) => (
+        {pendingTasks.map((task) => (
           <Tag
             key={task.taskId}
             color={task.taskId === currentTask.taskId ? 'processing' : 'default'}
@@ -216,7 +184,7 @@ function renderParallelApprovalTasks(
                 text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${task.assignee || '未分配'}`}
               />
               <Typography.Text type="secondary">
-                {parallelApprovalStatus(task, currentTask)}
+                {parallelTaskStatus(task, currentTask)}
               </Typography.Text>
               {task.taskId !== currentTask.taskId ? (
                 <Button type="link" size="small" onClick={() => openTaskAsAssignee(task)}>
@@ -229,41 +197,6 @@ function renderParallelApprovalTasks(
       </Space>
     </ProCard>
   );
-}
-
-function renderPurchaseRequestSummary(values?: JsonRecord) {
-  if (!values) return null;
-
-  return (
-    <ProCard title="采购申请信息" style={{ marginBottom: 16 }}>
-      <ProDescriptions<JsonRecord>
-        column={{ xs: 1, sm: 1, md: 2 }}
-        dataSource={values}
-        columns={[
-          { title: '申请人', dataIndex: 'applicant' },
-          { title: '申请部门', dataIndex: 'department' },
-          { title: '采购事项', dataIndex: 'itemName' },
-          {
-            title: '采购金额',
-            dataIndex: 'amount',
-            render: (_, record) => {
-              if (typeof record.amount === 'number') {
-                return `${record.amount.toLocaleString('zh-CN')} 元`;
-              }
-              return record.amount ? String(record.amount) : '-';
-            },
-          },
-          { title: '申请事由', dataIndex: 'reason' },
-          { title: '部门审批人', dataIndex: 'managerApprover' },
-          { title: '财务审批人', dataIndex: 'financeApprover' },
-        ]}
-      />
-    </ProCard>
-  );
-}
-
-function approvalVariableKey(taskDefinitionKey: string, suffix: string) {
-  return `${taskDefinitionKey}${suffix}`;
 }
 
 function normalizeSchemaType(type?: string): SchemaField['type'] {
@@ -323,40 +256,15 @@ function normalizeFormValues(values?: JsonRecord): JsonRecord {
 }
 
 function buildCompletePayload(
-  task: TaskItem,
   formSchemaId: string | undefined,
   values: CompleteTaskForm,
 ) {
-  if (!isPurchaseApprovalTask(task)) {
-    const formData = normalizeFormValues(values.formValues);
-    return {
-      variables: formData,
-      formData,
-      formSchemaId,
-      comment: values.comment,
-    };
-  }
-
-  const approved = values.approved !== false;
-  const opinion = values.approvalComment?.trim() || (approved ? '同意' : '不同意');
-  const taskLabel = taskDefinitionLabel(task.taskDefinitionKey);
-  const formData = {
-    taskDefinitionKey: task.taskDefinitionKey,
-    taskName: taskLabel,
-    businessKey: task.businessKey,
-    approver: task.assignee,
-    approved,
-    opinion,
-  };
-
+  const formData = normalizeFormValues(values.formValues);
   return {
-    variables: {
-      [approvalVariableKey(task.taskDefinitionKey, 'Approved')]: approved,
-      [approvalVariableKey(task.taskDefinitionKey, 'Opinion')]: opinion,
-    },
+    variables: formData,
     formData,
     formSchemaId,
-    comment: `${taskLabel}：${opinion}`,
+    comment: values.comment,
   };
 }
 
@@ -489,42 +397,12 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
   );
 };
 
-const CompleteTaskFields: React.FC<{
-  task?: TaskItem;
-  formSchema?: FormSchemaItem;
-}> = ({ task, formSchema }) => {
-  if (isPurchaseApprovalTask(task)) {
-    return (
-      <>
-        <ProFormRadio.Group
-          name="approved"
-          label="审批结论"
-          initialValue={true}
-          radioType="button"
-          options={[
-            { label: '同意', value: true },
-            { label: '不同意', value: false },
-          ]}
-          rules={[{ required: true, message: '请选择审批结论' }]}
-        />
-        <ProFormTextArea
-          name="approvalComment"
-          label="审批意见"
-          fieldProps={{ rows: 4 }}
-          placeholder="请填写处理意见"
-          rules={[{ required: true, message: '请输入审批意见' }]}
-        />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <SchemaDrivenFields formSchema={formSchema} />
-      <ProFormTextArea name="comment" label="处理意见" fieldProps={{ rows: 4 }} />
-    </>
-  );
-};
+const CompleteTaskFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSchema }) => (
+  <>
+    <SchemaDrivenFields formSchema={formSchema} />
+    <ProFormTextArea name="comment" label="处理意见" fieldProps={{ rows: 4 }} />
+  </>
+);
 
 const TaskDetail: React.FC = () => {
   const params = useParams();
@@ -551,10 +429,9 @@ const TaskDetail: React.FC = () => {
   const canCompleteTask = Boolean(
     task &&
       task.status !== 'COMPLETED' &&
-      (isPurchaseApprovalTask(task) || data?.formSchema),
+      data?.formSchema,
   );
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
-  const approvalRole = purchaseApprovalRole(task);
   const openTaskAsAssignee = React.useCallback(
     (nextTask: TaskItem) => {
       const userId = nextTask.assignee?.trim();
@@ -599,10 +476,10 @@ const TaskDetail: React.FC = () => {
             onFinish={async (values) => {
               await completeTask(
                 task.taskId,
-                buildCompletePayload(task, data?.formSchema?.id, values),
+                buildCompletePayload(data?.formSchema?.id, values),
               );
               const instance = await getOpsInstance(task.processInstanceId);
-              const nextTask = nextPurchaseApprovalTask(
+              const nextTask = nextPendingTask(
                 task,
                 instance.currentTasks || [],
               );
@@ -659,48 +536,27 @@ const TaskDetail: React.FC = () => {
               return true;
             }}
           >
-            <CompleteTaskFields task={task} formSchema={data?.formSchema} />
+            <CompleteTaskFields formSchema={data?.formSchema} />
           </ModalForm>
           ) : null}
         </Space>
       }
     >
       {contextHolder}
-      {approvalRole && task ? (
-        <Alert
-          showIcon
-          type={task.status === 'COMPLETED' ? 'success' : 'info'}
-          title={
-            <Space wrap>
-              <span>{approvalRole.title}</span>
-              <Badge
-                status={task.status === 'COMPLETED' ? 'success' : 'processing'}
-                text={`处理人：${task.assignee || '-'}`}
-              />
-            </Space>
-          }
-          description={approvalRole.description}
-          action={
-            <Button
-              size="small"
-              onClick={() => history.push(`/process-instances/${task.processInstanceId}`)}
-            >
-              查看实例进度
-            </Button>
-          }
-          style={{ marginBottom: 16 }}
-        />
-      ) : null}
       {task && instance?.currentTasks
-        ? renderParallelApprovalTasks(
+        ? renderParallelTasks(
             task,
             instance.currentTasks,
             openTaskAsAssignee,
           )
         : null}
-      {isPurchaseApprovalTask(task)
-        ? renderPurchaseRequestSummary(data?.processVariables)
-        : null}
+      <ProCard title="业务数据" style={{ marginBottom: 16 }}>
+        <BusinessDataDescriptions
+          schemaJson={data?.formSchema?.schemaJson}
+          uiSchemaJson={data?.formSchema?.uiSchemaJson}
+          values={data?.processVariables}
+        />
+      </ProCard>
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
         <ProDescriptions<TaskItem>
           column={{ xs: 1, sm: 1, md: 2 }}
@@ -845,7 +701,12 @@ const TaskDetail: React.FC = () => {
         open={Boolean(snapshot)}
         onClose={() => setSnapshot(undefined)}
       >
-        <StructuredDetailTable value={snapshotData} emptyText="暂无快照数据" />
+        <BusinessDataDescriptions
+          emptyText="暂无快照数据"
+          schemaJson={snapshot?.schemaJson}
+          uiSchemaJson={snapshot?.uiSchemaJson}
+          values={snapshotData as JsonRecord}
+        />
       </Drawer>
     </PageContainer>
   );

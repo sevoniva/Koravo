@@ -42,19 +42,19 @@ const roleOptions = [
     description: '维护流程、表单、连接器和异常任务。',
   },
   {
-    label: '申请人',
+    label: '发起人',
     value: 'applicant',
-    description: '发起采购申请并跟踪实例进度。',
+    description: '发起业务流程并跟踪实例进度。',
   },
   {
-    label: '部门审批',
+    label: '一级处理人',
     value: 'manager',
-    description: '处理采购流程的部门审批待办。',
+    description: '处理分配给 manager 的待办任务。',
   },
   {
-    label: '财务审批',
+    label: '二级处理人',
     value: 'finance',
-    description: '处理采购流程的财务审批待办。',
+    description: '处理分配给 finance 的待办任务。',
   },
 ];
 
@@ -106,7 +106,7 @@ const SystemSettings: React.FC = () => {
   };
 
   return (
-    <PageContainer title="系统设置" content="查看系统运行状态，切换当前租户和审批处理人。">
+    <PageContainer title="系统设置" content="查看系统运行状态，切换当前租户和处理人。">
       <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
           <Statistic title="服务状态" value={data?.status || '-'} />
@@ -127,7 +127,7 @@ const SystemSettings: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              一笔采购申请会并行流转到部门审批和财务审批。发起后切换到对应处理人，即可在任务中心看到各自待办。
+              流程任务按当前用户查询。发起实例后切换到对应处理人，即可在任务中心查看名下待办。
             </span>
             <Space wrap>
               <Tag color="processing">当前用户：{session.userId}</Tag>

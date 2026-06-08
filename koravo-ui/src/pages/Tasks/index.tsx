@@ -27,23 +27,14 @@ import { formatDateTime } from '@/utils/format';
 
 const taskUserOptions = [
   { label: '管理员', value: 'admin' },
-  { label: '部门审批', value: 'manager' },
-  { label: '财务审批', value: 'finance' },
-  { label: '申请人', value: 'applicant' },
+  { label: '一级处理人', value: 'manager' },
+  { label: '二级处理人', value: 'finance' },
+  { label: '发起人', value: 'applicant' },
 ];
 
-const approvalTaskMeta: Record<
-  string,
-  { label: string; status: 'processing' | 'warning' }
-> = {
-  managerApprovalTask: { label: '部门审批', status: 'processing' },
-  financeApprovalTask: { label: '财务审批', status: 'warning' },
-};
-
-function taskRoleBadge(taskDefinitionKey?: string) {
-  const meta = approvalTaskMeta[taskDefinitionKey || ''];
-  if (!meta) return '-';
-  return <Badge status={meta.status} text={meta.label} />;
+function taskNodeBadge(taskDefinitionKey?: string) {
+  if (!taskDefinitionKey) return '-';
+  return <Badge status="processing" text={taskDefinitionLabel(taskDefinitionKey)} />;
 }
 
 const taskColumns: ProColumns<TaskItem>[] = [
@@ -67,11 +58,11 @@ const taskColumns: ProColumns<TaskItem>[] = [
     renderText: (value) => taskDefinitionLabel(value),
   },
   {
-    title: '审批角色',
+    title: '节点标签',
     dataIndex: 'taskDefinitionKey',
     width: 120,
     search: false,
-    render: (_, record) => taskRoleBadge(record.taskDefinitionKey),
+    render: (_, record) => taskNodeBadge(record.taskDefinitionKey),
   },
   { title: '处理人', dataIndex: 'assignee', width: 120 },
   {
@@ -228,7 +219,7 @@ const Tasks: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              采购申请会生成部门审批和财务审批两个待办。切换处理人后，任务列表会按当前请求上下文重新加载。
+              任务按当前请求上下文加载。切换处理人后，可查看该用户名下的待办、已办和发起记录。
             </span>
             <Space wrap>
               {taskUserOptions.map((item) => (
