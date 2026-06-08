@@ -4,6 +4,7 @@ import {
   PageContainer,
   ProFormDependency,
   ProFormDigit,
+  ProFormList,
   ProFormSelect,
   ProFormText,
   ProFormTextArea,
@@ -11,7 +12,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Alert, Button, Form, message } from 'antd';
+import { Alert, App, Button, Flex, Form } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -28,7 +29,6 @@ import { formatDateTime } from '@/utils/format';
 interface StartInstanceForm {
   processDefinitionKey: string;
   businessKey: string;
-  variables?: string;
   applicant?: string;
   department?: string;
   itemName?: string;
@@ -36,6 +36,7 @@ interface StartInstanceForm {
   reason?: string;
   managerApprover?: string;
   financeApprover?: string;
+  startFields?: Array<{ fieldKey?: string; value?: string }>;
 }
 
 function nextPurchaseBusinessKey() {
@@ -122,18 +123,14 @@ const columns: ProColumns<OpsProcessInstance>[] = [
   },
 ];
 
-function parseVariables(value?: string): JsonRecord {
-  if (!value?.trim()) return {};
-  try {
-    return JSON.parse(value) as JsonRecord;
-  } catch {
-    throw new Error('变量必须是合法 JSON');
-  }
-}
-
 function buildStartVariables(values: StartInstanceForm): JsonRecord {
   if (values.processDefinitionKey !== 'purchaseApproval') {
-    return parseVariables(values.variables);
+    return (values.startFields || []).reduce<JsonRecord>((result, item) => {
+      const key = item.fieldKey?.trim();
+      if (!key) return result;
+      result[key] = item.value || '';
+      return result;
+    }, {});
   }
 
   return {
@@ -233,12 +230,36 @@ const StartInstanceFields: React.FC = () => {
               />
             </>
           ) : (
-            <ProFormTextArea
-              name="variables"
-              label="变量"
-              fieldProps={{ rows: 8 }}
-              placeholder='{"approver":"admin"}'
-            />
+            <>
+              <Alert
+                showIcon
+                type="info"
+                title="填写启动流程所需的业务字段。字段会作为流程变量提交。"
+                style={{ marginBottom: 16 }}
+              />
+              <ProFormList
+                name="startFields"
+                label="启动字段"
+                initialValue={[{}]}
+                min={1}
+                creatorButtonProps={{ creatorButtonText: '添加字段' }}
+              >
+                <Flex gap={12} wrap>
+                  <ProFormText
+                    name="fieldKey"
+                    label="字段标识"
+                    width="sm"
+                    rules={[{ required: true, message: '请输入字段标识' }]}
+                  />
+                  <ProFormText
+                    name="value"
+                    label="字段值"
+                    width="md"
+                    rules={[{ required: true, message: '请输入字段值' }]}
+                  />
+                </Flex>
+              </ProFormList>
+            </>
           )
         }
       </ProFormDependency>
@@ -247,6 +268,8 @@ const StartInstanceFields: React.FC = () => {
 };
 
 const ProcessInstances: React.FC = () => {
+  const { message } = App.useApp();
+
   return (
     <PageContainer title="流程实例" content="启动流程并跟踪运行中的实例。">
       <ProTable<OpsProcessInstance>

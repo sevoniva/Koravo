@@ -3,7 +3,11 @@ import {
   PageContainer,
   ProCard,
   ProDescriptions,
+  ProFormDigit,
+  ProFormList,
   ProFormRadio,
+  ProFormSwitch,
+  ProFormText,
   ProFormTextArea,
   ProTable,
   type ProColumns,
@@ -18,6 +22,7 @@ import {
   completeTask,
   getTaskDetail,
   type AuditLogItem,
+  type FormSchemaItem,
   type FormSnapshotItem,
   type JsonRecord,
   type TaskCommentItem,
@@ -32,17 +37,25 @@ import {
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 
 interface CompleteTaskForm {
-  variables?: string;
-  formData?: string;
   comment?: string;
   approved?: boolean;
   approvalComment?: string;
+  formValues?: JsonRecord;
+  fieldValues?: Array<{ fieldKey?: string; value?: string }>;
 }
 
 interface SnapshotDetailRow {
   key: string;
   field: string;
   value: React.ReactNode;
+}
+
+interface SchemaField {
+  fieldKey: string;
+  title: string;
+  type: 'string' | 'number' | 'boolean';
+  widget?: string;
+  required?: boolean;
 }
 
 const PURCHASE_APPROVAL_TASKS = new Set([
@@ -113,12 +126,12 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
   },
 ];
 
-function parseJsonField(value?: string): JsonRecord {
+function parseJsonObject(value?: string): JsonRecord {
   if (!value?.trim()) return {};
   try {
     return JSON.parse(value) as JsonRecord;
   } catch {
-    throw new Error('JSON 格式不正确');
+    return {};
   }
 }
 
@@ -128,6 +141,46 @@ function isPurchaseApprovalTask(task?: TaskItem) {
 
 function approvalVariableKey(taskDefinitionKey: string, suffix: string) {
   return `${taskDefinitionKey}${suffix}`;
+}
+
+function normalizeSchemaType(type?: string): SchemaField['type'] {
+  if (type === 'number' || type === 'integer') return 'number';
+  if (type === 'boolean') return 'boolean';
+  return 'string';
+}
+
+function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
+  const schema = parseJsonObject(formSchema?.schemaJson);
+  const uiSchema = parseJsonObject(formSchema?.uiSchemaJson);
+  const properties = schema.properties as Record<string, JsonRecord> | undefined;
+  if (!properties || typeof properties !== 'object') return [];
+  const required = Array.isArray(schema.required) ? schema.required.map(String) : [];
+
+  return Object.entries(properties).map(([fieldKey, property]) => {
+    const type = normalizeSchemaType(String(property.type || 'string'));
+    const uiField = uiSchema[fieldKey] as JsonRecord | undefined;
+    return {
+      fieldKey,
+      title: String(property.title || fieldKey),
+      type,
+      widget: String(
+        property['ui:widget'] ||
+          uiField?.['ui:widget'] ||
+          uiField?.widget ||
+          '',
+      ),
+      required: required.includes(fieldKey),
+    };
+  });
+}
+
+function fieldListToRecord(values?: Array<{ fieldKey?: string; value?: string }>) {
+  return (values || []).reduce<JsonRecord>((result, item) => {
+    const key = item.fieldKey?.trim();
+    if (!key) return result;
+    result[key] = item.value || '';
+    return result;
+  }, {});
 }
 
 function formatSnapshotField(field: string) {
@@ -170,9 +223,12 @@ function buildCompletePayload(
   values: CompleteTaskForm,
 ) {
   if (!isPurchaseApprovalTask(task)) {
+    const formData = Object.keys(values.formValues || {}).length
+      ? values.formValues || {}
+      : fieldListToRecord(values.fieldValues);
     return {
-      variables: parseJsonField(values.variables),
-      formData: parseJsonField(values.formData),
+      variables: formData,
+      formData,
       formSchemaId,
       comment: values.comment,
     };
@@ -224,7 +280,91 @@ function snapshotSummary(record: FormSnapshotItem) {
   );
 }
 
-const CompleteTaskFields: React.FC<{ task?: TaskItem }> = ({ task }) => {
+const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSchema }) => {
+  const fields = schemaToFields(formSchema);
+
+  if (!fields.length) {
+    return (
+      <ProFormList
+        name="fieldValues"
+        label="处理字段"
+        initialValue={[{}]}
+        min={1}
+        creatorButtonProps={{ creatorButtonText: '添加字段' }}
+      >
+        <Flex gap={12} wrap>
+          <ProFormText
+            name="fieldKey"
+            label="字段标识"
+            width="sm"
+            rules={[{ required: true, message: '请输入字段标识' }]}
+          />
+          <ProFormText
+            name="value"
+            label="字段值"
+            width="md"
+            rules={[{ required: true, message: '请输入字段值' }]}
+          />
+        </Flex>
+      </ProFormList>
+    );
+  }
+
+  return (
+    <>
+      {fields.map((field) => {
+        const rules = field.required
+          ? [{ required: true, message: `请输入${field.title}` }]
+          : undefined;
+        const name = ['formValues', field.fieldKey];
+        if (field.type === 'number') {
+          return (
+            <ProFormDigit
+              key={field.fieldKey}
+              name={name}
+              label={field.title}
+              fieldProps={{ precision: 2 }}
+              rules={rules}
+            />
+          );
+        }
+        if (field.type === 'boolean') {
+          return (
+            <ProFormSwitch
+              key={field.fieldKey}
+              name={name}
+              label={field.title}
+            />
+          );
+        }
+        if (field.widget === 'textarea') {
+          return (
+            <ProFormTextArea
+              key={field.fieldKey}
+              name={name}
+              label={field.title}
+              fieldProps={{ rows: 4 }}
+              rules={rules}
+            />
+          );
+        }
+        return (
+          <ProFormText
+            key={field.fieldKey}
+            name={name}
+            label={field.title}
+            rules={rules}
+          />
+        );
+      })}
+    </>
+  );
+};
+
+const CompleteTaskFields: React.FC<{
+  task?: TaskItem;
+  formSchema?: FormSchemaItem;
+}> = ({ task, formSchema }) => {
   if (isPurchaseApprovalTask(task)) {
     return (
       <>
@@ -252,18 +392,7 @@ const CompleteTaskFields: React.FC<{ task?: TaskItem }> = ({ task }) => {
 
   return (
     <>
-      <ProFormTextArea
-        name="variables"
-        label="流程变量"
-        fieldProps={{ rows: 6 }}
-        placeholder='{"approved": true}'
-      />
-      <ProFormTextArea
-        name="formData"
-        label="表单数据"
-        fieldProps={{ rows: 6 }}
-        placeholder='{"comment": "同意"}'
-      />
+      <SchemaDrivenFields formSchema={formSchema} />
       <ProFormTextArea name="comment" label="处理意见" fieldProps={{ rows: 4 }} />
     </>
   );
@@ -316,7 +445,7 @@ const TaskDetail: React.FC = () => {
               return true;
             }}
           >
-            <CompleteTaskFields task={task} />
+            <CompleteTaskFields task={task} formSchema={data?.formSchema} />
           </ModalForm>
         ),
       ].filter(Boolean)}
