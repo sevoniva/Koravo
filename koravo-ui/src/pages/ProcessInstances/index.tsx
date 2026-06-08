@@ -1,4 +1,4 @@
-import { PlayCircleOutlined } from '@ant-design/icons';
+import { DownOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import {
   ModalForm,
   PageContainer,
@@ -13,7 +13,7 @@ import {
 } from '@ant-design/pro-components';
 import { history, useLocation, useModel } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Badge, Button, Empty, Flex, Form, Space, Tag, Typography } from 'antd';
+import { Alert, App, Badge, Button, Dropdown, Empty, Flex, Form, Space, Tag, Typography } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -28,6 +28,7 @@ import {
   type JsonRecord,
   type OpsProcessInstance,
   type ProcessModelItem,
+  type TaskItem,
 } from '@/services/koravo/api';
 import {
   getSessionContext,
@@ -209,7 +210,7 @@ function renderCurrentTasks(record: OpsProcessInstance) {
 }
 
 function buildColumns(
-  openCurrentTask: (record: OpsProcessInstance) => void,
+  openTask: (task: TaskItem) => void,
 ): ProColumns<OpsProcessInstance>[] {
   return [
   {
@@ -261,22 +262,44 @@ function buildColumns(
   {
     title: '操作',
     valueType: 'option',
-    width: 150,
-    render: (_, record) => (
-      <Space size={4}>
-        {record.currentTasks?.length ? (
-          <Button type="link" onClick={() => openCurrentTask(record)}>
-            处理当前
+    width: 180,
+    render: (_, record) => {
+      const tasks = record.currentTasks || [];
+      return (
+        <Space size={4}>
+          {tasks.length === 1 ? (
+            <Button type="link" onClick={() => openTask(tasks[0])}>
+              处理任务
+            </Button>
+          ) : null}
+          {tasks.length > 1 ? (
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: tasks.map((task) => ({
+                  key: task.taskId,
+                  label: `${taskDefinitionLabel(task.taskDefinitionKey)}：${task.assignee || '未分配'}`,
+                })),
+                onClick: ({ key }) => {
+                  const task = tasks.find((item) => item.taskId === key);
+                  if (task) openTask(task);
+                },
+              }}
+            >
+              <Button type="link">
+                处理任务 <DownOutlined />
+              </Button>
+            </Dropdown>
+          ) : null}
+          <Button
+            type="link"
+            onClick={() => history.push(`/process-instances/${record.instanceId}`)}
+          >
+            查看实例
           </Button>
-        ) : null}
-        <Button
-          type="link"
-          onClick={() => history.push(`/process-instances/${record.instanceId}`)}
-        >
-          查看实例
-        </Button>
-      </Space>
-    ),
+        </Space>
+      );
+    },
   },
   ];
 }
@@ -632,13 +655,8 @@ const ProcessInstances: React.FC = () => {
   const queryProcessModelId = useQueryProcessModelId();
   const [startOpen, setStartOpen] = React.useState(Boolean(queryProcessModelId));
 
-  const openCurrentTask = React.useCallback(
-    (record: OpsProcessInstance) => {
-      const task = record.currentTasks?.[0];
-      if (!task) {
-        history.push(`/process-instances/${record.instanceId}`);
-        return;
-      }
+  const openTask = React.useCallback(
+    (task: TaskItem) => {
       const userId = task.assignee?.trim();
       if (userId) {
         const next = { ...getSessionContext(), userId };
@@ -661,8 +679,8 @@ const ProcessInstances: React.FC = () => {
   );
 
   const columns = React.useMemo(
-    () => buildColumns(openCurrentTask),
-    [openCurrentTask],
+    () => buildColumns(openTask),
+    [openTask],
   );
 
   React.useEffect(() => {
