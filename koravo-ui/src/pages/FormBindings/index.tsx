@@ -54,6 +54,13 @@ function useQueryProcessModelId() {
   }, [location.search]);
 }
 
+function useQueryFormSchemaId() {
+  const location = useLocation();
+  return React.useMemo(() => {
+    return new URLSearchParams(location.search).get('formSchemaId') || undefined;
+  }, [location.search]);
+}
+
 function modelBindingLabel(record: BindingTableItem) {
   if (!record.processModel) {
     return record.processModelId ? (
@@ -99,8 +106,12 @@ function bindingModelId(binding: FormBindingItem | BindingForm) {
   return binding.processModelId;
 }
 
-const BindingFormItems: React.FC<{ initialProcessModelId?: string }> = ({
+const BindingFormItems: React.FC<{
+  initialProcessModelId?: string;
+  initialFormSchemaId?: string;
+}> = ({
   initialProcessModelId,
+  initialFormSchemaId,
 }) => {
   const form = Form.useFormInstance();
 
@@ -116,6 +127,19 @@ const BindingFormItems: React.FC<{ initialProcessModelId?: string }> = ({
     };
     void fillProcessDefinition();
   }, [form, initialProcessModelId]);
+
+  React.useEffect(() => {
+    if (!initialFormSchemaId) return;
+    const fillFormSchema = async () => {
+      const schemas = await listFormSchemas();
+      const schema = schemas.find((item) => item.id === initialFormSchemaId);
+      form.setFieldsValue({
+        formSchemaId: initialFormSchemaId,
+        formSchemaVersion: schema?.version || 1,
+      });
+    };
+    void fillFormSchema();
+  }, [form, initialFormSchemaId]);
 
   return (
     <>
@@ -216,6 +240,7 @@ const FormBindings: React.FC = () => {
   const [editing, setEditing] = useState<FormBindingItem>();
   const [modal, contextHolder] = Modal.useModal();
   const queryProcessModelId = useQueryProcessModelId();
+  const queryFormSchemaId = useQueryFormSchemaId();
 
   const showBindingSuccess = (binding: FormBindingItem | BindingForm, action: 'created' | 'updated') => {
     const processModelId = bindingModelId(binding);
@@ -337,12 +362,26 @@ const FormBindings: React.FC = () => {
           style={{ marginBottom: 16 }}
         />
       ) : null}
+      {queryFormSchemaId ? (
+        <Alert
+          showIcon
+          type="info"
+          title="正在绑定指定表单"
+          description="从表单管理进入后，列表会只显示该表单的绑定，新建绑定会默认使用该表单版本。"
+          action={
+            <Button size="small" onClick={() => history.push('/form-bindings')}>
+              查看全部
+            </Button>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
       <ProTable<BindingTableItem>
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
         scroll={{ x: 1000 }}
-        params={{ processModelId: queryProcessModelId }}
+        params={{ processModelId: queryProcessModelId, formSchemaId: queryFormSchemaId }}
         request={async (params) => {
           const [bindings, models, schemas] = await Promise.all([
             listFormBindings(
@@ -358,7 +397,6 @@ const FormBindings: React.FC = () => {
           const keyword = String(
             params.processModelId ||
               params.taskDefinitionKey ||
-              params.formSchemaId ||
               '',
           ).trim();
           const data = bindings.map((item) => ({
@@ -368,9 +406,12 @@ const FormBindings: React.FC = () => {
               : undefined,
             formSchema: schemaMap.get(item.formSchemaId),
           }));
+          const scopedData = queryFormSchemaId
+            ? data.filter((item) => item.formSchemaId === queryFormSchemaId)
+            : data;
           return {
             data: keyword
-              ? data.filter((item) =>
+              ? scopedData.filter((item) =>
                   [
                     item.processModel?.modelName,
                     item.processModel?.modelKey,
@@ -380,8 +421,8 @@ const FormBindings: React.FC = () => {
                   ]
                     .filter(Boolean)
                     .some((value) => String(value).includes(keyword)),
-                )
-              : data,
+                  )
+              : scopedData,
             success: true,
           };
         }}
@@ -409,14 +450,17 @@ const FormBindings: React.FC = () => {
         }}
         toolBarRender={() => [
           <ModalForm<BindingForm>
-            key={`create-${queryProcessModelId || 'all'}`}
+            key={`create-${queryProcessModelId || 'all'}-${queryFormSchemaId || 'form-all'}`}
             title="新建表单绑定"
             trigger={
               <Button type="primary" icon={<PlusOutlined />}>
                 新建绑定
               </Button>
             }
-            initialValues={{ processModelId: queryProcessModelId }}
+            initialValues={{
+              processModelId: queryProcessModelId,
+              formSchemaId: queryFormSchemaId,
+            }}
             modalProps={{ destroyOnHidden: true }}
             onFinish={async (values) => {
               const binding = await createFormBinding(bindingPayload(values));
@@ -425,7 +469,10 @@ const FormBindings: React.FC = () => {
               return true;
             }}
           >
-            <BindingFormItems initialProcessModelId={queryProcessModelId} />
+            <BindingFormItems
+              initialProcessModelId={queryProcessModelId}
+              initialFormSchemaId={queryFormSchemaId}
+            />
           </ModalForm>,
         ]}
       />

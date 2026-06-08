@@ -21,6 +21,7 @@ import {
   updateFormSchema,
   type FormSchemaItem,
 } from '@/services/koravo/api';
+import { history } from '@umijs/max';
 
 interface FormSchemaForm {
   formKey: string;
@@ -318,13 +319,20 @@ const Forms: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 160,
+      width: 220,
       render: (_, record) => [
         <Button key="preview" type="link" onClick={() => setPreview(record)}>
           查看
         </Button>,
         <Button key="edit" type="link" onClick={() => setEditing(record)}>
           编辑
+        </Button>,
+        <Button
+          key="bind"
+          type="link"
+          onClick={() => history.push(`/form-bindings?formSchemaId=${record.id}`)}
+        >
+          绑定节点
         </Button>,
       ],
     },
