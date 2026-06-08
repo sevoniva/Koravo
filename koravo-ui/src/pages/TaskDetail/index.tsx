@@ -10,7 +10,7 @@ import {
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { App, Button, Drawer, Flex, Tag, Typography } from 'antd';
+import { App, Button, Drawer, Empty, Flex, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -39,10 +39,32 @@ interface CompleteTaskForm {
   approvalComment?: string;
 }
 
+interface SnapshotDetailRow {
+  key: string;
+  field: string;
+  value: React.ReactNode;
+}
+
 const PURCHASE_APPROVAL_TASKS = new Set([
   'managerApprovalTask',
   'financeApprovalTask',
 ]);
+
+const snapshotFieldLabels: Record<string, string> = {
+  taskDefinitionKey: '任务节点',
+  taskName: '任务名称',
+  businessKey: '业务标识',
+  approver: '处理人',
+  approved: '审批结论',
+  opinion: '处理意见',
+  applicant: '申请人',
+  department: '申请部门',
+  itemName: '采购事项',
+  amount: '采购金额',
+  reason: '申请事由',
+  managerApprover: '部门审批人',
+  financeApprover: '财务审批人',
+};
 
 const commentColumns: ProColumns<TaskCommentItem>[] = [
   { title: '用户', dataIndex: 'userId', width: 140 },
@@ -106,6 +128,40 @@ function isPurchaseApprovalTask(task?: TaskItem) {
 
 function approvalVariableKey(taskDefinitionKey: string, suffix: string) {
   return `${taskDefinitionKey}${suffix}`;
+}
+
+function formatSnapshotField(field: string) {
+  return snapshotFieldLabels[field] || field;
+}
+
+function formatSnapshotValue(value: unknown): React.ReactNode {
+  if (value === undefined || value === null || value === '') return '-';
+  if (typeof value === 'boolean') {
+    return value ? <Tag color="success">同意</Tag> : <Tag color="error">不同意</Tag>;
+  }
+  if (typeof value === 'number') return value;
+  if (Array.isArray(value)) {
+    if (!value.length) return '无';
+    return value.map((item) => String(item)).join('、');
+  }
+  return String(value);
+}
+
+function buildSnapshotRows(value: unknown, parentKey?: string): SnapshotDetailRow[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  return Object.entries(value as JsonRecord).flatMap(([key, item]) => {
+    const rowKey = parentKey ? `${parentKey}.${key}` : key;
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      return buildSnapshotRows(item, rowKey);
+    }
+    return [
+      {
+        key: rowKey,
+        field: formatSnapshotField(key),
+        value: formatSnapshotValue(item),
+      },
+    ];
+  });
 }
 
 function buildCompletePayload(
@@ -228,10 +284,8 @@ const TaskDetail: React.FC = () => {
     enabled: Boolean(taskId),
   });
   const task = data?.task;
-  const snapshotJson = JSON.stringify(
+  const snapshotRows = buildSnapshotRows(
     maskSecret(parseJsonSafe(snapshot?.dataJson, {})),
-    null,
-    2,
   );
 
   return (
@@ -353,10 +407,21 @@ const TaskDetail: React.FC = () => {
         open={Boolean(snapshot)}
         onClose={() => setSnapshot(undefined)}
       >
-        <Typography.Title level={5}>数据</Typography.Title>
-        <Typography.Paragraph>
-          <pre>{snapshotJson}</pre>
-        </Typography.Paragraph>
+        {snapshotRows.length ? (
+          <ProTable<SnapshotDetailRow>
+            rowKey="key"
+            columns={[
+              { title: '字段', dataIndex: 'field', width: 180 },
+              { title: '内容', dataIndex: 'value' },
+            ]}
+            dataSource={snapshotRows}
+            search={false}
+            pagination={false}
+            options={false}
+          />
+        ) : (
+          <Empty description="暂无快照数据" />
+        )}
       </Drawer>
     </PageContainer>
   );
