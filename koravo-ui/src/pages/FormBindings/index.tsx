@@ -9,8 +9,8 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history } from '@umijs/max';
-import { App, Button, Empty, Form, Modal, Space, Typography } from 'antd';
+import { history, useLocation } from '@umijs/max';
+import { Alert, App, Button, Empty, Form, Modal, Space, Typography } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import {
@@ -45,6 +45,13 @@ function bindingPayload(values: BindingForm): BindingForm {
     ...values,
     formSchemaVersion: Number(values.formSchemaVersion || 1),
   };
+}
+
+function useQueryProcessModelId() {
+  const location = useLocation();
+  return React.useMemo(() => {
+    return new URLSearchParams(location.search).get('processModelId') || undefined;
+  }, [location.search]);
 }
 
 function modelBindingLabel(record: BindingTableItem) {
@@ -88,8 +95,23 @@ function formBindingLabel(record: BindingTableItem) {
   );
 }
 
-const BindingFormItems: React.FC = () => {
+const BindingFormItems: React.FC<{ initialProcessModelId?: string }> = ({
+  initialProcessModelId,
+}) => {
   const form = Form.useFormInstance();
+
+  React.useEffect(() => {
+    if (!initialProcessModelId) return;
+    const fillProcessDefinition = async () => {
+      const models = await listProcessModels();
+      const model = models.find((item) => item.id === initialProcessModelId);
+      form.setFieldsValue({
+        processModelId: initialProcessModelId,
+        processDefinitionId: model?.flowableDefinitionId,
+      });
+    };
+    void fillProcessDefinition();
+  }, [form, initialProcessModelId]);
 
   return (
     <>
@@ -189,6 +211,7 @@ const FormBindings: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormBindingItem>();
   const [modal, contextHolder] = Modal.useModal();
+  const queryProcessModelId = useQueryProcessModelId();
 
   const columns: ProColumns<BindingTableItem>[] = [
     {
@@ -257,14 +280,33 @@ const FormBindings: React.FC = () => {
   return (
     <PageContainer title="表单绑定" content="将流程任务节点绑定到指定表单版本。">
       {contextHolder}
+      {queryProcessModelId ? (
+        <Alert
+          showIcon
+          type="info"
+          title="正在查看指定流程的表单绑定"
+          description="从流程模型进入后，列表和新建绑定会默认使用该流程模型。"
+          action={
+            <Button size="small" onClick={() => history.push('/form-bindings')}>
+              查看全部
+            </Button>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
       <ProTable<BindingTableItem>
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
         scroll={{ x: 1000 }}
+        params={{ processModelId: queryProcessModelId }}
         request={async (params) => {
           const [bindings, models, schemas] = await Promise.all([
-            listFormBindings(),
+            listFormBindings(
+              queryProcessModelId
+                ? { processModelId: queryProcessModelId }
+                : undefined,
+            ),
             listProcessModels(),
             listFormSchemas(),
           ]);
@@ -324,13 +366,14 @@ const FormBindings: React.FC = () => {
         }}
         toolBarRender={() => [
           <ModalForm<BindingForm>
-            key="create"
+            key={`create-${queryProcessModelId || 'all'}`}
             title="新建表单绑定"
             trigger={
               <Button type="primary" icon={<PlusOutlined />}>
                 新建绑定
               </Button>
             }
+            initialValues={{ processModelId: queryProcessModelId }}
             modalProps={{ destroyOnHidden: true }}
             onFinish={async (values) => {
               await createFormBinding(bindingPayload(values));
@@ -339,7 +382,7 @@ const FormBindings: React.FC = () => {
               return true;
             }}
           >
-            <BindingFormItems />
+            <BindingFormItems initialProcessModelId={queryProcessModelId} />
           </ModalForm>,
         ]}
       />
@@ -365,7 +408,7 @@ const FormBindings: React.FC = () => {
           return true;
         }}
       >
-        <BindingFormItems />
+        <BindingFormItems initialProcessModelId={editing?.processModelId} />
       </ModalForm>
     </PageContainer>
   );

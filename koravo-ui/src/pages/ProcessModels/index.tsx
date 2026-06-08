@@ -130,7 +130,7 @@ const ProcessModels: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 280,
+      width: 340,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -161,6 +161,15 @@ const ProcessModels: React.FC = () => {
             }}
           >
             部署
+          </Button>
+          <Button
+            type="link"
+            disabled={record.status === 'ARCHIVED'}
+            onClick={() =>
+              history.push(`/form-bindings?processModelId=${record.id}`)
+            }
+          >
+            绑定表单
           </Button>
           <Button
             type="link"
