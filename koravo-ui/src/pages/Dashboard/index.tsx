@@ -1,7 +1,8 @@
 import {
+  DeploymentUnitOutlined,
+  EditOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
-  ThunderboltOutlined,
 } from '@ant-design/icons';
 import {
   PageContainer,
@@ -135,27 +136,33 @@ const Dashboard: React.FC = () => {
   return (
     <PageContainer
       title="总览"
-      content="待办、运行、异常和集成状态。"
-      extra={[
-        <Button key="reload" icon={<ReloadOutlined />} onClick={() => refetch()}>
-          刷新
-        </Button>,
-        <Button
-          key="init"
-          icon={<ThunderboltOutlined />}
-          onClick={() => history.push('/quick-start')}
-        >
-          流程启用
-        </Button>,
-        <Button
-          key="start"
-          type="primary"
-          icon={<PlayCircleOutlined />}
-          onClick={() => history.push('/process-instances')}
-        >
-          启动流程
-        </Button>,
-      ]}
+      content="流程模型、运行实例、待办任务和异常状态。"
+      extra={
+        <Flex wrap gap={8}>
+          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
+            刷新
+          </Button>
+          <Button
+            icon={<DeploymentUnitOutlined />}
+            onClick={() => history.push('/process-models')}
+          >
+            流程模型
+          </Button>
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            onClick={() => history.push('/process-designer')}
+          >
+            创建流程
+          </Button>
+          <Button
+            icon={<PlayCircleOutlined />}
+            onClick={() => history.push('/process-instances')}
+          >
+            发起实例
+          </Button>
+        </Flex>
+      }
     >
       {isError && (
         <Alert

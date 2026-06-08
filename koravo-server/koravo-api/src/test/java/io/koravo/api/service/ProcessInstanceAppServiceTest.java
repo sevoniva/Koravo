@@ -39,9 +39,9 @@ class ProcessInstanceAppServiceTest {
 
     @Test
     void startPassesRuntimeContextAndWritesInstanceAudit() {
-        Map<String, Object> variables = Map.of("approver", "admin");
-        StartProcessRequest request = new StartProcessRequest("leaveApproval", "LEAVE-001", variables);
-        ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-1", "pd-1", "LEAVE-001", "RUNNING");
+        Map<String, Object> variables = Map.of("managerApprover", "manager", "financeApprover", "finance");
+        StartProcessRequest request = new StartProcessRequest("purchaseApproval", "PO-001", variables);
+        ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-1", "pd-1", "PO-001", "RUNNING");
         RequestContextHolder.set("req-1", "127.0.0.1");
         TenantContextHolder.setTenantId("tenant-a");
         UserContextHolder.setUserId("starter");
@@ -49,8 +49,8 @@ class ProcessInstanceAppServiceTest {
                 "tenant-a",
                 "starter",
                 "req-1",
-                "leaveApproval",
-                "LEAVE-001",
+                "purchaseApproval",
+                "PO-001",
                 variables
         ))).thenReturn(instance);
 
@@ -58,10 +58,10 @@ class ProcessInstanceAppServiceTest {
 
         assertThat(result).isEqualTo(instance);
         verify(auditLogService).record(eq("PROCESS_INSTANCE_START"), eq("PROCESS_INSTANCE"), eq("pi-1"), eq(Map.of(
-                "processDefinitionKey", "leaveApproval",
+                "processDefinitionKey", "purchaseApproval",
                 "processDefinitionId", "pd-1",
                 "status", "RUNNING",
-                "businessKey", "LEAVE-001"
+                "businessKey", "PO-001"
         )));
     }
 
@@ -71,7 +71,7 @@ class ProcessInstanceAppServiceTest {
         ProcessInstanceDetailDTO instance = new ProcessInstanceDetailDTO(
                 "pi-1",
                 "pd-1",
-                "LEAVE-001",
+                "PO-001",
                 "starter",
                 Instant.parse("2026-06-07T00:00:00Z"),
                 null,
@@ -87,7 +87,7 @@ class ProcessInstanceAppServiceTest {
                 "pi-1",
                 "req-1",
                 "127.0.0.1",
-                "{\"businessKey\":\"LEAVE-001\"}",
+                "{\"businessKey\":\"PO-001\"}",
                 Instant.parse("2026-06-07T00:00:00Z")
         );
         when(processFacade.getInstance("tenant-a", "pi-1")).thenReturn(instance);

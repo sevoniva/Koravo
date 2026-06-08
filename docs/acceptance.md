@@ -35,11 +35,11 @@ The console workflow check is:
 1. Start dependencies with `docker compose up -d postgres redis minio`.
 2. Start `koravo-bootstrap`.
 3. Start `koravo-ui`.
-4. Use `Process Designer` to create or import `examples/bpmn/leave-approval.bpmn20.xml`, validate, save draft, and deploy.
-5. Create a form schema in `Forms`.
-6. Bind the form to `approveTask` in `Form Bindings` by `processModelId` or `processDefinitionId`.
-7. Start `leaveApproval` from `Process Instances`.
-8. Complete the approval task from `Tasks` or task detail with variables, form data, and comment.
+4. Use `Process Designer` to create or import `examples/bpmn/purchase-approval.bpmn20.xml`, validate, save draft, and deploy.
+5. Create a purchase request form schema in `Forms`.
+6. Bind the form to `managerApprovalTask` and `financeApprovalTask` in `Form Bindings` by `processModelId` or `processDefinitionId`.
+7. Start `purchaseApproval` from `Process Instances`.
+8. Complete both approval tasks from `Tasks` or task detail with variables, form data, and comments.
 9. Inspect `Process Instance` / `Ops` trace, current and completed activities, variables, task detail, form snapshots, and audit logs.
 10. Use `Data Sources` to create, update, test, and inspect datasource test logs.
 

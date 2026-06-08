@@ -27,9 +27,9 @@ class ProcessInstanceControllerTest {
     void startDelegatesToApplicationService() {
         ProcessInstanceAppService service = mock(ProcessInstanceAppService.class);
         ProcessInstanceController controller = new ProcessInstanceController(service);
-        Map<String, Object> variables = Map.of("approver", "admin");
-        StartProcessRequest request = new StartProcessRequest("leaveApproval", "LEAVE-001", variables);
-        ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-1", "pd-1", "LEAVE-001", "RUNNING");
+        Map<String, Object> variables = Map.of("managerApprover", "manager", "financeApprover", "finance");
+        StartProcessRequest request = new StartProcessRequest("purchaseApproval", "PO-001", variables);
+        ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-1", "pd-1", "PO-001", "RUNNING");
         when(service.start(request)).thenReturn(instance);
 
         var response = controller.start(request);

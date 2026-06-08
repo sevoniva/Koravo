@@ -149,7 +149,7 @@ const ProcessInstances: React.FC = () => {
               name="variables"
               label="变量"
               fieldProps={{ rows: 8 }}
-              placeholder='{"amount": 1000}'
+              placeholder='{"applicant":"张三","department":"研发部","itemName":"测试环境服务器","amount":12000,"reason":"用于流程集成测试和性能验证","managerApprover":"admin","financeApprover":"admin"}'
             />
           </ModalForm>,
         ]}

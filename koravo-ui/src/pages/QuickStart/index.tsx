@@ -63,7 +63,7 @@ const QuickStart: React.FC = () => {
   const initializeMutation = useMutation({
     mutationFn: initializeWorkflowAssets,
     onSuccess: async () => {
-      message.success('流程配置已初始化');
+      message.success('基础配置已补齐');
       await refetch();
     },
   });
@@ -71,13 +71,16 @@ const QuickStart: React.FC = () => {
   const startMutation = useMutation({
     mutationFn: () =>
       startProcessInstance({
-        processDefinitionKey: data?.processDefinitionKey || 'leaveApproval',
-        businessKey: `LEAVE-${Date.now()}`,
+        processDefinitionKey: data?.processDefinitionKey || 'purchaseApproval',
+        businessKey: `PO-${Date.now()}`,
         variables: data?.defaultStartVariables || {
           applicant: 'admin',
-          approver: 'admin',
-          days: 1,
-          reason: '流程启用验证',
+          department: '研发部',
+          itemName: '测试环境服务器',
+          amount: 12000,
+          reason: '用于流程集成测试和性能验证',
+          managerApprover: 'admin',
+          financeApprover: 'admin',
         },
       }),
     onSuccess: (instance) => {
@@ -89,8 +92,8 @@ const QuickStart: React.FC = () => {
   const rows = useMemo<StepRow[]>(
     () => [
       { key: 'process', name: '流程模型', status: data?.process },
-      { key: 'form', name: '表单配置', status: data?.form },
-      { key: 'binding', name: '任务绑定', status: data?.binding },
+      { key: 'form', name: '采购申请单', status: data?.form },
+      { key: 'binding', name: '审批绑定', status: data?.binding },
       { key: 'todo', name: '待办任务', status: data?.todo },
       { key: 'audit', name: '审计记录', status: data?.audit },
     ],
@@ -102,8 +105,8 @@ const QuickStart: React.FC = () => {
 
   return (
     <PageContainer
-      title="流程启用"
-      content="初始化请假审批配置，并完成首个流程流转。"
+      title="配置检查"
+      content="检查基础流程资产，必要时补齐采购申请流程、表单和审批绑定。"
       extra={[
         <Button key="reload" icon={<ReloadOutlined />} onClick={() => refetch()}>
           刷新
@@ -114,7 +117,7 @@ const QuickStart: React.FC = () => {
           loading={initializeMutation.isPending}
           onClick={() => initializeMutation.mutate()}
         >
-          初始化配置
+          补齐配置
         </Button>,
         <Button
           key="start"
@@ -124,7 +127,7 @@ const QuickStart: React.FC = () => {
           disabled={!data?.process?.ready}
           onClick={() => startMutation.mutate()}
         >
-          启动流程
+          发起采购申请
         </Button>,
       ]}
     >
@@ -159,7 +162,7 @@ const QuickStart: React.FC = () => {
               dataIndex="processDefinitionKey"
               renderText={(value) => processDisplayName(value)}
             />
-            <ProDescriptions.Item label="初始化">
+            <ProDescriptions.Item label="配置状态">
               <KoravoStatusTag status={Boolean(data?.initialized)} />
             </ProDescriptions.Item>
           </ProDescriptions>

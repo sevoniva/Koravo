@@ -166,14 +166,18 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
 3. Start frontend and open `http://localhost:8000`.
    The Dashboard shows backend health, tenant/user/request context, pending and done task totals, started instances, and HTTP connector success/failure counts.
-4. Use `Process Designer` to create or import `examples/bpmn/leave-approval.bpmn20.xml`, validate it, save the draft, and deploy it. `Process Models` can also validate a stored draft and show structured errors or warnings before deployment.
-5. Create a form schema in `Forms`, bind it to `approveTask` with either the stored `processModelId` or deployed `processDefinitionId` in `Form Bindings`, then start a process with `processDefinitionKey = leaveApproval` and variables:
+4. Use `Process Designer` to create or import `examples/bpmn/purchase-approval.bpmn20.xml`, validate it, save the draft, and deploy it. `Process Models` can also validate a stored draft and show structured errors or warnings before deployment.
+5. Create a purchase request form schema in `Forms`, bind it to `managerApprovalTask` and `financeApprovalTask` with either the stored `processModelId` or deployed `processDefinitionId` in `Form Bindings`, then start a process with `processDefinitionKey = purchaseApproval` and variables:
 
 ```json
 {
   "applicant": "u001",
-  "approver": "admin",
-  "days": 2
+  "department": "Engineering",
+  "itemName": "Test environment server",
+  "amount": 12000,
+  "reason": "Workflow integration testing",
+  "managerApprover": "admin",
+  "financeApprover": "admin"
 }
 ```
 
@@ -192,7 +196,7 @@ Deploy BPMN:
 curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Leave%20Approval' \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: admin' \
-  -F 'file=@examples/bpmn/leave-approval.bpmn20.xml'
+  -F 'file=@examples/bpmn/purchase-approval.bpmn20.xml'
 ```
 
 Start process:
@@ -202,7 +206,7 @@ curl -X POST http://localhost:8080/api/v1/process-instances/start \
   -H 'Content-Type: application/json' \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: admin' \
-  -d '{"processDefinitionKey":"leaveApproval","businessKey":"LEAVE-001","variables":{"applicant":"u001","approver":"admin","days":2}}'
+  -d '{"processDefinitionKey":"purchaseApproval","businessKey":"PO-001","variables":{"applicant":"u001","department":"Engineering","itemName":"Test environment server","amount":12000,"reason":"Workflow integration testing","managerApprover":"admin","financeApprover":"admin"}}'
 ```
 
 Complete a task:

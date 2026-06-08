@@ -87,8 +87,18 @@ class WorkflowEnablementServiceTest {
                 WorkflowEnablementDefaults.PROCESS_KEY,
                 WorkflowEnablementDefaults.PROCESS_NAME,
                 WorkflowEnablementDefaults.PROCESS_KEY + ".bpmn20.xml",
-                WorkflowEnablementDefaults.leaveApprovalBpmn()
+                WorkflowEnablementDefaults.purchaseApprovalBpmn()
         ))).thenReturn(new ProcessDeploymentDTO(null, "dep-1", "pd-1", WorkflowEnablementDefaults.PROCESS_KEY, 1));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.FINANCE_APPROVE_TASK_KEY
+        )).thenReturn(Optional.empty());
+        when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "model-1",
+                WorkflowEnablementDefaults.FINANCE_APPROVE_TASK_KEY
+        )).thenReturn(Optional.empty());
 
         WorkflowEnablementInitResponse response = service.init();
 
@@ -98,12 +108,13 @@ class WorkflowEnablementServiceTest {
         assertThat(response.formSchemaId()).isEqualTo("form-1");
         assertThat(response.formBindingId()).isEqualTo("binding-1");
         assertThat(response.actions()).contains(
-                "创建请假审批流程模型",
-                "部署请假审批流程",
-                "创建请假申请表",
-                "绑定请假申请表到审批任务"
+                "创建采购申请流程模型",
+                "部署采购申请流程",
+                "创建采购申请单",
+                "绑定采购申请单到部门审批",
+                "绑定采购申请单到财务审批"
         );
-        verify(auditLogService).record(eq("WORKFLOW_ENABLEMENT_INIT"), eq("WORKFLOW_ENABLEMENT"), eq("leave-approval"), any(Map.class));
+        verify(auditLogService).record(eq("WORKFLOW_ENABLEMENT_INIT"), eq("WORKFLOW_ENABLEMENT"), eq("purchase-approval"), any(Map.class));
     }
 
     @Test
@@ -130,6 +141,16 @@ class WorkflowEnablementServiceTest {
                 "default",
                 "model-1",
                 WorkflowEnablementDefaults.APPROVE_TASK_KEY
+        )).thenReturn(Optional.empty());
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.FINANCE_APPROVE_TASK_KEY
+        )).thenReturn(Optional.empty());
+        when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "model-1",
+                WorkflowEnablementDefaults.FINANCE_APPROVE_TASK_KEY
         )).thenReturn(Optional.empty());
         when(formBindingRepository.save(any(KoFormBinding.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -177,7 +198,8 @@ class WorkflowEnablementServiceTest {
         assertThat(response.form().ready()).isTrue();
         assertThat(response.binding().ready()).isTrue();
         assertThat(response.audit().count()).isEqualTo(3);
-        assertThat(response.defaultStartVariables()).containsEntry("approver", "admin");
+        assertThat(response.defaultStartVariables()).containsEntry("managerApprover", "admin");
+        assertThat(response.defaultStartVariables()).containsEntry("financeApprover", "admin");
         verify(processFacade, never()).deploy(any());
     }
 
@@ -192,7 +214,7 @@ class WorkflowEnablementServiceTest {
         model.setStatus(ProcessModelStatus.DEPLOYED);
         model.setFlowableDeploymentId("dep-1");
         model.setFlowableDefinitionId("pd-1");
-        model.setBpmnXml(WorkflowEnablementDefaults.leaveApprovalBpmn());
+        model.setBpmnXml(WorkflowEnablementDefaults.purchaseApprovalBpmn());
         return model;
     }
 
@@ -203,8 +225,8 @@ class WorkflowEnablementServiceTest {
         form.setFormKey(WorkflowEnablementDefaults.FORM_KEY);
         form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
         form.setVersion(2);
-        form.setSchemaJson(WorkflowEnablementDefaults.leaveFormSchema());
-        form.setUiSchemaJson(WorkflowEnablementDefaults.leaveFormUiSchema());
+        form.setSchemaJson(WorkflowEnablementDefaults.purchaseFormSchema());
+        form.setUiSchemaJson(WorkflowEnablementDefaults.purchaseFormUiSchema());
         form.setStatus(FormStatus.ACTIVE);
         return form;
     }

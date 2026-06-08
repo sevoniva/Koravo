@@ -60,7 +60,7 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
       return dom;
     },
     actionsRender: () => [
-      <Tooltip title="流程启用" key="quick-start">
+      <Tooltip title="配置检查" key="quick-start">
         <Button
           type="text"
           icon={<ThunderboltOutlined />}

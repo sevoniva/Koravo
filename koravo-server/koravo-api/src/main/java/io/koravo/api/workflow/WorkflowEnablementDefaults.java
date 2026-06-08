@@ -3,16 +3,18 @@ package io.koravo.api.workflow;
 public final class WorkflowEnablementDefaults {
     public static final String TENANT_ID = "default";
     public static final String USER_ID = "admin";
-    public static final String PROCESS_KEY = "leaveApproval";
-    public static final String PROCESS_NAME = "请假审批流程";
-    public static final String FORM_KEY = "leave-form";
-    public static final String FORM_NAME = "请假申请表";
-    public static final String APPROVE_TASK_KEY = "approveTask";
+    public static final String PROCESS_KEY = "purchaseApproval";
+    public static final String PROCESS_NAME = "采购申请流程";
+    public static final String FORM_KEY = "purchase-request-form";
+    public static final String FORM_NAME = "采购申请单";
+    public static final String MANAGER_APPROVE_TASK_KEY = "managerApprovalTask";
+    public static final String FINANCE_APPROVE_TASK_KEY = "financeApprovalTask";
+    public static final String APPROVE_TASK_KEY = MANAGER_APPROVE_TASK_KEY;
 
     private WorkflowEnablementDefaults() {
     }
 
-    public static String leaveApprovalBpmn() {
+    public static String purchaseApprovalBpmn() {
         return """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
@@ -21,31 +23,67 @@ public final class WorkflowEnablementDefaults {
                              xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
                              xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
                              targetNamespace="https://koravo.io/workflow">
-                  <process id="leaveApproval" name="请假审批流程" isExecutable="true">
+                  <process id="purchaseApproval" name="采购申请流程" isExecutable="true">
                     <startEvent id="start" name="开始"/>
-                    <sequenceFlow id="flow_start_approve" sourceRef="start" targetRef="approveTask"/>
-                    <userTask id="approveTask" name="审批请假" flowable:assignee="${approver}"/>
-                    <sequenceFlow id="flow_approve_end" sourceRef="approveTask" targetRef="end"/>
-                    <endEvent id="end" name="结束"/>
+                    <sequenceFlow id="flow_start_split" sourceRef="start" targetRef="parallelSplit"/>
+                    <parallelGateway id="parallelSplit" name="并行审批"/>
+                    <sequenceFlow id="flow_split_manager" sourceRef="parallelSplit" targetRef="managerApprovalTask"/>
+                    <sequenceFlow id="flow_split_finance" sourceRef="parallelSplit" targetRef="financeApprovalTask"/>
+                    <userTask id="managerApprovalTask" name="部门审批" flowable:assignee="${managerApprover}"/>
+                    <userTask id="financeApprovalTask" name="财务审批" flowable:assignee="${financeApprover}"/>
+                    <sequenceFlow id="flow_manager_join" sourceRef="managerApprovalTask" targetRef="parallelJoin"/>
+                    <sequenceFlow id="flow_finance_join" sourceRef="financeApprovalTask" targetRef="parallelJoin"/>
+                    <parallelGateway id="parallelJoin" name="审批汇总"/>
+                    <sequenceFlow id="flow_join_end" sourceRef="parallelJoin" targetRef="end"/>
+                    <endEvent id="end" name="完成"/>
                   </process>
-                  <bpmndi:BPMNDiagram id="BPMNDiagram_leaveApproval">
-                    <bpmndi:BPMNPlane id="BPMNPlane_leaveApproval" bpmnElement="leaveApproval">
+                  <bpmndi:BPMNDiagram id="BPMNDiagram_purchaseApproval">
+                    <bpmndi:BPMNPlane id="BPMNPlane_purchaseApproval" bpmnElement="purchaseApproval">
                       <bpmndi:BPMNShape id="Shape_start" bpmnElement="start">
-                        <omgdc:Bounds x="100" y="120" width="36" height="36"/>
+                        <omgdc:Bounds x="80" y="160" width="36" height="36"/>
                       </bpmndi:BPMNShape>
-                      <bpmndi:BPMNShape id="Shape_approveTask" bpmnElement="approveTask">
-                        <omgdc:Bounds x="210" y="98" width="120" height="80"/>
+                      <bpmndi:BPMNShape id="Shape_parallelSplit" bpmnElement="parallelSplit" isMarkerVisible="true">
+                        <omgdc:Bounds x="170" y="153" width="50" height="50"/>
+                      </bpmndi:BPMNShape>
+                      <bpmndi:BPMNShape id="Shape_managerApprovalTask" bpmnElement="managerApprovalTask">
+                        <omgdc:Bounds x="290" y="80" width="130" height="80"/>
+                      </bpmndi:BPMNShape>
+                      <bpmndi:BPMNShape id="Shape_financeApprovalTask" bpmnElement="financeApprovalTask">
+                        <omgdc:Bounds x="290" y="210" width="130" height="80"/>
+                      </bpmndi:BPMNShape>
+                      <bpmndi:BPMNShape id="Shape_parallelJoin" bpmnElement="parallelJoin" isMarkerVisible="true">
+                        <omgdc:Bounds x="500" y="153" width="50" height="50"/>
                       </bpmndi:BPMNShape>
                       <bpmndi:BPMNShape id="Shape_end" bpmnElement="end">
-                        <omgdc:Bounds x="420" y="120" width="36" height="36"/>
+                        <omgdc:Bounds x="630" y="160" width="36" height="36"/>
                       </bpmndi:BPMNShape>
-                      <bpmndi:BPMNEdge id="Edge_flow_start_approve" bpmnElement="flow_start_approve">
-                        <omgdi:waypoint x="136" y="138"/>
-                        <omgdi:waypoint x="210" y="138"/>
+                      <bpmndi:BPMNEdge id="Edge_flow_start_split" bpmnElement="flow_start_split">
+                        <omgdi:waypoint x="116" y="178"/>
+                        <omgdi:waypoint x="170" y="178"/>
                       </bpmndi:BPMNEdge>
-                      <bpmndi:BPMNEdge id="Edge_flow_approve_end" bpmnElement="flow_approve_end">
-                        <omgdi:waypoint x="330" y="138"/>
-                        <omgdi:waypoint x="420" y="138"/>
+                      <bpmndi:BPMNEdge id="Edge_flow_split_manager" bpmnElement="flow_split_manager">
+                        <omgdi:waypoint x="195" y="153"/>
+                        <omgdi:waypoint x="195" y="120"/>
+                        <omgdi:waypoint x="290" y="120"/>
+                      </bpmndi:BPMNEdge>
+                      <bpmndi:BPMNEdge id="Edge_flow_split_finance" bpmnElement="flow_split_finance">
+                        <omgdi:waypoint x="195" y="203"/>
+                        <omgdi:waypoint x="195" y="250"/>
+                        <omgdi:waypoint x="290" y="250"/>
+                      </bpmndi:BPMNEdge>
+                      <bpmndi:BPMNEdge id="Edge_flow_manager_join" bpmnElement="flow_manager_join">
+                        <omgdi:waypoint x="420" y="120"/>
+                        <omgdi:waypoint x="525" y="120"/>
+                        <omgdi:waypoint x="525" y="153"/>
+                      </bpmndi:BPMNEdge>
+                      <bpmndi:BPMNEdge id="Edge_flow_finance_join" bpmnElement="flow_finance_join">
+                        <omgdi:waypoint x="420" y="250"/>
+                        <omgdi:waypoint x="525" y="250"/>
+                        <omgdi:waypoint x="525" y="203"/>
+                      </bpmndi:BPMNEdge>
+                      <bpmndi:BPMNEdge id="Edge_flow_join_end" bpmnElement="flow_join_end">
+                        <omgdi:waypoint x="550" y="178"/>
+                        <omgdi:waypoint x="630" y="178"/>
                       </bpmndi:BPMNEdge>
                     </bpmndi:BPMNPlane>
                   </bpmndi:BPMNDiagram>
@@ -53,43 +91,44 @@ public final class WorkflowEnablementDefaults {
                 """;
     }
 
-    public static String leaveFormSchema() {
+    public static String purchaseFormSchema() {
         return """
                 {
                   "type": "object",
-                  "required": ["applicant", "leaveType", "startDate", "endDate", "days", "reason"],
+                  "required": ["applicant", "department", "itemName", "amount", "reason", "managerApprover", "financeApprover"],
                   "properties": {
                     "applicant": {
                       "type": "string",
                       "title": "申请人"
                     },
-                    "leaveType": {
+                    "department": {
                       "type": "string",
-                      "title": "请假类型",
-                      "enum": ["年假", "事假", "病假", "调休", "其他"]
+                      "title": "申请部门"
                     },
-                    "startDate": {
+                    "itemName": {
                       "type": "string",
-                      "format": "date",
-                      "title": "开始日期"
+                      "title": "采购内容"
                     },
-                    "endDate": {
-                      "type": "string",
-                      "format": "date",
-                      "title": "结束日期"
-                    },
-                    "days": {
+                    "amount": {
                       "type": "number",
-                      "title": "请假天数"
+                      "title": "预算金额"
                     },
                     "reason": {
                       "type": "string",
-                      "title": "请假原因",
+                      "title": "采购原因",
                       "ui:widget": "textarea"
                     },
-                    "attachmentNote": {
+                    "managerApprover": {
                       "type": "string",
-                      "title": "附件说明",
+                      "title": "部门审批人"
+                    },
+                    "financeApprover": {
+                      "type": "string",
+                      "title": "财务审批人"
+                    },
+                    "remark": {
+                      "type": "string",
+                      "title": "备注",
                       "ui:widget": "textarea"
                     }
                   }
@@ -97,13 +136,13 @@ public final class WorkflowEnablementDefaults {
                 """;
     }
 
-    public static String leaveFormUiSchema() {
+    public static String purchaseFormUiSchema() {
         return """
                 {
                   "reason": {
                     "widget": "textarea"
                   },
-                  "attachmentNote": {
+                  "remark": {
                     "widget": "textarea"
                   }
                 }

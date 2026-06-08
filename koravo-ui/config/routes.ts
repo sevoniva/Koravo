@@ -10,27 +10,21 @@ export default [
     component: './Dashboard',
   },
   {
-    path: '/quick-start',
-    name: '流程启用',
-    icon: 'thunderbolt',
-    component: './QuickStart',
-  },
-  {
     key: 'process',
     name: '流程',
     icon: 'partition',
     routes: [
       {
+        path: '/process-designer',
+        name: '流程设计',
+        icon: 'edit',
+        component: './ProcessDesigner',
+      },
+      {
         path: '/process-models',
         name: '流程模型',
         icon: 'deploymentUnit',
         component: './ProcessModels',
-      },
-      {
-        path: '/process-designer',
-        name: '流程设计器',
-        icon: 'edit',
-        component: './ProcessDesigner',
       },
       {
         path: '/process-instances',
@@ -46,7 +40,7 @@ export default [
       },
       {
         path: '/tasks',
-        name: '我的任务',
+        name: '任务中心',
         icon: 'checkCircle',
         component: './Tasks',
       },
@@ -118,6 +112,12 @@ export default [
         name: '系统设置',
         icon: 'setting',
         component: './SystemSettings',
+      },
+      {
+        path: '/quick-start',
+        name: '配置检查',
+        hideInMenu: true,
+        component: './QuickStart',
       },
     ],
   },
