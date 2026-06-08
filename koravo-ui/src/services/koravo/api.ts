@@ -4,7 +4,8 @@ import type {
   DashboardSummary,
   OpsJobItem,
   OpsSummary,
-  SystemHealth
+  SystemHealth,
+  SystemHealthItem
 } from '../../types/koravo'
 
 export type {
@@ -12,7 +13,8 @@ export type {
   DashboardSummary,
   OpsJobItem,
   OpsSummary,
-  SystemHealth
+  SystemHealth,
+  SystemHealthItem
 } from '../../types/koravo'
 
 export type JsonRecord = Record<string, unknown>
