@@ -6,11 +6,12 @@ import {
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
-import { Button, Tooltip } from 'antd';
+import { App as AntdApp, Button, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import React from 'react';
 import { ErrorBoundary, Footer, OfflineBanner } from '@/components';
+import { setFeedbackApis } from '@/services/koravo/feedback';
 import {
   getSessionContext,
   type SessionContext,
@@ -91,11 +92,22 @@ export const request: RequestConfig = {
   ...errorConfig,
 };
 
+const FeedbackBridge: React.FC = () => {
+  const { message, notification } = AntdApp.useApp();
+
+  React.useEffect(() => {
+    setFeedbackApis({ message, notification });
+  }, [message, notification]);
+
+  return null;
+};
+
 export function rootContainer(container: React.ReactNode) {
   return (
-    <>
+    <AntdApp>
+      <FeedbackBridge />
       <OfflineBanner />
       <ErrorBoundary>{container}</ErrorBoundary>
-    </>
+    </AntdApp>
   );
 }

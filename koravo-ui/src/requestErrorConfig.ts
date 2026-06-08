@@ -1,6 +1,9 @@
-﻿import type { RequestOptions } from '@@/plugin-request/request';
+import type { RequestOptions } from '@@/plugin-request/request';
 import type { RequestConfig } from '@umijs/max';
-import { message, notification } from 'antd';
+import {
+  showErrorMessage,
+  showErrorNotification,
+} from './services/koravo/feedback';
 import { getSessionContext, setLastRequestId } from './services/koravo/session';
 
 interface KoravoResponse {
@@ -27,7 +30,7 @@ export const errorConfig: RequestConfig = {
       if (error.name === 'KoravoBizError') {
         const info = error.info as KoravoResponse;
         const suffix = info.requestId ? `（追踪号 ${info.requestId}）` : '';
-        message.error(`${info.message || '请求失败'}${suffix}`);
+        showErrorMessage(`${info.message || '请求失败'}${suffix}`);
         return;
       }
 
@@ -35,7 +38,7 @@ export const errorConfig: RequestConfig = {
         const requestId =
           error.response?.data?.requestId || error.response?.headers?.['x-request-id'];
         const suffix = requestId ? `（追踪号 ${requestId}）` : '';
-        notification.error({
+        showErrorNotification({
           message: `HTTP ${error.response.status}`,
           description: `后端请求失败${suffix}`,
         });
@@ -43,11 +46,11 @@ export const errorConfig: RequestConfig = {
       }
 
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        message.error('网络不可用，请检查连接后重试');
+        showErrorMessage('网络不可用，请检查连接后重试');
         return;
       }
 
-      message.error('无法连接后端服务，请确认 koravo-server 已启动');
+      showErrorMessage('无法连接后端服务，请确认 koravo-server 已启动');
     },
   },
 

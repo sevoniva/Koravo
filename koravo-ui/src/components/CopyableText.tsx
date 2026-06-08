@@ -1,5 +1,5 @@
 import { CopyOutlined } from '@ant-design/icons';
-import { Button, Typography, message } from 'antd';
+import { App, Button, Typography } from 'antd';
 import React from 'react';
 import { shortTraceLabel } from '@/utils/display';
 
@@ -7,6 +7,8 @@ export const CopyableText: React.FC<{
   value?: string | number | null;
   displayValue?: string;
 }> = ({ value, displayValue }) => {
+  const { message } = App.useApp();
+
   if (value === undefined || value === null || value === '') return <>-</>;
   const text = String(value);
 
