@@ -14,7 +14,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Button, Modal, Space, message } from 'antd';
+import { App, Button, Empty, Modal, Space } from 'antd';
 import React, { useRef } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -41,7 +41,6 @@ interface ProcessModelForm {
   modelKey: string;
   modelName: string;
   description?: string;
-  bpmnXml?: string;
 }
 
 function downloadModelFile(record: ProcessModelItem, blob: Blob) {
@@ -54,6 +53,7 @@ function downloadModelFile(record: ProcessModelItem, blob: Blob) {
 }
 
 const ProcessModels: React.FC = () => {
+  const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
   const [modal, contextHolder] = Modal.useModal();
 
@@ -143,6 +143,7 @@ const ProcessModels: React.FC = () => {
           </Button>
           <Button
             type="link"
+            disabled={record.status === 'ARCHIVED'}
             onClick={async () => {
               await validateProcessModel(record.id);
               message.success('校验通过');
@@ -152,6 +153,7 @@ const ProcessModels: React.FC = () => {
           </Button>
           <Button
             type="link"
+            disabled={record.status === 'ARCHIVED'}
             onClick={async () => {
               await deployProcessModelDraft(record.id);
               message.success('已部署');
@@ -172,6 +174,7 @@ const ProcessModels: React.FC = () => {
           <Button
             type="link"
             danger
+            disabled={record.status !== 'DEPLOYED'}
             onClick={() => {
               modal.confirm({
                 title: '停用流程模型',
@@ -191,6 +194,7 @@ const ProcessModels: React.FC = () => {
           <Button
             type="link"
             danger
+            disabled={record.status === 'ARCHIVED'}
             onClick={() => {
               modal.confirm({
                 title: '归档流程模型',
@@ -248,6 +252,30 @@ const ProcessModels: React.FC = () => {
           reload: true,
           setting: true,
         }}
+        locale={{
+          emptyText: (
+            <Empty
+              description="暂无流程模型"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => history.push('/process-designer')}
+                >
+                  创建流程
+                </Button>
+                <Button
+                  icon={<CloudUploadOutlined />}
+                  onClick={() => history.push('/process-designer')}
+                >
+                  导入 BPMN
+                </Button>
+              </Space>
+            </Empty>
+          ),
+        }}
         toolBarRender={() => [
           <Button
             key="refresh"
@@ -266,16 +294,23 @@ const ProcessModels: React.FC = () => {
             }
             modalProps={{ destroyOnHidden: true }}
             onFinish={async (values) => {
-              await createProcessModel(values);
+              const model = await createProcessModel(values);
               message.success('已创建');
               actionRef.current?.reload();
+              history.push(`/process-designer?modelId=${model.id}`);
               return true;
             }}
           >
             <ProFormText
               name="modelKey"
               label="模型标识"
-              rules={[{ required: true, message: '请输入模型标识' }]}
+              rules={[
+                { required: true, message: '请输入模型标识' },
+                {
+                  pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
+                  message: '仅支持字母、数字、下划线，且不能以数字开头',
+                },
+              ]}
             />
             <ProFormText
               name="modelName"
@@ -283,11 +318,6 @@ const ProcessModels: React.FC = () => {
               rules={[{ required: true, message: '请输入模型名称' }]}
             />
             <ProFormTextArea name="description" label="说明" />
-            <ProFormTextArea
-              name="bpmnXml"
-              label="BPMN XML"
-              fieldProps={{ rows: 8 }}
-            />
           </ModalForm>,
           <Button
             key="import"
