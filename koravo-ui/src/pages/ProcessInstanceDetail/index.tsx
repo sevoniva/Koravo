@@ -7,7 +7,8 @@ import {
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Flex, Modal, message } from 'antd';
+import { Alert, App, Badge, Button, Flex, Modal, Steps, Typography } from 'antd';
+import type { StepsProps } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -28,6 +29,94 @@ import {
   taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+
+type StepStatus = NonNullable<NonNullable<StepsProps['items']>[number]['status']>;
+
+interface PurchaseStep {
+  key: string;
+  title: string;
+}
+
+const purchaseApprovalSteps: PurchaseStep[] = [
+  { key: 'start', title: '提交申请' },
+  { key: 'managerApprovalTask', title: '部门审批' },
+  { key: 'financeApprovalTask', title: '财务审批' },
+  { key: 'end', title: '流程结束' },
+];
+
+function isPurchaseInstance(processDefinitionId?: string) {
+  return processDefinitionId?.startsWith('purchaseApproval:') ?? false;
+}
+
+function findTraceNode(timeline: ProcessTraceNode[], activityId: string) {
+  return timeline.find((item) => item.activityId === activityId);
+}
+
+function isTraceCompleted(timeline: ProcessTraceNode[], activityId: string) {
+  const node = findTraceNode(timeline, activityId);
+  return Boolean(node?.endTime || node?.status === 'COMPLETED');
+}
+
+function findCurrentTask(currentTasks: TaskItem[], taskDefinitionKey: string) {
+  return currentTasks.find((item) => item.taskDefinitionKey === taskDefinitionKey);
+}
+
+function purchaseStepStatus(
+  stepKey: string,
+  currentTasks: TaskItem[],
+  timeline: ProcessTraceNode[],
+): StepStatus {
+  if (findCurrentTask(currentTasks, stepKey)) return 'process';
+  if (isTraceCompleted(timeline, stepKey)) return 'finish';
+  return 'wait';
+}
+
+function purchaseStepDescription(
+  stepKey: string,
+  currentTasks: TaskItem[],
+  timeline: ProcessTraceNode[],
+) {
+  const currentTask = findCurrentTask(currentTasks, stepKey);
+  if (currentTask) {
+    return `待 ${currentTask.assignee || '未分配'} 处理`;
+  }
+
+  const traceNode = findTraceNode(timeline, stepKey);
+  if (traceNode?.endTime) return `完成于 ${formatDateTime(traceNode.endTime)}`;
+  if (traceNode?.startTime) return `开始于 ${formatDateTime(traceNode.startTime)}`;
+  return '未到达';
+}
+
+function purchaseCurrentStep(
+  currentTasks: TaskItem[],
+  timeline: ProcessTraceNode[],
+  instanceStatus?: string,
+) {
+  if (instanceStatus === 'COMPLETED') return purchaseApprovalSteps.length - 1;
+  const firstProcessingIndex = purchaseApprovalSteps.findIndex(
+    (step) => purchaseStepStatus(step.key, currentTasks, timeline) === 'process',
+  );
+  if (firstProcessingIndex >= 0) return firstProcessingIndex;
+
+  const lastFinishedIndex = purchaseApprovalSteps.reduce((lastIndex, step, index) => {
+    return purchaseStepStatus(step.key, currentTasks, timeline) === 'finish'
+      ? index
+      : lastIndex;
+  }, 0);
+  return lastFinishedIndex;
+}
+
+function purchaseApprovalNodeCount(currentTasks: TaskItem[]) {
+  return currentTasks.filter((task) =>
+    ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
+  ).length;
+}
+
+function instanceActionDisabled(status: string | undefined, action: 'suspend' | 'activate' | 'terminate') {
+  if (action === 'suspend') return status !== 'RUNNING';
+  if (action === 'activate') return status !== 'SUSPENDED';
+  return !['RUNNING', 'SUSPENDED'].includes(status || '');
+}
 
 const taskColumns: ProColumns<TaskItem>[] = [
   { title: '任务名称', dataIndex: 'name' },
@@ -108,6 +197,7 @@ const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
   const instanceId = params.instanceId || '';
   const [modal, contextHolder] = Modal.useModal();
+  const { message } = App.useApp();
   const {
     data: instance,
     isLoading,
@@ -122,6 +212,10 @@ const ProcessInstanceDetail: React.FC = () => {
     queryFn: () => getProcessTrace(instanceId),
     enabled: Boolean(instanceId),
   });
+  const currentTasks = instance?.currentTasks || [];
+  const timeline = trace?.timeline || [];
+  const isPurchaseApproval = isPurchaseInstance(instance?.processDefinitionId);
+  const parallelTaskCount = purchaseApprovalNodeCount(currentTasks);
 
   return (
     <PageContainer
@@ -133,6 +227,7 @@ const ProcessInstanceDetail: React.FC = () => {
         </Button>,
         <Button
           key="suspend"
+          disabled={instanceActionDisabled(instance?.status, 'suspend')}
           onClick={() => {
             modal.confirm({
               title: '挂起实例',
@@ -151,6 +246,7 @@ const ProcessInstanceDetail: React.FC = () => {
         </Button>,
         <Button
           key="activate"
+          disabled={instanceActionDisabled(instance?.status, 'activate')}
           onClick={async () => {
             await activateProcessInstance(instanceId);
             message.success('已激活');
@@ -162,6 +258,7 @@ const ProcessInstanceDetail: React.FC = () => {
         <Button
           key="terminate"
           danger
+          disabled={instanceActionDisabled(instance?.status, 'terminate')}
           onClick={() => {
             modal.confirm({
               title: '终止实例',
@@ -202,11 +299,58 @@ const ProcessInstanceDetail: React.FC = () => {
       </ProCard>
 
       <Flex vertical gap={16}>
-        <ProCard title="当前任务">
+        {isPurchaseApproval ? (
+          <ProCard title="审批进度">
+            <Flex vertical gap={16}>
+              {parallelTaskCount > 1 ? (
+                <Alert
+                  showIcon
+                  type="info"
+                  title={`当前有 ${parallelTaskCount} 个并行审批待处理`}
+                  description="部门审批和财务审批可以分别处理，全部完成后流程继续流转。"
+                />
+              ) : null}
+              <Steps
+                responsive
+                current={purchaseCurrentStep(
+                  currentTasks,
+                  timeline,
+                  instance?.status,
+                )}
+                items={purchaseApprovalSteps.map((step) => ({
+                  title: step.title,
+                  status: purchaseStepStatus(step.key, currentTasks, timeline),
+                  content: purchaseStepDescription(
+                    step.key,
+                    currentTasks,
+                    timeline,
+                  ),
+                }))}
+              />
+              <Flex gap={16} wrap>
+                <Badge
+                  status={parallelTaskCount ? 'processing' : 'success'}
+                  text={`待处理 ${parallelTaskCount}`}
+                />
+                <Typography.Text type="secondary">
+                  业务标识：{instance?.businessKey || '-'}
+                </Typography.Text>
+              </Flex>
+            </Flex>
+          </ProCard>
+        ) : null}
+        <ProCard
+          title={
+            <Flex align="center" gap={8}>
+              <span>当前任务</span>
+              <Badge count={currentTasks.length} showZero />
+            </Flex>
+          }
+        >
           <ProTable<TaskItem>
             rowKey="taskId"
             columns={taskColumns}
-            dataSource={instance?.currentTasks || []}
+            dataSource={currentTasks}
             search={false}
             pagination={false}
             options={false}
@@ -218,7 +362,7 @@ const ProcessInstanceDetail: React.FC = () => {
               `${record.activityId}-${record.activityType}-${record.startTime || 'pending'}-${record.endTime || 'running'}-${record.status}`
             }
             columns={traceColumns}
-            dataSource={trace?.timeline || []}
+            dataSource={timeline}
             search={false}
             pagination={false}
             options={false}
