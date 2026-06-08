@@ -66,16 +66,20 @@ const CONNECTOR_TYPE_LABELS: Record<string, string> = {
 };
 
 const BUSINESS_FIELD_LABELS: Record<string, string> = {
-  applicant: '申请人',
-  department: '申请部门',
-  itemName: '采购事项',
-  amount: '采购金额',
-  reason: '申请事由',
+  applicant: '发起人',
+  requester: '发起人',
+  department: '所属部门',
+  itemName: '事项名称',
+  subject: '事项名称',
+  amount: '金额',
+  reason: '事项说明',
+  description: '事项说明',
   remark: '备注',
-  managerApprover: '部门审批人',
-  financeApprover: '财务审批人',
+  managerApprover: '一级处理人',
+  financeApprover: '二级处理人',
   approver: '处理人',
-  approved: '审批结论',
+  handler: '处理人',
+  approved: '处理结论',
   opinion: '处理意见',
   businessKey: '业务编号',
   id: '编号',
@@ -121,14 +125,23 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   response: '响应',
 };
 
+function readableIdentifier(value?: string | null) {
+  if (!value) return '-';
+  const text = value.trim();
+  if (!text) return '-';
+  return text
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function processDisplayName(modelKey?: string, fallback?: string) {
   const mapping: Record<string, string> = {
-    purchaseApproval: '采购申请',
-    leaveApproval: '请假审批',
     httpConnectorDemo: 'HTTP 健康检查',
     httpHealthCheck: 'HTTP 健康检查',
   };
-  return mapping[modelKey || ''] || fallback || modelKey || '-';
+  return mapping[modelKey || ''] || fallback || readableIdentifier(modelKey);
 }
 
 export function processModelKeyLabel(modelKey?: string | null) {
@@ -163,8 +176,6 @@ export function productCopy(value?: string | null) {
 
 export function processKindLabel(modelKey?: string) {
   const mapping: Record<string, string> = {
-    purchaseApproval: '采购申请流程',
-    leaveApproval: '人员请假审批流程',
     httpConnectorDemo: 'HTTP 连接器调用流程',
     httpHealthCheck: 'HTTP 连接器调用流程',
   };
@@ -184,11 +195,11 @@ export function taskDefinitionLabel(
 ) {
   if (!key) return '-';
   const mapping: Record<string, string> = {
-    managerApprovalTask: '部门审批',
-    financeApprovalTask: '财务审批',
-    approveTask: '审批请假',
+    managerApprovalTask: '一级处理',
+    financeApprovalTask: '二级处理',
+    approveTask: '处理任务',
   };
-  return task?.name || mapping[key] || key;
+  return task?.name || mapping[key] || readableIdentifier(key);
 }
 
 export function auditActionLabel(value?: string | null) {
@@ -223,7 +234,7 @@ export function shortTraceLabel(value?: string | number | null) {
 
 export function businessFieldLabel(value?: string | null) {
   if (!value) return '-';
-  return BUSINESS_FIELD_LABELS[value] || taskDefinitionLabel(value) || value;
+  return BUSINESS_FIELD_LABELS[value] || readableIdentifier(value);
 }
 
 function auditCodeLabel(

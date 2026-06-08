@@ -1,5 +1,8 @@
-import { ProDescriptions, type ProDescriptionsItemProps } from '@ant-design/pro-components';
-import { Empty, Grid, Tag, Typography } from 'antd';
+import {
+  ProDescriptions,
+  type ProDescriptionsItemProps,
+} from '@ant-design/pro-components';
+import { Empty, Tag, Typography } from 'antd';
 import React from 'react';
 import { businessFieldLabel } from '@/utils/display';
 import { maskSecret } from '@/utils/format';
@@ -32,10 +35,15 @@ function parseJsonObject(value?: string): JsonRecord {
   }
 }
 
-function schemaFields(schemaJson?: string, uiSchemaJson?: string): BusinessField[] {
+function schemaFields(
+  schemaJson?: string,
+  uiSchemaJson?: string,
+): BusinessField[] {
   const schema = parseJsonObject(schemaJson);
   const uiSchema = parseJsonObject(uiSchemaJson);
-  const properties = schema.properties as Record<string, JsonRecord> | undefined;
+  const properties = schema.properties as
+    | Record<string, JsonRecord>
+    | undefined;
   if (!properties || typeof properties !== 'object') return [];
 
   return Object.entries(properties).map(([key, property]) => {
@@ -44,7 +52,12 @@ function schemaFields(schemaJson?: string, uiSchemaJson?: string): BusinessField
       key,
       title: String(property.title || businessFieldLabel(key)),
       type: typeof property.type === 'string' ? property.type : undefined,
-      widget: String(property['ui:widget'] || uiField?.['ui:widget'] || uiField?.widget || ''),
+      widget: String(
+        property['ui:widget'] ||
+          uiField?.['ui:widget'] ||
+          uiField?.widget ||
+          '',
+      ),
     };
   });
 }
@@ -63,12 +76,28 @@ function valueText(value: unknown): string {
   return String(value);
 }
 
-function renderValue(value: unknown) {
+function renderValue(field: BusinessField, value: unknown) {
   if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'boolean') {
-    return <Tag color={value ? 'success' : 'default'}>{value ? '是' : '否'}</Tag>;
+    return (
+      <Tag color={value ? 'success' : 'default'}>{value ? '是' : '否'}</Tag>
+    );
   }
   if (typeof value === 'number') return value.toLocaleString('zh-CN');
+  if (isLongField(field, value)) {
+    return (
+      <Typography.Paragraph
+        ellipsis={{
+          rows: 3,
+          expandable: 'collapsible',
+          symbol: (expanded) => (expanded ? '收起' : '展开'),
+        }}
+        style={{ marginBottom: 0 }}
+      >
+        {valueText(value)}
+      </Typography.Paragraph>
+    );
+  }
   return (
     <Typography.Text ellipsis={{ tooltip: valueText(value) }}>
       {valueText(value)}
@@ -79,7 +108,9 @@ function renderValue(value: unknown) {
 function isLongField(field: BusinessField, value: unknown) {
   if (field.widget === 'textarea') return true;
   const text = valueText(value);
-  return text.length > 32 || field.type === 'array' || typeof value === 'object';
+  return (
+    text.length > 32 || field.type === 'array' || typeof value === 'object'
+  );
 }
 
 const BusinessDataDescriptions: React.FC<BusinessDataDescriptionsProps> = ({
@@ -88,32 +119,43 @@ const BusinessDataDescriptions: React.FC<BusinessDataDescriptionsProps> = ({
   uiSchemaJson,
   values,
 }) => {
-  const screens = Grid.useBreakpoint();
-  const wideLayout = Boolean(screens.md);
   const dataSource = (maskSecret(values || {}) || {}) as JsonRecord;
   const fieldsFromSchema = schemaFields(schemaJson, uiSchemaJson);
   const fields = fieldsFromSchema.length
     ? fieldsFromSchema
-    : Object.keys(dataSource).map((key) => ({ key, title: businessFieldLabel(key) }));
+    : Object.keys(dataSource).map((key) => ({
+        key,
+        title: businessFieldLabel(key),
+      }));
 
-  const visibleFields = fields.filter((field) => dataSource[field.key] !== undefined);
+  const visibleFields = fields.filter(
+    (field) => dataSource[field.key] !== undefined,
+  );
 
   if (!visibleFields.length) {
-    return <Empty description={emptyText} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+    return (
+      <Empty description={emptyText} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+    );
   }
 
-  const columns: ProDescriptionsItemProps<JsonRecord>[] = visibleFields.map((field) => ({
-    title: field.title,
-    dataIndex: field.key,
-    span: isLongField(field, dataSource[field.key]) && wideLayout ? 2 : 1,
-    render: (_, record) => renderValue(record[field.key]),
-  }));
+  const columns: ProDescriptionsItemProps<JsonRecord>[] = visibleFields.map(
+    (field) => ({
+      title: field.title,
+      dataIndex: field.key,
+      span: isLongField(field, dataSource[field.key]) ? 'filled' : 1,
+      render: (_, record) => renderValue(field, record[field.key]),
+    }),
+  );
 
   return (
     <ProDescriptions<JsonRecord>
-      column={{ xs: 1, sm: 1, md: 2 }}
+      column={{ xs: 1, sm: 1, md: 2, xl: 3 }}
       dataSource={dataSource}
       columns={columns}
+      styles={{
+        label: { minWidth: 112, whiteSpace: 'nowrap' },
+        content: { minWidth: 0, wordBreak: 'break-word' },
+      }}
     />
   );
 };

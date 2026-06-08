@@ -50,13 +50,35 @@ interface JsonSchemaProperty {
 }
 
 const defaultFields: FormFieldConfig[] = [
-  { fieldKey: 'applicant', title: '申请人', type: 'string', widget: 'input', required: true },
-  { fieldKey: 'department', title: '申请部门', type: 'string', widget: 'input', required: true },
-  { fieldKey: 'itemName', title: '采购事项', type: 'string', widget: 'input', required: true },
-  { fieldKey: 'amount', title: '采购金额', type: 'number', widget: 'number', required: true },
-  { fieldKey: 'reason', title: '申请事由', type: 'string', widget: 'textarea', required: true },
-  { fieldKey: 'managerApprover', title: '部门审批人', type: 'string', widget: 'input', required: true },
-  { fieldKey: 'financeApprover', title: '财务审批人', type: 'string', widget: 'input', required: true },
+  {
+    fieldKey: 'requester',
+    title: '发起人',
+    type: 'string',
+    widget: 'input',
+    required: true,
+  },
+  {
+    fieldKey: 'department',
+    title: '所属部门',
+    type: 'string',
+    widget: 'input',
+  },
+  {
+    fieldKey: 'subject',
+    title: '事项名称',
+    type: 'string',
+    widget: 'input',
+    required: true,
+  },
+  { fieldKey: 'amount', title: '金额', type: 'number', widget: 'number' },
+  {
+    fieldKey: 'description',
+    title: '事项说明',
+    type: 'string',
+    widget: 'textarea',
+    required: true,
+  },
+  { fieldKey: 'remark', title: '备注', type: 'string', widget: 'textarea' },
 ];
 
 const fieldTypeOptions = [
@@ -133,16 +155,23 @@ const schemaToFields = (
 ): FormFieldConfig[] => {
   const schema = parseJsonObject(schemaJson);
   const uiSchema = parseJsonObject(uiSchemaJson);
-  const properties = schema.properties as Record<string, JsonSchemaProperty> | undefined;
+  const properties = schema.properties as
+    | Record<string, JsonSchemaProperty>
+    | undefined;
   if (!properties || typeof properties !== 'object') return fallback;
-  const required = Array.isArray(schema.required) ? schema.required.map(String) : [];
+  const required = Array.isArray(schema.required)
+    ? schema.required.map(String)
+    : [];
 
   return Object.entries(properties).map(([fieldKey, property]) => {
     const type = normalizeFieldType(property?.type);
     const uiField = uiSchema[fieldKey] as Record<string, unknown> | undefined;
-    const widget = uiField?.['ui:widget'] || uiField?.widget || property?.['ui:widget'];
+    const widget =
+      uiField?.['ui:widget'] || uiField?.widget || property?.['ui:widget'];
     const placeholder =
-      uiField?.['ui:placeholder'] || uiField?.placeholder || property?.['ui:placeholder'];
+      uiField?.['ui:placeholder'] ||
+      uiField?.placeholder ||
+      property?.['ui:placeholder'];
     return {
       fieldKey,
       title: property?.title || fieldKey,
@@ -176,27 +205,28 @@ const buildPayload = (values: FormSchemaForm) => {
         'ui:widget'?: string;
       }
     >
-  >(
-    (result, field) => {
-      const options = optionsTextToEnum(field.optionsText);
-      result[field.fieldKey] = {
-        title: field.title,
-        type: field.type,
-        ...(options ? { enum: options } : {}),
-        ...(field.format?.trim() ? { format: field.format.trim() } : {}),
-        ...(field.placeholder?.trim() ? { 'ui:placeholder': field.placeholder.trim() } : {}),
-        ...(field.widget ? { 'ui:widget': field.widget } : {}),
-      };
-      return result;
-    },
-    {},
-  );
+  >((result, field) => {
+    const options = optionsTextToEnum(field.optionsText);
+    result[field.fieldKey] = {
+      title: field.title,
+      type: field.type,
+      ...(options ? { enum: options } : {}),
+      ...(field.format?.trim() ? { format: field.format.trim() } : {}),
+      ...(field.placeholder?.trim()
+        ? { 'ui:placeholder': field.placeholder.trim() }
+        : {}),
+      ...(field.widget ? { 'ui:widget': field.widget } : {}),
+    };
+    return result;
+  }, {});
   const uiSchema = fields.reduce<
     Record<string, { 'ui:widget': string; 'ui:placeholder'?: string }>
   >((result, field) => {
     result[field.fieldKey] = {
       'ui:widget': field.widget || normalizeWidget(undefined, field.type),
-      ...(field.placeholder?.trim() ? { 'ui:placeholder': field.placeholder.trim() } : {}),
+      ...(field.placeholder?.trim()
+        ? { 'ui:placeholder': field.placeholder.trim() }
+        : {}),
     };
     return result;
   }, {});
@@ -207,7 +237,9 @@ const buildPayload = (values: FormSchemaForm) => {
     schemaJson: JSON.stringify(
       {
         type: 'object',
-        required: fields.filter((field) => field.required).map((field) => field.fieldKey),
+        required: fields
+          .filter((field) => field.required)
+          .map((field) => field.fieldKey),
         properties,
       },
       null,
@@ -223,10 +255,11 @@ const hasDuplicatedFieldKey = (fields: FormFieldConfig[]) => {
 };
 
 const fieldColumns: ProColumns<FormFieldConfig>[] = [
-  { title: '字段名称', dataIndex: 'title' },
+  { title: '字段名称', dataIndex: 'title', width: 180 },
   {
     title: '字段编码',
     dataIndex: 'fieldKey',
+    width: 180,
     render: (_, record) => <CopyableText value={record.fieldKey} />,
   },
   {
@@ -245,9 +278,11 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
   {
     title: '选项/格式',
     dataIndex: 'optionsText',
+    width: 220,
     search: false,
     renderText: (_, record) => {
-      if (record.optionsText) return record.optionsText.split(/\r?\n/).join('、');
+      if (record.optionsText)
+        return record.optionsText.split(/\r?\n/).join('、');
       return record.format === 'date' ? '日期' : '-';
     },
   },
@@ -255,7 +290,8 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
     title: '规则',
     dataIndex: 'required',
     width: 96,
-    render: (_, record) => (record.required ? <Tag color="red">必填</Tag> : <Tag>选填</Tag>),
+    render: (_, record) =>
+      record.required ? <Tag color="red">必填</Tag> : <Tag>选填</Tag>,
   },
 ];
 
@@ -264,7 +300,7 @@ const renderFormFieldsEditor = () => (
     <Alert
       showIcon
       type="info"
-      title="按实际表单逐项维护字段，系统会自动生成运行所需配置。"
+      title="按业务表单维护字段，保存后可绑定到流程任务节点。"
       style={{ marginBottom: 16 }}
     />
     <ProFormList
@@ -311,7 +347,7 @@ const renderFormFieldsEditor = () => (
           name="placeholder"
           label="输入提示"
           width="sm"
-          placeholder="例如：请输入申请事由"
+          placeholder="例如：请输入事项说明"
         />
         <ProFormText name="format" label="格式" width="xs" placeholder="date" />
         <ProFormTextArea
@@ -332,7 +368,10 @@ const Forms: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormSchemaItem>();
   const [preview, setPreview] = useState<FormSchemaItem>();
-  const previewFields = schemaToFields(preview?.schemaJson, preview?.uiSchemaJson);
+  const previewFields = schemaToFields(
+    preview?.schemaJson,
+    preview?.uiSchemaJson,
+  );
 
   const saveFormSchema = async (values: FormSchemaForm, id?: string) => {
     if (!values.fields?.length) {
@@ -382,7 +421,8 @@ const Forms: React.FC = () => {
       dataIndex: 'schemaJson',
       width: 96,
       search: false,
-      renderText: (_, record) => schemaToFields(record.schemaJson, record.uiSchemaJson).length,
+      renderText: (_, record) =>
+        schemaToFields(record.schemaJson, record.uiSchemaJson).length,
     },
     {
       title: '操作',
@@ -398,7 +438,9 @@ const Forms: React.FC = () => {
         <Button
           key="bind"
           type="link"
-          onClick={() => history.push(`/form-bindings?formSchemaId=${record.id}`)}
+          onClick={() =>
+            history.push(`/form-bindings?formSchemaId=${record.id}`)
+          }
         >
           绑定节点
         </Button>,
@@ -414,7 +456,9 @@ const Forms: React.FC = () => {
         columns={columns}
         request={async (params) => {
           const data = await listFormSchemas();
-          const keyword = String(params.formName || params.formKey || '').trim();
+          const keyword = String(
+            params.formName || params.formKey || '',
+          ).trim();
           return {
             data: keyword
               ? data.filter((item) =>
@@ -465,7 +509,11 @@ const Forms: React.FC = () => {
             ? {
                 formKey: editing.formKey,
                 formName: editing.formName,
-                fields: schemaToFields(editing.schemaJson, editing.uiSchemaJson, defaultFields),
+                fields: schemaToFields(
+                  editing.schemaJson,
+                  editing.uiSchemaJson,
+                  defaultFields,
+                ),
               }
             : undefined
         }
@@ -510,6 +558,7 @@ const Forms: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
+            scroll={{ x: 760 }}
           />
         ) : (
           <Empty description="暂无字段配置" />

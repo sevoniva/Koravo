@@ -68,7 +68,7 @@ interface ModelFormValues {
 
 type ModelViewMode = 'business' | 'all';
 
-const hiddenBusinessModelKeys = new Set(['httpConnectorDemo', 'leaveApproval']);
+const hiddenBusinessModelKeys = new Set(['httpConnectorDemo']);
 const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
 
 const useStyles = createStyles(({ css, token }) => ({

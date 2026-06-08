@@ -73,7 +73,7 @@ interface JsonSchemaProperty {
   'ui:widget'?: string;
 }
 
-const hiddenStartModelKeys = new Set(['httpConnectorDemo', 'leaveApproval']);
+const hiddenStartModelKeys = new Set(['httpConnectorDemo']);
 const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
 
 function nextBusinessKey(prefix = 'REQ') {

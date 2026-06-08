@@ -21,7 +21,7 @@ import {
   initializeWorkflowAssets,
   type WorkflowEnablementStepStatus,
 } from '@/services/koravo/api';
-import { processDisplayName, productCopy } from '@/utils/display';
+import { processKindLabel } from '@/utils/display';
 
 interface StepRow {
   key: string;
@@ -42,7 +42,7 @@ const columns: ProColumns<StepRow>[] = [
   {
     title: '说明',
     dataIndex: 'message',
-    render: (_, record) => productCopy(record.status?.message) || '-',
+    renderText: (_, record) => stepMessage(record),
   },
   {
     title: '数量',
@@ -51,6 +51,18 @@ const columns: ProColumns<StepRow>[] = [
     render: (_, record) => record.status?.count ?? 0,
   },
 ];
+
+function stepMessage(record: StepRow) {
+  if (!record.status?.ready) return `${record.name}待补齐`;
+  const readyMessages: Record<string, string> = {
+    process: '流程模型已部署',
+    form: '业务表单可用',
+    binding: '任务节点已绑定表单',
+    todo: record.status.count ? '当前用户有待办任务' : '暂无待办任务',
+    audit: '已有审计记录',
+  };
+  return readyMessages[record.key] || '配置已就绪';
+}
 
 const QuickStart: React.FC = () => {
   const { message } = App.useApp();
@@ -70,8 +82,8 @@ const QuickStart: React.FC = () => {
   const rows = useMemo<StepRow[]>(
     () => [
       { key: 'process', name: '流程模型', status: data?.process },
-      { key: 'form', name: '采购申请单', status: data?.form },
-      { key: 'binding', name: '审批绑定', status: data?.binding },
+      { key: 'form', name: '业务表单', status: data?.form },
+      { key: 'binding', name: '任务绑定', status: data?.binding },
       { key: 'todo', name: '待办任务', status: data?.todo },
       { key: 'audit', name: '审计记录', status: data?.audit },
     ],
@@ -84,9 +96,13 @@ const QuickStart: React.FC = () => {
   return (
     <PageContainer
       title="资产检查"
-      content="检查采购申请流程、表单和审批绑定是否可用；缺失时可补齐流程资产。"
+      content="检查流程模型、业务表单、任务绑定和待办链路；缺失时可补齐流程资产。"
       extra={[
-        <Button key="reload" icon={<ReloadOutlined />} onClick={() => refetch()}>
+        <Button
+          key="reload"
+          icon={<ReloadOutlined />}
+          onClick={() => refetch()}
+        >
           刷新
         </Button>,
         <Button
@@ -110,7 +126,7 @@ const QuickStart: React.FC = () => {
             )
           }
         >
-          发起采购申请
+          发起流程
         </Button>,
       ]}
     >
@@ -143,7 +159,9 @@ const QuickStart: React.FC = () => {
             <ProDescriptions.Item
               label="流程"
               dataIndex="processDefinitionKey"
-              renderText={(value) => processDisplayName(value)}
+              renderText={(value) =>
+                processKindLabel(String(value || '').split(':')[0])
+              }
             />
             <ProDescriptions.Item label="资产状态">
               <KoravoStatusTag status={Boolean(data?.initialized)} />

@@ -92,7 +92,9 @@ function valueToText(value: unknown): string {
   if (Array.isArray(value)) return value.map(valueToText).join('、');
   if (typeof value === 'object') {
     return Object.entries(value as Record<string, unknown>)
-      .map(([key, child]) => `${businessFieldLabel(key)}：${valueToText(child)}`)
+      .map(
+        ([key, child]) => `${businessFieldLabel(key)}：${valueToText(child)}`,
+      )
       .join('，');
   }
   return String(value);
@@ -129,30 +131,36 @@ function buildRows(value: unknown, parentKey?: string): DetailRow[] {
   if (!value || typeof value !== 'object') return [];
   if (Array.isArray(value)) {
     return value.flatMap((item, index) => {
-      const rowKey = parentKey ? `${parentKey}.${index + 1}` : String(index + 1);
+      const rowKey = parentKey
+        ? `${parentKey}.${index + 1}`
+        : String(index + 1);
       if (item && typeof item === 'object') return buildRows(item, rowKey);
-      return [{ key: rowKey, field: pathLabel(rowKey), value: formatValue(item) }];
+      return [
+        { key: rowKey, field: pathLabel(rowKey), value: formatValue(item) },
+      ];
     });
   }
 
-  return Object.entries(value as Record<string, unknown>).flatMap(([key, item]) => {
-    const rowKey = parentKey ? `${parentKey}.${key}` : key;
-    if (item && typeof item === 'object' && !Array.isArray(item)) {
-      return buildRows(item, rowKey);
-    }
-    return [
-      {
-        key: rowKey,
-        field: pathLabel(rowKey),
-        value: formatValue(item),
-      },
-    ];
-  });
+  return Object.entries(value as Record<string, unknown>).flatMap(
+    ([key, item]) => {
+      const rowKey = parentKey ? `${parentKey}.${key}` : key;
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        return buildRows(item, rowKey);
+      }
+      return [
+        {
+          key: rowKey,
+          field: pathLabel(rowKey),
+          value: formatValue(item),
+        },
+      ];
+    },
+  );
 }
 
 const columns: ProColumns<DetailRow>[] = [
-  { title: '字段', dataIndex: 'field', width: 180 },
-  { title: '内容', dataIndex: 'value' },
+  { title: '字段', dataIndex: 'field', width: 220 },
+  { title: '内容', dataIndex: 'value', width: 460 },
 ];
 
 const StructuredDetailTable: React.FC<StructuredDetailTableProps> = ({
@@ -171,6 +179,7 @@ const StructuredDetailTable: React.FC<StructuredDetailTableProps> = ({
         search={false}
         pagination={false}
         options={false}
+        scroll={{ x: 680 }}
       />
     );
   }
@@ -186,6 +195,7 @@ const StructuredDetailTable: React.FC<StructuredDetailTableProps> = ({
         search={false}
         pagination={false}
         options={false}
+        scroll={{ x: 680 }}
       />
     );
   }

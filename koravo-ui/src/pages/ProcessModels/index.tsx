@@ -69,7 +69,7 @@ type ProcessModelTableItem = ProcessModelItem & {
   formBindingCount: number;
 };
 
-const hiddenBusinessModelKeys = new Set(['httpConnectorDemo', 'leaveApproval']);
+const hiddenBusinessModelKeys = new Set(['httpConnectorDemo']);
 const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
 
 function downloadModelFile(record: ProcessModelItem, blob: Blob) {
