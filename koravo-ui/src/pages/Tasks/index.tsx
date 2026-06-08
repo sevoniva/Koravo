@@ -94,7 +94,7 @@ const taskColumns: ProColumns<TaskItem>[] = [
     render: (_, record) => (
       <Space size={4}>
         <Button type="link" onClick={() => history.push(`/tasks/${record.taskId}`)}>
-          查看任务
+          {record.status === 'COMPLETED' ? '查看任务' : '处理'}
         </Button>
         <Button
           type="link"
