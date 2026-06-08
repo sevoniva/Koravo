@@ -305,57 +305,77 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
   },
 ];
 
-const purchaseApprovalColumns: ProColumns<PurchaseApprovalRecord>[] = [
-  {
-    title: '审批节点',
-    dataIndex: 'taskDefinitionKey',
-    width: 150,
-    renderText: (value) => taskDefinitionLabel(String(value || '')),
-  },
-  { title: '处理人', dataIndex: 'approver', width: 120 },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    width: 100,
-    render: (_, record) =>
-      record.status === 'PENDING' ? (
-        <Tag color="processing">待处理</Tag>
-      ) : (
-        <Tag color="success">已处理</Tag>
-      ),
-  },
-  {
-    title: '结论',
-    dataIndex: 'approved',
-    width: 100,
-    render: (_, record) =>
-      record.status === 'PENDING' ? (
-        <Typography.Text type="secondary">待审批</Typography.Text>
-      ) : record.approved === undefined ? (
-        <Typography.Text type="secondary">未记录</Typography.Text>
-      ) : (
-        <Typography.Text type={record.approved ? 'success' : 'danger'}>
-          {record.approved ? '同意' : '不同意'}
-        </Typography.Text>
-      ),
-  },
-  {
-    title: '意见',
-    dataIndex: 'opinion',
-    render: (_, record) =>
-      record.opinion || (
-        <Typography.Text type="secondary">
-          {record.status === 'PENDING' ? '等待处理人提交意见' : '未填写意见'}
-        </Typography.Text>
-      ),
-  },
-  {
-    title: '处理时间',
-    dataIndex: 'createdAt',
-    width: 170,
-    renderText: formatDateTime,
-  },
-];
+function buildPurchaseApprovalColumns(
+  openTaskAsAssignee: (task: TaskItem) => void,
+  currentTasks: TaskItem[],
+): ProColumns<PurchaseApprovalRecord>[] {
+  return [
+    {
+      title: '审批节点',
+      dataIndex: 'taskDefinitionKey',
+      width: 150,
+      renderText: (value) => taskDefinitionLabel(String(value || '')),
+    },
+    { title: '处理人', dataIndex: 'approver', width: 120 },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 100,
+      render: (_, record) =>
+        record.status === 'PENDING' ? (
+          <Tag color="processing">待处理</Tag>
+        ) : (
+          <Tag color="success">已处理</Tag>
+        ),
+    },
+    {
+      title: '结论',
+      dataIndex: 'approved',
+      width: 100,
+      render: (_, record) =>
+        record.status === 'PENDING' ? (
+          <Typography.Text type="secondary">待审批</Typography.Text>
+        ) : record.approved === undefined ? (
+          <Typography.Text type="secondary">未记录</Typography.Text>
+        ) : (
+          <Typography.Text type={record.approved ? 'success' : 'danger'}>
+            {record.approved ? '同意' : '不同意'}
+          </Typography.Text>
+        ),
+    },
+    {
+      title: '意见',
+      dataIndex: 'opinion',
+      render: (_, record) =>
+        record.opinion || (
+          <Typography.Text type="secondary">
+            {record.status === 'PENDING' ? '等待处理人提交意见' : '未填写意见'}
+          </Typography.Text>
+        ),
+    },
+    {
+      title: '处理时间',
+      dataIndex: 'createdAt',
+      width: 170,
+      renderText: formatDateTime,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 110,
+      render: (_, record) => {
+        const task = currentTasks.find((item) => item.taskId === record.taskId);
+        return record.status === 'PENDING' && task ? (
+          <Button type="link" onClick={() => openTaskAsAssignee(task)}>
+            处理审批
+          </Button>
+        ) : (
+          '-'
+        );
+      },
+    },
+  ];
+}
 
 const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
@@ -468,6 +488,10 @@ const ProcessInstanceDetail: React.FC = () => {
       },
     ],
     [openTaskAsAssignee],
+  );
+  const purchaseApprovalColumns = React.useMemo(
+    () => buildPurchaseApprovalColumns(openTaskAsAssignee, currentTasks),
+    [currentTasks, openTaskAsAssignee],
   );
   const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     {
