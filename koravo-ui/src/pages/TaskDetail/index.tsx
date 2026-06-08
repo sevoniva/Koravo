@@ -13,7 +13,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useParams } from '@umijs/max';
+import { history, useModel, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
@@ -22,6 +22,7 @@ import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   completeTask,
+  getOpsInstance,
   getTaskDetail,
   type AuditLogItem,
   type FormSchemaItem,
@@ -30,6 +31,10 @@ import {
   type TaskCommentItem,
   type TaskItem,
 } from '@/services/koravo/api';
+import {
+  getSessionContext,
+  setSessionContext,
+} from '@/services/koravo/session';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -118,6 +123,16 @@ function parseJsonObject(value?: string): JsonRecord {
 
 function isPurchaseApprovalTask(task?: TaskItem) {
   return PURCHASE_APPROVAL_TASKS.has(task?.taskDefinitionKey || '');
+}
+
+function nextPurchaseApprovalTask(currentTask: TaskItem, tasks: TaskItem[]) {
+  return tasks.find(
+    (item) =>
+      item.taskId !== currentTask.taskId &&
+      item.assignee &&
+      item.status !== 'COMPLETED' &&
+      isPurchaseApprovalTask(item),
+  );
 }
 
 function purchaseApprovalRole(task?: TaskItem) {
@@ -395,6 +410,7 @@ const TaskDetail: React.FC = () => {
   const [snapshot, setSnapshot] = useState<FormSnapshotItem>();
   const [modal, contextHolder] = Modal.useModal();
   const { message } = App.useApp();
+  const { setInitialState } = useModel('@@initialState');
   const {
     data,
     isLoading,
@@ -412,6 +428,28 @@ const TaskDetail: React.FC = () => {
   );
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
   const approvalRole = purchaseApprovalRole(task);
+  const openTaskAsAssignee = React.useCallback(
+    (nextTask: TaskItem) => {
+      const userId = nextTask.assignee?.trim();
+      if (userId) {
+        const next = { ...getSessionContext(), userId };
+        setSessionContext(next);
+        setInitialState((state) => ({
+          ...state,
+          session: next,
+          currentUser: {
+            name: next.userId,
+            userid: next.userId,
+            access: 'admin',
+            tenantId: next.tenantId,
+          },
+        }));
+        message.success(`已切换为 ${userId}`);
+      }
+      history.push(`/tasks/${nextTask.taskId}`);
+    },
+    [message, setInitialState],
+  );
 
   return (
     <PageContainer
@@ -436,27 +474,55 @@ const TaskDetail: React.FC = () => {
                 task.taskId,
                 buildCompletePayload(task, data?.formSchema?.id, values),
               );
+              const instance = await getOpsInstance(task.processInstanceId);
+              const nextTask = nextPurchaseApprovalTask(
+                task,
+                instance.currentTasks || [],
+              );
               message.success('已完成');
               await refetch();
-              modal.success({
+              let taskCompleteModal: { destroy: () => void } | undefined;
+              taskCompleteModal = modal.success({
                 title: '任务已完成',
                 width: 520,
                 okText: '留在当前页',
                 content: (
                   <Flex vertical gap={12}>
                     <span>
-                      {taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，可回到实例查看当前进度、表单快照和审计记录。
+                      {nextTask
+                        ? `${taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，当前实例还有 ${taskDefinitionLabel(nextTask.taskDefinitionKey)} 待处理。`
+                        : `${taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，可回到实例查看当前进度、表单快照和审计记录。`}
                     </span>
                     <Flex gap={8} wrap>
+                      {nextTask ? (
+                        <Button
+                          type="primary"
+                          onClick={() => {
+                            taskCompleteModal?.destroy();
+                            Modal.destroyAll();
+                            openTaskAsAssignee(nextTask);
+                          }}
+                        >
+                          继续处理{taskDefinitionLabel(nextTask.taskDefinitionKey)}
+                        </Button>
+                      ) : null}
                       <Button
-                        type="primary"
-                        onClick={() =>
-                          history.push(`/process-instances/${task.processInstanceId}`)
-                        }
+                        type={nextTask ? 'default' : 'primary'}
+                        onClick={() => {
+                          taskCompleteModal?.destroy();
+                          Modal.destroyAll();
+                          history.push(`/process-instances/${task.processInstanceId}`);
+                        }}
                       >
                         查看实例进度
                       </Button>
-                      <Button onClick={() => history.push('/tasks')}>
+                      <Button
+                        onClick={() => {
+                          taskCompleteModal?.destroy();
+                          Modal.destroyAll();
+                          history.push('/tasks');
+                        }}
+                      >
                         返回任务中心
                       </Button>
                     </Flex>
