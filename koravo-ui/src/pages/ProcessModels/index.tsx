@@ -15,7 +15,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Alert, App, Button, Empty, Modal, Space, type UploadFile } from 'antd';
+import { Alert, App, Button, Empty, Flex, Modal, Space, type UploadFile } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -59,6 +59,10 @@ function downloadModelFile(record: ProcessModelItem, blob: Blob) {
   URL.revokeObjectURL(url);
 }
 
+function deployedDefinitionText(record: ProcessModelItem) {
+  return processDefinitionLabel(record.flowableDefinitionId || record.modelKey);
+}
+
 const ProcessModels: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
@@ -87,6 +91,36 @@ const ProcessModels: React.FC = () => {
     actionRef.current?.reload();
     history.push(`/process-designer?modelId=${deployment.platformModelId}`);
     return true;
+  };
+
+  const showDeploySuccess = (record: ProcessModelItem) => {
+    modal.success({
+      title: '流程已部署',
+      width: 520,
+      okText: '留在列表',
+      content: (
+        <Flex vertical gap={12}>
+          <span>
+            {processDisplayName(record.modelKey, record.modelName)} 已部署为
+            {' '}
+            {deployedDefinitionText(record)}
+          </span>
+          <Space wrap>
+            <Button
+              type="primary"
+              onClick={() =>
+                history.push(`/form-bindings?processModelId=${record.id}`)
+              }
+            >
+              绑定表单
+            </Button>
+            <Button onClick={() => history.push('/process-instances')}>
+              发起实例
+            </Button>
+          </Space>
+        </Flex>
+      ),
+    });
   };
 
   const columns: ProColumns<ProcessModelItem>[] = [
@@ -187,8 +221,8 @@ const ProcessModels: React.FC = () => {
             type="link"
             disabled={record.status === 'ARCHIVED'}
             onClick={async () => {
-              await deployProcessModelDraft(record.id);
-              message.success('已部署');
+              const result = await deployProcessModelDraft(record.id);
+              showDeploySuccess(result.model);
               actionRef.current?.reload();
             }}
           >
