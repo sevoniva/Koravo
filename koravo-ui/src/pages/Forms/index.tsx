@@ -11,7 +11,7 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { App, Button, Drawer, Empty, Space, Tag } from 'antd';
+import { Alert, App, Button, Drawer, Empty, Space, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -259,6 +259,74 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
   },
 ];
 
+const renderFormFieldsEditor = () => (
+  <>
+    <Alert
+      showIcon
+      type="info"
+      title="按实际表单逐项维护字段，系统会自动生成运行所需配置。"
+      style={{ marginBottom: 16 }}
+    />
+    <ProFormList
+      name="fields"
+      label="字段清单"
+      creatorButtonProps={{ creatorButtonText: '添加字段' }}
+      copyIconProps={false}
+      min={1}
+    >
+      <Space align="start" wrap>
+        <ProFormText
+          name="fieldKey"
+          label="字段编码"
+          width="sm"
+          rules={[
+            { required: true, message: '请输入字段编码' },
+            {
+              pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
+              message: '仅支持字母、数字、下划线，且不能以数字开头',
+            },
+          ]}
+        />
+        <ProFormText
+          name="title"
+          label="字段名称"
+          width="sm"
+          rules={[{ required: true, message: '请输入字段名称' }]}
+        />
+        <ProFormSelect
+          name="type"
+          label="类型"
+          width="xs"
+          options={fieldTypeOptions}
+          rules={[{ required: true, message: '请选择类型' }]}
+        />
+        <ProFormSelect
+          name="widget"
+          label="控件"
+          width="sm"
+          options={widgetOptions}
+          rules={[{ required: true, message: '请选择控件' }]}
+        />
+        <ProFormText
+          name="placeholder"
+          label="输入提示"
+          width="sm"
+          placeholder="例如：请输入申请事由"
+        />
+        <ProFormText name="format" label="格式" width="xs" placeholder="date" />
+        <ProFormTextArea
+          name="optionsText"
+          label="选项"
+          width="sm"
+          placeholder="每行一个选项"
+          fieldProps={{ rows: 1 }}
+        />
+        <ProFormSwitch name="required" label="必填" />
+      </Space>
+    </ProFormList>
+  </>
+);
+
 const Forms: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
@@ -369,7 +437,7 @@ const Forms: React.FC = () => {
               </Button>
             }
             initialValues={{ fields: defaultFields }}
-            modalProps={{ destroyOnHidden: true }}
+            modalProps={{ destroyOnHidden: true, width: 920 }}
             onFinish={(values) => saveFormSchema(values)}
           >
             <ProFormText
@@ -383,67 +451,7 @@ const Forms: React.FC = () => {
               label="表单名称"
               rules={[{ required: true, message: '请输入表单名称' }]}
             />
-            <ProFormList
-              name="fields"
-              label="字段配置"
-              creatorButtonProps={{ creatorButtonText: '添加字段' }}
-              min={1}
-            >
-              <Space align="start" wrap>
-                <ProFormText
-                  name="fieldKey"
-                  label="字段编码"
-                  width="sm"
-                  rules={[
-                    { required: true, message: '请输入字段编码' },
-                    {
-                      pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
-                      message: '仅支持字母、数字、下划线，且不能以数字开头',
-                    },
-                  ]}
-                />
-                <ProFormText
-                  name="title"
-                  label="字段名称"
-                  width="sm"
-                  rules={[{ required: true, message: '请输入字段名称' }]}
-                />
-                <ProFormSelect
-                  name="type"
-                  label="类型"
-                  width="xs"
-                  options={fieldTypeOptions}
-                  rules={[{ required: true, message: '请选择类型' }]}
-                />
-                <ProFormSelect
-                  name="widget"
-                  label="控件"
-                  width="sm"
-                  options={widgetOptions}
-                  rules={[{ required: true, message: '请选择控件' }]}
-                />
-                <ProFormText
-                  name="placeholder"
-                  label="输入提示"
-                  width="sm"
-                  placeholder="例如：请输入申请事由"
-                />
-                <ProFormText
-                  name="format"
-                  label="格式"
-                  width="xs"
-                  placeholder="date"
-                />
-                <ProFormTextArea
-                  name="optionsText"
-                  label="选项"
-                  width="sm"
-                  placeholder="每行一个选项"
-                  fieldProps={{ rows: 1 }}
-                />
-                <ProFormSwitch name="required" label="必填" />
-              </Space>
-            </ProFormList>
+            {renderFormFieldsEditor()}
           </ModalForm>,
         ]}
       />
@@ -463,6 +471,7 @@ const Forms: React.FC = () => {
         }
         modalProps={{
           destroyOnHidden: true,
+          width: 920,
           onCancel: () => setEditing(undefined),
         }}
         onOpenChange={(open) => {
@@ -484,67 +493,7 @@ const Forms: React.FC = () => {
           label="表单名称"
           rules={[{ required: true, message: '请输入表单名称' }]}
         />
-        <ProFormList
-          name="fields"
-          label="字段配置"
-          creatorButtonProps={{ creatorButtonText: '添加字段' }}
-          min={1}
-        >
-          <Space align="start" wrap>
-            <ProFormText
-              name="fieldKey"
-              label="字段编码"
-              width="sm"
-              rules={[
-                { required: true, message: '请输入字段编码' },
-                {
-                  pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
-                  message: '仅支持字母、数字、下划线，且不能以数字开头',
-                },
-              ]}
-            />
-            <ProFormText
-              name="title"
-              label="字段名称"
-              width="sm"
-              rules={[{ required: true, message: '请输入字段名称' }]}
-            />
-            <ProFormSelect
-              name="type"
-              label="类型"
-              width="xs"
-              options={fieldTypeOptions}
-              rules={[{ required: true, message: '请选择类型' }]}
-            />
-            <ProFormSelect
-              name="widget"
-              label="控件"
-              width="sm"
-              options={widgetOptions}
-              rules={[{ required: true, message: '请选择控件' }]}
-            />
-            <ProFormText
-              name="placeholder"
-              label="输入提示"
-              width="sm"
-              placeholder="例如：请输入申请事由"
-            />
-            <ProFormText
-              name="format"
-              label="格式"
-              width="xs"
-              placeholder="date"
-            />
-            <ProFormTextArea
-              name="optionsText"
-              label="选项"
-              width="sm"
-              placeholder="每行一个选项"
-              fieldProps={{ rows: 1 }}
-            />
-            <ProFormSwitch name="required" label="必填" />
-          </Space>
-        </ProFormList>
+        {renderFormFieldsEditor()}
       </ModalForm>
 
       <Drawer

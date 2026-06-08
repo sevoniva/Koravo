@@ -231,6 +231,37 @@ function renderParallelApprovalTasks(
   );
 }
 
+function renderPurchaseRequestSummary(values?: JsonRecord) {
+  if (!values) return null;
+
+  return (
+    <ProCard title="采购申请信息" style={{ marginBottom: 16 }}>
+      <ProDescriptions<JsonRecord>
+        column={{ xs: 1, sm: 1, md: 2 }}
+        dataSource={values}
+        columns={[
+          { title: '申请人', dataIndex: 'applicant' },
+          { title: '申请部门', dataIndex: 'department' },
+          { title: '采购事项', dataIndex: 'itemName' },
+          {
+            title: '采购金额',
+            dataIndex: 'amount',
+            render: (_, record) => {
+              if (typeof record.amount === 'number') {
+                return `${record.amount.toLocaleString('zh-CN')} 元`;
+              }
+              return record.amount ? String(record.amount) : '-';
+            },
+          },
+          { title: '申请事由', dataIndex: 'reason' },
+          { title: '部门审批人', dataIndex: 'managerApprover' },
+          { title: '财务审批人', dataIndex: 'financeApprover' },
+        ]}
+      />
+    </ProCard>
+  );
+}
+
 function approvalVariableKey(taskDefinitionKey: string, suffix: string) {
   return `${taskDefinitionKey}${suffix}`;
 }
@@ -666,6 +697,9 @@ const TaskDetail: React.FC = () => {
             instance.currentTasks,
             openTaskAsAssignee,
           )
+        : null}
+      {isPurchaseApprovalTask(task)
+        ? renderPurchaseRequestSummary(data?.processVariables)
         : null}
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
         <ProDescriptions<TaskItem>
