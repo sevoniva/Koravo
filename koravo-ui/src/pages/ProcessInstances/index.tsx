@@ -13,7 +13,7 @@ import {
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Button, Empty, Flex, Form } from 'antd';
+import { Alert, App, Badge, Button, Empty, Flex, Form, Space, Tag, Typography } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -29,7 +29,11 @@ import {
   type OpsProcessInstance,
   type ProcessModelItem,
 } from '@/services/koravo/api';
-import { processDefinitionLabel, processDisplayName } from '@/utils/display';
+import {
+  processDefinitionLabel,
+  processDisplayName,
+  taskDefinitionLabel,
+} from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
 interface StartInstanceForm {
@@ -176,6 +180,30 @@ function normalizeStartVariables(values?: JsonRecord): JsonRecord {
   }, {});
 }
 
+const taskBadgeStatus: Record<string, 'processing' | 'warning'> = {
+  managerApprovalTask: 'processing',
+  financeApprovalTask: 'warning',
+};
+
+function renderCurrentTasks(record: OpsProcessInstance) {
+  if (!record.currentTasks?.length) {
+    return <Typography.Text type="secondary">无待办</Typography.Text>;
+  }
+
+  return (
+    <Space size={[0, 4]} wrap>
+      {record.currentTasks.map((task) => (
+        <Tag key={task.taskId} color="processing">
+          <Badge
+            status={taskBadgeStatus[task.taskDefinitionKey] || 'processing'}
+            text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${task.assignee || '未分配'}`}
+          />
+        </Tag>
+      ))}
+    </Space>
+  );
+}
+
 const columns: ProColumns<OpsProcessInstance>[] = [
   {
     title: '实例编号',
@@ -199,9 +227,9 @@ const columns: ProColumns<OpsProcessInstance>[] = [
   {
     title: '当前任务',
     dataIndex: 'currentTasks',
-    width: 120,
+    width: 260,
     search: false,
-    renderText: (_, record) => record.currentTasks?.length ?? 0,
+    render: (_, record) => renderCurrentTasks(record),
   },
   {
     title: '开始时间',
@@ -214,6 +242,13 @@ const columns: ProColumns<OpsProcessInstance>[] = [
     title: '状态',
     dataIndex: 'status',
     width: 110,
+    valueType: 'select',
+    valueEnum: {
+      RUNNING: { text: '运行中' },
+      COMPLETED: { text: '已完成' },
+      SUSPENDED: { text: '已挂起' },
+      TERMINATED: { text: '已终止' },
+    },
     render: (_, record) => <KoravoStatusTag status={record.status} />,
   },
   {
