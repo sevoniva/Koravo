@@ -67,10 +67,6 @@ interface JsonSchemaProperty {
   'ui:widget'?: string;
 }
 
-function nextPurchaseBusinessKey() {
-  return nextBusinessKey('PO');
-}
-
 function nextBusinessKey(prefix = 'REQ') {
   const now = new Date();
   const date = [
@@ -95,20 +91,6 @@ function businessKeyPrefix(modelKey?: string) {
     .replace(/^-+|-+$/g, '')
     .toUpperCase();
   return normalized || 'REQ';
-}
-
-function purchaseDefaultValues() {
-  return {
-    processDefinitionKey: 'purchaseApproval',
-    businessKey: nextPurchaseBusinessKey(),
-    applicant: '张三',
-    department: '研发部',
-    itemName: '测试环境服务器',
-    amount: 12000,
-    reason: '用于流程集成测试和性能验证',
-    managerApprover: 'manager',
-    financeApprover: 'finance',
-  };
 }
 
 function parseJsonObject(value?: string): JsonRecord {
@@ -281,6 +263,13 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
         processDefinitionId: model?.flowableDefinitionId,
         startFormSchemaId: findStartSchemaId(model, formBindings),
         formValues: {},
+        applicant: undefined,
+        department: undefined,
+        itemName: undefined,
+        amount: undefined,
+        reason: undefined,
+        managerApprover: undefined,
+        financeApprover: undefined,
       });
     },
     [deployedModels, form, formBindings],
@@ -295,10 +284,6 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
       }
     }
     const processDefinitionKey = form.getFieldValue('processDefinitionKey');
-    if (processDefinitionKey === 'purchaseApproval' && !form.getFieldValue('businessKey')) {
-      form.setFieldsValue(purchaseDefaultValues());
-      return;
-    }
     if (processDefinitionKey && !form.getFieldValue('processModelId')) {
       setProcessContext(processDefinitionKey);
     }
@@ -329,10 +314,6 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
           showSearch: true,
           optionFilterProp: 'label',
           onChange: (value) => {
-            if (value === 'purchaseApproval') {
-              form.setFieldsValue(purchaseDefaultValues());
-              return;
-            }
             setProcessContext(String(value));
           },
         }}
@@ -347,8 +328,19 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
         rules={[{ required: true, message: '请输入业务编号' }]}
       />
       <ProFormDependency name={['processDefinitionKey']}>
-        {({ processDefinitionKey }) =>
-          processDefinitionKey === 'purchaseApproval' ? (
+        {({ processDefinitionKey }) => {
+          if (!processDefinitionKey) {
+            return (
+              <Alert
+                showIcon
+                type="info"
+                title="请选择要发起的流程"
+                description="选择流程后，系统会生成业务编号，并展示对应的业务字段。"
+              />
+            );
+          }
+
+          return processDefinitionKey === 'purchaseApproval' ? (
             <>
               <Alert
                 showIcon
@@ -552,8 +544,8 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                 }}
               </ProFormDependency>
             </>
-          )
-        }
+          );
+        }}
       </ProFormDependency>
     </>
   );
@@ -614,7 +606,6 @@ const ProcessInstances: React.FC = () => {
                 启动流程
               </Button>
             }
-            initialValues={{ processDefinitionKey: 'purchaseApproval' }}
             modalProps={{
               destroyOnHidden: true,
               width: 'min(720px, calc(100vw - 16px))',

@@ -19,7 +19,6 @@ import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   getWorkflowEnablementStatus,
   initializeWorkflowAssets,
-  startProcessInstance,
   type WorkflowEnablementStepStatus,
 } from '@/services/koravo/api';
 import { processDisplayName, productCopy } from '@/utils/display';
@@ -68,27 +67,6 @@ const QuickStart: React.FC = () => {
     },
   });
 
-  const startMutation = useMutation({
-    mutationFn: () =>
-      startProcessInstance({
-        processDefinitionKey: data?.processDefinitionKey || 'purchaseApproval',
-        businessKey: `PO-${Date.now()}`,
-        variables: data?.defaultStartVariables || {
-          applicant: 'admin',
-          department: '研发部',
-          itemName: '测试环境服务器',
-          amount: 12000,
-          reason: '用于流程集成测试和性能验证',
-          managerApprover: 'admin',
-          financeApprover: 'admin',
-        },
-      }),
-    onSuccess: (instance) => {
-      message.success('流程已启动');
-      history.push(`/process-instances/${instance.instanceId}`);
-    },
-  });
-
   const rows = useMemo<StepRow[]>(
     () => [
       { key: 'process', name: '流程模型', status: data?.process },
@@ -123,9 +101,14 @@ const QuickStart: React.FC = () => {
           key="start"
           type="primary"
           icon={<PlayCircleOutlined />}
-          loading={startMutation.isPending}
           disabled={!data?.process?.ready}
-          onClick={() => startMutation.mutate()}
+          onClick={() =>
+            history.push(
+              data?.processModelId
+                ? `/process-instances?processModelId=${data.processModelId}`
+                : '/process-instances',
+            )
+          }
         >
           发起采购申请
         </Button>,
