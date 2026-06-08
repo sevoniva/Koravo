@@ -56,6 +56,7 @@ interface SchemaField {
   type: 'string' | 'number' | 'boolean';
   format?: string;
   widget?: string;
+  placeholder?: string;
   required?: boolean;
   options?: Array<{ label: string; value: string }>;
 }
@@ -176,6 +177,10 @@ function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
   return Object.entries(properties).map(([fieldKey, property]) => {
     const type = normalizeSchemaType(String(property.type || 'string'));
     const uiField = uiSchema[fieldKey] as JsonRecord | undefined;
+    const placeholder =
+      uiField?.['ui:placeholder'] ||
+      uiField?.placeholder ||
+      property['ui:placeholder'];
     return {
       fieldKey,
       title: String(property.title || fieldKey),
@@ -187,6 +192,7 @@ function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
           uiField?.widget ||
           '',
       ),
+      placeholder: typeof placeholder === 'string' ? placeholder : undefined,
       required: required.includes(fieldKey),
       options: Array.isArray(property.enum)
         ? property.enum.map((item) => ({ label: String(item), value: String(item) }))
@@ -304,6 +310,7 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
               key={field.fieldKey}
               name={name}
               label={field.title}
+              placeholder={field.placeholder}
               fieldProps={{ precision: 2 }}
               rules={rules}
             />
@@ -316,6 +323,7 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
               name={name}
               label={field.title}
               options={field.options}
+              placeholder={field.placeholder}
               rules={
                 field.required
                   ? [{ required: true, message: `请选择${field.title}` }]
@@ -330,6 +338,7 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
               key={field.fieldKey}
               name={name}
               label={field.title}
+              placeholder={field.placeholder}
               fieldProps={{ format: 'YYYY-MM-DD' }}
               rules={
                 field.required
@@ -354,6 +363,7 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
               key={field.fieldKey}
               name={name}
               label={field.title}
+              placeholder={field.placeholder}
               fieldProps={{ rows: 4 }}
               rules={rules}
             />
@@ -364,6 +374,7 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
             key={field.fieldKey}
             name={name}
             label={field.title}
+            placeholder={field.placeholder}
             rules={rules}
           />
         );

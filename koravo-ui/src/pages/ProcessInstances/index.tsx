@@ -54,6 +54,7 @@ interface StartFormField {
   type: string;
   format?: string;
   widget?: string;
+  placeholder?: string;
   required: boolean;
   options?: Array<{ label: string; value: string }>;
 }
@@ -64,6 +65,7 @@ interface JsonSchemaProperty {
   format?: string;
   widget?: string;
   enum?: string[];
+  'ui:placeholder'?: string;
   'ui:widget'?: string;
 }
 
@@ -114,12 +116,15 @@ function schemaToStartFields(formSchema?: FormSchemaItem): StartFormField[] {
 
   return Object.entries(properties || {}).map(([fieldKey, property]) => {
     const uiField = uiSchema[fieldKey] as JsonRecord | undefined;
+    const widget = uiField?.['ui:widget'] || uiField?.widget || property['ui:widget'] || property.widget;
+    const placeholder = uiField?.['ui:placeholder'] || uiField?.placeholder || property['ui:placeholder'];
     return {
       fieldKey,
       title: property.title || fieldKey,
       type: property.type || 'string',
       format: property.format,
-      widget: String(uiField?.widget || property['ui:widget'] || property.widget || ''),
+      widget: String(widget || ''),
+      placeholder: typeof placeholder === 'string' ? placeholder : undefined,
       required: required.includes(fieldKey),
       options: Array.isArray(property.enum)
         ? property.enum.map((value) => ({ label: String(value), value: String(value) }))
@@ -497,6 +502,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
                             label={field.title}
+                            placeholder={field.placeholder}
                             rules={
                               field.required
                                 ? [{ required: true, message: `请输入${field.title}` }]
@@ -509,6 +515,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             name={['formValues', field.fieldKey]}
                             label={field.title}
                             options={field.options}
+                            placeholder={field.placeholder}
                             rules={
                               field.required
                                 ? [{ required: true, message: `请选择${field.title}` }]
@@ -520,6 +527,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
                             label={field.title}
+                            placeholder={field.placeholder}
                             fieldProps={{ format: 'YYYY-MM-DD' }}
                             rules={
                               field.required
@@ -532,6 +540,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
                             label={field.title}
+                            placeholder={field.placeholder}
                             fieldProps={{ rows: 3 }}
                             rules={
                               field.required
@@ -544,6 +553,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
                             label={field.title}
+                            placeholder={field.placeholder}
                             rules={
                               field.required
                                 ? [{ required: true, message: `请输入${field.title}` }]

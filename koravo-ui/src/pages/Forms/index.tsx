@@ -6,6 +6,7 @@ import {
   ProFormSelect,
   ProFormSwitch,
   ProFormText,
+  ProFormTextArea,
   ProTable,
   type ActionType,
   type ProColumns,
@@ -32,12 +33,19 @@ interface FormFieldConfig {
   title: string;
   type: 'string' | 'number' | 'boolean';
   widget?: 'input' | 'textarea' | 'number' | 'switch';
+  placeholder?: string;
+  optionsText?: string;
+  format?: string;
   required?: boolean;
 }
 
 interface JsonSchemaProperty {
   title?: string;
   type?: string;
+  enum?: unknown[];
+  format?: string;
+  'ui:placeholder'?: string;
+  'ui:widget'?: string;
 }
 
 const defaultFields: FormFieldConfig[] = [
@@ -104,6 +112,19 @@ const normalizeWidget = (
   return 'input';
 };
 
+const normalizeOptionsText = (options?: unknown[]) => {
+  if (!Array.isArray(options)) return undefined;
+  return options.map(String).filter(Boolean).join('\n');
+};
+
+const optionsTextToEnum = (optionsText?: string) => {
+  const options = (optionsText || '')
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return options.length ? options : undefined;
+};
+
 const schemaToFields = (
   schemaJson?: string,
   uiSchemaJson?: string,
@@ -118,11 +139,17 @@ const schemaToFields = (
   return Object.entries(properties).map(([fieldKey, property]) => {
     const type = normalizeFieldType(property?.type);
     const uiField = uiSchema[fieldKey] as Record<string, unknown> | undefined;
+    const widget = uiField?.['ui:widget'] || uiField?.widget || property?.['ui:widget'];
+    const placeholder =
+      uiField?.['ui:placeholder'] || uiField?.placeholder || property?.['ui:placeholder'];
     return {
       fieldKey,
       title: property?.title || fieldKey,
       type,
-      widget: normalizeWidget(uiField?.['ui:widget'], type),
+      widget: normalizeWidget(widget, type),
+      placeholder: typeof placeholder === 'string' ? placeholder : undefined,
+      optionsText: normalizeOptionsText(property?.enum),
+      format: property?.format,
       required: required.includes(fieldKey),
     };
   });
@@ -136,18 +163,40 @@ const buildPayload = (values: FormSchemaForm) => {
     widget: normalizeWidget(field.widget, field.type),
   }));
 
-  const properties = fields.reduce<Record<string, { title: string; type: string }>>(
+  const properties = fields.reduce<
+    Record<
+      string,
+      {
+        title: string;
+        type: string;
+        enum?: string[];
+        format?: string;
+        'ui:placeholder'?: string;
+        'ui:widget'?: string;
+      }
+    >
+  >(
     (result, field) => {
+      const options = optionsTextToEnum(field.optionsText);
       result[field.fieldKey] = {
         title: field.title,
         type: field.type,
+        ...(options ? { enum: options } : {}),
+        ...(field.format?.trim() ? { format: field.format.trim() } : {}),
+        ...(field.placeholder?.trim() ? { 'ui:placeholder': field.placeholder.trim() } : {}),
+        ...(field.widget ? { 'ui:widget': field.widget } : {}),
       };
       return result;
     },
     {},
   );
-  const uiSchema = fields.reduce<Record<string, { 'ui:widget': string }>>((result, field) => {
-    result[field.fieldKey] = { 'ui:widget': field.widget || normalizeWidget(undefined, field.type) };
+  const uiSchema = fields.reduce<
+    Record<string, { 'ui:widget': string; 'ui:placeholder'?: string }>
+  >((result, field) => {
+    result[field.fieldKey] = {
+      'ui:widget': field.widget || normalizeWidget(undefined, field.type),
+      ...(field.placeholder?.trim() ? { 'ui:placeholder': field.placeholder.trim() } : {}),
+    };
     return result;
   }, {});
 
@@ -191,6 +240,15 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
     width: 120,
     renderText: (value, record) =>
       widgetText[normalizeWidget(value, record.type)],
+  },
+  {
+    title: '选项/格式',
+    dataIndex: 'optionsText',
+    search: false,
+    renderText: (_, record) => {
+      if (record.optionsText) return record.optionsText.split(/\r?\n/).join('、');
+      return record.format === 'date' ? '日期' : '-';
+    },
   },
   {
     title: '规则',
@@ -356,6 +414,25 @@ const Forms: React.FC = () => {
                   options={widgetOptions}
                   rules={[{ required: true, message: '请选择控件' }]}
                 />
+                <ProFormText
+                  name="placeholder"
+                  label="输入提示"
+                  width="sm"
+                  placeholder="例如：请输入申请事由"
+                />
+                <ProFormText
+                  name="format"
+                  label="格式"
+                  width="xs"
+                  placeholder="date"
+                />
+                <ProFormTextArea
+                  name="optionsText"
+                  label="选项"
+                  width="sm"
+                  placeholder="每行一个选项"
+                  fieldProps={{ rows: 1 }}
+                />
                 <ProFormSwitch name="required" label="必填" />
               </Space>
             </ProFormList>
@@ -437,6 +514,25 @@ const Forms: React.FC = () => {
               width="sm"
               options={widgetOptions}
               rules={[{ required: true, message: '请选择控件' }]}
+            />
+            <ProFormText
+              name="placeholder"
+              label="输入提示"
+              width="sm"
+              placeholder="例如：请输入申请事由"
+            />
+            <ProFormText
+              name="format"
+              label="格式"
+              width="xs"
+              placeholder="date"
+            />
+            <ProFormTextArea
+              name="optionsText"
+              label="选项"
+              width="sm"
+              placeholder="每行一个选项"
+              fieldProps={{ rows: 1 }}
             />
             <ProFormSwitch name="required" label="必填" />
           </Space>

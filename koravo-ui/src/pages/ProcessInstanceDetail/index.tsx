@@ -665,7 +665,11 @@ const ProcessInstanceDetail: React.FC = () => {
             locale={{
               emptyText: (
                 <Empty
-                  description="当前没有待处理任务"
+                  description={
+                    instance?.status === 'COMPLETED'
+                      ? '流程已完成，暂无待处理任务'
+                      : '当前没有待处理任务'
+                  }
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 >
                   <Space>
