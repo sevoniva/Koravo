@@ -12,16 +12,6 @@
             <span>控制台</span>
           </div>
         </div>
-        <a-menu
-          v-if="!isMobile"
-          class="top-nav-menu"
-          :selectedKeys="[activeGroupKey]"
-          theme="light"
-          mode="horizontal"
-          @click="handleTopNav"
-        >
-          <a-menu-item v-for="group in navGroups" :key="group.key">{{ group.title }}</a-menu-item>
-        </a-menu>
       </div>
 
       <div class="header-actions">
@@ -56,13 +46,28 @@
     </a-layout-header>
 
     <a-layout>
-      <a-layout-sider v-if="!isMobile" v-model:collapsed="collapsed" class="app-sider" :width="208" collapsible>
-        <div v-if="!collapsed" class="sider-section-title">{{ activeGroupTitle }}</div>
-        <a-menu class="app-nav-menu" :selectedKeys="[activeMenuKey]" theme="light" mode="inline" @click="handleNav">
-          <a-menu-item v-for="item in activeGroupItems" :key="item.path">
-            <component :is="item.icon" />
-            <span>{{ item.title }}</span>
-          </a-menu-item>
+      <a-layout-sider v-if="!isMobile" v-model:collapsed="collapsed" class="app-sider" :width="256" :trigger="null" collapsible>
+        <a-button class="sider-collapse-trigger" type="text" @click="collapsed = !collapsed">
+          <RightOutlined v-if="collapsed" />
+          <LeftOutlined v-else />
+        </a-button>
+        <a-menu
+          class="app-nav-menu"
+          :selectedKeys="[activeMenuKey]"
+          :openKeys="collapsed ? [] : openKeys"
+          theme="light"
+          mode="inline"
+          @click="handleNav"
+          @openChange="handleOpenChange"
+        >
+          <a-sub-menu v-for="group in navGroups" :key="group.key">
+            <template #icon><component :is="group.icon" /></template>
+            <template #title>{{ group.title }}</template>
+            <a-menu-item v-for="item in group.items" :key="item.path">
+              <component :is="item.icon" />
+              <span>{{ item.title }}</span>
+            </a-menu-item>
+          </a-sub-menu>
         </a-menu>
       </a-layout-sider>
 
@@ -86,21 +91,35 @@
           <span>控制台</span>
         </div>
       </div>
-      <a-menu class="app-nav-menu" :selectedKeys="[activeMenuKey]" theme="light" mode="inline" @click="handleMobileNav">
-        <a-menu-item-group v-for="group in navGroups" :key="group.key" :title="group.title">
+      <a-menu
+        class="app-nav-menu"
+        :selectedKeys="[activeMenuKey]"
+        :openKeys="openKeys"
+        theme="light"
+        mode="inline"
+        @click="handleMobileNav"
+        @openChange="handleOpenChange"
+      >
+        <a-sub-menu v-for="group in navGroups" :key="group.key">
+          <template #icon><component :is="group.icon" /></template>
+          <template #title>{{ group.title }}</template>
           <a-menu-item v-for="item in group.items" :key="item.path">
             <component :is="item.icon" />
             <span>{{ item.title }}</span>
           </a-menu-item>
-        </a-menu-item-group>
+        </a-sub-menu>
       </a-menu>
     </a-drawer>
+
+    <a-button v-if="!isMobile" class="setting-drawer-trigger" type="primary" @click="router.push('/system-settings')">
+      <SettingOutlined />
+    </a-button>
 
   </a-layout>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
   ApiOutlined,
   CheckCircleOutlined,
@@ -110,10 +129,12 @@ import {
   EditOutlined,
   FileSearchOutlined,
   FormOutlined,
+  LeftOutlined,
   LinkOutlined,
   MenuOutlined,
   PartitionOutlined,
   PlayCircleOutlined,
+  RightOutlined,
   SettingOutlined,
   ThunderboltOutlined,
   UserOutlined
@@ -128,6 +149,7 @@ const session = useSessionStore()
 const collapsed = ref(false)
 const mobileNavOpen = ref(false)
 const isMobile = ref(false)
+const openKeys = ref<string[]>([])
 const iconMap = {
   dashboard: DashboardOutlined,
   quick: ThunderboltOutlined,
@@ -168,9 +190,18 @@ const navItems = menuRoutes
     icon: iconMap[String(item.meta?.icon) as keyof typeof iconMap] || DashboardOutlined
   }))
 
+const groupIconMap = {
+  start: DashboardOutlined,
+  process: PartitionOutlined,
+  forms: FormOutlined,
+  integration: DatabaseOutlined,
+  ops: ControlOutlined
+}
+
 const navGroups = Object.entries(navGroupMap).map(([key, paths]) => ({
   key,
   title: navGroupTitles[key],
+  icon: groupIconMap[key as keyof typeof groupIconMap] || DashboardOutlined,
   items: paths
     .map((path) => navItems.find((item) => item.path === path))
     .filter((item): item is typeof navItems[number] => Boolean(item))
@@ -182,9 +213,6 @@ const activeMenuKey = computed(() => {
 })
 
 const activeGroupKey = computed(() => navGroups.find((group) => group.items.some((item) => item.path === activeMenuKey.value))?.key || 'start')
-const activeGroup = computed(() => navGroups.find((group) => group.key === activeGroupKey.value) || navGroups[0])
-const activeGroupTitle = computed(() => activeGroup.value?.title || '')
-const activeGroupItems = computed(() => activeGroup.value?.items || [])
 
 const tenantId = computed({
   get: () => session.tenantId,
@@ -205,15 +233,13 @@ function handleNav(event: { key: string }) {
   router.push(event.key)
 }
 
-function handleTopNav(event: { key: string }) {
-  const group = navGroups.find((item) => item.key === event.key)
-  const firstPath = group?.items[0]?.path
-  if (firstPath) router.push(firstPath)
-}
-
 function handleMobileNav(event: { key: string }) {
   mobileNavOpen.value = false
   handleNav(event)
+}
+
+function handleOpenChange(keys: string[]) {
+  openKeys.value = keys.slice(-1)
 }
 
 function requestIdLabel(requestId?: string) {
@@ -232,6 +258,10 @@ onMounted(() => {
   syncViewport()
   window.addEventListener('resize', syncViewport)
 })
+
+watch(activeGroupKey, (key) => {
+  openKeys.value = key ? [key] : []
+}, { immediate: true })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', syncViewport)

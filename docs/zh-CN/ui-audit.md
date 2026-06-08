@@ -4,6 +4,10 @@
 
 ## 结论
 
+- 本轮已按 Ant Design Pro 官方预览重新审视控制台外壳：参考源为 `https://preview.pro.ant.design/admin/sub-page`、`ant-design/ant-design-pro` 模板源码和本地克隆的 `config/defaultSettings.ts`、`src/app.tsx`、`src/pages/Admin.tsx`。
+- 官方预览截图已保存到 `/Users/chuncheng/.codex/qa/koravo-official-pro-review/official-admin-sub-page-chrome.png`；本地实现截图已保存到 `/Users/chuncheng/.codex/qa/koravo-official-pro-review/koravo-dashboard-final-desktop-browser.png` 和 `/Users/chuncheng/.codex/qa/koravo-official-pro-review/koravo-dashboard-mobile-after-official-fix-browser.png`。
+- 主外壳已去除上一版错误的顶部横向菜单，改为官方 Pro 一致的白色顶栏、256px 左侧完整分组菜单、顶栏右侧动作区、灰底透明页面标题区和面包屑。
+- 当前工程是 Vue + Ant Design Vue，已用现有 Ant Design Vue 组件实现官方 Pro 的 Layout/Menu/Breadcrumb/PageContainer 视觉结构；若要字面接入 `@ant-design/pro-components`，需要单独做 React/Umi 迁移。
 - 路由已覆盖首页、快速开始、流程模型、设计器、实例、任务、表单、绑定、数据源、连接器、运维、审计、设置。
 - 主菜单改为 route meta 驱动，并按工作台、流程、表单、集成、运维分组。
 - 主布局、表格、描述区、工具栏和设计器已增加响应式滚动护栏，移动端不再由宽表格撑出页面。
@@ -76,6 +80,7 @@
 - 前端 `npm run build` 已通过。
 - 后端 `mvn -s .mvn/settings-cn.xml test` 已通过。
 - 首页、数据源管理和 HTTP 连接器已完成视觉密度收敛：指标卡高度、间距和数据源表单表面已收紧，390px 与 1440px 复验无页面级横向溢出。
+- 官方 Pro 外壳复验已通过：浏览器 DOM 确认无 `.top-nav-menu`，顶栏 56px、左侧品牌区 256px、侧栏 256px、页面标题区透明背景、右侧浮动设置入口存在；`npm run build` 通过。
 
 ## 待继续
 
