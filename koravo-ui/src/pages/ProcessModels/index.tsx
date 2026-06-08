@@ -15,7 +15,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Alert, App, Button, Empty, Flex, Modal, Space, type UploadFile } from 'antd';
+import { Alert, App, Button, Empty, Flex, Modal, Segmented, Space, type UploadFile } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -50,6 +50,11 @@ interface ImportProcessModelForm {
   file: UploadFile[];
 }
 
+type ModelViewMode = 'business' | 'all';
+
+const hiddenBusinessModelKeys = new Set(['httpConnectorDemo', 'leaveApproval']);
+const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
+
 function downloadModelFile(record: ProcessModelItem, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -63,12 +68,20 @@ function deployedDefinitionText(record: ProcessModelItem) {
   return processDefinitionLabel(record.flowableDefinitionId || record.modelKey);
 }
 
+function isBusinessModel(record: ProcessModelItem) {
+  if (hiddenBusinessModelKeys.has(record.modelKey)) return false;
+  return ![record.modelName, record.description, record.modelKey].some((value) =>
+    nonBusinessModelPattern.test(String(value || '')),
+  );
+}
+
 const ProcessModels: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
   const [modal, contextHolder] = Modal.useModal();
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ModelViewMode>('business');
 
   const saveProcessModel = async (values: ProcessModelForm) => {
     const model = await createProcessModel(values);
@@ -306,21 +319,24 @@ const ProcessModels: React.FC = () => {
         rowKey="id"
         columns={columns}
         scroll={{ x: 1280 }}
+        params={{ viewMode }}
         request={async (params) => {
           const data = await listProcessModels(
             params.status as string | undefined,
           );
+          const visibleData =
+            viewMode === 'business' ? data.filter(isBusinessModel) : data;
           const keyword = String(
             params.modelName || params.modelKey || '',
           ).trim();
           return {
             data: keyword
-              ? data.filter((item) =>
+              ? visibleData.filter((item) =>
                   [item.modelName, item.modelKey, item.description]
                     .filter(Boolean)
                     .some((value) => String(value).includes(keyword)),
                 )
-              : data,
+              : visibleData,
             success: true,
           };
         }}
@@ -356,6 +372,15 @@ const ProcessModels: React.FC = () => {
           ),
         }}
         toolBarRender={() => [
+          <Segmented
+            key="view-mode"
+            value={viewMode}
+            options={[
+              { label: '业务流程', value: 'business' },
+              { label: '全部模型', value: 'all' },
+            ]}
+            onChange={(value) => setViewMode(value as ModelViewMode)}
+          />,
           <Button
             key="refresh"
             icon={<ReloadOutlined />}
