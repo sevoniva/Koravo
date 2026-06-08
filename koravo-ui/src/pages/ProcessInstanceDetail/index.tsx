@@ -7,11 +7,12 @@ import {
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Badge, Button, Empty, Flex, Modal, Space, Steps, Typography } from 'antd';
+import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Steps, Tag, Typography } from 'antd';
 import type { StepsProps } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   activateProcessInstance,
   getOpsInstance,
@@ -30,7 +31,7 @@ import {
   processDefinitionLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
-import { formatDateTime, parseJsonSafe } from '@/utils/format';
+import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 
 type StepStatus = NonNullable<NonNullable<StepsProps['items']>[number]['status']>;
 
@@ -150,6 +151,47 @@ function purchaseApprovalSnapshotRecords(
       },
     ];
   });
+}
+
+function snapshotData(record: FormSnapshotItem) {
+  return parseJsonSafe(record.dataJson, {}) as Record<string, unknown>;
+}
+
+function snapshotTaskLabel(record: FormSnapshotItem) {
+  const data = snapshotData(record);
+  const taskDefinitionKey = String(data.taskDefinitionKey || '');
+  if (taskDefinitionKey) return taskDefinitionLabel(taskDefinitionKey);
+  return record.taskId ? '任务表单' : '启动表单';
+}
+
+function snapshotSummary(record: FormSnapshotItem) {
+  const data = snapshotData(record);
+  const approved = data.approved;
+  const opinion = typeof data.opinion === 'string' ? data.opinion : '';
+  const taskName = typeof data.taskName === 'string' ? data.taskName : snapshotTaskLabel(record);
+
+  if (approved === undefined && !opinion) {
+    return (
+      <Flex gap={8} align="center" wrap>
+        <Typography.Text>{taskName}</Typography.Text>
+        <Typography.Text type="secondary">
+          {Object.keys(data).length ? `${Object.keys(data).length} 个字段` : '暂无字段'}
+        </Typography.Text>
+      </Flex>
+    );
+  }
+
+  return (
+    <Flex gap={8} align="center" wrap>
+      <Typography.Text>{taskName}</Typography.Text>
+      {approved !== undefined ? (
+        <Tag color={approved ? 'success' : 'error'}>
+          {approved ? '同意' : '不同意'}
+        </Tag>
+      ) : null}
+      {opinion ? <Typography.Text type="secondary">{opinion}</Typography.Text> : null}
+    </Flex>
+  );
 }
 
 function instanceActionDisabled(status: string | undefined, action: 'suspend' | 'activate' | 'terminate') {
@@ -287,6 +329,7 @@ const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
   const instanceId = params.instanceId || '';
   const [modal, contextHolder] = Modal.useModal();
+  const [selectedSnapshot, setSelectedSnapshot] = React.useState<FormSnapshotItem>();
   const { message } = App.useApp();
   const {
     data: instance,
@@ -312,6 +355,47 @@ const ProcessInstanceDetail: React.FC = () => {
   const isPurchaseApproval = isPurchaseInstance(instance?.processDefinitionId);
   const parallelTaskCount = purchaseApprovalNodeCount(currentTasks);
   const purchaseApprovalRecords = purchaseApprovalSnapshotRecords(formSnapshots);
+  const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
+    {
+      title: '表单编号',
+      dataIndex: 'formSchemaId',
+      width: 220,
+      render: (_, record) => <CopyableText value={record.formSchemaId} />,
+    },
+    {
+      title: '版本',
+      dataIndex: 'formSchemaVersion',
+      width: 90,
+      renderText: (value) => `v${value || 1}`,
+    },
+    {
+      title: '节点',
+      dataIndex: 'taskId',
+      width: 140,
+      render: (_, record) => snapshotTaskLabel(record),
+    },
+    {
+      title: '提交摘要',
+      dataIndex: 'dataJson',
+      render: (_, record) => snapshotSummary(record),
+    },
+    {
+      title: '时间',
+      dataIndex: 'createdAt',
+      width: 170,
+      renderText: formatDateTime,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 96,
+      render: (_, record) => (
+        <Button type="link" onClick={() => setSelectedSnapshot(record)}>
+          查看
+        </Button>
+      ),
+    },
+  ];
 
   return (
     <PageContainer
@@ -468,6 +552,32 @@ const ProcessInstanceDetail: React.FC = () => {
         <ProCard
           title={
             <Flex align="center" gap={8}>
+              <span>表单快照</span>
+              <Badge count={formSnapshots.length} showZero />
+            </Flex>
+          }
+        >
+          <ProTable<FormSnapshotItem>
+            rowKey="id"
+            columns={snapshotColumns}
+            dataSource={formSnapshots}
+            search={false}
+            pagination={false}
+            options={false}
+            locale={{
+              emptyText: (
+                <Empty
+                  description="暂无表单快照"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              ),
+            }}
+            scroll={{ x: 1000 }}
+          />
+        </ProCard>
+        <ProCard
+          title={
+            <Flex align="center" gap={8}>
               <span>当前任务</span>
               <Badge count={currentTasks.length} showZero />
             </Flex>
@@ -528,6 +638,21 @@ const ProcessInstanceDetail: React.FC = () => {
           />
         </ProCard>
       </Flex>
+      <Drawer
+        title="表单快照"
+        size={720}
+        open={Boolean(selectedSnapshot)}
+        onClose={() => setSelectedSnapshot(undefined)}
+      >
+        {selectedSnapshot ? (
+          <StructuredDetailTable
+            value={maskSecret(snapshotData(selectedSnapshot))}
+            emptyText="暂无快照数据"
+          />
+        ) : (
+          <Empty description="暂无快照数据" />
+        )}
+      </Drawer>
     </PageContainer>
   );
 };
