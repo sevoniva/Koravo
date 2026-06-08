@@ -102,6 +102,12 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   url: '请求地址',
   method: '请求方式',
   statusCode: '状态码',
+  headers: '请求头',
+  body: '请求体',
+  'X-Tenant-Id': '租户',
+  'X-User-Id': '用户',
+  request: '请求',
+  response: '响应',
 };
 
 export function processDisplayName(modelKey?: string, fallback?: string) {

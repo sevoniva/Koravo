@@ -47,10 +47,16 @@ function splitSummaryPairs(value: string) {
   return parts.filter(Boolean);
 }
 
-function parseScalar(value: string) {
+function parseScalar(value: string): unknown {
   const text = value.trim();
   const jsonValue = parseJsonValue(text);
   if (jsonValue !== undefined) return jsonValue;
+  if (text.startsWith('{') && text.endsWith('}')) {
+    return parseSummaryText(text.slice(1, -1));
+  }
+  if (text.startsWith('[') && text.endsWith(']')) {
+    return splitSummaryPairs(text.slice(1, -1)).map(parseScalar);
+  }
   if (text === 'null') return null;
   if (text === 'true') return true;
   if (text === 'false') return false;
@@ -109,13 +115,23 @@ function formatValue(value: unknown): React.ReactNode {
   );
 }
 
+function pathLabel(rowKey: string) {
+  return rowKey
+    .split('.')
+    .map((part) => {
+      if (/^\d+$/.test(part)) return `第 ${part} 项`;
+      return businessFieldLabel(part);
+    })
+    .join(' / ');
+}
+
 function buildRows(value: unknown, parentKey?: string): DetailRow[] {
   if (!value || typeof value !== 'object') return [];
   if (Array.isArray(value)) {
     return value.flatMap((item, index) => {
       const rowKey = parentKey ? `${parentKey}.${index + 1}` : String(index + 1);
       if (item && typeof item === 'object') return buildRows(item, rowKey);
-      return [{ key: rowKey, field: rowKey, value: formatValue(item) }];
+      return [{ key: rowKey, field: pathLabel(rowKey), value: formatValue(item) }];
     });
   }
 
@@ -127,7 +143,7 @@ function buildRows(value: unknown, parentKey?: string): DetailRow[] {
     return [
       {
         key: rowKey,
-        field: businessFieldLabel(key),
+        field: pathLabel(rowKey),
         value: formatValue(item),
       },
     ];
@@ -161,9 +177,16 @@ const StructuredDetailTable: React.FC<StructuredDetailTableProps> = ({
 
   if (typeof parsed === 'string' && parsed.trim()) {
     return (
-      <Typography.Paragraph copyable>
-        {parsed}
-      </Typography.Paragraph>
+      <ProTable<DetailRow>
+        rowKey="key"
+        columns={columns}
+        dataSource={[
+          { key: 'content', field: '内容', value: formatValue(parsed) },
+        ]}
+        search={false}
+        pagination={false}
+        options={false}
+      />
     );
   }
 
