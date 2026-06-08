@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="数据源管理" description="维护 JDBC 连接，验证连通性和只读策略。">
+    <PageHeader title="数据源管理" description="连接与测试。">
       <template #actions>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
       </template>
@@ -49,8 +49,8 @@
         </a-form-item>
         <a-form-item class="span-2">
           <a-collapse>
-            <a-collapse-panel key="pool" header="高级配置">
-              <p class="datasource-hint">连接池参数默认留空，只有需要覆盖超时或池大小时填写。</p>
+            <a-collapse-panel key="pool" header="更多参数">
+              <p class="datasource-hint">按需覆盖超时或池大小。</p>
               <JsonEditor v-model="form.poolConfigJson" :rows="5" object-only />
             </a-collapse-panel>
           </a-collapse>
@@ -70,8 +70,8 @@
       class="panel-block"
       type="info"
       show-icon
-      message="数据源只用于连接测试和连接器配置"
-      description="当前控制台不提供任意 SQL 执行入口。密码加密保存，编辑时不回显。"
+      message="仅用于连接测试"
+      description="不提供 SQL 执行入口。密码加密保存，编辑不回显。"
     />
 
     <a-table :data-source="items" :columns="columns" row-key="id" :loading="loading" :pagination="false" class="panel-block">
@@ -109,7 +109,7 @@
         type="info"
         show-icon
         :message="logsDataSourceName"
-        description="仅记录连接测试结果，不记录密码。"
+        description="不记录密码。"
       />
       <a-table
         :data-source="logs"
@@ -156,11 +156,11 @@
         class="panel-block"
         type="info"
         show-icon
-        message="密码已加密保存"
-        description="详情响应不返回密码、密文或 secret 字段。"
+        message="密码已加密"
+        description="详情不返回密码或密文。"
       />
       <a-collapse v-if="detail" class="panel-block">
-        <a-collapse-panel key="pool" header="高级详情">
+        <a-collapse-panel key="pool" header="原始配置">
           <JsonPreview :value="detailPoolConfig" />
         </a-collapse-panel>
       </a-collapse>

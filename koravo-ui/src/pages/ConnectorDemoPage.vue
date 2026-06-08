@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="HTTP 连接器" description="发起健康检查调用，查看流程、任务和执行日志。">
+    <PageHeader title="HTTP 连接器" description="健康检查与执行日志。">
       <template #actions>
         <a-button :loading="initLoading" @click="prepareConnectorFlow"><ThunderboltOutlined />准备流程</a-button>
         <a-button type="primary" :loading="startLoading" @click="startHealthCheck"><PlayCircleOutlined />发起健康检查</a-button>
@@ -12,7 +12,7 @@
       :type="error ? 'error' : processModel ? 'success' : 'info'"
       show-icon
       :message="error || statusMessage"
-      description="目标为本机健康检查接口，响应会写入流程变量。"
+      description="响应写入流程变量。"
     />
 
     <div class="connector-result-grid compact-metric-grid panel-block">
@@ -30,7 +30,7 @@
           :message="resultSummaryTitle"
           :description="resultSummaryDescription"
         />
-        <EmptyState v-else description="启动流程后显示健康检查结果" />
+        <EmptyState v-else description="启动后显示结果" />
         <a-descriptions :column="1" bordered size="small">
           <a-descriptions-item label="实例">{{ instanceId || '-' }}</a-descriptions-item>
           <a-descriptions-item label="状态"><StatusTag :status="trace?.status" /></a-descriptions-item>
@@ -46,7 +46,7 @@
           <a-button :loading="logLoading" @click="loadLogs">刷新日志</a-button>
         </a-space>
         <a-collapse v-if="resultVariableName !== '-'" class="panel-block">
-          <a-collapse-panel key="result" header="高级详情">
+          <a-collapse-panel key="result" header="原始结果">
             <JsonPreview :value="maskedResultVariable" />
           </a-collapse-panel>
         </a-collapse>
@@ -97,7 +97,7 @@
         :description="selectedLogSummaryDescription"
       />
       <a-collapse v-if="selectedLog" class="panel-block">
-        <a-collapse-panel key="detail" header="高级详情">
+        <a-collapse-panel key="detail" header="原始日志">
           <a-tabs>
             <a-tab-pane key="request" tab="请求摘要">
               <p class="log-summary-text">{{ maskedLogText(selectedLog.requestSummary) }}</p>
@@ -200,7 +200,7 @@ const resultSummaryTitle = computed(() => {
   return `HTTP ${resultStatusCode.value}`
 })
 const resultSummaryDescription = computed(() => {
-  if (resultVariableName.value === '-') return '启动流程后展示调用结果。'
+  if (resultVariableName.value === '-') return '启动后展示结果。'
   const version = healthData.value.version ? `版本 ${healthData.value.version}` : '未返回版本'
   const tenant = healthData.value.tenantId ? `租户 ${healthData.value.tenantId}` : '未返回租户'
   return `${version}，${tenant}。`

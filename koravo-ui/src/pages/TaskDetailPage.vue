@@ -37,7 +37,7 @@
       type="info"
       show-icon
       message="已办任务"
-      description="该任务仅用于历史查看，表单快照、审批意见、流程变量和操作记录仍可查看。"
+      description="可查看快照、意见、变量和记录。"
     />
 
     <DetailSection v-if="detail && isCompletable" title="办理任务">
@@ -48,7 +48,7 @@
         <a-form-item v-if="detail.formSchema" label="绑定表单" class="span-2">
           <a-alert
             :message="`${detail.formSchema.formName} v${detail.formSchema.version}`"
-            description="按当前表单办理，提交后写入任务记录。"
+            description="提交后写入任务记录。"
             type="info"
             show-icon
           />
@@ -63,7 +63,7 @@
           <a-input v-model:value="comment" />
         </a-form-item>
         <a-collapse ghost class="span-2">
-          <a-collapse-panel key="advanced" header="高级配置">
+          <a-collapse-panel key="advanced" header="更多参数">
             <a-form-item label="表单数据">
               <a-textarea v-model:value="formDataJson" :rows="5" />
             </a-form-item>
@@ -156,7 +156,7 @@
     </a-tabs>
 
     <a-collapse v-if="detail" class="panel-block">
-      <a-collapse-panel key="detail" header="高级详情">
+      <a-collapse-panel key="detail" header="原始数据">
         <a-tabs>
           <a-tab-pane key="variables" tab="流程变量">
             <JsonPreview :value="maskedProcessVariables" />
@@ -188,7 +188,7 @@
         </a-descriptions-item>
       </a-descriptions>
       <a-collapse v-if="selectedSnapshot" class="panel-block">
-        <a-collapse-panel key="snapshot" header="高级详情">
+        <a-collapse-panel key="snapshot" header="原始快照">
           <a-tabs>
             <a-tab-pane key="data" tab="表单数据">
               <JsonPreview :value="selectedSnapshotData" />

@@ -58,7 +58,7 @@
         <div class="header-actions">
           <a-button class="context-button" @click="router.push('/quick-start')">
             <ThunderboltOutlined />
-            演示
+            开始
           </a-button>
           <a-popover trigger="click" placement="bottomRight" overlay-class-name="identity-popover">
             <template #content>

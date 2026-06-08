@@ -1,6 +1,6 @@
 <template>
   <PageContainer wide>
-    <PageHeader title="表单管理" description="设计任务表单并管理字段配置。">
+    <PageHeader title="表单管理" description="表单与字段。">
       <template #actions>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
         <a-button @click="loadLeaveTemplate"><FormOutlined />请假模板</a-button>
@@ -93,7 +93,7 @@
     </div>
 
     <a-collapse class="panel-block">
-      <a-collapse-panel key="advanced" header="高级配置">
+      <a-collapse-panel key="advanced" header="配置 JSON">
         <a-tabs>
           <a-tab-pane key="schema" tab="表单配置">
             <JsonEditor v-model="form.schemaJson" object-only :rows="14" @valid="handleSchemaJsonValid" />
@@ -159,7 +159,7 @@
       </a-table>
 
       <a-collapse class="panel-block">
-        <a-collapse-panel key="schema" header="高级详情">
+        <a-collapse-panel key="schema" header="原始配置">
           <a-tabs>
             <a-tab-pane key="schema" tab="表单配置">
               <JsonPreview :value="selectedFormSchema" />

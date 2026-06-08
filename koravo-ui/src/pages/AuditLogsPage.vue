@@ -138,7 +138,7 @@
         <EmptyState v-else description="暂无补充摘要" />
       </DetailSection>
       <a-collapse v-if="selectedAudit" class="panel-block">
-        <a-collapse-panel key="detail" header="高级详情">
+        <a-collapse-panel key="detail" header="原始数据">
           <JsonPreview :value="selectedAuditDetail" />
         </a-collapse-panel>
       </a-collapse>

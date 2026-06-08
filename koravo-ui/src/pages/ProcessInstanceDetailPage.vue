@@ -120,7 +120,7 @@
     </a-tabs>
 
     <a-collapse v-if="traceDetail" class="panel-block">
-      <a-collapse-panel key="detail" header="高级详情">
+      <a-collapse-panel key="detail" header="原始数据">
         <a-tabs>
           <a-tab-pane key="variables" tab="流程变量">
             <JsonPreview :value="maskedVariables" />
@@ -156,7 +156,7 @@
         <EmptyState v-else description="暂无补充摘要" />
       </DetailSection>
       <a-collapse v-if="selectedAuditLog" class="panel-block">
-        <a-collapse-panel key="detail" header="高级详情">
+        <a-collapse-panel key="detail" header="原始数据">
           <JsonPreview :value="selectedAuditDetail" />
         </a-collapse-panel>
       </a-collapse>

@@ -1,8 +1,8 @@
 <template>
   <PageContainer wide>
-    <PageHeader title="运维中心" description="查看实例、连接器日志、失败任务和异常摘要。">
+    <PageHeader title="运维中心" description="实例、日志与异常。">
       <template #actions>
-      <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
+        <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
       </template>
     </PageHeader>
 
@@ -33,7 +33,7 @@
               <a-space wrap>
                 <a-button size="small" @click="inspect(record.instanceId)">实例详情</a-button>
                 <a-button size="small" type="primary" @click="trace(record.instanceId)">流程追踪</a-button>
-                <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">打开详情页</a-button>
+                <a-button size="small" @click="router.push(`/process-instances/${record.instanceId}`)">详情页</a-button>
                 <a-button
                   v-if="record.status === 'RUNNING'"
                   size="small"
@@ -421,7 +421,7 @@
       </a-tabs>
 
       <a-collapse class="panel-block">
-        <a-collapse-panel key="raw" header="高级详情">
+        <a-collapse-panel key="raw" header="原始数据">
           <JsonPreview :value="maskedInspectedInstance" />
         </a-collapse-panel>
       </a-collapse>
@@ -449,7 +449,7 @@
         :description="connectorDetailDescription"
       />
       <a-collapse v-if="selectedConnectorLog" class="panel-block">
-        <a-collapse-panel key="detail" header="高级详情">
+        <a-collapse-panel key="detail" header="原始日志">
           <a-tabs>
             <a-tab-pane key="request" tab="请求摘要">
               <p class="ops-detail-text">{{ maskText(selectedConnectorLog.requestSummary) }}</p>

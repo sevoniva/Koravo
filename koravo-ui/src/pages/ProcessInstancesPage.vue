@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="流程实例" description="启动流程并查看当前状态。">
+    <PageHeader title="流程实例" description="启动与追踪。">
       <template #actions>
         <a-button :loading="listLoading || modelLoading" @click="load"><ReloadOutlined />刷新</a-button>
       </template>
@@ -52,7 +52,7 @@
       </template>
       <a-form-item class="span-2">
         <a-collapse ghost>
-          <a-collapse-panel key="advanced" header="高级配置">
+          <a-collapse-panel key="advanced" header="更多参数">
             <a-form layout="vertical" class="compact-form-grid">
               <a-form-item label="流程">
                 <a-input v-model:value="processDefinitionKey" />

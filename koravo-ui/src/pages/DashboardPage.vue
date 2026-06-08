@@ -10,8 +10,8 @@
     <div class="dashboard-hero">
       <section class="dashboard-command">
         <div class="dashboard-command-main">
-          <strong>演示流程</strong>
-          <span>准备数据，启动流程，查看任务和审计。</span>
+          <strong>流程入口</strong>
+          <span>准备数据，启动流程，处理任务。</span>
         </div>
         <div class="dashboard-command-actions">
           <a-button type="primary" @click="router.push('/quick-start')"><ThunderboltOutlined />快速开始</a-button>
@@ -93,7 +93,7 @@
             type="warning"
             show-icon
             message="存在连接器失败"
-            description="进入 HTTP 连接器或运维中心查看详情。"
+            description="查看连接器或运维中心。"
           />
         </DetailSection>
       </div>
@@ -117,6 +117,7 @@ import { getDashboardSummary, initDemoData, type DashboardSummary } from '../api
 import { CopyableText, DetailSection, EmptyState, MetricCard, PageContainer, PageHeader } from '../components/ui'
 import { useSessionStore } from '../stores/session'
 import { formatDateTime } from '../utils/format'
+import { productCopy } from '../utils/display'
 
 const session = useSessionStore()
 const router = useRouter()
@@ -141,7 +142,7 @@ async function initDemo() {
   initLoading.value = true
   try {
     const result = await initDemoData()
-    message.success(result.actions.join('；'))
+    message.success(productCopy(result.actions.join('；')) || '基础数据已准备')
     await load()
   } finally {
     initLoading.value = false

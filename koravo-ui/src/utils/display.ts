@@ -14,6 +14,18 @@ export function processDescriptionLabel(model?: Pick<ProcessModelItem, 'modelKey
   return description
 }
 
+export function productCopy(value?: string | null) {
+  if (!value) return ''
+  return value
+    .replaceAll('演示数据', '基础数据')
+    .replaceAll('演示流程', '内置流程')
+    .replaceAll('演示接口', '基础数据接口')
+    .replaceAll('内置演示', '内置')
+    .replaceAll('演示', '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export function processKindLabel(modelKey?: string) {
   const mapping: Record<string, string> = {
     leaveApproval: '人员请假审批流程',

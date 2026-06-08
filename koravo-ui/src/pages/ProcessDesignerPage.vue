@@ -52,8 +52,7 @@
         <a-alert
           v-if="!selectedElement"
           type="info"
-          message="选择节点后编辑。"
-          description="支持用户任务和 HTTP 任务。"
+          message="选择节点后编辑"
           show-icon
         />
         <a-form v-else layout="vertical">

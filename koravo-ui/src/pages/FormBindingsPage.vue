@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="表单绑定" description="为已部署流程的任务节点选择表单版本。">
+    <PageHeader title="表单绑定" description="任务节点绑定表单。">
       <template #actions>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
       </template>

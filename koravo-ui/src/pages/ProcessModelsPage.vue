@@ -1,6 +1,6 @@
 <template>
   <PageContainer wide>
-    <PageHeader title="流程模型" description="管理流程草稿、部署版本和模型状态。">
+    <PageHeader title="流程模型" description="草稿、部署与版本。">
       <template #actions>
         <a-button :loading="loadingModels" @click="loadModels"><ReloadOutlined />刷新</a-button>
         <a-button type="primary" @click="router.push('/process-designer')"><EditOutlined />打开设计器</a-button>
@@ -39,7 +39,7 @@
 
     <a-form layout="vertical" class="form-grid panel-block">
       <a-form-item label="关键词">
-        <a-input v-model:value="keyword" allow-clear placeholder="搜索流程名称或说明" />
+        <a-input v-model:value="keyword" allow-clear placeholder="搜索名称或说明" />
       </a-form-item>
       <a-form-item label="状态">
         <a-select v-model:value="statusFilter" allow-clear @change="loadModels">

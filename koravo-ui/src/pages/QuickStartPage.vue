@@ -52,7 +52,7 @@
           </a-descriptions>
         </div>
         <a-collapse class="panel-block">
-          <a-collapse-panel key="variables" header="高级详情">
+          <a-collapse-panel key="variables" header="启动变量">
             <JsonPreview :value="defaultStartVariables" />
           </a-collapse-panel>
         </a-collapse>
@@ -75,6 +75,7 @@ import {
   type JsonRecord
 } from '../api/koravo'
 import { CopyableText, DetailSection, PageContainer, PageHeader, StatusTag } from '../components/ui'
+import { productCopy } from '../utils/display'
 
 const router = useRouter()
 const demoStatus = ref<DemoStatus | null>(null)
@@ -127,7 +128,7 @@ const steps = computed(() => [
     title: '准备基础数据',
     ready: Boolean(demoStatus.value?.initialized),
     statusText: demoStatus.value?.initialized ? '已就绪' : '待准备',
-    message: demoStatus.value?.binding?.message || '创建流程、表单和绑定。',
+    message: productCopy(demoStatus.value?.binding?.message) || '创建流程、表单和绑定。',
     actionText: demoStatus.value?.initialized ? '重新检查' : '准备',
     action: demoStatus.value?.initialized ? loadStatus : initDemo,
     loading: initLoading.value,
@@ -138,7 +139,7 @@ const steps = computed(() => [
     title: '启动请假流程',
     ready: Boolean(demoStatus.value?.todo?.ready),
     statusText: demoStatus.value?.todo?.ready ? '已有待办' : '待启动',
-    message: demoStatus.value?.todo?.message || '启动请假审批。',
+    message: productCopy(demoStatus.value?.todo?.message) || '启动请假审批。',
     actionText: '启动流程',
     action: startLeaveProcess,
     loading: startLoading.value,
@@ -149,7 +150,7 @@ const steps = computed(() => [
     title: '处理待办',
     ready: Boolean(demoStatus.value?.todo?.ready),
     statusText: demoStatus.value?.todo?.ready ? `${demoStatus.value?.todo?.count || 0} 个待办` : '暂无待办',
-    message: '进入任务页办理。',
+    message: '进入任务页。',
     actionText: '我的任务',
     action: () => router.push('/tasks'),
     loading: false,
@@ -157,10 +158,10 @@ const steps = computed(() => [
   },
   {
     key: 'trace',
-    title: '查看流程追踪',
+    title: '流程追踪',
     ready: Boolean(demoStatus.value?.audit?.ready),
     statusText: demoStatus.value?.audit?.ready ? '可查看' : '待产生',
-    message: '查看流程图和时间线。',
+    message: '流程图和时间线。',
     actionText: '流程实例',
     action: () => router.push('/process-instances'),
     loading: false,
@@ -168,10 +169,10 @@ const steps = computed(() => [
   },
   {
     key: 'audit',
-    title: '查看审计日志',
+    title: '审计日志',
     ready: Boolean(demoStatus.value?.audit?.ready),
     statusText: demoStatus.value?.audit?.ready ? `${demoStatus.value?.audit?.count || 0} 条` : '暂无审计',
-    message: demoStatus.value?.audit?.message || '查看操作记录。',
+    message: productCopy(demoStatus.value?.audit?.message) || '操作记录。',
     actionText: '审计日志',
     action: () => router.push('/audit-logs'),
     loading: false,

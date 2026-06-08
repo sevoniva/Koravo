@@ -1,12 +1,12 @@
 <template>
   <PageContainer>
-    <PageHeader title="我的任务" description="处理待办、查看已办和我发起的流程。">
+    <PageHeader title="我的任务" description="待办、已办、发起。">
       <template #actions>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
       </template>
     </PageHeader>
 
-    <SearchBar v-model="filters.keyword" placeholder="搜索任务、业务编号、节点、处理人" @search="applyFilters">
+    <SearchBar v-model="filters.keyword" placeholder="搜索任务" @search="applyFilters">
       <Toolbar>
         <a-select v-model:value="filters.status" allow-clear placeholder="状态" style="width: 130px">
           <a-select-option value="RUNNING">运行中</a-select-option>
@@ -123,7 +123,7 @@
         <a-form-item v-if="taskDetail?.formSchema" label="绑定表单">
           <a-alert
             :message="`${taskDetail.formSchema.formName} v${taskDetail.formSchema.version}`"
-            description="按当前表单办理，提交后写入任务记录。"
+            description="提交后写入任务记录。"
             type="info"
             show-icon
           />
@@ -137,7 +137,7 @@
           <a-input v-model:value="comment" />
         </a-form-item>
         <a-collapse ghost>
-          <a-collapse-panel key="advanced" header="高级配置">
+          <a-collapse-panel key="advanced" header="更多参数">
             <a-form-item label="表单数据">
               <a-textarea v-model:value="completeFormData" :rows="4" />
             </a-form-item>
