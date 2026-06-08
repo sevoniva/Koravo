@@ -87,8 +87,9 @@ const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
   },
   {
     title: '处理摘要',
-    dataIndex: 'dataJson',
+    key: 'summary',
     ellipsis: true,
+    search: false,
     render: (_, record) => snapshotSummary(record),
   },
   { title: '时间', dataIndex: 'createdAt', width: 170, renderText: formatDateTime },

@@ -270,7 +270,8 @@ const ProcessInstanceDetail: React.FC = () => {
     },
     {
       title: '提交摘要',
-      dataIndex: 'dataJson',
+      key: 'summary',
+      search: false,
       render: (_, record) => snapshotSummary(record),
     },
     {

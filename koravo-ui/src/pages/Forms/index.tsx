@@ -418,7 +418,7 @@ const Forms: React.FC = () => {
     },
     {
       title: '字段数',
-      dataIndex: 'schemaJson',
+      key: 'fieldCount',
       width: 96,
       search: false,
       renderText: (_, record) =>
