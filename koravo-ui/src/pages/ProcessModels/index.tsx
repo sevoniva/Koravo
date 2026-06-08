@@ -30,7 +30,9 @@ import {
 } from '@/services/koravo/api';
 import {
   processDescriptionLabel,
+  processDefinitionLabel,
   processDisplayName,
+  processModelKeyLabel,
   processStatusLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
@@ -46,7 +48,7 @@ function downloadModelFile(record: ProcessModelItem, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${record.modelKey || record.id}.bpmn20.xml`;
+  link.download = `${record.modelKey ? processModelKeyLabel(record.modelKey) : record.id}.bpmn20.xml`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -59,13 +61,19 @@ const ProcessModels: React.FC = () => {
     {
       title: '模型名称',
       dataIndex: 'modelName',
-      render: (_, record) => processDisplayName(record.modelKey, record.modelName),
+      render: (_, record) =>
+        processDisplayName(record.modelKey, record.modelName),
     },
     {
       title: '模型标识',
       dataIndex: 'modelKey',
       width: 180,
-      render: (_, record) => <CopyableText value={record.modelKey} />,
+      render: (_, record) => (
+        <CopyableText
+          value={record.modelKey}
+          displayValue={processModelKeyLabel(record.modelKey)}
+        />
+      ),
     },
     {
       title: '版本',
@@ -98,7 +106,12 @@ const ProcessModels: React.FC = () => {
       width: 220,
       search: false,
       ellipsis: true,
-      render: (_, record) => <CopyableText value={record.flowableDefinitionId} />,
+      render: (_, record) => (
+        <CopyableText
+          value={record.flowableDefinitionId}
+          displayValue={processDefinitionLabel(record.flowableDefinitionId)}
+        />
+      ),
     },
     {
       title: '说明',
@@ -122,7 +135,9 @@ const ProcessModels: React.FC = () => {
         <Space size={4}>
           <Button
             type="link"
-            onClick={() => history.push(`/process-designer?modelId=${record.id}`)}
+            onClick={() =>
+              history.push(`/process-designer?modelId=${record.id}`)
+            }
           >
             设计
           </Button>
@@ -198,7 +213,10 @@ const ProcessModels: React.FC = () => {
   ];
 
   return (
-    <PageContainer title="流程模型" content="维护流程草稿、部署版本和运行定义。">
+    <PageContainer
+      title="流程模型"
+      content="维护流程草稿、部署版本和运行定义。"
+    >
       {contextHolder}
       <ProTable<ProcessModelItem>
         actionRef={actionRef}
@@ -206,8 +224,12 @@ const ProcessModels: React.FC = () => {
         columns={columns}
         scroll={{ x: 1280 }}
         request={async (params) => {
-          const data = await listProcessModels(params.status as string | undefined);
-          const keyword = String(params.modelName || params.modelKey || '').trim();
+          const data = await listProcessModels(
+            params.status as string | undefined,
+          );
+          const keyword = String(
+            params.modelName || params.modelKey || '',
+          ).trim();
           return {
             data: keyword
               ? data.filter((item) =>
@@ -220,7 +242,12 @@ const ProcessModels: React.FC = () => {
           };
         }}
         search={{ labelWidth: 'auto' }}
-        options={{ density: true, fullScreen: true, reload: true, setting: true }}
+        options={{
+          density: true,
+          fullScreen: true,
+          reload: true,
+          setting: true,
+        }}
         toolBarRender={() => [
           <Button
             key="refresh"

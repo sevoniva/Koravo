@@ -44,7 +44,11 @@ import {
   validateProcessModelXml,
   type ProcessModelItem,
 } from '@/services/koravo/api';
-import { processDisplayName, processStatusLabel } from '@/utils/display';
+import {
+  processDisplayName,
+  processModelKeyLabel,
+  processStatusLabel,
+} from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 import {
   BpmnModelerCanvas,
@@ -321,7 +325,9 @@ const ProcessDesigner: React.FC = () => {
 
   const handleExport = useCallback(async () => {
     const xml = await getCurrentXml();
-    const filename = `${activeModel?.modelKey || draftModelKeyRef.current}.bpmn20.xml`;
+    const filename = `${processModelKeyLabel(
+      activeModel?.modelKey || draftModelKeyRef.current,
+    )}.bpmn20.xml`;
     downloadXml(xml, filename);
   }, [activeModel, getCurrentXml]);
 
@@ -373,7 +379,7 @@ const ProcessDesigner: React.FC = () => {
               </Flex>
               <Flex align="center" justify="space-between" gap={8}>
                 <Typography.Text ellipsis className={styles.modelMeta}>
-                  {item.modelKey}
+                  {processModelKeyLabel(item.modelKey)}
                 </Typography.Text>
                 <Typography.Text className={styles.modelMeta}>
                   {formatDateTime(item.updatedAt)}
@@ -509,7 +515,9 @@ const ProcessDesigner: React.FC = () => {
                   : modelForm.modelName}
               </Typography.Text>
               <Typography.Text type="secondary">
-                {activeModel?.modelKey || draftModelKeyRef.current}
+                {processModelKeyLabel(
+                  activeModel?.modelKey || draftModelKeyRef.current,
+                )}
               </Typography.Text>
             </Flex>
           </Flex>
@@ -611,7 +619,10 @@ const ProcessDesigner: React.FC = () => {
                   title: '模型标识',
                   dataIndex: 'modelKey',
                   render: (_, record) => (
-                    <CopyableText value={record.modelKey} />
+                    <CopyableText
+                      value={record.modelKey}
+                      displayValue={processModelKeyLabel(record.modelKey)}
+                    />
                   ),
                 },
                 {

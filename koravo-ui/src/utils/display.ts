@@ -74,6 +74,14 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
   return mapping[modelKey || ''] || fallback || modelKey || '-';
 }
 
+export function processModelKeyLabel(modelKey?: string | null) {
+  const mapping: Record<string, string> = {
+    httpConnectorDemo: 'httpHealthCheck',
+  };
+  if (!modelKey) return '-';
+  return mapping[modelKey] || modelKey;
+}
+
 export function processDescriptionLabel(
   model?: Pick<ProcessModelItem, 'modelKey' | 'description'> | null,
 ) {
