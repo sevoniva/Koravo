@@ -111,6 +111,26 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     width: 170,
     render: (_, record) => <CopyableText value={record.requestId} />,
   },
+  {
+    title: '操作',
+    valueType: 'option',
+    width: 96,
+    render: (_, record) =>
+      record.requestId ? (
+        <Button
+          type="link"
+          onClick={() =>
+            history.push(
+              `/audit-logs?requestId=${encodeURIComponent(record.requestId || '')}`,
+            )
+          }
+        >
+          查看审计
+        </Button>
+      ) : (
+        '-'
+      ),
+  },
 ];
 
 function parseJsonObject(value?: string): JsonRecord {
