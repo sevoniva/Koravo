@@ -135,6 +135,19 @@ function purchaseProgressBadgeText(status?: string, pendingCount = 0) {
   return `待处理 ${pendingCount}`;
 }
 
+function purchasePendingDescription(currentTasks: TaskItem[]) {
+  const approvalTasks = currentTasks.filter((task) =>
+    ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
+  );
+  if (!approvalTasks.length) return '当前没有审批待办。';
+  return approvalTasks
+    .map(
+      (task) =>
+        `${taskDefinitionLabel(task.taskDefinitionKey)}：${task.assignee || '未分配'}`,
+    )
+    .join('，');
+}
+
 function purchaseApprovalSnapshotRecords(
   snapshots: FormSnapshotItem[] = [],
 ): PurchaseApprovalRecord[] {
@@ -546,7 +559,14 @@ const ProcessInstanceDetail: React.FC = () => {
                   showIcon
                   type="info"
                   title={`当前有 ${parallelTaskCount} 个并行审批待处理`}
-                  description="部门审批和财务审批可以分别处理，全部完成后流程继续流转。"
+                  description={purchasePendingDescription(currentTasks)}
+                />
+              ) : parallelTaskCount === 1 ? (
+                <Alert
+                  showIcon
+                  type="info"
+                  title="当前有 1 个审批待处理"
+                  description={purchasePendingDescription(currentTasks)}
                 />
               ) : null}
               <Steps
