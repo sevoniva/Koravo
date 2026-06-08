@@ -136,16 +136,21 @@ function nextPurchaseApprovalTask(currentTask: TaskItem, tasks: TaskItem[]) {
 }
 
 function purchaseApprovalRole(task?: TaskItem) {
+  const completed = task?.status === 'COMPLETED';
   if (task?.taskDefinitionKey === 'managerApprovalTask') {
     return {
-      title: '部门审批待办',
-      description: '请确认采购事项、金额和申请事由，处理后可在流程实例中查看部门审批意见和表单快照。',
+      title: completed ? '部门审批已处理' : '部门审批待办',
+      description: completed
+        ? '该审批任务已完成，可在下方查看处理意见、表单快照和审计记录。'
+        : '请确认采购事项、金额和申请事由，处理后可在流程实例中查看部门审批意见和表单快照。',
     };
   }
   if (task?.taskDefinitionKey === 'financeApprovalTask') {
     return {
-      title: '财务审批待办',
-      description: '请确认采购金额和预算口径，处理后可在流程实例中查看财务审批意见和表单快照。',
+      title: completed ? '财务审批已处理' : '财务审批待办',
+      description: completed
+        ? '该审批任务已完成，可在下方查看处理意见、表单快照和审计记录。'
+        : '请确认采购金额和预算口径，处理后可在流程实例中查看财务审批意见和表单快照。',
     };
   }
   return undefined;
@@ -460,11 +465,11 @@ const TaskDetail: React.FC = () => {
           <Button onClick={() => history.push('/tasks')}>
             返回列表
           </Button>
-          {task ? (
+          {task && canCompleteTask ? (
           <ModalForm<CompleteTaskForm>
             title="完成任务"
             trigger={
-              <Button type="primary" disabled={!canCompleteTask}>
+              <Button type="primary">
                 完成任务
               </Button>
             }
@@ -542,11 +547,14 @@ const TaskDetail: React.FC = () => {
       {approvalRole && task ? (
         <Alert
           showIcon
-          type="info"
+          type={task.status === 'COMPLETED' ? 'success' : 'info'}
           title={
             <Space wrap>
               <span>{approvalRole.title}</span>
-              <Badge status="processing" text={`处理人：${task.assignee || '-'}`} />
+              <Badge
+                status={task.status === 'COMPLETED' ? 'success' : 'processing'}
+                text={`处理人：${task.assignee || '-'}`}
+              />
             </Space>
           }
           description={approvalRole.description}
