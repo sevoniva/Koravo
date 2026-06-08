@@ -430,7 +430,7 @@ const ProcessDesigner: React.FC = () => {
             <ProFormText name="assignee" label="办理人" />
             <ProFormText name="candidateUsers" label="候选用户" />
             <ProFormText name="candidateGroups" label="候选组" />
-            <ProFormText name="formKey" label="表单标识" />
+            <ProFormText name="formKey" label="表单编码" />
           </>
         )}
         {isServiceTask(selectedElement) && (

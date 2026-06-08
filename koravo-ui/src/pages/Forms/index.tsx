@@ -175,7 +175,7 @@ const hasDuplicatedFieldKey = (fields: FormFieldConfig[]) => {
 const fieldColumns: ProColumns<FormFieldConfig>[] = [
   { title: '字段名称', dataIndex: 'title' },
   {
-    title: '字段标识',
+    title: '字段编码',
     dataIndex: 'fieldKey',
     render: (_, record) => <CopyableText value={record.fieldKey} />,
   },
@@ -213,7 +213,7 @@ const Forms: React.FC = () => {
       return false;
     }
     if (hasDuplicatedFieldKey(values.fields)) {
-      message.error('字段标识不能重复');
+      message.error('字段编码不能重复');
       return false;
     }
     const payload = buildPayload(values);
@@ -232,7 +232,7 @@ const Forms: React.FC = () => {
   const columns: ProColumns<FormSchemaItem>[] = [
     { title: '表单名称', dataIndex: 'formName' },
     {
-      title: '表单标识',
+      title: '表单编码',
       dataIndex: 'formKey',
       width: 180,
       render: (_, record) => <CopyableText value={record.formKey} />,
@@ -308,8 +308,9 @@ const Forms: React.FC = () => {
           >
             <ProFormText
               name="formKey"
-              label="表单标识"
-              rules={[{ required: true, message: '请输入表单标识' }]}
+              label="表单编码"
+              tooltip="用于系统保存和表单绑定，建议使用英文、数字和下划线。"
+              rules={[{ required: true, message: '请输入表单编码' }]}
             />
             <ProFormText
               name="formName"
@@ -325,10 +326,10 @@ const Forms: React.FC = () => {
               <Space align="start" wrap>
                 <ProFormText
                   name="fieldKey"
-                  label="字段标识"
+                  label="字段编码"
                   width="sm"
                   rules={[
-                    { required: true, message: '请输入字段标识' },
+                    { required: true, message: '请输入字段编码' },
                     {
                       pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
                       message: '仅支持字母、数字、下划线，且不能以数字开头',
@@ -389,8 +390,9 @@ const Forms: React.FC = () => {
       >
         <ProFormText
           name="formKey"
-          label="表单标识"
-          rules={[{ required: true, message: '请输入表单标识' }]}
+          label="表单编码"
+          tooltip="用于系统保存和表单绑定，建议使用英文、数字和下划线。"
+          rules={[{ required: true, message: '请输入表单编码' }]}
         />
         <ProFormText
           name="formName"
@@ -406,10 +408,10 @@ const Forms: React.FC = () => {
           <Space align="start" wrap>
             <ProFormText
               name="fieldKey"
-              label="字段标识"
+              label="字段编码"
               width="sm"
               rules={[
-                { required: true, message: '请输入字段标识' },
+                { required: true, message: '请输入字段编码' },
                 {
                   pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
                   message: '仅支持字母、数字、下划线，且不能以数字开头',

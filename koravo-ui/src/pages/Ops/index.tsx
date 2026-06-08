@@ -52,7 +52,7 @@ const instanceColumns: ProColumns<OpsProcessInstance>[] = [
     renderText: processDefinitionLabel,
   },
   {
-    title: '业务标识',
+    title: '业务编号',
     dataIndex: 'businessKey',
     width: 180,
     render: (_, record) => <CopyableText value={record.businessKey} />,

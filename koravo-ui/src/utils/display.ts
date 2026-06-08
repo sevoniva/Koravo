@@ -65,6 +65,45 @@ const CONNECTOR_TYPE_LABELS: Record<string, string> = {
   JDBC: 'JDBC',
 };
 
+const BUSINESS_FIELD_LABELS: Record<string, string> = {
+  applicant: '申请人',
+  department: '申请部门',
+  itemName: '采购事项',
+  amount: '采购金额',
+  reason: '申请事由',
+  remark: '备注',
+  managerApprover: '部门审批人',
+  financeApprover: '财务审批人',
+  approver: '处理人',
+  approved: '审批结论',
+  opinion: '处理意见',
+  businessKey: '业务编号',
+  modelKey: '流程编码',
+  modelName: '流程名称',
+  processDefinitionKey: '流程定义编码',
+  processDefinitionId: '流程定义编号',
+  processInstanceId: '流程实例编号',
+  taskId: '任务编号',
+  taskDefinitionKey: '任务节点',
+  taskName: '任务名称',
+  formSchemaId: '表单编号',
+  formKey: '表单编码',
+  formName: '表单名称',
+  version: '版本',
+  status: '状态',
+  name: '名称',
+  type: '类型',
+  success: '是否成功',
+  connected: '连接结果',
+  elapsedMillis: '耗时',
+  retries: '重试次数',
+  errorMessage: '错误信息',
+  reasonMessage: '原因',
+  url: '请求地址',
+  method: '请求方式',
+  statusCode: '状态码',
+};
+
 export function processDisplayName(modelKey?: string, fallback?: string) {
   const mapping: Record<string, string> = {
     purchaseApproval: '采购申请',
@@ -164,6 +203,11 @@ export function shortTraceLabel(value?: string | number | null) {
   if (value === undefined || value === null || value === '') return '';
   const text = String(value);
   return text.length > 12 ? text.slice(0, 8) : text;
+}
+
+export function businessFieldLabel(value?: string | null) {
+  if (!value) return '-';
+  return BUSINESS_FIELD_LABELS[value] || taskDefinitionLabel(value) || value;
 }
 
 function auditCodeLabel(

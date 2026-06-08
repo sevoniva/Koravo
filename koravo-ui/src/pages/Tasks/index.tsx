@@ -35,7 +35,7 @@ const taskUserOptions = [
 const taskColumns: ProColumns<TaskItem>[] = [
   { title: '任务名称', dataIndex: 'name' },
   {
-    title: '业务标识',
+    title: '业务编号',
     dataIndex: 'businessKey',
     width: 180,
     render: (_, record) => <CopyableText value={record.businessKey} />,
@@ -92,7 +92,7 @@ const instanceColumns: ProColumns<OpsProcessInstance>[] = [
     renderText: (value) => processDefinitionLabel(value),
   },
   {
-    title: '业务标识',
+    title: '业务编号',
     dataIndex: 'businessKey',
     width: 180,
     render: (_, record) => <CopyableText value={record.businessKey} />,

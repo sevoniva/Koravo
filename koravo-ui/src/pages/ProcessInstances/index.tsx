@@ -171,7 +171,7 @@ const columns: ProColumns<OpsProcessInstance>[] = [
     renderText: (value) => processDefinitionLabel(value),
   },
   {
-    title: '业务标识',
+    title: '业务编号',
     dataIndex: 'businessKey',
     width: 180,
     render: (_, record) => <CopyableText value={record.businessKey} />,
@@ -291,8 +291,8 @@ const StartInstanceFields: React.FC = () => {
       />
       <ProFormText
         name="businessKey"
-        label="业务标识"
-        rules={[{ required: true, message: '请输入业务标识' }]}
+        label="业务编号"
+        rules={[{ required: true, message: '请输入业务编号' }]}
       />
       <ProFormDependency name={['processDefinitionKey']}>
         {({ processDefinitionKey }) =>

@@ -124,6 +124,11 @@ function purchaseApprovalNodeCount(currentTasks: TaskItem[]) {
   ).length;
 }
 
+function purchaseProgressBadgeText(status?: string, pendingCount = 0) {
+  if (status === 'COMPLETED') return '流程已完成';
+  return `待处理 ${pendingCount}`;
+}
+
 function purchaseApprovalSnapshotRecords(
   snapshots: FormSnapshotItem[] = [],
 ): PurchaseApprovalRecord[] {
@@ -360,7 +365,7 @@ const ProcessInstanceDetail: React.FC = () => {
               dataIndex: 'processDefinitionId',
               renderText: processDefinitionLabel,
             },
-            { title: '业务标识', dataIndex: 'businessKey', copyable: true },
+            { title: '业务编号', dataIndex: 'businessKey', copyable: true },
             { title: '发起人', dataIndex: 'startUserId' },
             { title: '开始时间', dataIndex: 'startTime', renderText: formatDateTime },
             { title: '结束时间', dataIndex: 'endTime', renderText: formatDateTime },
@@ -401,10 +406,10 @@ const ProcessInstanceDetail: React.FC = () => {
               <Flex gap={16} wrap>
                 <Badge
                   status={parallelTaskCount ? 'processing' : 'success'}
-                  text={`待处理 ${parallelTaskCount}`}
+                  text={purchaseProgressBadgeText(instance?.status, parallelTaskCount)}
                 />
                 <Typography.Text type="secondary">
-                  业务标识：{instance?.businessKey || '-'}
+                  业务编号：{instance?.businessKey || '-'}
                 </Typography.Text>
               </Flex>
             </Flex>

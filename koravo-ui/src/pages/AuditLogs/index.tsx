@@ -15,6 +15,7 @@ import {
 import {
   auditActionLabel,
   auditResourceLabel,
+  businessFieldLabel,
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
@@ -46,31 +47,8 @@ const resourceOptions = {
   CONNECTOR_EXECUTION: { text: '连接器执行' },
 };
 
-const detailFieldLabels: Record<string, string> = {
-  name: '名称',
-  type: '类型',
-  success: '是否成功',
-  connected: '连接结果',
-  elapsedMillis: '耗时',
-  modelKey: '流程标识',
-  modelName: '流程名称',
-  processDefinitionKey: '流程定义标识',
-  processDefinitionId: '流程定义编号',
-  processInstanceId: '流程实例编号',
-  businessKey: '业务标识',
-  taskId: '任务编号',
-  taskDefinitionKey: '任务节点',
-  formSchemaId: '表单编号',
-  formKey: '表单标识',
-  formName: '表单名称',
-  version: '版本',
-  retries: '重试次数',
-  reason: '原因',
-  status: '状态',
-};
-
 function formatDetailField(field: string) {
-  return detailFieldLabels[field] || field;
+  return businessFieldLabel(field);
 }
 
 function formatDetailValue(value: unknown): React.ReactNode {

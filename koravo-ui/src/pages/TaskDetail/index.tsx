@@ -32,6 +32,7 @@ import {
 import {
   auditActionLabel,
   auditResourceLabel,
+  businessFieldLabel,
   processDefinitionLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
@@ -64,22 +65,6 @@ const PURCHASE_APPROVAL_TASKS = new Set([
   'managerApprovalTask',
   'financeApprovalTask',
 ]);
-
-const snapshotFieldLabels: Record<string, string> = {
-  taskDefinitionKey: '任务节点',
-  taskName: '任务名称',
-  businessKey: '业务标识',
-  approver: '处理人',
-  approved: '审批结论',
-  opinion: '处理意见',
-  applicant: '申请人',
-  department: '申请部门',
-  itemName: '采购事项',
-  amount: '采购金额',
-  reason: '申请事由',
-  managerApprover: '部门审批人',
-  financeApprover: '财务审批人',
-};
 
 const commentColumns: ProColumns<TaskCommentItem>[] = [
   { title: '用户', dataIndex: 'userId', width: 140 },
@@ -197,7 +182,7 @@ function normalizeFormValues(values?: JsonRecord): JsonRecord {
 }
 
 function formatSnapshotField(field: string) {
-  return snapshotFieldLabels[field] || field;
+  return businessFieldLabel(field);
 }
 
 function formatSnapshotValue(value: unknown): React.ReactNode {
@@ -514,7 +499,7 @@ const TaskDetail: React.FC = () => {
                 </Flex>
               ),
             },
-            { title: '业务标识', dataIndex: 'businessKey', copyable: true },
+            { title: '业务编号', dataIndex: 'businessKey', copyable: true },
             { title: '任务节点', dataIndex: 'taskDefinitionKey', renderText: taskDefinitionLabel },
             { title: '处理人', dataIndex: 'assignee' },
             { title: '创建时间', dataIndex: 'createTime', renderText: formatDateTime },
@@ -530,7 +515,7 @@ const TaskDetail: React.FC = () => {
             dataSource={data?.formSchema}
             columns={[
               { title: '表单名称', dataIndex: 'formName' },
-              { title: '表单标识', dataIndex: 'formKey' },
+              { title: '表单编码', dataIndex: 'formKey' },
               { title: '版本', dataIndex: 'version', renderText: (value) => `v${value || 1}` },
               { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
             ]}
