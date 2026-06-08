@@ -15,7 +15,7 @@ import {
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Button, Drawer, Flex, Modal, Tag, Typography } from 'antd';
+import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -118,6 +118,22 @@ function parseJsonObject(value?: string): JsonRecord {
 
 function isPurchaseApprovalTask(task?: TaskItem) {
   return PURCHASE_APPROVAL_TASKS.has(task?.taskDefinitionKey || '');
+}
+
+function purchaseApprovalRole(task?: TaskItem) {
+  if (task?.taskDefinitionKey === 'managerApprovalTask') {
+    return {
+      title: '部门审批待办',
+      description: '请确认采购事项、金额和申请事由，处理后可在流程实例中查看部门审批意见和表单快照。',
+    };
+  }
+  if (task?.taskDefinitionKey === 'financeApprovalTask') {
+    return {
+      title: '财务审批待办',
+      description: '请确认采购金额和预算口径，处理后可在流程实例中查看财务审批意见和表单快照。',
+    };
+  }
+  return undefined;
 }
 
 function approvalVariableKey(taskDefinitionKey: string, suffix: string) {
@@ -395,18 +411,19 @@ const TaskDetail: React.FC = () => {
       (isPurchaseApprovalTask(task) || data?.formSchema),
   );
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
+  const approvalRole = purchaseApprovalRole(task);
 
   return (
     <PageContainer
       title="任务详情"
       content="查看任务上下文、表单快照、处理意见和审计记录。"
-      extra={[
-        <Button key="back" onClick={() => history.push('/tasks')}>
-          返回列表
-        </Button>,
-        task && (
+      extra={
+        <Space wrap>
+          <Button onClick={() => history.push('/tasks')}>
+            返回列表
+          </Button>
+          {task ? (
           <ModalForm<CompleteTaskForm>
-            key="complete"
             title="完成任务"
             trigger={
               <Button type="primary" disabled={!canCompleteTask}>
@@ -451,10 +468,33 @@ const TaskDetail: React.FC = () => {
           >
             <CompleteTaskFields task={task} formSchema={data?.formSchema} />
           </ModalForm>
-        ),
-      ].filter(Boolean)}
+          ) : null}
+        </Space>
+      }
     >
       {contextHolder}
+      {approvalRole && task ? (
+        <Alert
+          showIcon
+          type="info"
+          title={
+            <Space wrap>
+              <span>{approvalRole.title}</span>
+              <Badge status="processing" text={`处理人：${task.assignee || '-'}`} />
+            </Space>
+          }
+          description={approvalRole.description}
+          action={
+            <Button
+              size="small"
+              onClick={() => history.push(`/process-instances/${task.processInstanceId}`)}
+            >
+              查看实例进度
+            </Button>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
         <ProDescriptions<TaskItem>
           column={{ xs: 1, sm: 1, md: 2 }}
@@ -525,6 +565,20 @@ const TaskDetail: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
+            locale={{
+              emptyText: (
+                <Empty
+                  description="暂无表单快照"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                >
+                  {task ? (
+                    <Button onClick={() => history.push(`/process-instances/${task.processInstanceId}`)}>
+                      查看实例进度
+                    </Button>
+                  ) : null}
+                </Empty>
+              ),
+            }}
             scroll={{ x: 1000 }}
           />
         </ProCard>
@@ -536,6 +590,14 @@ const TaskDetail: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
+            locale={{
+              emptyText: (
+                <Empty
+                  description="暂无处理意见"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              ),
+            }}
           />
         </ProCard>
         <ProCard title="审计记录">
@@ -546,6 +608,26 @@ const TaskDetail: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
+            locale={{
+              emptyText: (
+                <Empty
+                  description="暂无内嵌审计记录"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                >
+                  {task ? (
+                    <Button
+                      onClick={() =>
+                        history.push(
+                          `/audit-logs?resourceId=${encodeURIComponent(task.taskId)}`,
+                        )
+                      }
+                    >
+                      查看审计日志
+                    </Button>
+                  ) : null}
+                </Empty>
+              ),
+            }}
             scroll={{ x: 1000 }}
           />
         </ProCard>
