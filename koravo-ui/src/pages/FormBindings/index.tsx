@@ -10,7 +10,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
-import { Alert, App, Button, Empty, Form, Modal, Space, Typography } from 'antd';
+import { Alert, App, Button, Empty, Flex, Form, Modal, Space, Typography } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import {
@@ -64,7 +64,7 @@ function modelBindingLabel(record: BindingTableItem) {
   }
 
   return (
-    <Space orientation="vertical" size={0}>
+    <Flex vertical gap={0}>
       <Typography.Text>
         {processDisplayName(
           record.processModel.modelKey,
@@ -75,7 +75,7 @@ function modelBindingLabel(record: BindingTableItem) {
         value={record.processModelId}
         displayValue={record.processModel.modelKey}
       />
-    </Space>
+    </Flex>
   );
 }
 
@@ -85,14 +85,18 @@ function formBindingLabel(record: BindingTableItem) {
   }
 
   return (
-    <Space orientation="vertical" size={0}>
+    <Flex vertical gap={0}>
       <Typography.Text>{record.formSchema.formName}</Typography.Text>
       <CopyableText
         value={record.formSchemaId}
         displayValue={`${record.formSchema.formKey} v${record.formSchema.version}`}
       />
-    </Space>
+    </Flex>
   );
+}
+
+function bindingModelId(binding: FormBindingItem | BindingForm) {
+  return binding.processModelId;
 }
 
 const BindingFormItems: React.FC<{ initialProcessModelId?: string }> = ({
@@ -212,6 +216,39 @@ const FormBindings: React.FC = () => {
   const [editing, setEditing] = useState<FormBindingItem>();
   const [modal, contextHolder] = Modal.useModal();
   const queryProcessModelId = useQueryProcessModelId();
+
+  const showBindingSuccess = (binding: FormBindingItem | BindingForm, action: 'created' | 'updated') => {
+    const processModelId = bindingModelId(binding);
+    modal.success({
+      title: action === 'created' ? '表单绑定已创建' : '表单绑定已保存',
+      width: 520,
+      okText: '留在列表',
+      content: (
+        <Flex vertical gap={12}>
+          <span>
+            已将表单绑定到任务节点 {taskDefinitionLabel(binding.taskDefinitionKey)}。
+          </span>
+          <Space wrap>
+            <Button
+              type="primary"
+              onClick={() => history.push('/process-instances')}
+            >
+              发起实例
+            </Button>
+            {processModelId ? (
+              <Button
+                onClick={() =>
+                  history.push(`/process-designer?modelId=${processModelId}`)
+                }
+              >
+                查看流程设计
+              </Button>
+            ) : null}
+          </Space>
+        </Flex>
+      ),
+    });
+  };
 
   const columns: ProColumns<BindingTableItem>[] = [
     {
@@ -376,8 +413,8 @@ const FormBindings: React.FC = () => {
             initialValues={{ processModelId: queryProcessModelId }}
             modalProps={{ destroyOnHidden: true }}
             onFinish={async (values) => {
-              await createFormBinding(bindingPayload(values));
-              message.success('已创建');
+              const binding = await createFormBinding(bindingPayload(values));
+              showBindingSuccess(binding, 'created');
               actionRef.current?.reload();
               return true;
             }}
@@ -401,8 +438,8 @@ const FormBindings: React.FC = () => {
         }}
         onFinish={async (values) => {
           if (!editing) return false;
-          await updateFormBinding(editing.id, bindingPayload(values));
-          message.success('已保存');
+          const binding = await updateFormBinding(editing.id, bindingPayload(values));
+          showBindingSuccess(binding, 'updated');
           setEditing(undefined);
           actionRef.current?.reload();
           return true;

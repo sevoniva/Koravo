@@ -170,7 +170,6 @@ export function taskDefinitionLabel(
     managerApprovalTask: '部门审批',
     financeApprovalTask: '财务审批',
     approveTask: '审批请假',
-    reviewTask: '确认调用结果',
   };
   return task?.name || mapping[key] || key;
 }
