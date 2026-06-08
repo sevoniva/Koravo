@@ -11,20 +11,20 @@ export default [
   },
   {
     key: 'process-modeling',
-    name: '流程建模',
+    name: '流程配置',
     icon: 'partition',
     routes: [
-      {
-        path: '/process-models',
-        name: '流程模型',
-        icon: 'deploymentUnit',
-        component: './ProcessModels',
-      },
       {
         path: '/process-designer',
         name: '流程设计',
         icon: 'edit',
         component: './ProcessDesigner',
+      },
+      {
+        path: '/process-models',
+        name: '流程模型',
+        icon: 'deploymentUnit',
+        component: './ProcessModels',
       },
       {
         path: '/forms',

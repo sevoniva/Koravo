@@ -46,14 +46,14 @@ interface WorkflowStep {
 
 const workflowSteps: WorkflowStep[] = [
   {
-    title: '创建流程模型',
-    description: '定义流程名称、编码和说明',
-    path: '/process-models',
+    title: '创建或设计流程',
+    description: '新建模型、导入 BPMN、维护审批节点',
+    path: '/process-designer',
   },
   {
-    title: '设计流程',
-    description: '维护 BPMN 节点和审批人',
-    path: '/process-designer',
+    title: '校验并部署',
+    description: '确认流程可运行后发布定义',
+    path: '/process-models',
   },
   {
     title: '配置表单',
@@ -180,16 +180,16 @@ const Dashboard: React.FC = () => {
             刷新
           </Button>
           <Button
-            icon={<DeploymentUnitOutlined />}
-            onClick={() => history.push('/process-models')}
-          >
-            创建流程模型
-          </Button>
-          <Button
             icon={<EditOutlined />}
             onClick={() => history.push('/process-designer')}
           >
-            流程设计
+            创建流程
+          </Button>
+          <Button
+            icon={<DeploymentUnitOutlined />}
+            onClick={() => history.push('/process-models')}
+          >
+            流程模型
           </Button>
           <Button
             type="primary"
@@ -217,10 +217,10 @@ const Dashboard: React.FC = () => {
           <Flex wrap gap={8}>
             <Button
               type="primary"
-              icon={<DeploymentUnitOutlined />}
-              onClick={() => history.push('/process-models')}
+              icon={<EditOutlined />}
+              onClick={() => history.push('/process-designer')}
             >
-              创建流程模型
+              创建或设计流程
             </Button>
             <Button
               icon={<CheckCircleOutlined />}

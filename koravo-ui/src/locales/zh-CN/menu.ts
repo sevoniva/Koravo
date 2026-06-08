@@ -1,7 +1,7 @@
 export default {
   'menu.dashboard': '总览',
   'menu.quick-start': '资产检查',
-  'menu.process-modeling': '流程建模',
+  'menu.process-modeling': '流程配置',
   'menu.process-runtime': '流程运行',
   'menu.process-models': '流程模型',
   'menu.process-designer': '流程设计',
