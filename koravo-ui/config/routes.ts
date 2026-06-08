@@ -15,16 +15,16 @@ export default [
     icon: 'partition',
     routes: [
       {
-        path: '/process-designer',
-        name: '流程设计',
-        icon: 'edit',
-        component: './ProcessDesigner',
-      },
-      {
         path: '/process-models',
         name: '流程模型',
         icon: 'deploymentUnit',
         component: './ProcessModels',
+      },
+      {
+        path: '/process-designer',
+        name: '流程设计',
+        icon: 'edit',
+        component: './ProcessDesigner',
       },
       {
         path: '/forms',

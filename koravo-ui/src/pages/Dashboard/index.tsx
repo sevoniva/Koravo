@@ -1,6 +1,9 @@
 import {
+  CheckCircleOutlined,
   DeploymentUnitOutlined,
   EditOutlined,
+  FormOutlined,
+  LinkOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
@@ -12,7 +15,7 @@ import {
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Flex, Statistic } from 'antd';
+import { Alert, Button, Flex, Statistic, Steps } from 'antd';
 import React, { useMemo } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -34,6 +37,40 @@ interface WorkloadRow {
   status: string;
   path: string;
 }
+
+interface WorkflowStep {
+  title: string;
+  description: string;
+  path: string;
+}
+
+const workflowSteps: WorkflowStep[] = [
+  {
+    title: '创建流程模型',
+    description: '定义流程名称、编码和说明',
+    path: '/process-models',
+  },
+  {
+    title: '设计流程',
+    description: '维护 BPMN 节点和审批人',
+    path: '/process-designer',
+  },
+  {
+    title: '配置表单',
+    description: '维护业务字段和控件',
+    path: '/forms',
+  },
+  {
+    title: '绑定任务节点',
+    description: '把表单绑定到审批任务',
+    path: '/form-bindings',
+  },
+  {
+    title: '发起实例',
+    description: '提交业务单据并跟踪处理',
+    path: '/process-instances',
+  },
+];
 
 const workloadColumns: ProColumns<WorkloadRow>[] = [
   { title: '队列类型', dataIndex: 'name' },
@@ -146,16 +183,16 @@ const Dashboard: React.FC = () => {
             icon={<DeploymentUnitOutlined />}
             onClick={() => history.push('/process-models')}
           >
-            流程模型
+            创建流程模型
           </Button>
           <Button
-            type="primary"
             icon={<EditOutlined />}
             onClick={() => history.push('/process-designer')}
           >
-            创建流程
+            流程设计
           </Button>
           <Button
+            type="primary"
             icon={<PlayCircleOutlined />}
             onClick={() => history.push('/process-instances')}
           >
@@ -173,6 +210,43 @@ const Dashboard: React.FC = () => {
           style={{ marginBottom: 16 }}
         />
       )}
+
+      <ProCard
+        title="流程搭建路径"
+        extra={
+          <Flex wrap gap={8}>
+            <Button
+              type="primary"
+              icon={<DeploymentUnitOutlined />}
+              onClick={() => history.push('/process-models')}
+            >
+              创建流程模型
+            </Button>
+            <Button
+              icon={<CheckCircleOutlined />}
+              onClick={() => history.push('/tasks')}
+            >
+              处理待办
+            </Button>
+          </Flex>
+        }
+        style={{ marginBottom: 16 }}
+      >
+        <Steps
+          responsive
+          items={workflowSteps.map((step, index) => ({
+            title: step.title,
+            content: step.description,
+            icon:
+              index === 2 ? (
+                <FormOutlined />
+              ) : index === 3 ? (
+                <LinkOutlined />
+              ) : undefined,
+          }))}
+          onChange={(current) => history.push(workflowSteps[current].path)}
+        />
+      </ProCard>
 
       <ProCard gutter={16} loading={isLoading} wrap>
         <ProCard colSpan={{ xs: 24, sm: 12, xl: 6 }}>
