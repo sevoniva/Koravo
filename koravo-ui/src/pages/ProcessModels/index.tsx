@@ -114,7 +114,11 @@ const ProcessModels: React.FC = () => {
             >
               绑定表单
             </Button>
-            <Button onClick={() => history.push('/process-instances')}>
+            <Button
+              onClick={() =>
+                history.push(`/process-instances?processModelId=${record.id}`)
+              }
+            >
               发起实例
             </Button>
           </Space>

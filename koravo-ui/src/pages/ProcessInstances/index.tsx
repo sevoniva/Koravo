@@ -11,9 +11,9 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history } from '@umijs/max';
+import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Button, Flex, Form } from 'antd';
+import { Alert, App, Button, Empty, Flex, Form } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -68,6 +68,10 @@ interface JsonSchemaProperty {
 }
 
 function nextPurchaseBusinessKey() {
+  return nextBusinessKey('PO');
+}
+
+function nextBusinessKey(prefix = 'REQ') {
   const now = new Date();
   const date = [
     now.getFullYear(),
@@ -79,7 +83,18 @@ function nextPurchaseBusinessKey() {
     String(now.getMinutes()).padStart(2, '0'),
     String(now.getSeconds()).padStart(2, '0'),
   ].join('');
-  return `PO-${date}-${time}`;
+  return `${prefix}-${date}-${time}`;
+}
+
+function businessKeyPrefix(modelKey?: string) {
+  if (modelKey === 'purchaseApproval') return 'PO';
+  if (!modelKey) return 'REQ';
+  const normalized = modelKey
+    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toUpperCase();
+  return normalized || 'REQ';
 }
 
 function purchaseDefaultValues() {
@@ -139,6 +154,13 @@ function findStartSchemaId(
       binding.processModelId === model.id,
   );
   return matchedBinding?.formSchemaId;
+}
+
+function useQueryProcessModelId() {
+  const location = useLocation();
+  return React.useMemo(() => {
+    return new URLSearchParams(location.search).get('processModelId') || undefined;
+  }, [location.search]);
 }
 
 function normalizeStartVariables(values?: JsonRecord): JsonRecord {
@@ -228,7 +250,9 @@ function buildStartVariables(values: StartInstanceForm): JsonRecord {
   };
 }
 
-const StartInstanceFields: React.FC = () => {
+const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
+  initialProcessModelId,
+}) => {
   const form = Form.useFormInstance();
   const { data: deployedModels = [] } = useQuery({
     queryKey: ['start-process-models'],
@@ -244,9 +268,15 @@ const StartInstanceFields: React.FC = () => {
   });
 
   const setProcessContext = React.useCallback(
-    (processDefinitionKey?: string) => {
-      const model = deployedModels.find((item) => item.modelKey === processDefinitionKey);
+    (processDefinitionKey?: string, processModelId?: string) => {
+      const model = deployedModels.find(
+        (item) =>
+          item.modelKey === processDefinitionKey ||
+          item.id === processModelId,
+      );
       form.setFieldsValue({
+        processDefinitionKey: model?.modelKey || processDefinitionKey,
+        businessKey: nextBusinessKey(businessKeyPrefix(model?.modelKey)),
         processModelId: model?.id,
         processDefinitionId: model?.flowableDefinitionId,
         startFormSchemaId: findStartSchemaId(model, formBindings),
@@ -257,6 +287,13 @@ const StartInstanceFields: React.FC = () => {
   );
 
   React.useEffect(() => {
+    if (initialProcessModelId && deployedModels.length) {
+      const model = deployedModels.find((item) => item.id === initialProcessModelId);
+      if (model) {
+        setProcessContext(model.modelKey, model.id);
+        return;
+      }
+    }
     const processDefinitionKey = form.getFieldValue('processDefinitionKey');
     if (processDefinitionKey === 'purchaseApproval' && !form.getFieldValue('businessKey')) {
       form.setFieldsValue(purchaseDefaultValues());
@@ -265,13 +302,28 @@ const StartInstanceFields: React.FC = () => {
     if (processDefinitionKey && !form.getFieldValue('processModelId')) {
       setProcessContext(processDefinitionKey);
     }
-  }, [form, setProcessContext]);
+  }, [deployedModels, form, initialProcessModelId, setProcessContext]);
 
   return (
     <>
+      {!deployedModels.length ? (
+        <Alert
+          showIcon
+          type="warning"
+          title="还没有可发起的已部署流程"
+          description="请先创建流程模型并部署，再回到这里发起业务实例。"
+          action={
+            <Button size="small" onClick={() => history.push('/process-models')}>
+              创建流程模型
+            </Button>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
       <ProFormSelect
         name="processDefinitionKey"
         label="流程"
+        disabled={!deployedModels.length}
         rules={[{ required: true, message: '请选择流程' }]}
         fieldProps={{
           showSearch: true,
@@ -353,20 +405,71 @@ const StartInstanceFields: React.FC = () => {
               />
               <ProFormText name="processModelId" hidden />
               <ProFormText name="processDefinitionId" hidden />
-              <ProFormSelect
-                name="startFormSchemaId"
-                label="启动表单"
-                rules={[{ required: true, message: '请选择启动表单' }]}
-                options={formSchemas.map((item) => ({
-                  label: `${item.formName}（${item.formKey} v${item.version}）`,
-                  value: item.id,
-                }))}
-                fieldProps={{
-                  showSearch: true,
-                  optionFilterProp: 'label',
-                  onChange: () => form.setFieldValue('formValues', {}),
+              <ProFormDependency name={['processModelId']}>
+                {({ processModelId }) => {
+                  const selectedModel = deployedModels.find(
+                    (item) => item.id === processModelId,
+                  );
+                  const hasBoundForm = Boolean(
+                    selectedModel &&
+                      findStartSchemaId(selectedModel, formBindings),
+                  );
+                  return (
+                    <>
+                      {selectedModel && !hasBoundForm ? (
+                        <Alert
+                          showIcon
+                          type="warning"
+                          title="该流程还没有匹配到已绑定表单"
+                          description="可以临时选择一个启动表单发起流程；正式使用前建议先完成任务节点表单绑定。"
+                          action={
+                            <Button
+                              size="small"
+                              onClick={() =>
+                                history.push(
+                                  `/form-bindings?processModelId=${selectedModel.id}`,
+                                )
+                              }
+                            >
+                              去绑定表单
+                            </Button>
+                          }
+                          style={{ marginBottom: 16 }}
+                        />
+                      ) : null}
+                      <ProFormSelect
+                        name="startFormSchemaId"
+                        label="启动表单"
+                        disabled={!formSchemas.length}
+                        rules={[{ required: true, message: '请选择启动表单' }]}
+                        options={formSchemas.map((item) => ({
+                          label: `${item.formName}（${item.formKey} v${item.version}）`,
+                          value: item.id,
+                        }))}
+                        fieldProps={{
+                          showSearch: true,
+                          optionFilterProp: 'label',
+                          onChange: () => form.setFieldValue('formValues', {}),
+                        }}
+                      />
+                      {!formSchemas.length ? (
+                        <Alert
+                          showIcon
+                          type="warning"
+                          title="还没有可用表单"
+                          description="请先在表单管理创建业务表单，再回到这里发起流程。"
+                          action={
+                            <Button size="small" onClick={() => history.push('/forms')}>
+                              创建表单
+                            </Button>
+                          }
+                          style={{ marginBottom: 16 }}
+                        />
+                      ) : null}
+                    </>
+                  );
                 }}
-              />
+              </ProFormDependency>
               <ProFormDependency name={['startFormSchemaId']}>
                 {({ startFormSchemaId }) => {
                   const formSchema = formSchemas.find((item) => item.id === startFormSchemaId);
@@ -458,6 +561,12 @@ const StartInstanceFields: React.FC = () => {
 
 const ProcessInstances: React.FC = () => {
   const { message } = App.useApp();
+  const queryProcessModelId = useQueryProcessModelId();
+  const [startOpen, setStartOpen] = React.useState(Boolean(queryProcessModelId));
+
+  React.useEffect(() => {
+    if (queryProcessModelId) setStartOpen(true);
+  }, [queryProcessModelId]);
 
   return (
     <PageContainer title="流程实例" content="启动流程并跟踪运行中的实例。">
@@ -473,17 +582,43 @@ const ProcessInstances: React.FC = () => {
           });
           return { data: result.items, total: result.total, success: true };
         }}
+        locale={{
+          emptyText: (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="暂无流程实例"
+            >
+              <Flex gap={8} justify="center" wrap>
+                <Button
+                  type="primary"
+                  icon={<PlayCircleOutlined />}
+                  onClick={() => setStartOpen(true)}
+                >
+                  启动流程
+                </Button>
+                <Button onClick={() => history.push('/process-models')}>
+                  创建流程模型
+                </Button>
+              </Flex>
+            </Empty>
+          ),
+        }}
         toolBarRender={(action) => [
           <ModalForm<StartInstanceForm>
             key="start"
             title="启动流程实例"
+            open={startOpen}
+            onOpenChange={setStartOpen}
             trigger={
               <Button type="primary" icon={<PlayCircleOutlined />}>
                 启动流程
               </Button>
             }
             initialValues={{ processDefinitionKey: 'purchaseApproval' }}
-            modalProps={{ destroyOnHidden: true }}
+            modalProps={{
+              destroyOnHidden: true,
+              width: 'min(720px, calc(100vw - 16px))',
+            }}
             onFinish={async (values) => {
               const instance = await startProcessInstance({
                 processDefinitionKey: values.processDefinitionKey,
@@ -496,7 +631,7 @@ const ProcessInstances: React.FC = () => {
               return true;
             }}
           >
-            <StartInstanceFields />
+            <StartInstanceFields initialProcessModelId={queryProcessModelId} />
           </ModalForm>,
         ]}
       />

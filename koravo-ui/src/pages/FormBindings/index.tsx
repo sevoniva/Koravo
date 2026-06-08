@@ -231,7 +231,13 @@ const FormBindings: React.FC = () => {
           <Space wrap>
             <Button
               type="primary"
-              onClick={() => history.push('/process-instances')}
+              onClick={() =>
+                history.push(
+                  processModelId
+                    ? `/process-instances?processModelId=${processModelId}`
+                    : '/process-instances',
+                )
+              }
             >
               发起实例
             </Button>
