@@ -1,19 +1,22 @@
 import {
   PageContainer,
   ProCard,
+  ProDescriptions,
   ProTable,
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Modal, Statistic, Tabs, message } from 'antd';
-import React, { useRef } from 'react';
+import { Alert, App, Button, Drawer, Empty, Modal, Space, Statistic, Tabs, Typography } from 'antd';
+import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   deleteDeadLetterJob,
   deleteFailedJob,
+  getDeadLetterJob,
+  getFailedJob,
   getOpsSummary,
   listDeadLetterJobs,
   listFailedJobs,
@@ -27,6 +30,13 @@ import {
 } from '@/services/koravo/api';
 import { processDefinitionLabel } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+
+type JobKind = 'failed' | 'dead-letter';
+
+interface SelectedJob {
+  kind: JobKind;
+  id: string;
+}
 
 const instanceColumns: ProColumns<OpsProcessInstance>[] = [
   {
@@ -80,6 +90,8 @@ function jobColumns(
   deleteJob: (id: string) => Promise<unknown>,
   actionRef: React.RefObject<ActionType | null>,
   modal: ReturnType<typeof Modal.useModal>[0],
+  message: ReturnType<typeof App.useApp>['message'],
+  openDetail: (job: SelectedJob) => void,
 ): ProColumns<OpsJobItem>[] {
   return [
     {
@@ -93,7 +105,20 @@ function jobColumns(
       title: '流程实例',
       dataIndex: 'processInstanceId',
       width: 220,
-      render: (_, record) => <CopyableText value={record.processInstanceId} />,
+      render: (_, record) =>
+        record.processInstanceId ? (
+          <Space wrap>
+            <CopyableText value={record.processInstanceId} />
+            <Button
+              type="link"
+              onClick={() => history.push(`/process-instances/${record.processInstanceId}`)}
+            >
+              查看实例
+            </Button>
+          </Space>
+        ) : (
+          '-'
+        ),
     },
     { title: '节点', dataIndex: 'elementName', width: 160 },
     { title: '重试次数', dataIndex: 'retries', width: 100 },
@@ -111,8 +136,20 @@ function jobColumns(
     {
       title: '操作',
       valueType: 'option',
-      width: 128,
+      width: 176,
       render: (_, record) => [
+        <Button
+          key="detail"
+          type="link"
+          onClick={() =>
+            openDetail({
+              id: record.id,
+              kind: record.type === 'DEAD_LETTER' ? 'dead-letter' : 'failed',
+            })
+          }
+        >
+          详情
+        </Button>,
         <Button
           key="retry"
           type="link"
@@ -171,10 +208,20 @@ const capabilityColumns: ProColumns<OpsCapabilityItem>[] = [
 const Ops: React.FC = () => {
   const failedRef = useRef<ActionType>(null);
   const deadLetterRef = useRef<ActionType>(null);
+  const [selectedJob, setSelectedJob] = useState<SelectedJob>();
   const [modal, contextHolder] = Modal.useModal();
+  const { message } = App.useApp();
   const { data: summary, isLoading } = useQuery({
     queryKey: ['ops-summary'],
     queryFn: getOpsSummary,
+  });
+  const { data: jobDetail, isLoading: jobDetailLoading } = useQuery({
+    queryKey: ['ops-job-detail', selectedJob?.kind, selectedJob?.id],
+    queryFn: () =>
+      selectedJob?.kind === 'dead-letter'
+        ? getDeadLetterJob(selectedJob.id)
+        : getFailedJob(selectedJob?.id || ''),
+    enabled: Boolean(selectedJob?.id),
   });
 
   return (
@@ -223,7 +270,15 @@ const Ops: React.FC = () => {
               <ProTable<OpsJobItem>
                 actionRef={failedRef}
                 rowKey="id"
-                columns={jobColumns(retryFailedJob, deleteFailedJob, failedRef, modal)}
+                locale={{ emptyText: <Empty description="暂无失败任务" /> }}
+                columns={jobColumns(
+                  retryFailedJob,
+                  deleteFailedJob,
+                  failedRef,
+                  modal,
+                  message,
+                  setSelectedJob,
+                )}
                 scroll={{ x: 1280 }}
                 search={false}
                 request={async (params) => {
@@ -243,11 +298,14 @@ const Ops: React.FC = () => {
               <ProTable<OpsJobItem>
                 actionRef={deadLetterRef}
                 rowKey="id"
+                locale={{ emptyText: <Empty description="暂无死信任务" /> }}
                 columns={jobColumns(
                   retryDeadLetterJob,
                   deleteDeadLetterJob,
                   deadLetterRef,
                   modal,
+                  message,
+                  setSelectedJob,
                 )}
                 scroll={{ x: 1280 }}
                 search={false}
@@ -279,6 +337,86 @@ const Ops: React.FC = () => {
           },
         ]}
       />
+      <Drawer
+        title="异常任务详情"
+        size={720}
+        open={Boolean(selectedJob)}
+        loading={jobDetailLoading}
+        onClose={() => setSelectedJob(undefined)}
+        extra={
+          jobDetail?.processInstanceId ? (
+            <Button
+              type="link"
+              onClick={() => history.push(`/process-instances/${jobDetail.processInstanceId}`)}
+            >
+              查看流程实例
+            </Button>
+          ) : null
+        }
+      >
+        {jobDetail ? (
+          <Space vertical size={16} style={{ width: '100%' }}>
+            {jobDetail.exceptionMessage ? (
+              <Alert
+                showIcon
+                type="error"
+                title="异常信息"
+                description={jobDetail.exceptionMessage}
+              />
+            ) : null}
+            <ProDescriptions<OpsJobItem>
+              column={1}
+              dataSource={jobDetail}
+              columns={[
+                { title: '任务编号', dataIndex: 'id', copyable: true },
+                { title: '类型', dataIndex: 'type' },
+                {
+                  title: '流程实例',
+                  dataIndex: 'processInstanceId',
+                  render: (_, record) =>
+                    record.processInstanceId ? (
+                      <Space wrap>
+                        <CopyableText value={record.processInstanceId} />
+                        <Button
+                          type="link"
+                          onClick={() =>
+                            history.push(`/process-instances/${record.processInstanceId}`)
+                          }
+                        >
+                          查看实例
+                        </Button>
+                      </Space>
+                    ) : (
+                      '-'
+                    ),
+                },
+                {
+                  title: '流程定义',
+                  dataIndex: 'processDefinitionId',
+                  renderText: processDefinitionLabel,
+                },
+                { title: '执行编号', dataIndex: 'executionId', copyable: true },
+                { title: '节点编号', dataIndex: 'elementId' },
+                { title: '节点名称', dataIndex: 'elementName' },
+                { title: '处理器', dataIndex: 'handlerType' },
+                { title: '重试次数', dataIndex: 'retries' },
+                { title: '创建时间', dataIndex: 'createTime', renderText: formatDateTime },
+                { title: '到期时间', dataIndex: 'dueDate', renderText: formatDateTime },
+              ]}
+            />
+            <Typography.Title level={5}>异常堆栈</Typography.Title>
+            {jobDetail.exceptionStacktrace ? (
+              <Typography.Paragraph code copyable>
+                {jobDetail.exceptionStacktrace}
+              </Typography.Paragraph>
+            ) : (
+              <Empty description="暂无异常堆栈" />
+            )}
+          </Space>
+        ) : (
+          <Empty description="暂无任务详情" />
+        )}
+      </Drawer>
     </PageContainer>
   );
 };
