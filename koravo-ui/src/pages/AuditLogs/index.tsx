@@ -5,7 +5,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
-import { Button, Drawer, Space, Typography } from 'antd';
+import { Alert, Button, Drawer, Empty, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
@@ -62,29 +62,106 @@ function auditTaskId(log?: AuditLogItem) {
   return undefined;
 }
 
-const AuditRelatedActions: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
+function auditProcessModelId(log?: AuditLogItem) {
+  const detail = auditDetailRecord(log);
+  if (typeof detail.processModelId === 'string') return detail.processModelId;
+  if (log?.resourceType === 'PROCESS_MODEL') return log.resourceId;
+  return undefined;
+}
+
+function auditRelatedButtons(log?: AuditLogItem) {
   const processInstanceId = auditProcessInstanceId(log);
   const taskId = auditTaskId(log);
+  const processModelId = auditProcessModelId(log);
+  const actions: React.ReactNode[] = [];
 
-  if (!processInstanceId && !taskId) return null;
+  if (processInstanceId) {
+    actions.push(
+      <Button
+        key="instance"
+        type="link"
+        onClick={() => history.push(`/process-instances/${processInstanceId}`)}
+      >
+        查看流程实例
+      </Button>,
+    );
+  }
+  if (taskId) {
+    actions.push(
+      <Button key="task" type="link" onClick={() => history.push(`/tasks/${taskId}`)}>
+        查看任务
+      </Button>,
+    );
+  }
+  if (processModelId) {
+    actions.push(
+      <Button
+        key="model"
+        type="link"
+        onClick={() => history.push(`/process-designer?modelId=${processModelId}`)}
+      >
+        查看流程设计
+      </Button>,
+    );
+  }
+  if (log?.resourceType === 'FORM_SCHEMA') {
+    actions.push(
+      <Button key="form" type="link" onClick={() => history.push('/forms')}>
+        查看表单
+      </Button>,
+    );
+  }
+  if (log?.resourceType === 'FORM_BINDING') {
+    actions.push(
+      <Button
+        key="binding"
+        type="link"
+        onClick={() =>
+          history.push(
+            processModelId
+              ? `/form-bindings?processModelId=${processModelId}`
+              : '/form-bindings',
+          )
+        }
+      >
+        查看表单绑定
+      </Button>,
+    );
+  }
+  if (log?.resourceType === 'DATASOURCE') {
+    actions.push(
+      <Button key="datasource" type="link" onClick={() => history.push('/datasources')}>
+        查看数据源
+      </Button>,
+    );
+  }
+  if (log?.resourceType === 'CONNECTOR_EXECUTION') {
+    actions.push(
+      <Button
+        key="connector"
+        type="link"
+        onClick={() =>
+          history.push(
+            log.requestId
+              ? `/http-connector?requestId=${encodeURIComponent(log.requestId)}`
+              : '/http-connector',
+          )
+        }
+      >
+        查看连接器记录
+      </Button>,
+    );
+  }
 
-  return (
-    <Space wrap>
-      {processInstanceId ? (
-        <Button
-          type="link"
-          onClick={() => history.push(`/process-instances/${processInstanceId}`)}
-        >
-          查看流程实例
-        </Button>
-      ) : null}
-      {taskId ? (
-        <Button type="link" onClick={() => history.push(`/tasks/${taskId}`)}>
-          查看任务
-        </Button>
-      ) : null}
-    </Space>
-  );
+  return actions;
+}
+
+const AuditRelatedActions: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
+  const actions = auditRelatedButtons(log);
+
+  if (!actions.length) return null;
+
+  return <Space wrap>{actions}</Space>;
 };
 
 const AuditLogs: React.FC = () => {
@@ -149,6 +226,7 @@ const AuditLogs: React.FC = () => {
       title: '操作',
       valueType: 'option',
       width: 96,
+      fixed: 'right',
       render: (_, record) => (
         <Button type="link" onClick={() => setDetail(record)}>
           查看
@@ -159,11 +237,37 @@ const AuditLogs: React.FC = () => {
 
   return (
     <PageContainer title="审计日志" content="查询关键操作记录和请求追踪信息。">
+      {query.requestId || query.resourceId ? (
+        <Alert
+          showIcon
+          type="info"
+          title="已按上下文筛选审计记录"
+          description={
+            query.requestId
+              ? `请求追踪号：${query.requestId}`
+              : `对象编号：${query.resourceId}`
+          }
+          action={
+            <Button size="small" onClick={() => history.push('/audit-logs')}>
+              清除筛选
+            </Button>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
       <ProTable<AuditLogItem>
         rowKey="id"
         columns={columns}
         scroll={{ x: 1200 }}
         search={{ labelWidth: 'auto' }}
+        locale={{
+          emptyText: (
+            <Empty
+              description="暂无审计记录"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          ),
+        }}
         params={{ requestId: query.requestId, resourceId: query.resourceId }}
         request={async (params) => {
           const result = await listAuditLogs({

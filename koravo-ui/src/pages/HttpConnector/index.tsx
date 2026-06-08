@@ -5,7 +5,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history } from '@umijs/max';
+import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Drawer, Flex, Statistic, Typography } from 'antd';
 import React, { useState } from 'react';
@@ -30,6 +30,13 @@ function connectorTraceDisplay(requestId?: string) {
   return shortTraceLabel(requestId.replace(/^demo-http-/i, 'http-call-'));
 }
 
+function useQueryRequestId() {
+  const location = useLocation();
+  return React.useMemo(() => {
+    return new URLSearchParams(location.search).get('requestId') || undefined;
+  }, [location.search]);
+}
+
 const DetailBlock: React.FC<{ title: string; value?: string | null }> = ({
   title,
   value,
@@ -42,6 +49,7 @@ const DetailBlock: React.FC<{ title: string; value?: string | null }> = ({
 
 const HttpConnector: React.FC = () => {
   const [detail, setDetail] = useState<ConnectorExecutionLogItem>();
+  const queryRequestId = useQueryRequestId();
   const { data: summary, isLoading } = useQuery({
     queryKey: ['connector-summary', 'http'],
     queryFn: () => getConnectorExecutionSummary('http'),
@@ -137,11 +145,12 @@ const HttpConnector: React.FC = () => {
         columns={columns}
         scroll={{ x: 1280 }}
         search={{ labelWidth: 'auto' }}
+        params={{ requestId: queryRequestId }}
         request={async (params) => {
           const result = await listConnectorExecutionLogs({
             connectorType: params.connectorType as string | undefined,
             status: params.status as string | undefined,
-            requestId: params.requestId as string | undefined,
+            requestId: (params.requestId as string | undefined) || queryRequestId,
             page: Number(params.current || 1),
             pageSize: Number(params.pageSize || 10),
           });
