@@ -73,14 +73,26 @@ const instanceColumns: ProColumns<OpsProcessInstance>[] = [
   {
     title: '操作',
     valueType: 'option',
-    width: 96,
+    width: 160,
     render: (_, record) => (
-      <Button
-        type="link"
-        onClick={() => history.push(`/process-instances/${record.instanceId}`)}
-      >
-        查看
-      </Button>
+      <Space size={4}>
+        <Button
+          type="link"
+          onClick={() => history.push(`/process-instances/${record.instanceId}`)}
+        >
+          查看实例
+        </Button>
+        <Button
+          type="link"
+          onClick={() =>
+            history.push(
+              `/audit-logs?resourceId=${encodeURIComponent(record.instanceId)}`,
+            )
+          }
+        >
+          审计日志
+        </Button>
+      </Space>
     ),
   },
 ];
@@ -345,12 +357,24 @@ const Ops: React.FC = () => {
         onClose={() => setSelectedJob(undefined)}
         extra={
           jobDetail?.processInstanceId ? (
-            <Button
-              type="link"
-              onClick={() => history.push(`/process-instances/${jobDetail.processInstanceId}`)}
-            >
-              查看流程实例
-            </Button>
+            <Space wrap>
+              <Button
+                type="link"
+                onClick={() => history.push(`/process-instances/${jobDetail.processInstanceId}`)}
+              >
+                查看流程实例
+              </Button>
+              <Button
+                type="link"
+                onClick={() =>
+                  history.push(
+                    `/audit-logs?resourceId=${encodeURIComponent(jobDetail.processInstanceId || '')}`,
+                  )
+                }
+              >
+                审计日志
+              </Button>
+            </Space>
           ) : null
         }
       >
