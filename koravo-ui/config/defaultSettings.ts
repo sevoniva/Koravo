@@ -1,5 +1,4 @@
 import type { ProLayoutProps } from '@ant-design/pro-components';
-import { KORAVO_PRIMARY_COLOR, koravoLayoutToken } from './theme';
 
 /**
  * @name
@@ -8,7 +7,7 @@ const Settings: ProLayoutProps & {
   logo?: string;
 } = {
   navTheme: 'light',
-  colorPrimary: KORAVO_PRIMARY_COLOR,
+  colorPrimary: '#1677ff',
   layout: 'side',
   contentWidth: 'Fluid',
   fixedHeader: false,
@@ -17,7 +16,7 @@ const Settings: ProLayoutProps & {
   title: 'Koravo',
   logo: '/logo.svg',
   iconfontUrl: '',
-  token: koravoLayoutToken,
+  token: {},
 };
 
 export default Settings;

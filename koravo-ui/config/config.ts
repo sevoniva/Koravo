@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import { defineConfig } from '@umijs/max';
 import defaultSettings from './defaultSettings';
 import proxy from './proxy';
-import { koravoAntdTheme } from './theme';
 
 import routes from './routes';
 
@@ -146,7 +145,11 @@ export default defineConfig({
     appConfig: {},
     configProvider: {
       variant: 'filled',
-      theme: koravoAntdTheme,
+      theme: {
+        token: {
+          fontFamily: 'AlibabaSans, sans-serif',
+        },
+      },
     },
   },
   /**

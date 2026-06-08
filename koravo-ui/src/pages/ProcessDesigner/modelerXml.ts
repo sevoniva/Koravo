@@ -5,13 +5,25 @@ const XML_ESCAPE_MAP: Record<string, string> = {
   '"': '&quot;',
   "'": '&apos;',
 };
+const DEFAULT_USER_TASK_ASSIGNEE = '$' + '{startUserId}';
 
 function escapeXml(value: string) {
   return value.replace(/[&<>"']/g, (char) => XML_ESCAPE_MAP[char]);
 }
 
+function normalizeBpmnId(value?: string) {
+  const normalized = (value?.trim() || 'koravoProcess')
+    .replace(/[^\w.-]/g, '_')
+    .replace(/_+/g, '_');
+
+  if (/^[A-Za-z_]/.test(normalized)) {
+    return normalized;
+  }
+  return `koravoProcess${normalized}`;
+}
+
 export function createDefaultBpmnXml(modelKey?: string, modelName?: string) {
-  const processId = modelKey?.trim() || 'koravoProcess';
+  const processId = normalizeBpmnId(modelKey);
   const processName = escapeXml(modelName?.trim() || processId);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -54,10 +66,54 @@ export function createDefaultBpmnXml(modelKey?: string, modelName?: string) {
 </bpmn:definitions>`;
 }
 
+function isBpmnDefinitionsXml(value: string) {
+  return /<([a-zA-Z_][\w.-]*:)?definitions(\s|>)/.test(value);
+}
+
+function ensureFlowableNamespace(xml: string) {
+  if (xml.includes('xmlns:flowable=')) {
+    return xml;
+  }
+  return xml.replace(
+    /<([a-zA-Z_][\w.-]*:)?definitions\b([^>]*)>/,
+    '<$1definitions$2 xmlns:flowable="http://flowable.org/bpmn">',
+  );
+}
+
+function ensureUserTaskAssignees(xml: string) {
+  return xml.replace(
+    /<([a-zA-Z_][\w.-]*:)?userTask\b([^>]*)>/g,
+    (tag, prefix = '', attributes: string) => {
+      if (/\s(?:flowable:)?assignee=/.test(attributes)) {
+        return tag;
+      }
+      const selfClosing = /\/\s*$/.test(attributes);
+      const normalizedAttributes = selfClosing
+        ? attributes.replace(/\/\s*$/, '').trimEnd()
+        : attributes.trimEnd();
+      const assignee = ` flowable:assignee="${DEFAULT_USER_TASK_ASSIGNEE}"`;
+      const suffix = selfClosing ? ' />' : '>';
+      return `<${prefix}userTask${normalizedAttributes}${assignee}${suffix}`;
+    },
+  );
+}
+
+function upgradeBpmnXml(xml: string) {
+  const withAssignees = ensureUserTaskAssignees(xml);
+  if (withAssignees === xml) {
+    return xml;
+  }
+  return ensureFlowableNamespace(withAssignees);
+}
+
 export function resolveDesignerXml(
   bpmnXml?: string,
   modelKey?: string,
   modelName?: string,
 ) {
-  return bpmnXml?.trim() || createDefaultBpmnXml(modelKey, modelName);
+  const trimmed = bpmnXml?.trim();
+  if (trimmed && isBpmnDefinitionsXml(trimmed)) {
+    return upgradeBpmnXml(trimmed);
+  }
+  return createDefaultBpmnXml(modelKey, modelName);
 }

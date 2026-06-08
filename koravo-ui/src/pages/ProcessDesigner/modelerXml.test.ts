@@ -23,12 +23,45 @@ describe('ProcessDesigner BPMN XML helpers', () => {
     expect(xml).toContain('name="A&amp;B &lt;Flow&gt; &quot;Test&quot;"');
   });
 
+  it('normalizes generated BPMN ids for the modeler', () => {
+    const xml = createDefaultBpmnXml('123', 'Numeric flow');
+
+    expect(xml).toContain('id="koravoProcess123"');
+    expect(xml).not.toContain('id="123"');
+  });
+
   it('uses existing XML when present and falls back to a generated diagram when empty', () => {
     expect(
       resolveDesignerXml('<definitions />', 'contractFlow', 'Contract flow'),
     ).toBe('<definitions />');
     expect(resolveDesignerXml('', 'contractFlow', 'Contract flow')).toContain(
       'id="contractFlow"',
+    );
+  });
+
+  it('falls back to a generated diagram when saved XML is not BPMN', () => {
+    const xml = resolveDesignerXml('123', 'brokenFlow', 'Broken flow');
+
+    expect(xml).toContain('<bpmn:definitions');
+    expect(xml).toContain('id="brokenFlow"');
+  });
+
+  it('upgrades saved user tasks with the default assignee', () => {
+    const xml = resolveDesignerXml(
+      `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="legacyFlow" isExecutable="true">
+    <bpmn:userTask id="Task_1" name="Submit" />
+  </bpmn:process>
+</bpmn:definitions>`,
+      'legacyFlow',
+      'Legacy flow',
+    );
+
+    expect(xml).toContain('xmlns:flowable="http://flowable.org/bpmn"');
+    expect(xml).toContain(
+      '<bpmn:userTask id="Task_1" name="Submit" flowable:assignee="$' +
+        '{startUserId}" />',
     );
   });
 });

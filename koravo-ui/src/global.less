@@ -39,21 +39,6 @@
     format("woff2");
 }
 
-:root {
-  --koravo-primary: #1890ff;
-  --koravo-primary-1: #e6f7ff;
-  --koravo-primary-2: #bae7ff;
-  --koravo-primary-3: #91d5ff;
-  --koravo-primary-5: #40a9ff;
-  --koravo-primary-7: #096dd9;
-  --koravo-page-bg: #f3f8ff;
-  --koravo-page-header-bg: #eaf4ff;
-  --koravo-container-bg: #ffffff;
-  --koravo-border: #d7e7f8;
-  --koravo-table-header-bg: #f2f8ff;
-  --koravo-text: #172033;
-}
-
 html,
 body,
 #root {
@@ -65,87 +50,12 @@ body,
     sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
-body {
-  color: var(--koravo-text);
-  background: var(--koravo-page-bg);
-}
-
 .colorWeak {
   filter: invert(80%);
 }
 
 .ant-layout {
   min-height: 100vh;
-  background: var(--koravo-page-bg);
-}
-
-.ant-pro-layout .ant-layout,
-.ant-pro-layout .ant-pro-layout-container {
-  background: var(--koravo-page-bg);
-}
-
-.ant-pro-layout .ant-pro-layout-bg-list {
-  background: var(--koravo-page-bg);
-}
-
-.ant-pro-layout .ant-pro-global-header,
-.ant-pro-layout .ant-pro-layout-header {
-  border-bottom: 1px solid var(--koravo-border);
-  background: var(--koravo-container-bg);
-}
-
-.ant-pro-page-container .ant-pro-page-container-warp {
-  border-bottom: 1px solid var(--koravo-border);
-  background: var(--koravo-page-header-bg);
-}
-
-.ant-pro-page-container .ant-pro-page-container-children-container {
-  padding-top: 16px;
-}
-
-.ant-pro-sider.ant-layout-sider {
-  border-right: 1px solid var(--koravo-border);
-  background: #fbfdff;
-}
-
-.ant-pro-sider .ant-menu-light .ant-menu-item-selected,
-.ant-pro-sider .ant-menu-light .ant-menu-submenu-selected > .ant-menu-submenu-title {
-  color: var(--koravo-primary);
-  background: var(--koravo-primary-1);
-}
-
-.ant-pro-sider .ant-menu-light .ant-menu-item:hover,
-.ant-pro-sider .ant-menu-light .ant-menu-submenu-title:hover {
-  color: var(--koravo-primary);
-  background: var(--koravo-primary-1);
-}
-
-.ant-pro-card,
-.ant-card {
-  border-color: var(--koravo-border);
-  box-shadow: 0 6px 18px rgb(24 144 255 / 5%);
-}
-
-.ant-pro-card .ant-pro-card-title,
-.ant-card .ant-card-head-title {
-  color: var(--koravo-text);
-}
-
-.ant-pro-card .ant-pro-card-header,
-.ant-card .ant-card-head {
-  border-bottom-color: #edf4fb;
-}
-
-.ant-table-thead > tr > th {
-  background: var(--koravo-table-header-bg) !important;
-}
-
-.ant-btn-primary {
-  box-shadow: 0 4px 10px rgb(24 144 255 / 18%);
-}
-
-.ant-statistic-content {
-  color: var(--koravo-text);
 }
 
 .ant-pro-sider.ant-layout-sider.ant-pro-sider-fixed {
