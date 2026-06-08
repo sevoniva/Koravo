@@ -147,7 +147,7 @@ export function connectorTypeLabel(value?: string | null) {
 export function shortTraceLabel(value?: string | number | null) {
   if (value === undefined || value === null || value === '') return '';
   const text = String(value);
-  return text.length > 12 ? `追踪号 ${text.slice(0, 8)}` : text;
+  return text.length > 12 ? text.slice(0, 8) : text;
 }
 
 function auditCodeLabel(
