@@ -4,7 +4,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history } from '@umijs/max';
+import { history, useLocation } from '@umijs/max';
 import { Button, Drawer, Empty, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
@@ -149,6 +149,10 @@ const AuditRelatedActions: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
 
 const AuditLogs: React.FC = () => {
   const [detail, setDetail] = useState<AuditLogItem>();
+  const location = useLocation();
+  const queryRequestId = React.useMemo(() => {
+    return new URLSearchParams(location.search).get('requestId') || undefined;
+  }, [location.search]);
 
   const columns: ProColumns<AuditLogItem>[] = [
     {
@@ -218,13 +222,14 @@ const AuditLogs: React.FC = () => {
         columns={columns}
         scroll={{ x: 1200 }}
         search={{ labelWidth: 'auto' }}
+        params={{ requestId: queryRequestId }}
         request={async (params) => {
           const result = await listAuditLogs({
             userId: params.userId as string | undefined,
             action: params.action as string | undefined,
             resourceType: params.resourceType as string | undefined,
             resourceId: params.resourceId as string | undefined,
-            requestId: params.requestId as string | undefined,
+            requestId: (params.requestId as string | undefined) || queryRequestId,
             page: Number(params.current || 1),
             pageSize: Number(params.pageSize || 10),
           });

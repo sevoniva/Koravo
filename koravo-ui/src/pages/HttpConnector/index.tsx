@@ -5,8 +5,9 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Drawer, Flex, Statistic, Typography } from 'antd';
+import { Alert, Button, Drawer, Flex, Statistic, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -15,8 +16,34 @@ import {
   listConnectorExecutionLogs,
   type ConnectorExecutionLogItem,
 } from '@/services/koravo/api';
-import { connectorTypeLabel } from '@/utils/display';
+import { connectorTypeLabel, shortTraceLabel } from '@/utils/display';
 import { formatDateTime, formatDuration } from '@/utils/format';
+
+function openAuditByRequestId(requestId?: string) {
+  if (!requestId) return;
+  history.push(`/audit-logs?requestId=${encodeURIComponent(requestId)}`);
+}
+
+function connectorTraceDisplay(requestId?: string) {
+  if (!requestId) return '';
+  return shortTraceLabel(requestId.replace(/^demo-http-/i, 'http-call-'));
+}
+
+const DetailBlock: React.FC<{ title: string; value?: string | null }> = ({
+  title,
+  value,
+}) => (
+  <>
+    <Typography.Title level={5}>{title}</Typography.Title>
+    {value ? (
+      <Typography.Paragraph code copyable>
+        {value}
+      </Typography.Paragraph>
+    ) : (
+      <Typography.Text type="secondary">无</Typography.Text>
+    )}
+  </>
+);
 
 const HttpConnector: React.FC = () => {
   const [detail, setDetail] = useState<ConnectorExecutionLogItem>();
@@ -62,7 +89,12 @@ const HttpConnector: React.FC = () => {
       title: '追踪号',
       dataIndex: 'requestId',
       width: 170,
-      render: (_, record) => <CopyableText value={record.requestId} />,
+      render: (_, record) => (
+        <CopyableText
+          value={record.requestId}
+          displayValue={connectorTraceDisplay(record.requestId)}
+        />
+      ),
     },
     {
       title: '时间',
@@ -74,12 +106,20 @@ const HttpConnector: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 96,
-      render: (_, record) => (
-        <Button type="link" onClick={() => setDetail(record)}>
+      width: 144,
+      render: (_, record) => [
+        <Button key="detail" type="link" onClick={() => setDetail(record)}>
           查看
-        </Button>
-      ),
+        </Button>,
+        <Button
+          key="audit"
+          type="link"
+          disabled={!record.requestId}
+          onClick={() => openAuditByRequestId(record.requestId)}
+        >
+          审计
+        </Button>,
+      ],
     },
   ];
 
@@ -117,10 +157,35 @@ const HttpConnector: React.FC = () => {
       <Drawer
         title="执行详情"
         size={720}
+        extra={
+          <Button
+            type="link"
+            disabled={!detail?.requestId}
+            onClick={() => openAuditByRequestId(detail?.requestId)}
+          >
+            查看审计日志
+          </Button>
+        }
         open={Boolean(detail)}
         onClose={() => setDetail(undefined)}
       >
         <Flex vertical gap={16}>
+          {detail ? (
+            <Alert
+              showIcon
+              type={detail.status === 'SUCCESS' ? 'success' : 'error'}
+              title={
+                detail.status === 'SUCCESS'
+                  ? '连接器调用成功'
+                  : '连接器调用失败'
+              }
+              description={
+                detail.statusCode
+                  ? `状态码 ${detail.statusCode}，耗时 ${formatDuration(detail.elapsedMillis)}。`
+                  : `耗时 ${formatDuration(detail.elapsedMillis)}。`
+              }
+            />
+          ) : null}
           <ProDescriptions<ConnectorExecutionLogItem>
             column={1}
             dataSource={detail}
@@ -135,12 +200,9 @@ const HttpConnector: React.FC = () => {
               { title: '时间', dataIndex: 'createdAt', renderText: formatDateTime },
             ]}
           />
-          <Typography.Title level={5}>请求摘要</Typography.Title>
-          <Typography.Paragraph>{detail?.requestSummary || '-'}</Typography.Paragraph>
-          <Typography.Title level={5}>响应摘要</Typography.Title>
-          <Typography.Paragraph>{detail?.responseSummary || '-'}</Typography.Paragraph>
-          <Typography.Title level={5}>错误信息</Typography.Title>
-          <Typography.Paragraph>{detail?.errorMessage || '-'}</Typography.Paragraph>
+          <DetailBlock title="请求摘要" value={detail?.requestSummary} />
+          <DetailBlock title="响应摘要" value={detail?.responseSummary} />
+          <DetailBlock title="错误信息" value={detail?.errorMessage} />
         </Flex>
       </Drawer>
     </PageContainer>
