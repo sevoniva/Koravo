@@ -3,8 +3,8 @@ import {
   ModalForm,
   PageContainer,
   ProFormDependency,
+  ProFormDatePicker,
   ProFormDigit,
-  ProFormList,
   ProFormSelect,
   ProFormText,
   ProFormTextArea,
@@ -12,16 +12,22 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
+import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Button, Flex, Form } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   listOpsInstances,
+  listFormBindings,
+  listFormSchemas,
   listProcessModels,
   startProcessInstance,
+  type FormBindingItem,
+  type FormSchemaItem,
   type JsonRecord,
   type OpsProcessInstance,
+  type ProcessModelItem,
 } from '@/services/koravo/api';
 import { processDefinitionLabel, processDisplayName } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
@@ -36,7 +42,29 @@ interface StartInstanceForm {
   reason?: string;
   managerApprover?: string;
   financeApprover?: string;
-  startFields?: Array<{ fieldKey?: string; value?: string }>;
+  processModelId?: string;
+  processDefinitionId?: string;
+  startFormSchemaId?: string;
+  formValues?: JsonRecord;
+}
+
+interface StartFormField {
+  fieldKey: string;
+  title: string;
+  type: string;
+  format?: string;
+  widget?: string;
+  required: boolean;
+  options?: Array<{ label: string; value: string }>;
+}
+
+interface JsonSchemaProperty {
+  title?: string;
+  type?: string;
+  format?: string;
+  widget?: string;
+  enum?: string[];
+  'ui:widget'?: string;
 }
 
 function nextPurchaseBusinessKey() {
@@ -66,6 +94,67 @@ function purchaseDefaultValues() {
     managerApprover: 'manager',
     financeApprover: 'finance',
   };
+}
+
+function parseJsonObject(value?: string): JsonRecord {
+  if (!value?.trim()) return {};
+  try {
+    const parsed = JSON.parse(value) as JsonRecord;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function schemaToStartFields(formSchema?: FormSchemaItem): StartFormField[] {
+  const schema = parseJsonObject(formSchema?.schemaJson);
+  const uiSchema = parseJsonObject(formSchema?.uiSchemaJson);
+  const properties = schema.properties as Record<string, JsonSchemaProperty> | undefined;
+  const required = Array.isArray(schema.required) ? schema.required.map(String) : [];
+
+  return Object.entries(properties || {}).map(([fieldKey, property]) => {
+    const uiField = uiSchema[fieldKey] as JsonRecord | undefined;
+    return {
+      fieldKey,
+      title: property.title || fieldKey,
+      type: property.type || 'string',
+      format: property.format,
+      widget: String(uiField?.widget || property['ui:widget'] || property.widget || ''),
+      required: required.includes(fieldKey),
+      options: Array.isArray(property.enum)
+        ? property.enum.map((value) => ({ label: String(value), value: String(value) }))
+        : undefined,
+    };
+  });
+}
+
+function findStartSchemaId(
+  model: ProcessModelItem | undefined,
+  bindings: FormBindingItem[],
+) {
+  if (!model) return undefined;
+  const matchedBinding = bindings.find(
+    (binding) =>
+      binding.processDefinitionId === model.flowableDefinitionId ||
+      binding.processModelId === model.id,
+  );
+  return matchedBinding?.formSchemaId;
+}
+
+function normalizeStartVariables(values?: JsonRecord): JsonRecord {
+  return Object.entries(values || {}).reduce<JsonRecord>((result, [key, value]) => {
+    if (
+      value &&
+      typeof value === 'object' &&
+      'format' in value &&
+      typeof (value as { format?: unknown }).format === 'function'
+    ) {
+      result[key] = (value as { format: (template: string) => string }).format('YYYY-MM-DD');
+      return result;
+    }
+    result[key] = value;
+    return result;
+  }, {});
 }
 
 const columns: ProColumns<OpsProcessInstance>[] = [
@@ -125,12 +214,7 @@ const columns: ProColumns<OpsProcessInstance>[] = [
 
 function buildStartVariables(values: StartInstanceForm): JsonRecord {
   if (values.processDefinitionKey !== 'purchaseApproval') {
-    return (values.startFields || []).reduce<JsonRecord>((result, item) => {
-      const key = item.fieldKey?.trim();
-      if (!key) return result;
-      result[key] = item.value || '';
-      return result;
-    }, {});
+    return normalizeStartVariables(values.formValues);
   }
 
   return {
@@ -146,12 +230,42 @@ function buildStartVariables(values: StartInstanceForm): JsonRecord {
 
 const StartInstanceFields: React.FC = () => {
   const form = Form.useFormInstance();
+  const { data: deployedModels = [] } = useQuery({
+    queryKey: ['start-process-models'],
+    queryFn: () => listProcessModels('DEPLOYED'),
+  });
+  const { data: formSchemas = [] } = useQuery({
+    queryKey: ['start-form-schemas'],
+    queryFn: listFormSchemas,
+  });
+  const { data: formBindings = [] } = useQuery({
+    queryKey: ['start-form-bindings'],
+    queryFn: () => listFormBindings(),
+  });
+
+  const setProcessContext = React.useCallback(
+    (processDefinitionKey?: string) => {
+      const model = deployedModels.find((item) => item.modelKey === processDefinitionKey);
+      form.setFieldsValue({
+        processModelId: model?.id,
+        processDefinitionId: model?.flowableDefinitionId,
+        startFormSchemaId: findStartSchemaId(model, formBindings),
+        formValues: {},
+      });
+    },
+    [deployedModels, form, formBindings],
+  );
 
   React.useEffect(() => {
-    if (form.getFieldValue('processDefinitionKey') === 'purchaseApproval') {
+    const processDefinitionKey = form.getFieldValue('processDefinitionKey');
+    if (processDefinitionKey === 'purchaseApproval' && !form.getFieldValue('businessKey')) {
       form.setFieldsValue(purchaseDefaultValues());
+      return;
     }
-  }, [form]);
+    if (processDefinitionKey && !form.getFieldValue('processModelId')) {
+      setProcessContext(processDefinitionKey);
+    }
+  }, [form, setProcessContext]);
 
   return (
     <>
@@ -165,15 +279,15 @@ const StartInstanceFields: React.FC = () => {
           onChange: (value) => {
             if (value === 'purchaseApproval') {
               form.setFieldsValue(purchaseDefaultValues());
+              return;
             }
+            setProcessContext(String(value));
           },
         }}
-        request={async () =>
-          (await listProcessModels('DEPLOYED')).map((item) => ({
-            label: `${processDisplayName(item.modelKey, item.modelName)}（${item.modelKey}）`,
-            value: item.modelKey,
-          }))
-        }
+        options={deployedModels.map((item) => ({
+          label: `${processDisplayName(item.modelKey, item.modelName)}（${item.modelKey}）`,
+          value: item.modelKey,
+        }))}
       />
       <ProFormText
         name="businessKey"
@@ -234,31 +348,106 @@ const StartInstanceFields: React.FC = () => {
               <Alert
                 showIcon
                 type="info"
-                title="填写启动流程所需的业务字段。字段会作为流程变量提交。"
+                title="选择启动表单后填写业务字段，字段会作为流程变量提交。"
                 style={{ marginBottom: 16 }}
               />
-              <ProFormList
-                name="startFields"
-                label="启动字段"
-                initialValue={[{}]}
-                min={1}
-                creatorButtonProps={{ creatorButtonText: '添加字段' }}
-              >
-                <Flex gap={12} wrap>
-                  <ProFormText
-                    name="fieldKey"
-                    label="字段标识"
-                    width="sm"
-                    rules={[{ required: true, message: '请输入字段标识' }]}
-                  />
-                  <ProFormText
-                    name="value"
-                    label="字段值"
-                    width="md"
-                    rules={[{ required: true, message: '请输入字段值' }]}
-                  />
-                </Flex>
-              </ProFormList>
+              <ProFormText name="processModelId" hidden />
+              <ProFormText name="processDefinitionId" hidden />
+              <ProFormSelect
+                name="startFormSchemaId"
+                label="启动表单"
+                rules={[{ required: true, message: '请选择启动表单' }]}
+                options={formSchemas.map((item) => ({
+                  label: `${item.formName}（${item.formKey} v${item.version}）`,
+                  value: item.id,
+                }))}
+                fieldProps={{
+                  showSearch: true,
+                  optionFilterProp: 'label',
+                  onChange: () => form.setFieldValue('formValues', {}),
+                }}
+              />
+              <ProFormDependency name={['startFormSchemaId']}>
+                {({ startFormSchemaId }) => {
+                  const formSchema = formSchemas.find((item) => item.id === startFormSchemaId);
+                  const fields = schemaToStartFields(formSchema);
+                  if (!fields.length) {
+                    return (
+                      <Alert
+                        showIcon
+                        type="warning"
+                        title="当前表单没有可填写字段"
+                        description="请先在表单管理配置字段，再回到这里启动流程。"
+                      />
+                    );
+                  }
+                  return (
+                    <Flex vertical gap={4}>
+                      {fields.map((field) =>
+                        field.type === 'number' || field.type === 'integer' ? (
+                          <ProFormDigit
+                            key={field.fieldKey}
+                            name={['formValues', field.fieldKey]}
+                            label={field.title}
+                            rules={
+                              field.required
+                                ? [{ required: true, message: `请输入${field.title}` }]
+                                : []
+                            }
+                          />
+                        ) : field.options?.length ? (
+                          <ProFormSelect
+                            key={field.fieldKey}
+                            name={['formValues', field.fieldKey]}
+                            label={field.title}
+                            options={field.options}
+                            rules={
+                              field.required
+                                ? [{ required: true, message: `请选择${field.title}` }]
+                                : []
+                            }
+                          />
+                        ) : field.format === 'date' ? (
+                          <ProFormDatePicker
+                            key={field.fieldKey}
+                            name={['formValues', field.fieldKey]}
+                            label={field.title}
+                            fieldProps={{ format: 'YYYY-MM-DD' }}
+                            rules={
+                              field.required
+                                ? [{ required: true, message: `请选择${field.title}` }]
+                                : []
+                            }
+                          />
+                        ) : field.widget === 'textarea' ? (
+                          <ProFormTextArea
+                            key={field.fieldKey}
+                            name={['formValues', field.fieldKey]}
+                            label={field.title}
+                            fieldProps={{ rows: 3 }}
+                            rules={
+                              field.required
+                                ? [{ required: true, message: `请输入${field.title}` }]
+                                : []
+                            }
+                          />
+                        ) : (
+                          <ProFormText
+                            key={field.fieldKey}
+                            name={['formValues', field.fieldKey]}
+                            label={field.title}
+                            rules={
+                              field.required
+                                ? [{ required: true, message: `请输入${field.title}` }]
+                                : []
+                            }
+                          />
+                        ),
+                      )}
+                    </Flex>
+                  );
+                }}
+              </ProFormDependency>
             </>
           )
         }
