@@ -10,19 +10,21 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { App, Button, Modal, Space } from 'antd';
+import { App, Button, Drawer, Empty, Modal, Space } from 'antd';
 import React, { useRef, useState } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   createDataSource,
   deleteDataSource,
+  listDataSourceTestLogs,
   listDataSources,
   testDataSource,
   updateDataSource,
   type DataSourceItem,
+  type DataSourceTestLogItem,
 } from '@/services/koravo/api';
 import { dataSourceTypeLabel } from '@/utils/display';
-import { formatDuration } from '@/utils/format';
+import { formatDateTime, formatDuration } from '@/utils/format';
 
 interface DataSourceForm extends Record<string, unknown> {
   name: string;
@@ -103,6 +105,7 @@ const DataSources: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<DataSourceItem>();
+  const [testLogSource, setTestLogSource] = useState<DataSourceItem>();
   const [modal, contextHolder] = Modal.useModal();
 
   const saveDataSource = async (values: DataSourceForm, id?: string) => {
@@ -166,7 +169,7 @@ const DataSources: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 190,
+      width: 250,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -180,6 +183,9 @@ const DataSources: React.FC = () => {
             }}
           >
             测试
+          </Button>
+          <Button type="link" onClick={() => setTestLogSource(record)}>
+            测试记录
           </Button>
           <Button type="link" onClick={() => setEditing(record)}>
             编辑
@@ -205,6 +211,38 @@ const DataSources: React.FC = () => {
           </Button>
         </Space>
       ),
+    },
+  ];
+
+  const testLogColumns: ProColumns<DataSourceTestLogItem>[] = [
+    {
+      title: '结果',
+      dataIndex: 'success',
+      width: 100,
+      render: (_, record) => (
+        <KoravoStatusTag
+          status={record.success}
+          text={record.success ? '成功' : '失败'}
+        />
+      ),
+    },
+    {
+      title: '耗时',
+      dataIndex: 'elapsedMillis',
+      width: 120,
+      renderText: formatDuration,
+    },
+    {
+      title: '消息',
+      dataIndex: 'message',
+      ellipsis: true,
+      renderText: (value) => value || '-',
+    },
+    {
+      title: '时间',
+      dataIndex: 'createdAt',
+      width: 170,
+      renderText: formatDateTime,
     },
   ];
 
@@ -321,6 +359,36 @@ const DataSources: React.FC = () => {
       >
         {formItems}
       </ModalForm>
+
+      <Drawer
+        title={testLogSource ? `${testLogSource.name} 测试记录` : '测试记录'}
+        size={720}
+        open={Boolean(testLogSource)}
+        onClose={() => setTestLogSource(undefined)}
+      >
+        {testLogSource ? (
+          <ProTable<DataSourceTestLogItem>
+            rowKey="id"
+            columns={testLogColumns}
+            search={false}
+            options={false}
+            locale={{ emptyText: <Empty description="暂无测试记录" /> }}
+            request={async (params) => {
+              const result = await listDataSourceTestLogs(testLogSource.id, {
+                page: Number(params.current || 1),
+                pageSize: Number(params.pageSize || 10),
+              });
+              return {
+                data: result.items,
+                total: result.total,
+                success: true,
+              };
+            }}
+          />
+        ) : (
+          <Empty description="请选择数据源" />
+        )}
+      </Drawer>
     </PageContainer>
   );
 };
