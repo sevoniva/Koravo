@@ -401,71 +401,69 @@ const ProcessInstanceDetail: React.FC = () => {
     <PageContainer
       title="流程实例详情"
       content="查看实例状态、当前任务、执行轨迹和审计记录。"
-      extra={[
-        <Button key="refresh" onClick={() => refetch()}>
-          刷新
-        </Button>,
-        <Button
-          key="audit"
-          onClick={() =>
-            history.push(
-              `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
-            )
-          }
-        >
-          审计日志
-        </Button>,
-        <Button
-          key="suspend"
-          disabled={instanceActionDisabled(instance?.status, 'suspend')}
-          onClick={() => {
-            modal.confirm({
-              title: '挂起实例',
-              content: '确认挂起该流程实例？',
-              okText: '挂起',
-              cancelText: '取消',
-              onOk: async () => {
-                await suspendProcessInstance(instanceId);
-                message.success('已挂起');
-                await refetch();
-              },
-            });
-          }}
-        >
-          挂起
-        </Button>,
-        <Button
-          key="activate"
-          disabled={instanceActionDisabled(instance?.status, 'activate')}
-          onClick={async () => {
-            await activateProcessInstance(instanceId);
-            message.success('已激活');
-            await refetch();
-          }}
-        >
-          激活
-        </Button>,
-        <Button
-          key="terminate"
-          danger
-          disabled={instanceActionDisabled(instance?.status, 'terminate')}
-          onClick={() => {
-            modal.confirm({
-              title: '终止实例',
-              content: '确认终止该流程实例？',
-              okText: '终止',
-              cancelText: '取消',
-              onOk: async () => {
-                await terminateProcessInstance(instanceId, 'operator terminated');
-                message.success('已终止');
-                await refetch();
-              },
-            });
-          }}
-        >
-          终止
-        </Button>,
-      ]}
+      extra={
+        <Space wrap>
+          <Button onClick={() => refetch()}>
+            刷新
+          </Button>
+          <Button
+            onClick={() =>
+              history.push(
+                `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
+              )
+            }
+          >
+            审计日志
+          </Button>
+          <Button
+            disabled={instanceActionDisabled(instance?.status, 'suspend')}
+            onClick={() => {
+              modal.confirm({
+                title: '挂起实例',
+                content: '确认挂起该流程实例？',
+                okText: '挂起',
+                cancelText: '取消',
+                onOk: async () => {
+                  await suspendProcessInstance(instanceId);
+                  message.success('已挂起');
+                  await refetch();
+                },
+              });
+            }}
+          >
+            挂起
+          </Button>
+          <Button
+            disabled={instanceActionDisabled(instance?.status, 'activate')}
+            onClick={async () => {
+              await activateProcessInstance(instanceId);
+              message.success('已激活');
+              await refetch();
+            }}
+          >
+            激活
+          </Button>
+          <Button
+            danger
+            disabled={instanceActionDisabled(instance?.status, 'terminate')}
+            onClick={() => {
+              modal.confirm({
+                title: '终止实例',
+                content: '确认终止该流程实例？',
+                okText: '终止',
+                cancelText: '取消',
+                onOk: async () => {
+                  await terminateProcessInstance(instanceId, 'operator terminated');
+                  message.success('已终止');
+                  await refetch();
+                },
+              });
+            }}
+          >
+            终止
+          </Button>
+        </Space>
+      }
     >
       {contextHolder}
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
@@ -545,6 +543,20 @@ const ProcessInstanceDetail: React.FC = () => {
               search={false}
               pagination={false}
               options={false}
+              locale={{
+                emptyText: (
+                  <Empty
+                    description="暂无审批意见"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  >
+                    <Space>
+                      <Button type="primary" onClick={() => history.push('/tasks')}>
+                        去任务中心处理
+                      </Button>
+                    </Space>
+                  </Empty>
+                ),
+              }}
               scroll={{ x: 900 }}
             />
           </ProCard>
@@ -590,6 +602,26 @@ const ProcessInstanceDetail: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
+            locale={{
+              emptyText: (
+                <Empty
+                  description="当前没有待处理任务"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                >
+                  <Space>
+                    <Button
+                      onClick={() =>
+                        history.push(
+                          `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
+                        )
+                      }
+                    >
+                      查看审计日志
+                    </Button>
+                  </Space>
+                </Empty>
+              ),
+            }}
           />
         </ProCard>
         <ProCard title="执行轨迹">
