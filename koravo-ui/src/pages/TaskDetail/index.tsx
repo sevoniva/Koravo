@@ -15,7 +15,7 @@ import {
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Button, Drawer, Flex, Tag, Typography } from 'antd';
+import { Alert, App, Button, Drawer, Flex, Modal, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -377,6 +377,7 @@ const TaskDetail: React.FC = () => {
   const params = useParams();
   const taskId = params.taskId || '';
   const [snapshot, setSnapshot] = useState<FormSnapshotItem>();
+  const [modal, contextHolder] = Modal.useModal();
   const { message } = App.useApp();
   const {
     data,
@@ -420,6 +421,31 @@ const TaskDetail: React.FC = () => {
               );
               message.success('已完成');
               await refetch();
+              modal.success({
+                title: '任务已完成',
+                width: 520,
+                okText: '留在当前页',
+                content: (
+                  <Flex vertical gap={12}>
+                    <span>
+                      {taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，可回到实例查看当前进度、表单快照和审计记录。
+                    </span>
+                    <Flex gap={8} wrap>
+                      <Button
+                        type="primary"
+                        onClick={() =>
+                          history.push(`/process-instances/${task.processInstanceId}`)
+                        }
+                      >
+                        查看实例进度
+                      </Button>
+                      <Button onClick={() => history.push('/tasks')}>
+                        返回任务中心
+                      </Button>
+                    </Flex>
+                  </Flex>
+                ),
+              });
               return true;
             }}
           >
@@ -428,6 +454,7 @@ const TaskDetail: React.FC = () => {
         ),
       ].filter(Boolean)}
     >
+      {contextHolder}
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
         <ProDescriptions<TaskItem>
           column={{ xs: 1, sm: 1, md: 2 }}

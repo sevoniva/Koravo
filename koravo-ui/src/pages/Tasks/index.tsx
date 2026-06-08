@@ -5,7 +5,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useModel } from '@umijs/max';
-import { Alert, App, Button, Flex, Space, Tabs, Tag } from 'antd';
+import { Alert, App, Badge, Button, Empty, Flex, Space, Tabs, Tag } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -32,6 +32,20 @@ const taskUserOptions = [
   { label: '申请人', value: 'applicant' },
 ];
 
+const approvalTaskMeta: Record<
+  string,
+  { label: string; status: 'processing' | 'warning' }
+> = {
+  managerApprovalTask: { label: '部门审批', status: 'processing' },
+  financeApprovalTask: { label: '财务审批', status: 'warning' },
+};
+
+function taskRoleBadge(taskDefinitionKey?: string) {
+  const meta = approvalTaskMeta[taskDefinitionKey || ''];
+  if (!meta) return '-';
+  return <Badge status={meta.status} text={meta.label} />;
+}
+
 const taskColumns: ProColumns<TaskItem>[] = [
   { title: '任务名称', dataIndex: 'name' },
   {
@@ -51,6 +65,13 @@ const taskColumns: ProColumns<TaskItem>[] = [
     dataIndex: 'taskDefinitionKey',
     width: 140,
     renderText: (value) => taskDefinitionLabel(value),
+  },
+  {
+    title: '审批角色',
+    dataIndex: 'taskDefinitionKey',
+    width: 120,
+    search: false,
+    render: (_, record) => taskRoleBadge(record.taskDefinitionKey),
   },
   { title: '处理人', dataIndex: 'assignee', width: 120 },
   {
@@ -144,12 +165,24 @@ function taskParams(params: Record<string, unknown>): TaskListParams {
   };
 }
 
+function taskEmpty(
+  description: string,
+  action: React.ReactNode,
+) {
+  return (
+    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={description}>
+      {action}
+    </Empty>
+  );
+}
+
 const Tasks: React.FC = () => {
   const { message } = App.useApp();
   const todoRef = React.useRef<ActionType>(null);
   const doneRef = React.useRef<ActionType>(null);
   const startedRef = React.useRef<ActionType>(null);
   const [session, setSession] = React.useState<SessionContext>(() => getSessionContext());
+  const [activeTab, setActiveTab] = React.useState('todo');
   const { setInitialState } = useModel('@@initialState');
 
   const reloadTables = React.useCallback(() => {
@@ -217,6 +250,8 @@ const Tasks: React.FC = () => {
         style={{ marginBottom: 16 }}
       />
       <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
         items={[
           {
             key: 'todo',
@@ -228,6 +263,22 @@ const Tasks: React.FC = () => {
                 columns={taskColumns}
                 search={{ labelWidth: 'auto' }}
                 scroll={{ x: 1100 }}
+                locale={{
+                  emptyText: taskEmpty(
+                    '当前处理人暂无待办任务',
+                    <Space wrap>
+                      <Button
+                        type="primary"
+                        onClick={() => history.push('/process-instances')}
+                      >
+                        发起流程
+                      </Button>
+                      <Button onClick={() => setActiveTab('started')}>
+                        查看我发起的
+                      </Button>
+                    </Space>,
+                  ),
+                }}
                 request={async (params) => {
                   const result = await listTasks(taskParams(params));
                   return {
@@ -249,6 +300,14 @@ const Tasks: React.FC = () => {
                 columns={taskColumns}
                 search={{ labelWidth: 'auto' }}
                 scroll={{ x: 1100 }}
+                locale={{
+                  emptyText: taskEmpty(
+                    '当前处理人暂无已办记录',
+                    <Button onClick={() => setActiveTab('todo')}>
+                      查看待办
+                    </Button>,
+                  ),
+                }}
                 request={async (params) => {
                   const result = await listDoneTasks(taskParams(params));
                   return {
@@ -270,6 +329,17 @@ const Tasks: React.FC = () => {
                 columns={instanceColumns}
                 search={{ labelWidth: 'auto' }}
                 scroll={{ x: 1100 }}
+                locale={{
+                  emptyText: taskEmpty(
+                    '当前用户暂无发起记录',
+                    <Button
+                      type="primary"
+                      onClick={() => history.push('/process-instances')}
+                    >
+                      发起流程
+                    </Button>,
+                  ),
+                }}
                 request={async (params) => {
                   const result = await listStartedInstances(taskParams(params));
                   return {
