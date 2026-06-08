@@ -7,9 +7,10 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
+import { history, useModel } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { App, Button, Statistic } from 'antd';
-import React, { useMemo } from 'react';
+import { Alert, App, Button, Flex, Segmented, Space, Statistic, Tag } from 'antd';
+import React, { useMemo, useState } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   getSystemHealth,
@@ -34,9 +35,33 @@ const dependencyColumns: ProColumns<SystemHealthItem>[] = [
   { title: '说明', dataIndex: 'message', renderText: productCopy },
 ];
 
+const roleOptions = [
+  {
+    label: '管理员',
+    value: 'admin',
+    description: '维护流程、表单、连接器和异常任务。',
+  },
+  {
+    label: '申请人',
+    value: 'applicant',
+    description: '发起采购申请并跟踪实例进度。',
+  },
+  {
+    label: '部门审批',
+    value: 'manager',
+    description: '处理采购流程的部门审批待办。',
+  },
+  {
+    label: '财务审批',
+    value: 'finance',
+    description: '处理采购流程的财务审批待办。',
+  },
+];
+
 const SystemSettings: React.FC = () => {
   const { message } = App.useApp();
-  const session = getSessionContext();
+  const [session, setSession] = useState<SessionContext>(() => getSessionContext());
+  const { setInitialState } = useModel('@@initialState');
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-health'],
     queryFn: getSystemHealth,
@@ -60,8 +85,28 @@ const SystemSettings: React.FC = () => {
     [data],
   );
 
+  const currentRole = roleOptions.find((item) => item.value === session.userId);
+
+  const applySession = (values: Partial<SessionContext>, successText: string) => {
+    const next = { ...getSessionContext(), ...values };
+    setSessionContext(next);
+    setSession(next);
+    setInitialState((state) => ({
+      ...state,
+      session: next,
+      currentUser: {
+        name: next.userId,
+        userid: next.userId,
+        access: 'admin',
+        tenantId: next.tenantId,
+      },
+    }));
+    message.success(successText);
+    void refetch();
+  };
+
   return (
-    <PageContainer title="系统设置" content="查看运行状态并维护本地请求上下文。">
+    <PageContainer title="系统设置" content="查看系统运行状态，切换当前租户和审批处理人。">
       <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
           <Statistic title="服务状态" value={data?.status || '-'} />
@@ -75,17 +120,68 @@ const SystemSettings: React.FC = () => {
         </ProCard>
       </ProCard>
 
+      <Alert
+        showIcon
+        type="info"
+        title="当前身份影响待办"
+        description={
+          <Flex vertical gap={8}>
+            <span>
+              一笔采购申请会依次流转到部门审批和财务审批。发起后切换到对应处理人，即可在任务中心看到各自待办。
+            </span>
+            <Space wrap>
+              <Tag color="processing">当前用户：{session.userId}</Tag>
+              <Tag>租户：{session.tenantId}</Tag>
+              {session.lastRequestId ? <Tag>最近追踪号：{session.lastRequestId}</Tag> : null}
+            </Space>
+            <Space wrap>
+              <Button onClick={() => history.push('/process-instances')}>
+                发起流程
+              </Button>
+              <Button type="primary" onClick={() => history.push('/tasks')}>
+                查看任务
+              </Button>
+            </Space>
+          </Flex>
+        }
+        style={{ marginBottom: 16 }}
+      />
+
       <ProCard split="vertical" gutter={16} wrap>
-        <ProCard title="请求上下文" colSpan={{ xs: 24, xl: 10 }}>
+        <ProCard title="运行上下文" colSpan={{ xs: 24, xl: 10 }}>
+          <Segmented
+            block
+            value={session.userId}
+            options={roleOptions.map((item) => ({
+              label: item.label,
+              value: item.value,
+            }))}
+            onChange={(value) => {
+              const role = roleOptions.find((item) => item.value === value);
+              applySession(
+                { userId: String(value) },
+                role ? `已切换为${role.label}` : '已切换处理人',
+              );
+            }}
+            style={{ marginBottom: 16 }}
+          />
+          {currentRole ? (
+            <Alert
+              showIcon
+              type="success"
+              title={currentRole.label}
+              description={currentRole.description}
+              style={{ marginBottom: 16 }}
+            />
+          ) : null}
           <ProForm<SessionContext>
+            key={`${session.tenantId}-${session.userId}-${session.requestId}-${session.lastRequestId || ''}`}
             initialValues={session}
             submitter={{
               render: (_, dom) => dom,
             }}
             onFinish={async (values) => {
-              setSessionContext(values);
-              message.success('已保存上下文');
-              await refetch();
+              applySession(values, '已保存运行上下文');
               return true;
             }}
           >
@@ -96,10 +192,14 @@ const SystemSettings: React.FC = () => {
             />
             <ProFormText
               name="userId"
-              label="用户"
+              label="当前用户"
               rules={[{ required: true, message: '请输入用户' }]}
             />
-            <ProFormText name="requestId" label="请求追踪号" />
+            <ProFormText
+              name="requestId"
+              label="请求追踪号"
+              tooltip="仅在排查指定请求时填写；为空时系统会按当前操作生成追踪号。"
+            />
             <ProFormText
               name="lastRequestId"
               label="最近追踪号"
@@ -118,9 +218,21 @@ const SystemSettings: React.FC = () => {
               { title: '时间', dataIndex: 'time', renderText: formatDateTime },
             ]}
             extra={
-              <Button onClick={() => refetch()} type="primary">
-                刷新
-              </Button>
+              <Space wrap>
+                <Button onClick={() => refetch()}>
+                  刷新
+                </Button>
+                <Button
+                  disabled={!session.lastRequestId}
+                  onClick={() =>
+                    history.push(
+                      `/audit-logs?requestId=${encodeURIComponent(session.lastRequestId || '')}`,
+                    )
+                  }
+                >
+                  查看最近审计
+                </Button>
+              </Space>
             }
           />
         </ProCard>
