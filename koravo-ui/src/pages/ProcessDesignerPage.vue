@@ -3,7 +3,7 @@
     <PageHeader title="流程设计器" :description="designerDescription">
       <template #actions>
         <a-button @click="newDiagram"><PlusOutlined />新建</a-button>
-        <a-button @click="loadLeaveTemplate"><PlusOutlined />加载请假流程</a-button>
+        <a-button @click="loadLeaveTemplate"><PlusOutlined />请假模板</a-button>
         <a-upload :before-upload="beforeImport" :show-upload-list="false" accept=".xml,.bpmn,.bpmn20.xml">
           <a-button><UploadOutlined />导入</a-button>
         </a-upload>
@@ -52,8 +52,8 @@
         <a-alert
           v-if="!selectedElement"
           type="info"
-          message="选择画布节点后编辑属性。"
-          description="支持节点标识、名称、处理人和 HTTP 服务任务配置。"
+          message="选择节点后编辑。"
+          description="支持用户任务和 HTTP 任务。"
           show-icon
         />
         <a-form v-else layout="vertical">
@@ -164,7 +164,7 @@ const deploying = ref(false)
 const form = reactive({
   modelKey: 'leaveApproval',
   modelName: '请假审批流程',
-  description: '提交请假申请后由 admin 审批。'
+  description: 'admin 审批。'
 })
 const elementForm = reactive({
   id: '',
@@ -183,7 +183,7 @@ const canDeploySelectedModel = computed(() => selectedModel.value?.status === 'D
 const designerDescription = computed(() => (
   selectedModel.value
     ? `${modelDisplayTitle(selectedModel.value)} · 版本 ${selectedModel.value.version} · ${statusText(selectedModel.value.status)}`
-    : '请假审批流程草稿'
+    : '草稿'
 ))
 const flowableModdle = {
   name: 'Flowable',
@@ -287,7 +287,7 @@ async function newDiagram() {
   validation.value = null
   form.modelKey = 'leaveApproval'
   form.modelName = '请假审批流程'
-  form.description = '提交请假申请后由 admin 审批。'
+  form.description = 'admin 审批。'
   await modeler.value.importXML(defaultBpmnXml)
   modeler.value.get('canvas').zoom('fit-viewport')
 }

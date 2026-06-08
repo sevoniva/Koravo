@@ -1,6 +1,6 @@
 <template>
   <PageContainer wide>
-    <PageHeader title="审计日志" description="查询租户内的关键操作记录。">
+    <PageHeader title="审计日志" description="关键操作记录。">
       <template #actions>
         <a-button :loading="loading" @click="search"><ReloadOutlined />查询</a-button>
       </template>

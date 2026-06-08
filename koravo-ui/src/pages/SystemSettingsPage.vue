@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="系统设置" description="租户、用户、请求追踪和运行状态。">
+    <PageHeader title="系统设置" description="上下文与健康。">
       <template #actions>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
         <a-button type="primary" @click="save"><SaveOutlined />保存</a-button>

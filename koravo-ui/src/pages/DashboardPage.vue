@@ -1,69 +1,103 @@
 <template>
   <PageContainer>
-    <PageHeader title="首页" description="运行状态、待办和最近审计。">
+    <PageHeader title="总览" description="关键指标与最近活动。">
       <template #actions>
         <a-button :loading="loading" @click="load"><ReloadOutlined />刷新</a-button>
         <a-button type="primary" :loading="initLoading" @click="initDemo"><ThunderboltOutlined />准备基础数据</a-button>
       </template>
     </PageHeader>
 
-    <div class="dashboard-action-row">
-      <div class="dashboard-context">
-        <strong>运行上下文</strong>
-        <span>
-          租户 {{ summary?.tenantId || session.tenantId }} · 用户 {{ summary?.userId || session.userId }} ·
-          追踪 {{ requestIdLabel(session.requestId || session.lastRequestId) || '自动生成' }}
-        </span>
-      </div>
-      <a-space wrap>
-        <a-button @click="router.push('/process-instances')"><PlayCircleOutlined />启动请假流程</a-button>
-        <a-button @click="router.push('/tasks')"><CheckCircleOutlined />我的待办</a-button>
-        <a-button @click="router.push('/connector-demo')"><ApiOutlined />HTTP 连接器</a-button>
-        <a-button @click="router.push('/ops')"><ControlOutlined />运维中心</a-button>
-      </a-space>
-    </div>
+    <div class="dashboard-hero">
+      <section class="dashboard-command">
+        <div class="dashboard-command-main">
+          <strong>演示流程</strong>
+          <span>准备数据，启动流程，查看任务和审计。</span>
+        </div>
+        <div class="dashboard-command-actions">
+          <a-button type="primary" @click="router.push('/quick-start')"><ThunderboltOutlined />快速开始</a-button>
+          <a-button @click="router.push('/process-instances')"><PlayCircleOutlined />启动请假</a-button>
+          <a-button @click="router.push('/tasks')"><CheckCircleOutlined />我的待办</a-button>
+          <a-button @click="router.push('/connector-demo')"><ApiOutlined />HTTP 连接器</a-button>
+          <a-button @click="router.push('/ops')"><ControlOutlined />运维中心</a-button>
+        </div>
+      </section>
 
-    <div class="workbench-grid compact-metric-grid">
-      <MetricCard label="后端健康" :value="summary?.healthStatus || '-'" :status="summary?.healthStatus" :description="summary?.version" clickable @click="router.push('/system-settings')" />
-      <MetricCard label="流程模型" :value="summary?.processModelCount ?? 0" :description="`已部署 ${summary?.deployedProcessModelCount ?? 0}`" clickable @click="router.push('/process-models')" />
-      <MetricCard label="运行中实例" :value="summary?.runningInstanceCount ?? 0" description="当前租户" clickable @click="router.push('/process-instances')" />
-      <MetricCard label="我的待办" :value="summary?.myTodoCount ?? 0" description="当前用户" clickable @click="router.push('/tasks')" />
-      <MetricCard label="今日完成" :value="summary?.todayCompletedCount ?? 0" description="已办任务" clickable @click="router.push('/tasks')" />
-      <MetricCard label="HTTP 调用" :value="`${summary?.connectorSuccessCount ?? 0} / ${summary?.connectorFailedCount ?? 0}`" description="成功 / 失败" clickable @click="router.push('/connector-demo')" />
-      <MetricCard label="失败任务" :value="summary?.failedJobCount ?? 0" :status="(summary?.failedJobCount ?? 0) > 0 ? 'WARN' : 'OK'" description="待处理异常" clickable @click="router.push('/ops?tab=failed')" />
-      <MetricCard label="死信任务" :value="summary?.deadLetterJobCount ?? 0" :status="(summary?.deadLetterJobCount ?? 0) > 0 ? 'WARN' : 'OK'" description="需人工处理" clickable @click="router.push('/ops?tab=dead-letter')" />
-    </div>
-
-    <div class="two-column-grid">
-      <DetailSection title="最近审计">
-        <EmptyState v-if="!summary?.recentAuditLogs?.length" description="暂无审计记录" />
-        <div v-else class="audit-list">
-          <div v-for="item in summary.recentAuditLogs" :key="item.id" class="audit-list-item">
-            <strong>{{ actionLabel(item.action) }}</strong>
-            <span>{{ resourceLabel(item.resourceType) }} · {{ item.userId }} · {{ formatDateTime(item.createdAt) }}</span>
-            <CopyableText :value="item.requestId" :display-value="requestIdLabel(item.requestId)" />
+      <section class="dashboard-health-card">
+        <div class="dashboard-context-list">
+          <div>
+            <span>后端健康</span>
+            <strong>{{ summary?.healthStatus || '-' }}</strong>
+          </div>
+          <div>
+            <span>运行租户</span>
+            <strong>{{ summary?.tenantId || session.tenantId }}</strong>
+          </div>
+          <div>
+            <span>当前用户</span>
+            <strong>{{ summary?.userId || session.userId }}</strong>
+          </div>
+          <div>
+            <span>请求追踪</span>
+            <strong>{{ requestIdLabel(session.requestId || session.lastRequestId) || '自动生成' }}</strong>
           </div>
         </div>
-      </DetailSection>
-
-      <DetailSection title="连接器摘要">
-        <a-descriptions :column="1" size="small" bordered>
-          <a-descriptions-item label="总数">{{ summary?.connectorSummary?.total ?? 0 }}</a-descriptions-item>
-          <a-descriptions-item label="成功">{{ summary?.connectorSummary?.success ?? 0 }}</a-descriptions-item>
-          <a-descriptions-item label="失败">{{ summary?.connectorSummary?.failed ?? 0 }}</a-descriptions-item>
-        </a-descriptions>
-        <a-alert
-          v-if="summary?.connectorSummary?.recentFailures?.length"
-          class="panel-block"
-          type="warning"
-          show-icon
-          message="存在连接器失败"
-          description="进入 HTTP 连接器或运维中心查看详情。"
-        />
-      </DetailSection>
+      </section>
     </div>
 
-    <a-skeleton v-if="loading && !summary" active />
+    <a-alert
+      v-if="dashboardError"
+      type="warning"
+      show-icon
+      class="panel-block"
+      message="摘要加载失败"
+      :description="dashboardError"
+    />
+
+    <div v-if="loading && !summary" class="workbench-grid compact-metric-grid">
+      <a-skeleton v-for="item in 4" :key="item" active />
+    </div>
+
+    <template v-else>
+      <div class="workbench-grid compact-metric-grid">
+        <MetricCard label="流程模型" :value="summary?.processModelCount ?? 0" :description="`已部署 ${summary?.deployedProcessModelCount ?? 0}`" clickable @click="router.push('/process-models')" />
+        <MetricCard label="运行中实例" :value="summary?.runningInstanceCount ?? 0" description="当前租户" clickable @click="router.push('/process-instances')" />
+        <MetricCard label="我的待办" :value="summary?.myTodoCount ?? 0" description="当前用户" clickable @click="router.push('/tasks')" />
+        <MetricCard label="今日完成" :value="summary?.todayCompletedCount ?? 0" description="已办任务" clickable @click="router.push('/tasks')" />
+        <MetricCard label="HTTP 调用" :value="`${summary?.connectorSuccessCount ?? 0} / ${summary?.connectorFailedCount ?? 0}`" description="成功 / 失败" clickable @click="router.push('/connector-demo')" />
+        <MetricCard label="失败任务" :value="summary?.failedJobCount ?? 0" :status="(summary?.failedJobCount ?? 0) > 0 ? 'WARN' : 'OK'" description="待处理异常" clickable @click="router.push('/ops?tab=failed')" />
+        <MetricCard label="死信任务" :value="summary?.deadLetterJobCount ?? 0" :status="(summary?.deadLetterJobCount ?? 0) > 0 ? 'WARN' : 'OK'" description="需人工处理" clickable @click="router.push('/ops?tab=dead-letter')" />
+        <MetricCard label="平台版本" :value="summary?.version || '-'" description="当前构建" clickable @click="router.push('/system-settings')" />
+      </div>
+
+      <div class="two-column-grid">
+        <DetailSection title="最近审计">
+          <EmptyState v-if="!summary?.recentAuditLogs?.length" description="暂无审计记录" />
+          <div v-else class="audit-list">
+            <div v-for="item in summary.recentAuditLogs" :key="item.id" class="audit-list-item">
+              <strong>{{ actionLabel(item.action) }}</strong>
+              <span>{{ resourceLabel(item.resourceType) }} · {{ item.userId }} · {{ formatDateTime(item.createdAt) }}</span>
+              <CopyableText :value="item.requestId" :display-value="requestIdLabel(item.requestId)" />
+            </div>
+          </div>
+        </DetailSection>
+
+        <DetailSection title="连接器摘要">
+          <a-descriptions :column="1" size="small" bordered>
+            <a-descriptions-item label="总数">{{ summary?.connectorSummary?.total ?? 0 }}</a-descriptions-item>
+            <a-descriptions-item label="成功">{{ summary?.connectorSummary?.success ?? 0 }}</a-descriptions-item>
+            <a-descriptions-item label="失败">{{ summary?.connectorSummary?.failed ?? 0 }}</a-descriptions-item>
+          </a-descriptions>
+          <a-alert
+            v-if="summary?.connectorSummary?.recentFailures?.length"
+            class="panel-block"
+            type="warning"
+            show-icon
+            message="存在连接器失败"
+            description="进入 HTTP 连接器或运维中心查看详情。"
+          />
+        </DetailSection>
+      </div>
+    </template>
   </PageContainer>
 </template>
 
@@ -89,11 +123,15 @@ const router = useRouter()
 const summary = ref<DashboardSummary | null>(null)
 const loading = ref(false)
 const initLoading = ref(false)
+const dashboardError = ref('')
 
 async function load() {
   loading.value = true
+  dashboardError.value = ''
   try {
     summary.value = await getDashboardSummary()
+  } catch (error: any) {
+    dashboardError.value = error?.message || '后端不可用。'
   } finally {
     loading.value = false
   }

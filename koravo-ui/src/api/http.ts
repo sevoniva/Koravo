@@ -2,6 +2,16 @@ import axios from 'axios'
 import { message } from 'ant-design-vue'
 import { useSessionStore } from '../stores/session'
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    silentError?: boolean
+  }
+
+  export interface InternalAxiosRequestConfig {
+    silentError?: boolean
+  }
+}
+
 export interface ApiResponse<T> {
   success: boolean
   code: string
@@ -35,15 +45,19 @@ http.interceptors.response.use(
     const session = useSessionStore()
     session.setLastRequestId(error.response?.data?.requestId || error.response?.headers?.['x-request-id'])
     const text = readableError(error)
-    message.error(text)
+    if (!error.config?.silentError) {
+      message.error(text)
+    }
     return Promise.reject(error)
   }
 )
 
-export async function apiData<T>(request: Promise<{ data: ApiResponse<T> }>): Promise<T> {
+export async function apiData<T>(request: Promise<{ data: ApiResponse<T> }>, options?: { silent?: boolean }): Promise<T> {
   const response = await request
   if (!response.data.success) {
-    message.error(response.data.message)
+    if (!options?.silent) {
+      message.error(response.data.message)
+    }
     throw new Error(response.data.message)
   }
   return response.data.data

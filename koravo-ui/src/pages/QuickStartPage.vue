@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="快速开始" description="按步骤完成请假审批流程。">
+    <PageHeader title="快速开始" description="跑通请假审批。">
       <template #actions>
         <a-button :loading="statusLoading" @click="loadStatus"><ReloadOutlined />刷新状态</a-button>
         <a-button type="primary" :loading="initLoading" @click="initDemo"><ThunderboltOutlined />准备基础数据</a-button>
@@ -43,13 +43,14 @@
             <CopyableText :value="demoStatus?.formBindingId" :display-value="readyLabel(demoStatus?.binding?.ready)" />
           </a-descriptions-item>
         </a-descriptions>
-        <DetailSection title="请假申请摘要">
+        <div class="section-subgroup">
+          <h3>请假申请摘要</h3>
           <a-descriptions bordered :column="1" size="small">
             <a-descriptions-item v-for="item in defaultVariableSummaryItems" :key="item.key" :label="item.label">
               {{ item.value }}
             </a-descriptions-item>
           </a-descriptions>
-        </DetailSection>
+        </div>
         <a-collapse class="panel-block">
           <a-collapse-panel key="variables" header="高级详情">
             <JsonPreview :value="defaultStartVariables" />
@@ -102,11 +103,11 @@ const statusMessage = computed(() => {
 })
 
 const statusDescription = computed(() => {
-  if (!demoStatus.value) return '请确认后端服务已启动。'
+  if (!demoStatus.value) return '检查后端连接。'
   if (demoStatus.value.initialized) {
-    return '流程、表单和绑定已就绪，可以启动请假流程。'
+    return '流程、表单和绑定已就绪。'
   }
-  return '准备动作会创建流程、表单和绑定，重复执行会复用已有资源。'
+  return '创建或复用流程、表单和绑定。'
 })
 
 const steps = computed(() => [
@@ -115,7 +116,7 @@ const steps = computed(() => [
     title: '检查服务',
     ready: Boolean(demoStatus.value),
     statusText: demoStatus.value ? '已连接' : '待检查',
-    message: demoStatus.value ? `当前用户 ${demoStatus.value.userId}` : '检查后端服务状态。',
+    message: demoStatus.value ? `用户 ${demoStatus.value.userId}` : '检查服务。',
     actionText: '刷新',
     action: loadStatus,
     loading: statusLoading.value,
@@ -126,7 +127,7 @@ const steps = computed(() => [
     title: '准备基础数据',
     ready: Boolean(demoStatus.value?.initialized),
     statusText: demoStatus.value?.initialized ? '已就绪' : '待准备',
-    message: demoStatus.value?.binding?.message || '创建请假审批流程、表单和绑定。',
+    message: demoStatus.value?.binding?.message || '创建流程、表单和绑定。',
     actionText: demoStatus.value?.initialized ? '重新检查' : '准备',
     action: demoStatus.value?.initialized ? loadStatus : initDemo,
     loading: initLoading.value,
@@ -137,7 +138,7 @@ const steps = computed(() => [
     title: '启动请假流程',
     ready: Boolean(demoStatus.value?.todo?.ready),
     statusText: demoStatus.value?.todo?.ready ? '已有待办' : '待启动',
-    message: demoStatus.value?.todo?.message || '使用申请摘要启动请假审批。',
+    message: demoStatus.value?.todo?.message || '启动请假审批。',
     actionText: '启动流程',
     action: startLeaveProcess,
     loading: startLoading.value,
@@ -148,7 +149,7 @@ const steps = computed(() => [
     title: '处理待办',
     ready: Boolean(demoStatus.value?.todo?.ready),
     statusText: demoStatus.value?.todo?.ready ? `${demoStatus.value?.todo?.count || 0} 个待办` : '暂无待办',
-    message: '进入我的任务，打开审批请假任务。',
+    message: '进入任务页办理。',
     actionText: '我的任务',
     action: () => router.push('/tasks'),
     loading: false,
@@ -159,7 +160,7 @@ const steps = computed(() => [
     title: '查看流程追踪',
     ready: Boolean(demoStatus.value?.audit?.ready),
     statusText: demoStatus.value?.audit?.ready ? '可查看' : '待产生',
-    message: '实例详情展示流程图、时间线和变量。',
+    message: '查看流程图和时间线。',
     actionText: '流程实例',
     action: () => router.push('/process-instances'),
     loading: false,
@@ -170,7 +171,7 @@ const steps = computed(() => [
     title: '查看审计日志',
     ready: Boolean(demoStatus.value?.audit?.ready),
     statusText: demoStatus.value?.audit?.ready ? `${demoStatus.value?.audit?.count || 0} 条` : '暂无审计',
-    message: demoStatus.value?.audit?.message || '确认初始化、启动和任务完成记录。',
+    message: demoStatus.value?.audit?.message || '查看操作记录。',
     actionText: '审计日志',
     action: () => router.push('/audit-logs'),
     loading: false,

@@ -16,7 +16,7 @@ import AuditLogsPage from '../pages/AuditLogsPage.vue'
 import SystemSettingsPage from '../pages/SystemSettingsPage.vue'
 
 export const menuRoutes = [
-  { path: '/dashboard', component: DashboardPage, meta: { title: '首页', menu: true, icon: 'dashboard', breadcrumb: ['首页'] } },
+  { path: '/dashboard', component: DashboardPage, meta: { title: '总览', menu: true, icon: 'dashboard', breadcrumb: ['总览'] } },
   { path: '/quick-start', component: QuickStartPage, meta: { title: '快速开始', menu: true, icon: 'quick', breadcrumb: ['快速开始'] } },
   { path: '/process-models', component: ProcessModelsPage, meta: { title: '流程模型', menu: true, icon: 'models', breadcrumb: ['流程模型'] } },
   { path: '/process-designer', component: ProcessDesignerPage, meta: { title: '流程设计器', menu: true, icon: 'designer', breadcrumb: ['流程设计器'] } },

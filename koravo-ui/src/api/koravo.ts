@@ -298,7 +298,7 @@ export function getSystemHealth() {
 }
 
 export function getDashboardSummary() {
-  return apiData<DashboardSummary>(http.get('/dashboard/summary'))
+  return apiData<DashboardSummary>(http.get('/dashboard/summary', { silentError: true }), { silent: true })
 }
 
 export function getDemoStatus() {
