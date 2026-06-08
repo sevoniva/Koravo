@@ -4,7 +4,8 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Empty, Typography } from 'antd';
+import { history } from '@umijs/max';
+import { Button, Drawer, Empty, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import {
@@ -100,6 +101,52 @@ function buildDetailRows(value: unknown, parentKey?: string): AuditDetailRow[] {
   });
 }
 
+function auditDetailRecord(log?: AuditLogItem) {
+  return maskSecret(parseJsonSafe<Record<string, unknown>>(log?.detailJson, {})) as Record<
+    string,
+    unknown
+  >;
+}
+
+function auditProcessInstanceId(log?: AuditLogItem) {
+  const detail = auditDetailRecord(log);
+  if (typeof detail.processInstanceId === 'string') return detail.processInstanceId;
+  if (log?.resourceType === 'PROCESS_INSTANCE') return log.resourceId;
+  return undefined;
+}
+
+function auditTaskId(log?: AuditLogItem) {
+  const detail = auditDetailRecord(log);
+  if (typeof detail.taskId === 'string') return detail.taskId;
+  if (log?.resourceType === 'TASK') return log.resourceId;
+  return undefined;
+}
+
+const AuditRelatedActions: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
+  const processInstanceId = auditProcessInstanceId(log);
+  const taskId = auditTaskId(log);
+
+  if (!processInstanceId && !taskId) return null;
+
+  return (
+    <Space wrap>
+      {processInstanceId ? (
+        <Button
+          type="link"
+          onClick={() => history.push(`/process-instances/${processInstanceId}`)}
+        >
+          查看流程实例
+        </Button>
+      ) : null}
+      {taskId ? (
+        <Button type="link" onClick={() => history.push(`/tasks/${taskId}`)}>
+          查看任务
+        </Button>
+      ) : null}
+    </Space>
+  );
+};
+
 const AuditLogs: React.FC = () => {
   const [detail, setDetail] = useState<AuditLogItem>();
 
@@ -132,7 +179,12 @@ const AuditLogs: React.FC = () => {
       title: '对象编号',
       dataIndex: 'resourceId',
       ellipsis: true,
-      render: (_, record) => <CopyableText value={record.resourceId} />,
+      render: (_, record) => (
+        <Space wrap>
+          <CopyableText value={record.resourceId} />
+          <AuditRelatedActions log={record} />
+        </Space>
+      ),
     },
     {
       title: '追踪号',
@@ -157,9 +209,7 @@ const AuditLogs: React.FC = () => {
     },
   ];
 
-  const detailRows = buildDetailRows(
-    maskSecret(parseJsonSafe(detail?.detailJson, {})),
-  );
+  const detailRows = buildDetailRows(auditDetailRecord(detail));
 
   return (
     <PageContainer title="审计日志" content="查询关键操作记录和请求追踪信息。">
@@ -185,6 +235,7 @@ const AuditLogs: React.FC = () => {
       <Drawer
         title="审计详情"
         size={720}
+        extra={<AuditRelatedActions log={detail} />}
         open={Boolean(detail)}
         onClose={() => setDetail(undefined)}
       >

@@ -8,8 +8,13 @@ import org.flowable.engine.ManagementService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
+import org.flowable.engine.history.HistoricProcessInstance;
+import org.flowable.engine.history.HistoricProcessInstanceQuery;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.engine.runtime.ProcessInstanceQuery;
+import org.flowable.task.api.TaskQuery;
+import org.flowable.task.api.history.HistoricTaskInstance;
+import org.flowable.task.api.history.HistoricTaskInstanceQuery;
 import org.flowable.job.api.DeadLetterJobQuery;
 import org.flowable.job.api.Job;
 import org.flowable.job.api.JobQuery;
@@ -24,6 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -132,6 +138,41 @@ class FlowableProcessFacadeTest {
         assertThatThrownBy(() -> facade.terminateProcessInstance("default", "pi-missing", "ops cleanup"))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.errorCode()).isEqualTo(ErrorCode.PROCESS_INSTANCE_NOT_FOUND));
+    }
+
+    @Test
+    void getTaskForDetailAllowsTenantScopedHistoricReadback() {
+        TaskQuery runtimeQuery = mock(TaskQuery.class, RETURNS_SELF);
+        HistoricTaskInstanceQuery historicQuery = mock(HistoricTaskInstanceQuery.class, RETURNS_SELF);
+        HistoricProcessInstanceQuery instanceQuery = mock(HistoricProcessInstanceQuery.class, RETURNS_SELF);
+        HistoricTaskInstance historicTask = mock(HistoricTaskInstance.class);
+        HistoricProcessInstance historicInstance = mock(HistoricProcessInstance.class);
+        when(taskService.createTaskQuery()).thenReturn(runtimeQuery);
+        when(runtimeQuery.singleResult()).thenReturn(null);
+        when(historyService.createHistoricTaskInstanceQuery()).thenReturn(historicQuery);
+        when(historicQuery.singleResult()).thenReturn(historicTask);
+        when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
+        when(instanceQuery.singleResult()).thenReturn(historicInstance);
+        when(historicInstance.getBusinessKey()).thenReturn("PO-1");
+        when(historicTask.getId()).thenReturn("done-task-1");
+        when(historicTask.getName()).thenReturn("财务审批");
+        when(historicTask.getProcessInstanceId()).thenReturn("pi-1");
+        when(historicTask.getProcessDefinitionId()).thenReturn("purchaseApproval:1");
+        when(historicTask.getAssignee()).thenReturn("finance");
+        when(historicTask.getTaskDefinitionKey()).thenReturn("financeApprovalTask");
+        when(historicTask.getEndTime()).thenReturn(new java.util.Date());
+
+        var task = facade.getTaskForDetail("default", "admin", "done-task-1");
+
+        assertThat(task.taskId()).isEqualTo("done-task-1");
+        assertThat(task.assignee()).isEqualTo("finance");
+        assertThat(task.status()).isEqualTo("COMPLETED");
+        verify(runtimeQuery).taskTenantId("default");
+        verify(runtimeQuery).taskId("done-task-1");
+        verify(runtimeQuery, never()).taskAssignee("admin");
+        verify(historicQuery).taskTenantId("default");
+        verify(historicQuery).taskId("done-task-1");
+        verify(historicQuery, never()).taskAssignee("admin");
     }
 
     @Test

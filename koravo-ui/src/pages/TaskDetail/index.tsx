@@ -462,7 +462,23 @@ const TaskDetail: React.FC = () => {
               dataIndex: 'processDefinitionId',
               renderText: processDefinitionLabel,
             },
-            { title: '流程实例', dataIndex: 'processInstanceId', copyable: true },
+            {
+              title: '流程实例',
+              dataIndex: 'processInstanceId',
+              render: (_, record) => (
+                <Flex align="center" gap={8} wrap>
+                  <CopyableText value={record.processInstanceId} />
+                  <Button
+                    type="link"
+                    onClick={() =>
+                      history.push(`/process-instances/${record.processInstanceId}`)
+                    }
+                  >
+                    查看实例
+                  </Button>
+                </Flex>
+              ),
+            },
             { title: '业务标识', dataIndex: 'businessKey', copyable: true },
             { title: '任务节点', dataIndex: 'taskDefinitionKey', renderText: taskDefinitionLabel },
             { title: '处理人', dataIndex: 'assignee' },

@@ -186,7 +186,6 @@ public class FlowableProcessFacade implements ProcessFacade {
         Task runtimeTask = taskService.createTaskQuery()
                 .taskId(taskId)
                 .taskTenantId(tenantId)
-                .taskAssignee(userId)
                 .singleResult();
         if (runtimeTask != null) {
             return toTaskDTO(runtimeTask);
@@ -194,10 +193,9 @@ public class FlowableProcessFacade implements ProcessFacade {
         HistoricTaskInstance historicTask = historyService.createHistoricTaskInstanceQuery()
                 .taskId(taskId)
                 .taskTenantId(tenantId)
-                .taskAssignee(userId)
                 .singleResult();
         if (historicTask == null) {
-            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found");
         }
         return toTaskDTO(historicTask);
     }
@@ -222,7 +220,6 @@ public class FlowableProcessFacade implements ProcessFacade {
         Task runtimeTask = taskService.createTaskQuery()
                 .taskId(taskId)
                 .taskTenantId(tenantId)
-                .taskAssignee(userId)
                 .singleResult();
         if (runtimeTask != null) {
             return taskService.getVariables(taskId);
@@ -230,10 +227,9 @@ public class FlowableProcessFacade implements ProcessFacade {
         HistoricTaskInstance historicTask = historyService.createHistoricTaskInstanceQuery()
                 .taskId(taskId)
                 .taskTenantId(tenantId)
-                .taskAssignee(userId)
                 .singleResult();
         if (historicTask == null) {
-            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found");
         }
         Map<String, Object> variables = new HashMap<>();
         historyService.createHistoricVariableInstanceQuery()
