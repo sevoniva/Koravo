@@ -217,10 +217,24 @@ const capabilityColumns: ProColumns<OpsCapabilityItem>[] = [
   { title: '说明', dataIndex: 'description', search: false },
 ];
 
+function jobEmpty(description: string) {
+  return (
+    <Empty
+      description={description}
+      image={Empty.PRESENTED_IMAGE_SIMPLE}
+    >
+      <Button onClick={() => history.push('/audit-logs')}>
+        查看审计日志
+      </Button>
+    </Empty>
+  );
+}
+
 const Ops: React.FC = () => {
   const failedRef = useRef<ActionType>(null);
   const deadLetterRef = useRef<ActionType>(null);
   const [selectedJob, setSelectedJob] = useState<SelectedJob>();
+  const [activeTab, setActiveTab] = useState('instances');
   const [modal, contextHolder] = Modal.useModal();
   const { message } = App.useApp();
   const { data: summary, isLoading } = useQuery({
@@ -253,8 +267,33 @@ const Ops: React.FC = () => {
           <Statistic title="连接器异常" value={summary?.connectorFailureCount ?? 0} />
         </ProCard>
       </ProCard>
+      {(summary?.failedJobCount || 0) + (summary?.deadLetterJobCount || 0) > 0 ? (
+        <Alert
+          showIcon
+          type="warning"
+          title="存在待处理的异常任务"
+          description="建议先查看失败任务和死信任务，确认是否需要重试、删除或回到流程实例排查上下文。"
+          action={
+            <Space wrap>
+              {summary?.failedJobCount ? (
+                <Button size="small" onClick={() => setActiveTab('failed')}>
+                  查看失败任务
+                </Button>
+              ) : null}
+              {summary?.deadLetterJobCount ? (
+                <Button size="small" onClick={() => setActiveTab('dead-letter')}>
+                  查看死信任务
+                </Button>
+              ) : null}
+            </Space>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
 
       <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
         items={[
           {
             key: 'instances',
@@ -282,7 +321,7 @@ const Ops: React.FC = () => {
               <ProTable<OpsJobItem>
                 actionRef={failedRef}
                 rowKey="id"
-                locale={{ emptyText: <Empty description="暂无失败任务" /> }}
+                locale={{ emptyText: jobEmpty('暂无失败任务') }}
                 columns={jobColumns(
                   retryFailedJob,
                   deleteFailedJob,
@@ -310,7 +349,7 @@ const Ops: React.FC = () => {
               <ProTable<OpsJobItem>
                 actionRef={deadLetterRef}
                 rowKey="id"
-                locale={{ emptyText: <Empty description="暂无死信任务" /> }}
+                locale={{ emptyText: jobEmpty('暂无死信任务') }}
                 columns={jobColumns(
                   retryDeadLetterJob,
                   deleteDeadLetterJob,
