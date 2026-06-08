@@ -16,6 +16,7 @@ export default [
     component: './QuickStart',
   },
   {
+    key: 'process',
     name: '流程',
     icon: 'partition',
     routes: [
@@ -58,6 +59,7 @@ export default [
     ],
   },
   {
+    key: 'forms',
     name: '表单',
     icon: 'form',
     routes: [
@@ -76,6 +78,7 @@ export default [
     ],
   },
   {
+    key: 'integration',
     name: '集成',
     icon: 'api',
     routes: [
@@ -94,6 +97,7 @@ export default [
     ],
   },
   {
+    key: 'ops',
     name: '运维',
     icon: 'control',
     routes: [
