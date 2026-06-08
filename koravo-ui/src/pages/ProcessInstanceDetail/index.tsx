@@ -5,7 +5,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useParams } from '@umijs/max';
+import { history, useModel, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Steps, Tag, Typography } from 'antd';
 import type { StepsProps } from 'antd';
@@ -26,6 +26,10 @@ import {
   type ProcessTraceNode,
   type TaskItem,
 } from '@/services/koravo/api';
+import {
+  getSessionContext,
+  setSessionContext,
+} from '@/services/koravo/session';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -201,39 +205,6 @@ function instanceActionDisabled(status: string | undefined, action: 'suspend' | 
   return !['RUNNING', 'SUSPENDED'].includes(status || '');
 }
 
-const taskColumns: ProColumns<TaskItem>[] = [
-  { title: '任务名称', dataIndex: 'name' },
-  {
-    title: '节点',
-    dataIndex: 'taskDefinitionKey',
-    width: 150,
-    renderText: taskDefinitionLabel,
-  },
-  { title: '处理人', dataIndex: 'assignee', width: 120 },
-  {
-    title: '创建时间',
-    dataIndex: 'createTime',
-    width: 170,
-    renderText: formatDateTime,
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    width: 110,
-    render: (_, record) => <KoravoStatusTag status={record.status} />,
-  },
-  {
-    title: '操作',
-    valueType: 'option',
-    width: 96,
-    render: (_, record) => (
-      <Button type="link" onClick={() => history.push(`/tasks/${record.taskId}`)}>
-        查看
-      </Button>
-    ),
-  },
-];
-
 const traceColumns: ProColumns<ProcessTraceNode>[] = [
   { title: '节点编号', dataIndex: 'activityId', width: 180 },
   { title: '节点名称', dataIndex: 'activityName' },
@@ -332,6 +303,7 @@ const ProcessInstanceDetail: React.FC = () => {
   const [modal, contextHolder] = Modal.useModal();
   const [selectedSnapshot, setSelectedSnapshot] = React.useState<FormSnapshotItem>();
   const { message } = App.useApp();
+  const { setInitialState } = useModel('@@initialState');
   const {
     data: instance,
     isLoading,
@@ -362,6 +334,75 @@ const ProcessInstanceDetail: React.FC = () => {
   const isPurchaseApproval = isPurchaseInstance(instance?.processDefinitionId);
   const parallelTaskCount = purchaseApprovalNodeCount(currentTasks);
   const purchaseApprovalRecords = purchaseApprovalSnapshotRecords(formSnapshots);
+  const openTaskAsAssignee = React.useCallback(
+    (task: TaskItem) => {
+      const userId = task.assignee?.trim();
+      if (userId) {
+        const next = { ...getSessionContext(), userId };
+        setSessionContext(next);
+        setInitialState((state) => ({
+          ...state,
+          session: next,
+          currentUser: {
+            name: next.userId,
+            userid: next.userId,
+            access: 'admin',
+            tenantId: next.tenantId,
+          },
+        }));
+        message.success(`已切换为 ${userId}`);
+      }
+      history.push(`/tasks/${task.taskId}`);
+    },
+    [message, setInitialState],
+  );
+  const currentTaskColumns = React.useMemo<ProColumns<TaskItem>[]>(
+    () => [
+      { title: '任务名称', dataIndex: 'name' },
+      {
+        title: '节点',
+        dataIndex: 'taskDefinitionKey',
+        width: 150,
+        renderText: taskDefinitionLabel,
+      },
+      { title: '处理人', dataIndex: 'assignee', width: 120 },
+      {
+        title: '创建时间',
+        dataIndex: 'createTime',
+        width: 170,
+        renderText: formatDateTime,
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        width: 110,
+        render: (_, record) => <KoravoStatusTag status={record.status} />,
+      },
+      {
+        title: '操作',
+        valueType: 'option',
+        width: 144,
+        render: (_, record) => [
+          <Button
+            key="complete"
+            type="link"
+            disabled={!record.assignee}
+            onClick={() => openTaskAsAssignee(record)}
+          >
+            处理
+          </Button>,
+          <Button
+            key="view"
+            type="link"
+            onClick={() => history.push(`/tasks/${record.taskId}`)}
+          >
+            查看
+          </Button>,
+        ],
+      },
+    ],
+    [openTaskAsAssignee],
+  );
   const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     {
       title: '表单编号',
@@ -604,7 +645,7 @@ const ProcessInstanceDetail: React.FC = () => {
         >
           <ProTable<TaskItem>
             rowKey="taskId"
-            columns={taskColumns}
+            columns={currentTaskColumns}
             dataSource={currentTasks}
             search={false}
             pagination={false}
