@@ -174,6 +174,9 @@ const AuditLogs: React.FC = () => {
       resourceId: searchParams.get('resourceId') || undefined,
     };
   }, [location.search]);
+  const contextFilterDescription = query.requestId
+    ? `请求追踪号：${query.requestId}`
+    : `对象编号：${query.resourceId}，包含该对象及关联任务记录`;
 
   const columns: ProColumns<AuditLogItem>[] = [
     {
@@ -242,11 +245,7 @@ const AuditLogs: React.FC = () => {
           showIcon
           type="info"
           title="已按上下文筛选审计记录"
-          description={
-            query.requestId
-              ? `请求追踪号：${query.requestId}`
-              : `对象编号：${query.resourceId}`
-          }
+          description={contextFilterDescription}
           action={
             <Button size="small" onClick={() => history.push('/audit-logs')}>
               清除筛选
