@@ -23,7 +23,6 @@ import {
   Button,
   Drawer,
   Dropdown,
-  Empty,
   Flex,
   FloatButton,
   Input,
@@ -154,6 +153,12 @@ const useStyles = createStyles(({ css, token }) => ({
       background: ${token.colorBgContainer};
       box-shadow: ${token.boxShadowSecondary};
     }
+  `,
+  nodePlaceholder: css`
+    padding: 24px 16px;
+    text-align: center;
+    background: ${token.colorFillQuaternary};
+    border-radius: ${token.borderRadius}px;
   `,
 }));
 
@@ -384,10 +389,11 @@ const ProcessDesigner: React.FC = () => {
   const renderElementProperties = () => {
     if (!selectedElement) {
       return (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="选择画布节点后编辑属性"
-        />
+        <div className={styles.nodePlaceholder}>
+          <Typography.Text type="secondary">
+            选择画布节点后编辑属性
+          </Typography.Text>
+        </div>
       );
     }
 
