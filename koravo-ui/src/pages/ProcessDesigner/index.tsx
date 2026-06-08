@@ -3,6 +3,7 @@ import {
   BarsOutlined,
   CheckCircleOutlined,
   CodeOutlined,
+  DeploymentUnitOutlined,
   DownloadOutlined,
   FileAddOutlined,
   MoreOutlined,
@@ -17,7 +18,7 @@ import {
   ProFormText,
   ProList,
 } from '@ant-design/pro-components';
-import { useLocation } from '@umijs/max';
+import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import {
   Button,
@@ -40,6 +41,7 @@ import {
   getProcessModel,
   importProcessModel,
   listProcessModels,
+  deployProcessModelDraft,
   updateProcessModel,
   validateProcessModelXml,
   type ProcessModelItem,
@@ -192,7 +194,7 @@ function isServiceTask(element?: BpmnSelectedElement) {
 
 const ProcessDesigner: React.FC = () => {
   const location = useLocation();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { styles } = useStyles();
   const modelerRef = useRef<BpmnModelerCanvasHandle>(null);
   const draftModelKeyRef = useRef(createDraftModelKey());
@@ -207,6 +209,7 @@ const ProcessDesigner: React.FC = () => {
   });
   const [validating, setValidating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deploying, setDeploying] = useState(false);
 
   const {
     data: models,
@@ -323,6 +326,62 @@ const ProcessDesigner: React.FC = () => {
       setSaving(false);
     }
   }, [activeModel, getCurrentXml, modelForm, refetch, reloadModels]);
+
+  const handleDeploy = useCallback(async () => {
+    if (!activeModel) {
+      message.warning('请先保存流程模型');
+      return;
+    }
+    if (!modelForm.modelName?.trim()) {
+      message.warning('请输入模型名称');
+      return;
+    }
+
+    setDeploying(true);
+    try {
+      await handleSave();
+      const result = await deployProcessModelDraft(activeModel.id);
+      const deployedModel = result.model;
+      message.success('已部署');
+      await refetch();
+      await reloadModels();
+      modal.success({
+        title: '流程已部署',
+        width: 520,
+        okText: '留在设计器',
+        content: (
+          <Flex vertical gap={12}>
+            <span>
+              {processDisplayName(deployedModel.modelKey, deployedModel.modelName)}
+              已发布，可继续绑定任务表单或发起流程实例。
+            </span>
+            <Space wrap>
+              <Button
+                type="primary"
+                onClick={() =>
+                  history.push(`/form-bindings?processModelId=${deployedModel.id}`)
+                }
+              >
+                绑定表单
+              </Button>
+              <Button
+                onClick={() =>
+                  history.push(`/process-instances?processModelId=${deployedModel.id}`)
+                }
+              >
+                发起实例
+              </Button>
+              <Button onClick={() => history.push('/process-models')}>
+                查看模型列表
+              </Button>
+            </Space>
+          </Flex>
+        ),
+      });
+    } finally {
+      setDeploying(false);
+    }
+  }, [activeModel, handleSave, message, modal, modelForm, refetch, reloadModels]);
 
   const handleExport = useCallback(async () => {
     const xml = await getCurrentXml();
@@ -488,6 +547,15 @@ const ProcessDesigner: React.FC = () => {
         <Dropdown key="more" menu={actionMenu} trigger={['click']}>
           <Button icon={<MoreOutlined />}>更多</Button>
         </Dropdown>,
+        <Button
+          key="deploy"
+          icon={<DeploymentUnitOutlined />}
+          disabled={!activeModel || activeModel.status === 'ARCHIVED'}
+          loading={deploying}
+          onClick={handleDeploy}
+        >
+          部署
+        </Button>,
         <Button
           key="save"
           type="primary"
