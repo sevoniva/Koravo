@@ -256,6 +256,15 @@ const ProcessModels: React.FC = () => {
           </Button>
           <Button
             type="link"
+            disabled={record.status !== 'DEPLOYED'}
+            onClick={() =>
+              history.push(`/process-instances?processModelId=${record.id}`)
+            }
+          >
+            发起实例
+          </Button>
+          <Button
+            type="link"
             icon={<DownloadOutlined />}
             onClick={async () => {
               downloadModelFile(record, await exportProcessModel(record.id));
