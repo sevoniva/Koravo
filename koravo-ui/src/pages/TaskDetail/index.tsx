@@ -177,6 +177,60 @@ function purchaseApprovalRole(task?: TaskItem) {
   return undefined;
 }
 
+function parallelApprovalStatus(task: TaskItem, currentTask?: TaskItem) {
+  if (currentTask?.taskId === task.taskId) return '当前任务';
+  if (task.status === 'COMPLETED') return '已处理';
+  return '待处理';
+}
+
+function renderParallelApprovalTasks(
+  currentTask: TaskItem,
+  tasks: TaskItem[],
+  openTaskAsAssignee: (task: TaskItem) => void,
+) {
+  const approvalTasks = tasks.filter(isPurchaseApprovalTask);
+  if (approvalTasks.length <= 1) return null;
+
+  return (
+    <ProCard
+      title="当前并行审批"
+      extra={
+        <Button
+          type="link"
+          onClick={() => history.push(`/process-instances/${currentTask.processInstanceId}`)}
+        >
+          查看实例进度
+        </Button>
+      }
+      style={{ marginBottom: 16 }}
+    >
+      <Space size={[8, 8]} wrap>
+        {approvalTasks.map((task) => (
+          <Tag
+            key={task.taskId}
+            color={task.taskId === currentTask.taskId ? 'processing' : 'default'}
+          >
+            <Space size={6}>
+              <Badge
+                status={task.taskId === currentTask.taskId ? 'processing' : 'warning'}
+                text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${task.assignee || '未分配'}`}
+              />
+              <Typography.Text type="secondary">
+                {parallelApprovalStatus(task, currentTask)}
+              </Typography.Text>
+              {task.taskId !== currentTask.taskId ? (
+                <Button type="link" size="small" onClick={() => openTaskAsAssignee(task)}>
+                  切换处理
+                </Button>
+              ) : null}
+            </Space>
+          </Tag>
+        ))}
+      </Space>
+    </ProCard>
+  );
+}
+
 function approvalVariableKey(taskDefinitionKey: string, suffix: string) {
   return `${taskDefinitionKey}${suffix}`;
 }
@@ -458,6 +512,11 @@ const TaskDetail: React.FC = () => {
     enabled: Boolean(taskId),
   });
   const task = data?.task;
+  const { data: instance } = useQuery({
+    queryKey: ['task-instance-context', task?.processInstanceId],
+    queryFn: () => getOpsInstance(task?.processInstanceId || ''),
+    enabled: Boolean(task?.processInstanceId),
+  });
   const canCompleteTask = Boolean(
     task &&
       task.status !== 'COMPLETED' &&
@@ -601,6 +660,13 @@ const TaskDetail: React.FC = () => {
           style={{ marginBottom: 16 }}
         />
       ) : null}
+      {task && instance?.currentTasks
+        ? renderParallelApprovalTasks(
+            task,
+            instance.currentTasks,
+            openTaskAsAssignee,
+          )
+        : null}
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
         <ProDescriptions<TaskItem>
           column={{ xs: 1, sm: 1, md: 2 }}
