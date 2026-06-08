@@ -80,6 +80,18 @@ function tryParseStructuredValue(value?: unknown) {
   return parseJsonValue(text) ?? parseSummaryText(text) ?? value;
 }
 
+function valueToText(value: unknown): string {
+  if (value === undefined || value === null || value === '') return '-';
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (Array.isArray(value)) return value.map(valueToText).join('、');
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, child]) => `${businessFieldLabel(key)}：${valueToText(child)}`)
+      .join('，');
+  }
+  return String(value);
+}
+
 function formatValue(value: unknown): React.ReactNode {
   if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'boolean') {
@@ -88,11 +100,11 @@ function formatValue(value: unknown): React.ReactNode {
   if (typeof value === 'number') return value;
   if (Array.isArray(value)) {
     if (!value.length) return '无';
-    return value.map((item) => String(item)).join('、');
+    return value.map(valueToText).join('、');
   }
   return (
     <Typography.Text copyable ellipsis={{ tooltip: String(value) }}>
-      {String(value)}
+      {valueToText(value)}
     </Typography.Text>
   );
 }

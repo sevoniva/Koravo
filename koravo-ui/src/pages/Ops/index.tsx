@@ -430,7 +430,16 @@ const Ops: React.FC = () => {
             />
             <Typography.Title level={5}>异常堆栈</Typography.Title>
             {jobDetail.exceptionStacktrace ? (
-              <Typography.Paragraph code copyable>
+              <Typography.Paragraph
+                copyable
+                style={{
+                  marginBottom: 0,
+                  maxHeight: 360,
+                  overflow: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
                 {jobDetail.exceptionStacktrace}
               </Typography.Paragraph>
             ) : (
