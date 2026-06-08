@@ -3,14 +3,14 @@ import {
   ModalForm,
   PageContainer,
   ProFormDependency,
-  ProFormDigit,
   ProFormSelect,
   ProFormText,
   ProTable,
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Form, Modal, Space, Typography, message } from 'antd';
+import { history } from '@umijs/max';
+import { App, Button, Empty, Form, Modal, Space, Typography } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import {
@@ -39,6 +39,13 @@ type BindingTableItem = FormBindingItem & {
   processModel?: ProcessModelItem;
   formSchema?: FormSchemaItem;
 };
+
+function bindingPayload(values: BindingForm): BindingForm {
+  return {
+    ...values,
+    formSchemaVersion: Number(values.formSchemaVersion || 1),
+  };
+}
 
 function modelBindingLabel(record: BindingTableItem) {
   if (!record.processModel) {
@@ -93,16 +100,31 @@ const BindingFormItems: React.FC = () => {
         fieldProps={{
           showSearch: true,
           optionFilterProp: 'label',
-          onChange: () => form.setFieldValue('taskDefinitionKey', undefined),
+          onChange: async (value) => {
+            form.setFieldValue('taskDefinitionKey', undefined);
+            const models = await listProcessModels();
+            const model = models.find((item) => item.id === value);
+            form.setFieldValue(
+              'processDefinitionId',
+              model?.flowableDefinitionId,
+            );
+          },
         }}
         request={async () =>
-          (await listProcessModels()).map((item) => ({
-            label: `${processDisplayName(item.modelKey, item.modelName)}（${item.modelKey}）`,
-            value: item.id,
-          }))
+          (await listProcessModels())
+            .filter((item) => item.status !== 'ARCHIVED')
+            .map((item) => ({
+              label: `${processDisplayName(item.modelKey, item.modelName)}（${item.modelKey}）`,
+              value: item.id,
+            }))
         }
       />
-      <ProFormText name="processDefinitionId" label="流程定义 ID" />
+      <ProFormText
+        name="processDefinitionId"
+        label="流程定义"
+        fieldProps={{ readOnly: true }}
+        placeholder="选择已部署流程模型后自动带出"
+      />
       <ProFormDependency name={['processModelId']}>
         {({ processModelId }) => (
           <ProFormSelect
@@ -138,6 +160,11 @@ const BindingFormItems: React.FC = () => {
         fieldProps={{
           showSearch: true,
           optionFilterProp: 'label',
+          onChange: async (value) => {
+            const schemas = await listFormSchemas();
+            const schema = schemas.find((item) => item.id === value);
+            form.setFieldValue('formSchemaVersion', schema?.version || 1);
+          },
         }}
         request={async () =>
           (await listFormSchemas()).map((item) => ({
@@ -146,11 +173,11 @@ const BindingFormItems: React.FC = () => {
           }))
         }
       />
-      <ProFormDigit
+      <ProFormText
         name="formSchemaVersion"
         label="表单版本"
-        min={1}
         initialValue={1}
+        fieldProps={{ readOnly: true }}
         rules={[{ required: true, message: '请输入表单版本' }]}
       />
     </>
@@ -158,6 +185,7 @@ const BindingFormItems: React.FC = () => {
 };
 
 const FormBindings: React.FC = () => {
+  const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormBindingItem>();
   const [modal, contextHolder] = Modal.useModal();
@@ -234,7 +262,7 @@ const FormBindings: React.FC = () => {
         rowKey="id"
         columns={columns}
         scroll={{ x: 1000 }}
-        request={async () => {
+        request={async (params) => {
           const [bindings, models, schemas] = await Promise.all([
             listFormBindings(),
             listProcessModels(),
@@ -242,18 +270,58 @@ const FormBindings: React.FC = () => {
           ]);
           const modelMap = new Map(models.map((item) => [item.id, item]));
           const schemaMap = new Map(schemas.map((item) => [item.id, item]));
+          const keyword = String(
+            params.processModelId ||
+              params.taskDefinitionKey ||
+              params.formSchemaId ||
+              '',
+          ).trim();
+          const data = bindings.map((item) => ({
+            ...item,
+            processModel: item.processModelId
+              ? modelMap.get(item.processModelId)
+              : undefined,
+            formSchema: schemaMap.get(item.formSchemaId),
+          }));
           return {
-            data: bindings.map((item) => ({
-              ...item,
-              processModel: item.processModelId
-                ? modelMap.get(item.processModelId)
-                : undefined,
-              formSchema: schemaMap.get(item.formSchemaId),
-            })),
+            data: keyword
+              ? data.filter((item) =>
+                  [
+                    item.processModel?.modelName,
+                    item.processModel?.modelKey,
+                    item.taskDefinitionKey,
+                    item.formSchema?.formName,
+                    item.formSchema?.formKey,
+                  ]
+                    .filter(Boolean)
+                    .some((value) => String(value).includes(keyword)),
+                )
+              : data,
             success: true,
           };
         }}
         search={{ labelWidth: 'auto' }}
+        locale={{
+          emptyText: (
+            <Empty
+              description="暂无表单绑定"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => history.push('/forms')}
+                >
+                  配置表单
+                </Button>
+                <Button onClick={() => history.push('/process-designer')}>
+                  设计流程
+                </Button>
+              </Space>
+            </Empty>
+          ),
+        }}
         toolBarRender={() => [
           <ModalForm<BindingForm>
             key="create"
@@ -265,7 +333,7 @@ const FormBindings: React.FC = () => {
             }
             modalProps={{ destroyOnHidden: true }}
             onFinish={async (values) => {
-              await createFormBinding(values);
+              await createFormBinding(bindingPayload(values));
               message.success('已创建');
               actionRef.current?.reload();
               return true;
@@ -290,7 +358,7 @@ const FormBindings: React.FC = () => {
         }}
         onFinish={async (values) => {
           if (!editing) return false;
-          await updateFormBinding(editing.id, values);
+          await updateFormBinding(editing.id, bindingPayload(values));
           message.success('已保存');
           setEditing(undefined);
           actionRef.current?.reload();
