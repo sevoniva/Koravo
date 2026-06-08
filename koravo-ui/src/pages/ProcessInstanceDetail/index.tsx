@@ -334,6 +334,9 @@ const ProcessInstanceDetail: React.FC = () => {
   const isPurchaseApproval = isPurchaseInstance(instance?.processDefinitionId);
   const parallelTaskCount = purchaseApprovalNodeCount(currentTasks);
   const purchaseApprovalRecords = purchaseApprovalSnapshotRecords(formSnapshots);
+  const nextApprovalTask = currentTasks.find((task) =>
+    ['managerApprovalTask', 'financeApprovalTask'].includes(task.taskDefinitionKey),
+  );
   const openTaskAsAssignee = React.useCallback(
     (task: TaskItem) => {
       const userId = task.assignee?.trim();
@@ -598,9 +601,18 @@ const ProcessInstanceDetail: React.FC = () => {
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                   >
                     <Space>
-                      <Button type="primary" onClick={() => history.push('/tasks')}>
-                        去任务中心处理
-                      </Button>
+                      {nextApprovalTask ? (
+                        <Button
+                          type="primary"
+                          onClick={() => openTaskAsAssignee(nextApprovalTask)}
+                        >
+                          处理{taskDefinitionLabel(nextApprovalTask.taskDefinitionKey)}
+                        </Button>
+                      ) : (
+                        <Button type="primary" onClick={() => history.push('/tasks')}>
+                          查看任务中心
+                        </Button>
+                      )}
                     </Space>
                   </Empty>
                 ),
