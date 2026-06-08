@@ -15,7 +15,19 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Alert, App, Button, Empty, Flex, Modal, Segmented, Space, type UploadFile } from 'antd';
+import {
+  Alert,
+  App,
+  Badge,
+  Button,
+  Empty,
+  Flex,
+  Modal,
+  Segmented,
+  Space,
+  Typography,
+  type UploadFile,
+} from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -26,8 +38,10 @@ import {
   deployProcessModelDraft,
   disableProcessModel,
   exportProcessModel,
+  listFormBindings,
   listProcessModels,
   validateProcessModel,
+  type FormBindingItem,
   type ProcessModelItem,
 } from '@/services/koravo/api';
 import {
@@ -51,6 +65,9 @@ interface ImportProcessModelForm {
 }
 
 type ModelViewMode = 'business' | 'all';
+type ProcessModelTableItem = ProcessModelItem & {
+  formBindingCount: number;
+};
 
 const hiddenBusinessModelKeys = new Set(['httpConnectorDemo', 'leaveApproval']);
 const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
@@ -72,6 +89,47 @@ function isBusinessModel(record: ProcessModelItem) {
   if (hiddenBusinessModelKeys.has(record.modelKey)) return false;
   return ![record.modelName, record.description, record.modelKey].some((value) =>
     nonBusinessModelPattern.test(String(value || '')),
+  );
+}
+
+function countModelBindings(record: ProcessModelItem, bindings: FormBindingItem[]) {
+  return bindings.filter(
+    (binding) =>
+      binding.processModelId === record.id ||
+      Boolean(
+        record.flowableDefinitionId &&
+          binding.processDefinitionId === record.flowableDefinitionId,
+      ),
+  ).length;
+}
+
+function renderConfigurationStatus(record: ProcessModelTableItem) {
+  if (record.status === 'ARCHIVED') {
+    return <Badge status="default" text="已归档" />;
+  }
+  if (record.status !== 'DEPLOYED' || !record.flowableDefinitionId) {
+    return (
+      <Flex vertical gap={2}>
+        <Badge status="warning" text="待部署" />
+        <Typography.Text type="secondary">先校验并部署流程</Typography.Text>
+      </Flex>
+    );
+  }
+  if (!record.formBindingCount) {
+    return (
+      <Flex vertical gap={2}>
+        <Badge status="warning" text="待绑定" />
+        <Typography.Text type="secondary">绑定任务表单后再发起</Typography.Text>
+      </Flex>
+    );
+  }
+  return (
+    <Flex vertical gap={2}>
+      <Badge status="success" text="可发起" />
+      <Typography.Text type="secondary">
+        已绑定 {record.formBindingCount} 个任务节点
+      </Typography.Text>
+    </Flex>
   );
 }
 
@@ -140,7 +198,7 @@ const ProcessModels: React.FC = () => {
     });
   };
 
-  const columns: ProColumns<ProcessModelItem>[] = [
+  const columns: ProColumns<ProcessModelTableItem>[] = [
     {
       title: '模型名称',
       dataIndex: 'modelName',
@@ -182,6 +240,13 @@ const ProcessModels: React.FC = () => {
           text={processStatusLabel(record.status)}
         />
       ),
+    },
+    {
+      title: '配置状态',
+      dataIndex: 'formBindingCount',
+      width: 180,
+      search: false,
+      render: (_, record) => renderConfigurationStatus(record),
     },
     {
       title: '流程定义',
@@ -323,16 +388,21 @@ const ProcessModels: React.FC = () => {
       content="维护流程草稿、部署版本和运行定义。"
     >
       {contextHolder}
-      <ProTable<ProcessModelItem>
+      <ProTable<ProcessModelTableItem>
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
         scroll={{ x: 1280 }}
         params={{ viewMode }}
         request={async (params) => {
-          const data = await listProcessModels(
-            params.status as string | undefined,
-          );
+          const [models, bindings] = await Promise.all([
+            listProcessModels(params.status as string | undefined),
+            listFormBindings(),
+          ]);
+          const data = models.map((model) => ({
+            ...model,
+            formBindingCount: countModelBindings(model, bindings),
+          }));
           const visibleData =
             viewMode === 'business' ? data.filter(isBusinessModel) : data;
           const keyword = String(
