@@ -69,11 +69,21 @@ const taskColumns: ProColumns<TaskItem>[] = [
   {
     title: '操作',
     valueType: 'option',
-    width: 96,
+    width: 160,
     render: (_, record) => (
-      <Button type="link" onClick={() => history.push(`/tasks/${record.taskId}`)}>
-        查看
-      </Button>
+      <Space size={4}>
+        <Button type="link" onClick={() => history.push(`/tasks/${record.taskId}`)}>
+          查看任务
+        </Button>
+        <Button
+          type="link"
+          onClick={() =>
+            history.push(`/process-instances/${record.processInstanceId}`)
+          }
+        >
+          查看实例
+        </Button>
+      </Space>
     ),
   },
 ];
