@@ -24,7 +24,7 @@ The response contains finished historic tasks assigned to the current user.
 GET /api/v1/tasks/started?page=1&pageSize=20
 ```
 
-The response contains process instances started by the current user. The console shows these under the Started tab and links the user to Ops for tracing and operational inspection.
+The response contains process instances started by the current user. The console shows these under the Started tab and links the user to the process instance detail page for tracing and operational inspection.
 
 The `/process-instances` console page loads deployed process models from `GET /api/v1/process-models?status=DEPLOYED`. Selecting a model fills the process definition key for start, while the key field remains editable for direct API calls.
 
@@ -47,7 +47,7 @@ The task detail response includes:
 
 `GET /api/v1/tasks/{taskId}` supports both active runtime tasks and completed historic tasks assigned to the current user. For completed tasks, task variables are read from Flowable historic variables while process variables, comments, form snapshots, and audit logs remain available for review.
 
-Form snapshots are stored in `ko_form_snapshot`. They preserve submitted form data, form schema version, schema JSON, and UI schema JSON at completion time, so historic review does not depend on the latest form schema or latest task variables. The console task detail snapshot modal exposes the saved data, schema JSON, and UI schema JSON together for review.
+Form snapshots are stored in `ko_form_snapshot`. They preserve submitted form data, form schema version, schema JSON, and UI schema JSON at completion time, so historic review does not depend on the latest form schema or latest task variables. The console task detail snapshot drawer renders saved data as a structured business table.
 Task audit logs are queried from `ko_audit_log` by `resourceType = TASK` and `resourceId = taskId`.
 
 The console task detail page links directly to `/process-instances/{instanceId}` so approvers can move from a task to the BPMN trace, timeline, current tasks, variables, and saved form snapshots without switching through Ops first.
@@ -80,10 +80,10 @@ Completion behavior:
 - writes Flowable task comments when `comment` is present
 - completes the Flowable task through `ProcessFacade`
 - writes a `TASK_COMPLETE` audit log with task ID, process instance ID, business key, task definition key, and form schema ID when available
-- renders simple bound form schema fields in the task detail page and task list quick-complete dialog while keeping raw JSON form data editing as a fallback
-- loads task detail before quick completion so the dialog can include the bound form schema and submit `formSchemaId`
-- validates completion variables and form data as JSON objects before submitting the request
+- renders simple bound form schema fields in the task detail page
+- renders purchase approval tasks with dedicated conclusion and opinion controls
+- validates required business fields before submitting the request
 
 ## Current Limits
 
-- Advanced form widgets and complex JSON Schema constructs are still represented through the raw JSON fallback in the console.
+- Advanced form widgets, nested groups, arrays, and conditional fields remain roadmap items for the console.

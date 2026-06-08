@@ -181,10 +181,10 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 }
 ```
 
-6. Open `Tasks`, fill bound form fields from the quick completion modal or enter the task detail page for full context, then complete the task with variables and an approval comment. The console validates variables and form data as JSON objects before submission.
-7. From task detail, click `Trace Instance`, or open `Process Instances` / `Ops`, to inspect the process trace, current/completed nodes, variables, timeline, and saved form snapshots.
+6. Open `Tasks`, switch to the assigned approver when needed, enter the task detail page, and complete the approval with the rendered business form or approval opinion controls.
+7. From task detail, open the linked process instance, or open `Process Instances` / `Ops`, to inspect the process trace, current/completed nodes, variables, timeline, and saved form snapshots.
 8. Open `Audit Logs` to review model, start, task, form, datasource, connector, and ops events.
-9. Create, update, test, and inspect datasource test logs in `Data Sources`; pool configuration is edited as validated JSON.
+9. Create, update, test, and inspect datasource test logs in `Data Sources`; pool settings are edited with structured fields.
 
 The same calls are available in [examples/http/koravo.http](examples/http/koravo.http).
 
@@ -286,7 +286,7 @@ Apache License 2.0. See [LICENSE](LICENSE).
 
 - Model Center richer property panels and version diff/merge UI.
 - Task Center copy, transfer, delegate, and richer assignment features.
-- Form Center advanced JSON Schema widgets, nested objects, arrays, and conditional forms.
+- Form Center advanced field widgets, nested groups, arrays, and conditional forms.
 - Data Hub external secret backends and query governance.
 - Connector Hub registry UI, config templates, retry policies, OAuth, and mTLS.
 - Ops Center dead-letter jobs, retries, migrations, and deeper operational search.
