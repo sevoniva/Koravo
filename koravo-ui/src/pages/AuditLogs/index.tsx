@@ -4,7 +4,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Typography } from 'antd';
+import { Button, Drawer, Empty, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import {
@@ -17,6 +17,12 @@ import {
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
+
+interface AuditDetailRow {
+  key: string;
+  field: string;
+  value: React.ReactNode;
+}
 
 const actionOptions = {
   PROCESS_MODEL_CREATE: { text: '创建流程模型' },
@@ -38,6 +44,61 @@ const resourceOptions = {
   DATASOURCE: { text: '数据源' },
   CONNECTOR_EXECUTION: { text: '连接器执行' },
 };
+
+const detailFieldLabels: Record<string, string> = {
+  name: '名称',
+  type: '类型',
+  success: '是否成功',
+  connected: '连接结果',
+  elapsedMillis: '耗时',
+  modelKey: '流程标识',
+  modelName: '流程名称',
+  processDefinitionKey: '流程定义标识',
+  processDefinitionId: '流程定义编号',
+  processInstanceId: '流程实例编号',
+  businessKey: '业务标识',
+  taskId: '任务编号',
+  taskDefinitionKey: '任务节点',
+  formSchemaId: '表单编号',
+  formKey: '表单标识',
+  formName: '表单名称',
+  version: '版本',
+  retries: '重试次数',
+  reason: '原因',
+  status: '状态',
+};
+
+function formatDetailField(field: string) {
+  return detailFieldLabels[field] || field;
+}
+
+function formatDetailValue(value: unknown): React.ReactNode {
+  if (value === undefined || value === null || value === '') return '-';
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (typeof value === 'number') return value;
+  if (Array.isArray(value)) {
+    if (!value.length) return '无';
+    return value.map((item) => String(item)).join('、');
+  }
+  return String(value);
+}
+
+function buildDetailRows(value: unknown, parentKey?: string): AuditDetailRow[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  return Object.entries(value as Record<string, unknown>).flatMap(([key, item]) => {
+    const rowKey = parentKey ? `${parentKey}.${key}` : key;
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      return buildDetailRows(item, rowKey);
+    }
+    return [
+      {
+        key: rowKey,
+        field: formatDetailField(key),
+        value: formatDetailValue(item),
+      },
+    ];
+  });
+}
 
 const AuditLogs: React.FC = () => {
   const [detail, setDetail] = useState<AuditLogItem>();
@@ -96,10 +157,8 @@ const AuditLogs: React.FC = () => {
     },
   ];
 
-  const detailJson = JSON.stringify(
+  const detailRows = buildDetailRows(
     maskSecret(parseJsonSafe(detail?.detailJson, {})),
-    null,
-    2,
   );
 
   return (
@@ -143,10 +202,22 @@ const AuditLogs: React.FC = () => {
             { title: '时间', dataIndex: 'createdAt', renderText: formatDateTime },
           ]}
         />
-        <Typography.Title level={5}>详情</Typography.Title>
-        <Typography.Paragraph>
-          <pre>{detailJson}</pre>
-        </Typography.Paragraph>
+        <Typography.Title level={5}>操作明细</Typography.Title>
+        {detailRows.length ? (
+          <ProTable<AuditDetailRow>
+            rowKey="key"
+            columns={[
+              { title: '字段', dataIndex: 'field', width: 180 },
+              { title: '内容', dataIndex: 'value' },
+            ]}
+            dataSource={detailRows}
+            search={false}
+            pagination={false}
+            options={false}
+          />
+        ) : (
+          <Empty description="暂无操作明细" />
+        )}
       </Drawer>
     </PageContainer>
   );
