@@ -42,33 +42,39 @@ interface WorkflowStep {
   title: string;
   description: string;
   path: string;
+  icon: React.ReactNode;
 }
 
 const workflowSteps: WorkflowStep[] = [
   {
-    title: '创建或设计流程',
-    description: '新建模型、导入 BPMN、维护审批节点',
+    title: '创建流程模型',
+    description: '新建模型、导入 BPMN、设计审批节点',
     path: '/process-designer',
+    icon: <EditOutlined />,
   },
   {
-    title: '校验并部署',
-    description: '确认流程可运行后发布定义',
-    path: '/process-models',
-  },
-  {
-    title: '配置表单',
+    title: '配置业务表单',
     description: '维护业务字段和控件',
     path: '/forms',
+    icon: <FormOutlined />,
   },
   {
     title: '绑定任务节点',
     description: '把表单绑定到审批任务',
     path: '/form-bindings',
+    icon: <LinkOutlined />,
+  },
+  {
+    title: '校验并部署',
+    description: '确认流程和表单后发布定义',
+    path: '/process-models',
+    icon: <DeploymentUnitOutlined />,
   },
   {
     title: '发起实例',
     description: '提交业务单据并跟踪处理',
     path: '/process-instances',
+    icon: <PlayCircleOutlined />,
   },
 ];
 
@@ -220,7 +226,7 @@ const Dashboard: React.FC = () => {
               icon={<EditOutlined />}
               onClick={() => history.push('/process-designer')}
             >
-              创建或设计流程
+              创建流程模型
             </Button>
             <Button
               icon={<CheckCircleOutlined />}
@@ -234,15 +240,10 @@ const Dashboard: React.FC = () => {
       >
         <Steps
           responsive
-          items={workflowSteps.map((step, index) => ({
+          items={workflowSteps.map((step) => ({
             title: step.title,
             content: step.description,
-            icon:
-              index === 2 ? (
-                <FormOutlined />
-              ) : index === 3 ? (
-                <LinkOutlined />
-              ) : undefined,
+            icon: step.icon,
           }))}
           onChange={(current) => history.push(workflowSteps[current].path)}
         />
