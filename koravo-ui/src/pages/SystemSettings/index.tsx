@@ -127,7 +127,7 @@ const SystemSettings: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              一笔采购申请会依次流转到部门审批和财务审批。发起后切换到对应处理人，即可在任务中心看到各自待办。
+              一笔采购申请会并行流转到部门审批和财务审批。发起后切换到对应处理人，即可在任务中心看到各自待办。
             </span>
             <Space wrap>
               <Tag color="processing">当前用户：{session.userId}</Tag>
