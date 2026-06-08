@@ -63,7 +63,7 @@ const QuickStart: React.FC = () => {
   const initializeMutation = useMutation({
     mutationFn: initializeWorkflowAssets,
     onSuccess: async () => {
-      message.success('基础配置已补齐');
+      message.success('流程资产已补齐');
       await refetch();
     },
   });
@@ -105,8 +105,8 @@ const QuickStart: React.FC = () => {
 
   return (
     <PageContainer
-      title="配置检查"
-      content="检查基础流程资产，必要时补齐采购申请流程、表单和审批绑定。"
+      title="资产检查"
+      content="检查采购申请流程、表单和审批绑定是否可用；缺失时可补齐流程资产。"
       extra={[
         <Button key="reload" icon={<ReloadOutlined />} onClick={() => refetch()}>
           刷新
@@ -117,7 +117,7 @@ const QuickStart: React.FC = () => {
           loading={initializeMutation.isPending}
           onClick={() => initializeMutation.mutate()}
         >
-          补齐配置
+          补齐流程资产
         </Button>,
         <Button
           key="start"
@@ -143,7 +143,7 @@ const QuickStart: React.FC = () => {
       </ProCard>
 
       <ProCard gutter={16} style={{ marginTop: 16 }} wrap>
-        <ProCard title="配置状态" colSpan={{ xs: 24, xl: 16 }}>
+        <ProCard title="资产状态" colSpan={{ xs: 24, xl: 16 }}>
           <ProTable<StepRow>
             rowKey="key"
             search={false}
@@ -162,7 +162,7 @@ const QuickStart: React.FC = () => {
               dataIndex="processDefinitionKey"
               renderText={(value) => processDisplayName(value)}
             />
-            <ProDescriptions.Item label="配置状态">
+            <ProDescriptions.Item label="资产状态">
               <KoravoStatusTag status={Boolean(data?.initialized)} />
             </ProDescriptions.Item>
           </ProDescriptions>

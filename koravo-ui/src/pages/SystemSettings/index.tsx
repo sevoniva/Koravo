@@ -8,7 +8,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Statistic, message } from 'antd';
+import { App, Button, Statistic } from 'antd';
 import React, { useMemo } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
@@ -35,6 +35,7 @@ const dependencyColumns: ProColumns<SystemHealthItem>[] = [
 ];
 
 const SystemSettings: React.FC = () => {
+  const { message } = App.useApp();
   const session = getSessionContext();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-health'],
@@ -45,7 +46,7 @@ const SystemSettings: React.FC = () => {
     () => [
       {
         key: 'initialization',
-        name: '初始化接口',
+        name: '流程资产补齐',
         status: data?.workflowEnablement?.enabled ? 'READY' : 'DISABLED',
         message: productCopy(data?.workflowEnablement?.message),
       },

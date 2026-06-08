@@ -10,8 +10,8 @@ export default [
     component: './Dashboard',
   },
   {
-    key: 'process',
-    name: '流程',
+    key: 'process-modeling',
+    name: '流程建模',
     icon: 'partition',
     routes: [
       {
@@ -27,17 +27,24 @@ export default [
         component: './ProcessModels',
       },
       {
-        path: '/process-instances',
-        name: '流程实例',
-        icon: 'playCircle',
-        component: './ProcessInstances',
+        path: '/forms',
+        name: '表单管理',
+        icon: 'form',
+        component: './Forms',
       },
       {
-        path: '/process-instances/:instanceId',
-        name: '实例详情',
-        hideInMenu: true,
-        component: './ProcessInstanceDetail',
+        path: '/form-bindings',
+        name: '表单绑定',
+        icon: 'link',
+        component: './FormBindings',
       },
+    ],
+  },
+  {
+    key: 'process-runtime',
+    name: '流程运行',
+    icon: 'playCircle',
+    routes: [
       {
         path: '/tasks',
         name: '任务中心',
@@ -50,24 +57,17 @@ export default [
         hideInMenu: true,
         component: './TaskDetail',
       },
-    ],
-  },
-  {
-    key: 'forms',
-    name: '表单',
-    icon: 'form',
-    routes: [
       {
-        path: '/forms',
-        name: '表单管理',
-        icon: 'form',
-        component: './Forms',
+        path: '/process-instances',
+        name: '流程实例',
+        icon: 'playCircle',
+        component: './ProcessInstances',
       },
       {
-        path: '/form-bindings',
-        name: '表单绑定',
-        icon: 'link',
-        component: './FormBindings',
+        path: '/process-instances/:instanceId',
+        name: '实例详情',
+        hideInMenu: true,
+        component: './ProcessInstanceDetail',
       },
     ],
   },
@@ -115,7 +115,7 @@ export default [
       },
       {
         path: '/quick-start',
-        name: '配置检查',
+        name: '资产检查',
         hideInMenu: true,
         component: './QuickStart',
       },
