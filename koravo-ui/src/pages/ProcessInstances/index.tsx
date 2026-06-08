@@ -11,7 +11,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useLocation } from '@umijs/max';
+import { history, useLocation, useModel } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Badge, Button, Empty, Flex, Form, Space, Tag, Typography } from 'antd';
 import React from 'react';
@@ -29,7 +29,10 @@ import {
   type OpsProcessInstance,
   type ProcessModelItem,
 } from '@/services/koravo/api';
-import { getSessionContext } from '@/services/koravo/session';
+import {
+  getSessionContext,
+  setSessionContext,
+} from '@/services/koravo/session';
 import {
   processDefinitionLabel,
   processDisplayName,
@@ -205,7 +208,10 @@ function renderCurrentTasks(record: OpsProcessInstance) {
   );
 }
 
-const columns: ProColumns<OpsProcessInstance>[] = [
+function buildColumns(
+  openCurrentTask: (record: OpsProcessInstance) => void,
+): ProColumns<OpsProcessInstance>[] {
+  return [
   {
     title: '实例编号',
     dataIndex: 'instanceId',
@@ -255,17 +261,25 @@ const columns: ProColumns<OpsProcessInstance>[] = [
   {
     title: '操作',
     valueType: 'option',
-    width: 96,
+    width: 150,
     render: (_, record) => (
-      <Button
-        type="link"
-        onClick={() => history.push(`/process-instances/${record.instanceId}`)}
-      >
-        查看
-      </Button>
+      <Space size={4}>
+        {record.currentTasks?.length ? (
+          <Button type="link" onClick={() => openCurrentTask(record)}>
+            处理当前
+          </Button>
+        ) : null}
+        <Button
+          type="link"
+          onClick={() => history.push(`/process-instances/${record.instanceId}`)}
+        >
+          查看实例
+        </Button>
+      </Space>
     ),
   },
-];
+  ];
+}
 
 function buildStartVariables(values: StartInstanceForm): JsonRecord {
   if (values.processDefinitionKey !== 'purchaseApproval') {
@@ -614,8 +628,42 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
 
 const ProcessInstances: React.FC = () => {
   const { message } = App.useApp();
+  const { setInitialState } = useModel('@@initialState');
   const queryProcessModelId = useQueryProcessModelId();
   const [startOpen, setStartOpen] = React.useState(Boolean(queryProcessModelId));
+
+  const openCurrentTask = React.useCallback(
+    (record: OpsProcessInstance) => {
+      const task = record.currentTasks?.[0];
+      if (!task) {
+        history.push(`/process-instances/${record.instanceId}`);
+        return;
+      }
+      const userId = task.assignee?.trim();
+      if (userId) {
+        const next = { ...getSessionContext(), userId };
+        setSessionContext(next);
+        setInitialState((state) => ({
+          ...state,
+          session: next,
+          currentUser: {
+            name: next.userId,
+            userid: next.userId,
+            access: 'admin',
+            tenantId: next.tenantId,
+          },
+        }));
+        message.success(`已切换为 ${userId}`);
+      }
+      history.push(`/tasks/${task.taskId}`);
+    },
+    [message, setInitialState],
+  );
+
+  const columns = React.useMemo(
+    () => buildColumns(openCurrentTask),
+    [openCurrentTask],
+  );
 
   React.useEffect(() => {
     if (queryProcessModelId) setStartOpen(true);
