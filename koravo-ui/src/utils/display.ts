@@ -17,9 +17,9 @@ export function processDescriptionLabel(model?: Pick<ProcessModelItem, 'modelKey
 export function productCopy(value?: string | null) {
   if (!value) return ''
   return value
-    .replaceAll('演示数据', '基础数据')
+    .replaceAll('演示数据', '流程配置')
     .replaceAll('演示流程', '内置流程')
-    .replaceAll('演示接口', '基础数据接口')
+    .replaceAll('演示接口', '配置接口')
     .replaceAll('内置演示', '内置')
     .replaceAll('演示', '')
     .replace(/\s+/g, ' ')

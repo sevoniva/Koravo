@@ -1,22 +1,75 @@
 <template>
   <a-layout class="app-shell">
-    <a-layout-sider v-if="!isMobile" v-model:collapsed="collapsed" class="app-sider" :width="252" collapsible>
-      <div class="brand" :class="{ 'brand-compact': collapsed }">
-        <div class="brand-mark">K</div>
-        <div v-if="!collapsed" class="brand-copy">
-          <strong>Koravo</strong>
-          <span>控制台</span>
+    <a-layout-header class="app-header">
+      <div class="header-left">
+        <a-button v-if="isMobile" class="header-icon-button" type="text" @click="mobileNavOpen = true">
+          <MenuOutlined />
+        </a-button>
+        <div class="global-brand">
+          <div class="brand-mark">K</div>
+          <div class="brand-copy">
+            <strong>Koravo</strong>
+            <span>控制台</span>
+          </div>
         </div>
+        <a-menu
+          v-if="!isMobile"
+          class="top-nav-menu"
+          :selectedKeys="[activeGroupKey]"
+          theme="light"
+          mode="horizontal"
+          @click="handleTopNav"
+        >
+          <a-menu-item v-for="group in navGroups" :key="group.key">{{ group.title }}</a-menu-item>
+        </a-menu>
       </div>
-      <a-menu class="app-nav-menu" :selectedKeys="[activeMenuKey]" theme="light" mode="inline" @click="handleNav">
-        <a-menu-item-group v-for="group in navGroups" :key="group.key" :title="group.title">
-          <a-menu-item v-for="item in group.items" :key="item.path">
+
+      <div class="header-actions">
+        <a-button class="header-action-button" type="text" @click="router.push('/quick-start')">
+          <ThunderboltOutlined />
+          <span v-if="!isMobile">流程启用</span>
+        </a-button>
+        <a-popover trigger="click" placement="bottomRight" overlay-class-name="identity-popover">
+          <template #content>
+            <a-form layout="vertical" class="identity-form">
+              <a-form-item label="租户">
+                <a-input v-model:value="tenantId" />
+              </a-form-item>
+              <a-form-item label="用户">
+                <a-input v-model:value="userId" />
+              </a-form-item>
+              <a-form-item label="请求追踪">
+                <a-input v-model:value="requestId" placeholder="不填则后端生成" />
+              </a-form-item>
+              <div class="identity-meta">
+                <span>最近响应</span>
+                <code>{{ requestIdLabel(session.lastRequestId) || '暂无' }}</code>
+              </div>
+            </a-form>
+          </template>
+          <a-button class="header-action-button" type="text">
+            <UserOutlined />
+            <span v-if="!isMobile">{{ session.tenantId }} / {{ session.userId }}</span>
+          </a-button>
+        </a-popover>
+      </div>
+    </a-layout-header>
+
+    <a-layout>
+      <a-layout-sider v-if="!isMobile" v-model:collapsed="collapsed" class="app-sider" :width="208" collapsible>
+        <div v-if="!collapsed" class="sider-section-title">{{ activeGroupTitle }}</div>
+        <a-menu class="app-nav-menu" :selectedKeys="[activeMenuKey]" theme="light" mode="inline" @click="handleNav">
+          <a-menu-item v-for="item in activeGroupItems" :key="item.path">
             <component :is="item.icon" />
             <span>{{ item.title }}</span>
           </a-menu-item>
-        </a-menu-item-group>
-      </a-menu>
-    </a-layout-sider>
+        </a-menu>
+      </a-layout-sider>
+
+      <a-layout-content class="app-content">
+        <router-view />
+      </a-layout-content>
+    </a-layout>
 
     <a-drawer
       v-model:open="mobileNavOpen"
@@ -43,52 +96,6 @@
       </a-menu>
     </a-drawer>
 
-    <a-layout>
-      <a-layout-header class="app-header">
-        <div class="header-left">
-          <a-button v-if="isMobile" class="header-icon-button" type="text" @click="mobileNavOpen = true">
-            <MenuOutlined />
-          </a-button>
-          <div>
-            <div class="header-kicker">{{ currentSection }}</div>
-            <div class="header-title">{{ currentTitle }}</div>
-          </div>
-        </div>
-
-        <div class="header-actions">
-          <a-button class="context-button" @click="router.push('/quick-start')">
-            <ThunderboltOutlined />
-            开始
-          </a-button>
-          <a-popover trigger="click" placement="bottomRight" overlay-class-name="identity-popover">
-            <template #content>
-              <a-form layout="vertical" class="identity-form">
-                <a-form-item label="租户">
-                  <a-input v-model:value="tenantId" />
-                </a-form-item>
-                <a-form-item label="用户">
-                  <a-input v-model:value="userId" />
-                </a-form-item>
-                <a-form-item label="请求追踪">
-                  <a-input v-model:value="requestId" placeholder="不填则后端生成" />
-                </a-form-item>
-                <div class="identity-meta">
-                  <span>最近响应</span>
-                  <code>{{ requestIdLabel(session.lastRequestId) || '暂无' }}</code>
-                </div>
-              </a-form>
-            </template>
-            <a-button class="context-button context-button-strong">
-              <UserOutlined />
-              {{ session.tenantId }} / {{ session.userId }}
-            </a-button>
-          </a-popover>
-        </div>
-      </a-layout-header>
-      <a-layout-content class="app-content">
-        <router-view />
-      </a-layout-content>
-    </a-layout>
   </a-layout>
 </template>
 
@@ -141,7 +148,7 @@ const navGroupMap: Record<string, string[]> = {
   start: ['/dashboard', '/quick-start'],
   process: ['/process-models', '/process-designer', '/process-instances', '/tasks'],
   forms: ['/forms', '/form-bindings'],
-  integration: ['/datasources', '/connector-demo'],
+  integration: ['/datasources', '/http-connector'],
   ops: ['/ops', '/audit-logs', '/system-settings']
 }
 
@@ -169,18 +176,15 @@ const navGroups = Object.entries(navGroupMap).map(([key, paths]) => ({
     .filter((item): item is typeof navItems[number] => Boolean(item))
 }))
 
-const groupTitleByPath = new Map<string, string>()
-navGroups.forEach((group) => {
-  group.items.forEach((item) => groupTitleByPath.set(item.path, group.title))
-})
-
 const activeMenuKey = computed(() => {
   const match = navItems.find((item) => route.path === item.path || route.path.startsWith(`${item.path}/`))
   return match?.path || '/dashboard'
 })
 
-const currentTitle = computed(() => String(route.meta?.title || navItems.find((item) => item.path === activeMenuKey.value)?.title || 'Koravo'))
-const currentSection = computed(() => groupTitleByPath.get(activeMenuKey.value) || '控制台')
+const activeGroupKey = computed(() => navGroups.find((group) => group.items.some((item) => item.path === activeMenuKey.value))?.key || 'start')
+const activeGroup = computed(() => navGroups.find((group) => group.key === activeGroupKey.value) || navGroups[0])
+const activeGroupTitle = computed(() => activeGroup.value?.title || '')
+const activeGroupItems = computed(() => activeGroup.value?.items || [])
 
 const tenantId = computed({
   get: () => session.tenantId,
@@ -199,6 +203,12 @@ const requestId = computed({
 
 function handleNav(event: { key: string }) {
   router.push(event.key)
+}
+
+function handleTopNav(event: { key: string }) {
+  const group = navGroups.find((item) => item.key === event.key)
+  const firstPath = group?.items[0]?.path
+  if (firstPath) router.push(firstPath)
 }
 
 function handleMobileNav(event: { key: string }) {

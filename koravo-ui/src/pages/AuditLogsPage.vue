@@ -189,7 +189,7 @@ const actionOptions = [
   { value: 'CONNECTOR_EXECUTE', label: '执行连接器' },
   { value: 'PROCESS_MODEL_DEPLOY', label: '部署模型' },
   { value: 'PROCESS_MODEL_IMPORT', label: '导入模型' },
-  { value: 'DEMO_INIT', label: '准备基础数据' },
+  { value: 'DEMO_INIT', label: '初始化配置' },
   { value: 'DATASOURCE_CREATE', label: '创建数据源' },
   { value: 'DATASOURCE_TEST', label: '测试数据源' },
   { value: 'DATASOURCE_DELETE', label: '删除数据源' },
@@ -206,7 +206,7 @@ const resourceOptions = [
   { value: 'PROCESS_MODEL', label: '流程模型' },
   { value: 'CONNECTOR_EXECUTION', label: '连接器日志' },
   { value: 'DATASOURCE', label: '数据源' },
-  { value: 'DEMO', label: '基础数据' },
+  { value: 'DEMO', label: '流程配置' },
   { value: 'FORM_SCHEMA', label: '表单' },
   { value: 'FORM_BINDING', label: '表单绑定' }
 ]
@@ -310,7 +310,7 @@ function actionLabel(action?: string) {
     CONNECTOR_EXECUTE: '执行连接器',
     PROCESS_MODEL_DEPLOY: '部署模型',
     PROCESS_MODEL_IMPORT: '导入模型',
-    DEMO_INIT: '准备基础数据',
+    DEMO_INIT: '初始化配置',
     DATASOURCE_CREATE: '创建数据源',
     DATASOURCE_TEST: '测试数据源',
     DATASOURCE_DELETE: '删除数据源',
@@ -330,7 +330,7 @@ function resourceLabel(resourceType?: string) {
     PROCESS_MODEL: '流程模型',
     CONNECTOR_EXECUTION: '连接器日志',
     DATASOURCE: '数据源',
-    DEMO: '基础数据',
+    DEMO: '流程配置',
     FORM_SCHEMA: '表单',
     FORM_BINDING: '表单绑定'
   }
@@ -347,7 +347,7 @@ function resourceIdLabel(resourceId?: string) {
 
 function emptySummary(action?: string) {
   const mapping: Record<string, string> = {
-    DEMO_INIT: '基础数据已就绪',
+    DEMO_INIT: '流程配置已就绪',
     FORM_BINDING_CREATE: '绑定已创建',
     FORM_BINDING_UPDATE: '绑定已更新',
     FORM_BINDING_DELETE: '绑定已删除'

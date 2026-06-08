@@ -1,10 +1,17 @@
 <template>
-  <button class="metric-card" type="button" :disabled="!clickable" @click="$emit('click')">
+  <a-card
+    class="metric-card"
+    :class="{ 'metric-card-clickable': clickable }"
+    :hoverable="clickable"
+    :tabindex="clickable ? 0 : undefined"
+    @click="handleClick"
+    @keydown.enter="handleClick"
+  >
     <span class="metric-card-label">{{ label }}</span>
     <strong>{{ value }}</strong>
     <span v-if="description" class="metric-card-description">{{ description }}</span>
     <StatusTag v-if="hasStatus" :status="status" />
-  </button>
+  </a-card>
 </template>
 
 <script setup lang="ts">
@@ -19,9 +26,13 @@ const props = defineProps<{
   clickable?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   click: []
 }>()
 
 const hasStatus = computed(() => props.status !== undefined && props.status !== null && props.status !== '')
+
+function handleClick() {
+  if (props.clickable) emit('click')
+}
 </script>

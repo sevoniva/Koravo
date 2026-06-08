@@ -23,7 +23,7 @@
         <a-space wrap>
           <a-button type="primary" @click="save">保存设置</a-button>
           <a-button @click="clearLocal">清除本地设置</a-button>
-          <a-button :loading="initLoading" @click="initDemo"><ThunderboltOutlined />准备基础数据</a-button>
+          <a-button :loading="initializing" @click="initializeAssets"><ThunderboltOutlined />初始化配置</a-button>
         </a-space>
       </DetailSection>
 
@@ -46,7 +46,7 @@
         <a-descriptions-item label="版本">{{ health?.version || '-' }}</a-descriptions-item>
         <a-descriptions-item label="租户">{{ health?.tenantId || session.tenantId }}</a-descriptions-item>
         <a-descriptions-item label="用户">{{ health?.userId || session.userId }}</a-descriptions-item>
-        <a-descriptions-item label="基础数据">{{ demoModeLabel }}</a-descriptions-item>
+        <a-descriptions-item label="流程配置">{{ workflowConfigLabel }}</a-descriptions-item>
         <a-descriptions-item label="URL 策略">{{ health?.urlPolicy?.message || '-' }}</a-descriptions-item>
       </a-descriptions>
 
@@ -74,7 +74,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { ReloadOutlined, SaveOutlined, ThunderboltOutlined } from '@ant-design/icons-vue'
-import { getSystemHealth, initDemoData, type SystemHealth } from '../api/koravo'
+import { getSystemHealth, initializeWorkflowAssets, type SystemHealth } from '../api/koravo'
 import { CopyableText, DetailSection, PageContainer, PageHeader, StatusTag } from '../components/ui'
 import { useSessionStore } from '../stores/session'
 
@@ -84,8 +84,8 @@ const userId = ref(session.userId)
 const requestId = ref(session.requestId)
 const health = ref<SystemHealth | null>(null)
 const loading = ref(false)
-const initLoading = ref(false)
-const demoModeLabel = computed(() => health.value?.demoMode?.enabled ? '可准备' : '未启用')
+const initializing = ref(false)
+const workflowConfigLabel = computed(() => health.value?.demoMode?.enabled ? '可初始化' : '未启用')
 
 const columns = [
   { title: '组件', dataIndex: 'name', key: 'name' },
@@ -117,13 +117,13 @@ function clearLocal() {
   save()
 }
 
-async function initDemo() {
-  initLoading.value = true
+async function initializeAssets() {
+  initializing.value = true
   try {
-    await initDemoData()
-    message.success('基础数据已准备')
+    await initializeWorkflowAssets()
+    message.success('流程配置已初始化')
   } finally {
-    initLoading.value = false
+    initializing.value = false
   }
 }
 

@@ -30,12 +30,12 @@
 
         <EmptyState v-if="!fields.length" description="暂无字段" />
         <div v-else class="field-list">
-          <button
+          <a-button
             v-for="field in fields"
             :key="field.id"
-            type="button"
             class="field-list-item"
             :class="{ active: field.id === selectedFieldId }"
+            type="text"
             @click="selectField(field.id)"
           >
             <span>
@@ -43,7 +43,7 @@
               <small>{{ field.name || '-' }} · {{ fieldTypeText(field.type) }}</small>
             </span>
             <StatusTag :status="field.required ? 'READY' : 'EMPTY'" :text="field.required ? '必填' : '选填'" />
-          </button>
+          </a-button>
         </div>
       </DetailSection>
 

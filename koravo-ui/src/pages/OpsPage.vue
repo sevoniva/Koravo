@@ -1077,7 +1077,7 @@ function auditActionLabel(action?: string) {
     CONNECTOR_EXECUTE: '执行连接器',
     PROCESS_MODEL_DEPLOY: '部署模型',
     PROCESS_MODEL_IMPORT: '导入模型',
-    DEMO_INIT: '准备基础数据',
+    DEMO_INIT: '初始化配置',
     DATASOURCE_CREATE: '创建数据源',
     DATASOURCE_TEST: '测试数据源',
     DATASOURCE_DELETE: '删除数据源',

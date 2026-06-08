@@ -25,7 +25,7 @@ export interface HealthInfo {
   userId: string
 }
 
-export interface DemoStatus {
+export interface WorkflowEnablementStatus {
   initialized: boolean
   tenantId: string
   userId: string
@@ -35,16 +35,16 @@ export interface DemoStatus {
   formSchemaId?: string
   formBindingId?: string
   message: string
-  process?: DemoStepStatus
-  form?: DemoStepStatus
-  binding?: DemoStepStatus
-  todo?: DemoStepStatus
-  audit?: DemoStepStatus
-  connector?: DemoStepStatus
+  process?: WorkflowEnablementStepStatus
+  form?: WorkflowEnablementStepStatus
+  binding?: WorkflowEnablementStepStatus
+  todo?: WorkflowEnablementStepStatus
+  audit?: WorkflowEnablementStepStatus
+  connector?: WorkflowEnablementStepStatus
   defaultStartVariables?: JsonRecord
 }
 
-export interface DemoStepStatus {
+export interface WorkflowEnablementStepStatus {
   ready: boolean
   status: string
   message: string
@@ -52,7 +52,7 @@ export interface DemoStepStatus {
   count: number
 }
 
-export interface DemoInitResult {
+export interface WorkflowEnablementInitResult {
   initialized: boolean
   processModelId?: string
   processDefinitionId?: string
@@ -301,12 +301,12 @@ export function getDashboardSummary() {
   return apiData<DashboardSummary>(http.get('/dashboard/summary', { silentError: true }), { silent: true })
 }
 
-export function getDemoStatus() {
-  return apiData<DemoStatus>(http.get('/demo/status'))
+export function getWorkflowEnablementStatus() {
+  return apiData<WorkflowEnablementStatus>(http.get('/demo/status'))
 }
 
-export function initDemoData() {
-  return apiData<DemoInitResult>(http.post('/demo/init'))
+export function initializeWorkflowAssets() {
+  return apiData<WorkflowEnablementInitResult>(http.post('/demo/init'))
 }
 
 export function deployProcessModel(modelName: string, file: File) {

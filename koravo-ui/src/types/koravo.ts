@@ -34,7 +34,7 @@ export interface SystemHealth {
   }
 }
 
-export interface DemoStepStatus {
+export interface WorkflowEnablementStepStatus {
   ready: boolean
   status: string
   message: string
@@ -42,7 +42,7 @@ export interface DemoStepStatus {
   count: number
 }
 
-export interface DemoStatus {
+export interface WorkflowEnablementStatus {
   initialized: boolean
   tenantId: string
   userId: string
@@ -52,16 +52,16 @@ export interface DemoStatus {
   formSchemaId?: string
   formBindingId?: string
   message: string
-  process?: DemoStepStatus
-  form?: DemoStepStatus
-  binding?: DemoStepStatus
-  todo?: DemoStepStatus
-  audit?: DemoStepStatus
-  connector?: DemoStepStatus
+  process?: WorkflowEnablementStepStatus
+  form?: WorkflowEnablementStepStatus
+  binding?: WorkflowEnablementStepStatus
+  todo?: WorkflowEnablementStepStatus
+  audit?: WorkflowEnablementStepStatus
+  connector?: WorkflowEnablementStepStatus
   defaultStartVariables?: JsonRecord
 }
 
-export interface DemoInitResult {
+export interface WorkflowEnablementInitResult {
   initialized: boolean
   processModelId?: string
   processDefinitionId?: string
