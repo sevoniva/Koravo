@@ -19,7 +19,11 @@ import {
   getDashboardSummary,
   type AuditLogItem,
 } from '@/services/koravo/api';
-import { shortTraceLabel } from '@/utils/display';
+import {
+  auditActionLabel,
+  auditResourceLabel,
+  shortTraceLabel,
+} from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
 interface WorkloadRow {
@@ -60,8 +64,18 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     renderText: (value) => formatDateTime(value),
   },
   { title: '操作人', dataIndex: 'userId', width: 120 },
-  { title: '操作类型', dataIndex: 'action', width: 140 },
-  { title: '对象类型', dataIndex: 'resourceType', width: 140 },
+  {
+    title: '操作类型',
+    dataIndex: 'action',
+    width: 140,
+    renderText: (value) => auditActionLabel(value),
+  },
+  {
+    title: '对象类型',
+    dataIndex: 'resourceType',
+    width: 140,
+    renderText: (value) => auditResourceLabel(value),
+  },
   {
     title: '追踪号',
     dataIndex: 'requestId',

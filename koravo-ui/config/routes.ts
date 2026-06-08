@@ -16,14 +16,9 @@ export default [
     component: './QuickStart',
   },
   {
-    path: '/process',
     name: '流程',
     icon: 'partition',
     routes: [
-      {
-        path: '/process',
-        redirect: '/process-models',
-      },
       {
         path: '/process-models',
         name: '流程模型',
@@ -63,14 +58,9 @@ export default [
     ],
   },
   {
-    path: '/forms-group',
     name: '表单',
     icon: 'form',
     routes: [
-      {
-        path: '/forms-group',
-        redirect: '/forms',
-      },
       {
         path: '/forms',
         name: '表单管理',
@@ -86,14 +76,9 @@ export default [
     ],
   },
   {
-    path: '/integration',
     name: '集成',
     icon: 'api',
     routes: [
-      {
-        path: '/integration',
-        redirect: '/datasources',
-      },
       {
         path: '/datasources',
         name: '数据源管理',
@@ -109,14 +94,9 @@ export default [
     ],
   },
   {
-    path: '/ops-group',
     name: '运维',
     icon: 'control',
     routes: [
-      {
-        path: '/ops-group',
-        redirect: '/ops',
-      },
       {
         path: '/ops',
         name: '运维中心',
