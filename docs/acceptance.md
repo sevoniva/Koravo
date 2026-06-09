@@ -35,11 +35,11 @@ The console workflow check is:
 1. Start dependencies with `docker compose up -d postgres redis minio`.
 2. Start `koravo-bootstrap`.
 3. Start `koravo-ui`.
-4. Use `Process Designer` or `Process Models` to validate and deploy the multi-acceptance process.
-5. Create or update the acceptance request form schema in `Forms`.
-6. Bind the start form, `businessAcceptanceTask`, and `financeAcceptanceTask` in `Form Bindings`.
-7. Start `multiAcceptance` from `Start Process`.
-8. Complete both parallel acceptance tasks from `My Tasks` or task detail with form data and comments.
+4. Use `Process Designer` or `Process Models` to validate and deploy the collaborative approval process.
+5. Create or update the business request form schema in `Forms`.
+6. Bind the start form and `jointApprovalTask` in `Form Bindings`.
+7. Start `collaborativeApproval` from `Start Process` with multiple `approvalUsers`.
+8. Complete every parallel approval task from `My Tasks` or task detail with form data and comments.
 9. Inspect `Process Instance` / `Ops` trace, current and completed activities, variables, task detail, form snapshots, and audit logs.
 10. Use `Data Sources` to create, update, test, and inspect datasource test logs.
 

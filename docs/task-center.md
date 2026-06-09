@@ -89,9 +89,9 @@ Completion behavior:
 - completes the Flowable task through `ProcessFacade`
 - writes a `TASK_COMPLETE` audit log with task ID, process instance ID, business key, task definition key, and form schema ID when available
 - renders simple bound form schema fields in the task detail page
-- renders acceptance tasks with bound business fields, conclusion, and opinion controls
+- renders approval tasks with bound business fields, conclusion, and opinion controls
 - validates required business fields before submitting the request
 
 ## Current Limits
 
-- Advanced form widgets, nested groups, arrays, and conditional fields remain roadmap items for the console.
+- Advanced form widgets, nested groups, and conditional fields remain roadmap items for the console.

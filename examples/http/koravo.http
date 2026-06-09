@@ -17,17 +17,17 @@ GET {{baseUrl}}/health
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 
-### 2. Deploy process model
-POST {{baseUrl}}/process-models/deploy?modelName=Leave%20Approval
+### 2. Deploy custom process model
+POST {{baseUrl}}/process-models/deploy?modelName=HTTP%20Health%20Check
 X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 Content-Type: multipart/form-data; boundary=KoravoBoundary
 
 --KoravoBoundary
-Content-Disposition: form-data; name="file"; filename="leave-approval.bpmn20.xml"
+Content-Disposition: form-data; name="file"; filename="http-health-check.bpmn20.xml"
 Content-Type: application/xml
 
-< ../bpmn/leave-approval.bpmn20.xml
+< ../bpmn/http-health-check.bpmn20.xml
 --KoravoBoundary--
 
 ### 2a. Query process models
@@ -56,7 +56,7 @@ X-Tenant-Id: {{tenantId}}
 X-User-Id: {{userId}}
 Content-Type: text/plain
 
-< ../bpmn/leave-approval.bpmn20.xml
+< ../bpmn/http-health-check.bpmn20.xml
 
 ### 2f. Disable process model
 POST {{baseUrl}}/process-models/{{processModelId}}/disable
@@ -76,12 +76,14 @@ X-Request-Id: {{requestId}}
 Content-Type: application/json
 
 {
-  "processDefinitionKey": "leaveApproval",
-  "businessKey": "LEAVE-001",
+  "processDefinitionKey": "collaborativeApproval",
+  "businessKey": "REQ-001",
   "variables": {
-    "applicant": "u001",
-    "approver": "admin",
-    "days": 2
+    "subject": "通用业务申请",
+    "businessDescription": "说明申请事项、背景和需要审批的内容",
+    "expectedResult": "所有审批人完成会签后流程结束",
+    "amount": 12800,
+    "approvalUsers": ["manager", "finance"]
   }
 }
 
@@ -112,10 +114,10 @@ X-User-Id: {{userId}}
 Content-Type: application/json
 
 {
-  "formKey": "leave",
-  "formName": "Leave Approval",
-  "schemaJson": "{\"type\":\"object\",\"required\":[\"days\",\"reason\"],\"properties\":{\"days\":{\"type\":\"number\",\"title\":\"Days\"},\"reason\":{\"type\":\"string\",\"title\":\"Reason\"}}}",
-  "uiSchemaJson": "{}"
+  "formKey": "business-request-form",
+  "formName": "业务申请表",
+  "schemaJson": "{\"type\":\"object\",\"required\":[\"applicant\",\"department\",\"subject\",\"businessDescription\",\"approvalUsers\"],\"properties\":{\"applicant\":{\"type\":\"string\",\"title\":\"发起人\",\"ui:widget\":\"organizationProfile\"},\"department\":{\"type\":\"string\",\"title\":\"所属部门\",\"ui:widget\":\"organizationProfile\"},\"subject\":{\"type\":\"string\",\"title\":\"事项名称\"},\"businessDescription\":{\"type\":\"string\",\"title\":\"事项说明\",\"ui:widget\":\"textarea\"},\"expectedResult\":{\"type\":\"string\",\"title\":\"期望结果\",\"ui:widget\":\"textarea\"},\"amount\":{\"type\":\"number\",\"title\":\"金额\"},\"approvalUsers\":{\"type\":\"array\",\"title\":\"审批人\",\"items\":{\"type\":\"string\"},\"ui:widget\":\"organizationMemberMulti\"}}}",
+  "uiSchemaJson": "{\"applicant\":{\"ui:widget\":\"organizationProfile\"},\"department\":{\"ui:widget\":\"organizationProfile\"},\"businessDescription\":{\"ui:widget\":\"textarea\"},\"expectedResult\":{\"ui:widget\":\"textarea\"},\"approvalUsers\":{\"ui:widget\":\"organizationMemberMulti\"}}"
 }
 
 ### 7b. Get form schema detail
@@ -130,10 +132,10 @@ X-User-Id: {{userId}}
 Content-Type: application/json
 
 {
-  "formKey": "leave",
-  "formName": "Leave Approval v2",
-  "schemaJson": "{\"type\":\"object\",\"required\":[\"days\",\"reason\"],\"properties\":{\"days\":{\"type\":\"number\",\"title\":\"Days\"},\"reason\":{\"type\":\"string\",\"title\":\"Reason\"},\"handover\":{\"type\":\"string\",\"title\":\"Handover\"}}}",
-  "uiSchemaJson": "{}"
+  "formKey": "business-request-form",
+  "formName": "业务申请表 v2",
+  "schemaJson": "{\"type\":\"object\",\"required\":[\"applicant\",\"department\",\"subject\",\"businessDescription\",\"approvalUsers\"],\"properties\":{\"applicant\":{\"type\":\"string\",\"title\":\"发起人\",\"ui:widget\":\"organizationProfile\"},\"department\":{\"type\":\"string\",\"title\":\"所属部门\",\"ui:widget\":\"organizationProfile\"},\"subject\":{\"type\":\"string\",\"title\":\"事项名称\"},\"businessDescription\":{\"type\":\"string\",\"title\":\"事项说明\",\"ui:widget\":\"textarea\"},\"expectedResult\":{\"type\":\"string\",\"title\":\"期望结果\",\"ui:widget\":\"textarea\"},\"amount\":{\"type\":\"number\",\"title\":\"金额\"},\"approvalUsers\":{\"type\":\"array\",\"title\":\"审批人\",\"items\":{\"type\":\"string\"},\"ui:widget\":\"organizationMemberMulti\"},\"remark\":{\"type\":\"string\",\"title\":\"备注\",\"ui:widget\":\"textarea\"}}}",
+  "uiSchemaJson": "{\"applicant\":{\"ui:widget\":\"organizationProfile\"},\"department\":{\"ui:widget\":\"organizationProfile\"},\"businessDescription\":{\"ui:widget\":\"textarea\"},\"expectedResult\":{\"ui:widget\":\"textarea\"},\"approvalUsers\":{\"ui:widget\":\"organizationMemberMulti\"},\"remark\":{\"ui:widget\":\"textarea\"}}"
 }
 
 ### 7d. Bind form schema to task node
@@ -145,7 +147,7 @@ Content-Type: application/json
 {
   "processModelId": null,
   "processDefinitionId": "{{processDefinitionId}}",
-  "taskDefinitionKey": "approveTask",
+  "taskDefinitionKey": "jointApprovalTask",
   "formSchemaId": "{{formSchemaId}}",
   "formSchemaVersion": 1
 }
@@ -169,7 +171,7 @@ Content-Type: application/json
 {
   "processModelId": null,
   "processDefinitionId": "{{processDefinitionId}}",
-  "taskDefinitionKey": "approveTask",
+  "taskDefinitionKey": "jointApprovalTask",
   "formSchemaId": "{{formSchemaId}}",
   "formSchemaVersion": 2
 }

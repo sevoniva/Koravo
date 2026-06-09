@@ -32,8 +32,8 @@ Bindings can target:
 Runtime task detail and task completion first resolve binding by `processDefinitionId + taskDefinitionKey`. If no definition-scoped binding exists, Koravo looks up the deployed process model by Flowable definition ID and falls back to `processModelId + taskDefinitionKey`.
 Use `processDefinitionId` when binding a Flowable definition directly. Use `processModelId` when binding a stored model from the model center; after deployment, runtime tasks can still find that model-scoped binding.
 The `/form-bindings` console page can load deployed models, fill both the platform `processModelId` and Flowable `processDefinitionId`, and filter the list to bindings for the selected deployment.
-The console renders simple schema fields as business controls. Supported field types are `string`, `number`, `integer`, and `boolean`, with text input, textarea, number input, date picker, select options, and switch controls.
-For acceptance tasks, the task detail page renders bound business fields and saves each handler's opinion as a form snapshot.
+The console renders schema fields as business controls. Supported field types are `string`, `number`, `integer`, `boolean`, and string arrays for organization member multi-select, with text input, textarea, number input, date picker, select options, switch controls, organization profile fields, and organization member selectors.
+For approval tasks, the task detail page renders bound business fields and saves each handler's opinion as a form snapshot.
 
 ## Snapshot Behavior
 
@@ -66,9 +66,9 @@ Task detail returns historical snapshots for the process instance so review does
 
 ## Audit
 
-Form schema create/update writes `FORM_SCHEMA_CREATE` and `FORM_SCHEMA_UPDATE`. Form binding create/update/delete writes `FORM_BIND`, `FORM_BIND_UPDATE`, and `FORM_BIND_DELETE`. Task completion writes `TASK_COMPLETE`.
+Form schema create/update/activate/disable writes `FORM_SCHEMA_CREATE`, `FORM_SCHEMA_UPDATE`, `FORM_SCHEMA_ACTIVATE`, and `FORM_SCHEMA_DISABLE`. Form binding create/update/delete writes `FORM_BIND`, `FORM_BIND_UPDATE`, and `FORM_BIND_DELETE`. Task completion writes `TASK_COMPLETE`.
 Form binding audit details include the target `processModelId` or `processDefinitionId`, `taskDefinitionKey`, and `formSchemaId` so operators can trace which task node received a form binding.
 
 ## Current Limits
 
-- Advanced form constructs such as arrays, nested groups, conditional fields, and custom widgets remain roadmap items for the console.
+- Advanced form constructs such as nested groups, conditional fields, and custom widgets remain roadmap items for the console.

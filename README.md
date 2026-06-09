@@ -166,23 +166,22 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
 3. Start frontend and open `http://localhost:8000`.
    The Dashboard shows backend health, tenant/user/request context, pending and done task totals, started instances, and HTTP connector success/failure counts.
-4. Use `Process Models` to run the release check for the multi-acceptance process, or use `Process Designer` to adjust the BPMN and save the draft before deployment.
-5. Create or update the acceptance request form in `Forms`, bind the start form plus `businessAcceptanceTask` and `financeAcceptanceTask` in `Form Bindings`, then start a process with `processDefinitionKey = multiAcceptance` and variables:
+4. Use `Process Models` to run the release check for the collaborative approval process, or use `Process Designer` to adjust the BPMN and save the draft before deployment.
+5. Create or update the business request form in `Forms`, bind the start form plus `jointApprovalTask` in `Form Bindings`, then start a process with `processDefinitionKey = collaborativeApproval` and variables:
 
 ```json
 {
-  "applicant": "zhangsan",
-  "department": "业务部门",
-  "subject": "交付成果验收",
-  "acceptanceScope": "确认交付内容、数量、质量和资料齐备情况",
-  "expectedResult": "业务验收和财务验收均通过后完成流程",
+  "applicant": "业务申请专员",
+  "department": "业务一部",
+  "subject": "通用业务申请",
+  "businessDescription": "说明申请事项、背景和需要审批的内容",
+  "expectedResult": "所有审批人完成会签后流程结束",
   "amount": 12800,
-  "managerApprover": "manager",
-  "financeApprover": "finance"
+  "approvalUsers": ["manager", "finance"]
 }
 ```
 
-6. Open `My Tasks`, enter the task detail page as the assigned handler, and complete both parallel acceptance tasks with the rendered business form and processing comment.
+6. Open `My Tasks`, enter the task detail page as each assigned handler, and complete every parallel approval task with the rendered business form and processing comment.
 7. From task detail, open the linked process instance, or open `Process Instances` / `Ops`, to inspect the process trace, current/completed nodes, variables, timeline, and saved form snapshots.
 8. Open `Audit Logs` to review model, start, task, form, datasource, connector, and ops events.
 9. Create, update, test, and inspect datasource test logs in `Data Sources`; pool settings are edited with structured fields.
@@ -191,14 +190,14 @@ The same calls are available in [examples/http/koravo.http](examples/http/koravo
 
 ## API Workflow Loop
 
-Deploy BPMN:
+Prepare the default collaborative approval model from the console, then run release check and deployment from `Process Models`. Direct BPMN import is still available for custom models:
 
 ```bash
-curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Multi%20Acceptance' \
+curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Custom%20Workflow' \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: admin' \
   -H 'X-User-Role: admin' \
-  -F 'file=@examples/bpmn/multi-acceptance.bpmn20.xml'
+  -F 'file=@examples/bpmn/http-health-check.bpmn20.xml'
 ```
 
 Start process:
@@ -209,7 +208,7 @@ curl -X POST http://localhost:8080/api/v1/process-instances/start \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: applicant' \
   -H 'X-User-Role: applicant' \
-  -d '{"processDefinitionKey":"multiAcceptance","businessKey":"ACC-001","variables":{"applicant":"业务申请专员","department":"业务一部","subject":"交付成果验收","acceptanceScope":"确认交付内容、数量、质量和资料齐备情况","expectedResult":"业务验收和财务验收均通过后完成流程","amount":12800,"managerApprover":"manager","financeApprover":"finance"}}'
+  -d '{"processDefinitionKey":"collaborativeApproval","businessKey":"REQ-001","variables":{"applicant":"业务申请专员","department":"业务一部","subject":"通用业务申请","businessDescription":"说明申请事项、背景和需要审批的内容","expectedResult":"所有审批人完成会签后流程结束","amount":12800,"approvalUsers":["manager","finance"]}}'
 ```
 
 Complete a task:
