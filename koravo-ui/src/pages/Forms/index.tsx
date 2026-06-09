@@ -16,14 +16,28 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Alert, App, Button, Drawer, Empty, Space, Tabs, Tag } from 'antd';
+import {
+  Alert,
+  App,
+  Badge,
+  Button,
+  Drawer,
+  Empty,
+  Flex,
+  Space,
+  Tabs,
+  Tag,
+  Typography,
+} from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import {
   createFormSchema,
+  type FormBindingItem,
   type FormSchemaItem,
+  listFormBindings,
   listFormSchemas,
   updateFormSchema,
 } from '@/services/koravo/api';
@@ -77,6 +91,8 @@ interface JsonSchemaProperty {
   'ui:placeholder'?: string;
   'ui:widget'?: string;
 }
+
+const START_FORM_TASK_KEY = '__START__';
 
 const defaultFields: FormFieldConfig[] = [
   {
@@ -132,6 +148,96 @@ const fieldTypeText: Record<FormFieldConfig['type'], string> = {
   number: '数字',
   boolean: '开关',
   array: '多选',
+};
+
+interface FormBindingImpact {
+  total: number;
+  start: number;
+  task: number;
+  versions: number[];
+}
+
+function bindingImpact(
+  formSchemaId: string | undefined,
+  bindings: FormBindingItem[],
+): FormBindingImpact {
+  const matched = bindings.filter(
+    (binding) => binding.formSchemaId === formSchemaId,
+  );
+  return {
+    total: matched.length,
+    start: matched.filter(
+      (binding) => binding.taskDefinitionKey === START_FORM_TASK_KEY,
+    ).length,
+    task: matched.filter(
+      (binding) => binding.taskDefinitionKey !== START_FORM_TASK_KEY,
+    ).length,
+    versions: Array.from(
+      new Set(matched.map((binding) => binding.formSchemaVersion).filter(Boolean)),
+    ).sort((a, b) => a - b),
+  };
+}
+
+function bindingImpactText(impact: FormBindingImpact) {
+  if (!impact.total) return '未绑定流程节点';
+  const parts = [
+    impact.start ? `${impact.start} 个启动表单` : '',
+    impact.task ? `${impact.task} 个任务节点` : '',
+  ].filter(Boolean);
+  const versionText = impact.versions.length
+    ? `，绑定版本 ${impact.versions.map((version) => `v${version}`).join('、')}`
+    : '';
+  return `${parts.join('、')}${versionText}`;
+}
+
+const BindingImpactSummary: React.FC<{
+  impact: FormBindingImpact;
+  compact?: boolean;
+}> = ({ impact, compact }) => {
+  if (!impact.total) {
+    return compact ? (
+      <Badge status="default" text="未绑定" />
+    ) : (
+      <Alert
+        showIcon
+        type="info"
+        title="当前表单尚未绑定流程节点"
+        description="保存字段后，可从表单绑定页把它设置为启动表单或任务表单。"
+      />
+    );
+  }
+
+  if (compact) {
+    return (
+      <Space size={[0, 4]} wrap>
+        <Badge status="processing" text={`${impact.total} 处绑定`} />
+        {impact.start ? <Tag color="success">启动 {impact.start}</Tag> : null}
+        {impact.task ? <Tag color="blue">任务 {impact.task}</Tag> : null}
+      </Space>
+    );
+  }
+
+  return (
+    <Alert
+      showIcon
+      type="warning"
+      title={`当前表单已被 ${impact.total} 处流程配置使用`}
+      description={
+        <Flex vertical gap={8}>
+          <Typography.Text type="secondary">
+            {bindingImpactText(impact)}。保存字段变更后，后续发起和办理会按新字段展示；已提交的历史快照不受影响。
+          </Typography.Text>
+          <Space wrap>
+            {impact.start ? <Tag color="success">启动表单 {impact.start}</Tag> : null}
+            {impact.task ? <Tag color="blue">任务表单 {impact.task}</Tag> : null}
+            {impact.versions.map((version) => (
+              <Tag key={version}>v{version}</Tag>
+            ))}
+          </Space>
+        </Flex>
+      }
+    />
+  );
 };
 
 const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
@@ -708,10 +814,12 @@ const Forms: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormSchemaItem>();
   const [preview, setPreview] = useState<FormSchemaItem>();
+  const [formBindings, setFormBindings] = useState<FormBindingItem[]>([]);
   const previewFields = schemaToFields(
     preview?.schemaJson,
     preview?.uiSchemaJson,
   );
+  const editingImpact = bindingImpact(editing?.id, formBindings);
 
   const saveFormSchema = async (values: FormSchemaForm, id?: string) => {
     if (!values.fields?.length) {
@@ -791,6 +899,18 @@ const Forms: React.FC = () => {
         schemaToFields(record.schemaJson, record.uiSchemaJson).length,
     },
     {
+      title: '绑定影响',
+      key: 'bindingImpact',
+      width: 220,
+      search: false,
+      render: (_, record) => (
+        <BindingImpactSummary
+          compact
+          impact={bindingImpact(record.id, formBindings)}
+        />
+      ),
+    },
+    {
       title: '操作',
       valueType: 'option',
       width: 220,
@@ -821,7 +941,11 @@ const Forms: React.FC = () => {
         rowKey="id"
         columns={columns}
         request={async (params) => {
-          const data = await listFormSchemas();
+          const [data, bindings] = await Promise.all([
+            listFormSchemas(),
+            listFormBindings(),
+          ]);
+          setFormBindings(bindings);
           const keyword = String(
             params.formName || params.formKey || '',
           ).trim();
@@ -896,6 +1020,7 @@ const Forms: React.FC = () => {
           return saveFormSchema(values, editing.id);
         }}
       >
+        <BindingImpactSummary impact={editingImpact} />
         <ProFormText
           name="formKey"
           label="表单标识"
