@@ -89,7 +89,7 @@ const HttpConnector: React.FC = () => {
       renderText: (value) => formatDuration(value),
     },
     {
-      title: '追踪号',
+      title: '业务追踪号',
       dataIndex: 'requestId',
       width: 170,
       render: (_, record) => (
@@ -200,7 +200,7 @@ const HttpConnector: React.FC = () => {
               { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
               { title: '状态码', dataIndex: 'statusCode' },
               { title: '耗时', dataIndex: 'elapsedMillis', renderText: formatDuration },
-              { title: '追踪号', dataIndex: 'requestId', copyable: true },
+              { title: '业务追踪号', dataIndex: 'requestId', copyable: true },
               { title: '时间', dataIndex: 'createdAt', renderText: formatDateTime },
             ]}
           />

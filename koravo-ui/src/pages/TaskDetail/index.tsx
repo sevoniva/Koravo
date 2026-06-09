@@ -127,7 +127,7 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
   { title: '操作类型', dataIndex: 'action', renderText: auditActionLabel },
   { title: '对象类型', dataIndex: 'resourceType', renderText: auditResourceLabel },
   {
-    title: '追踪号',
+    title: '业务追踪号',
     dataIndex: 'requestId',
     width: 170,
     render: (_, record) => <CopyableText value={record.requestId} />,
@@ -222,7 +222,7 @@ function latestTaskActions(logs: AuditLogItem[] = []) {
 }
 
 function nextTaskInstruction(task?: TaskItem, hasForm?: boolean) {
-  if (!task) return '加载任务上下文后继续处理。';
+  if (!task) return '加载任务信息后继续处理。';
   if (task.status === 'COMPLETED') {
     return '当前任务已完成，可查看表单快照、处理意见和实例进度。';
   }
@@ -268,7 +268,7 @@ const TaskHandlingContext: React.FC<{
   const isDone = task?.status === 'COMPLETED';
   const hasAssignee = Boolean(task?.assignee);
   return (
-    <ProCard title="办理上下文" style={{ marginBottom: 16 }}>
+    <ProCard title="办理信息" style={{ marginBottom: 16 }}>
       <Flex vertical gap={16}>
         <Alert
           showIcon
@@ -276,7 +276,7 @@ const TaskHandlingContext: React.FC<{
           title={
             task
               ? `当前节点：${taskDefinitionLabel(task.taskDefinitionKey)}`
-              : '正在加载任务上下文'
+              : '正在加载任务信息'
           }
           description={nextTaskInstruction(task, hasForm)}
         />
@@ -535,7 +535,7 @@ const SchemaDrivenFields: React.FC<{
                 undefined,
                 field.title,
               )}
-              tooltip="由流程发起信息或当前账号自动带出。"
+              tooltip="由流程发起信息或登录成员自动带出。"
               fieldProps={{ readOnly: true }}
               rules={
                 field.required
@@ -740,7 +740,7 @@ const TaskDetail: React.FC = () => {
   return (
     <PageContainer
       title="任务详情"
-      content="查看任务上下文、表单快照、处理意见和审计记录。"
+      content="查看任务状态、表单快照、处理意见和审计记录。"
       extra={
         <Space wrap>
           <Button onClick={() => history.push('/tasks')}>

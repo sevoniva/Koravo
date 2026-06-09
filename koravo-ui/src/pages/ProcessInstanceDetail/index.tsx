@@ -240,7 +240,7 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
   { title: '操作类型', dataIndex: 'action', renderText: auditActionLabel },
   { title: '对象类型', dataIndex: 'resourceType', renderText: auditResourceLabel },
   {
-    title: '追踪号',
+    title: '业务追踪号',
     dataIndex: 'requestId',
     width: 170,
     render: (_, record) => <CopyableText value={record.requestId} />,

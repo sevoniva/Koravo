@@ -107,9 +107,9 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   code: '结果编码',
   data: '业务数据',
   message: '结果说明',
-  requestId: '追踪号',
-  tenantId: '租户',
-  userId: '账号',
+  requestId: '业务追踪号',
+  tenantId: '组织',
+  userId: '成员',
   createdAt: '创建时间',
   updatedAt: '更新时间',
   time: '时间',
@@ -140,8 +140,8 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   statusCode: '状态码',
   headers: '请求头',
   body: '请求体',
-  'X-Tenant-Id': '租户',
-  'X-User-Id': '账号',
+  'X-Tenant-Id': '组织',
+  'X-User-Id': '成员',
   request: '请求',
   response: '响应',
 };
@@ -303,6 +303,11 @@ export function connectorTypeLabel(value?: string | null) {
 export function shortTraceLabel(value?: string | number | null) {
   if (value === undefined || value === null || value === '') return '';
   const text = String(value);
+  if (/demo|mock|sample|test/i.test(text)) {
+    let hash = 0;
+    for (const char of text) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    return `TRACE-${hash.toString(16).slice(0, 8).toUpperCase()}`;
+  }
   return text.length > 12 ? text.slice(0, 8) : text;
 }
 

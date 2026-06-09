@@ -130,7 +130,7 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     renderText: (value) => auditResourceLabel(value),
   },
   {
-    title: '追踪号',
+    title: '业务追踪号',
     dataIndex: 'requestId',
     width: 160,
     render: (_, record) => (
@@ -221,7 +221,7 @@ const Dashboard: React.FC = () => {
           type="warning"
           showIcon
           title="摘要加载失败"
-          description="请确认服务已启动，并检查当前账号权限。"
+          description="请确认服务已启动，并检查登录成员权限。"
           style={{ marginBottom: 16 }}
         />
       )}
@@ -295,7 +295,7 @@ const Dashboard: React.FC = () => {
           <Flex vertical gap={12}>
             <span>平台版本：{data?.version || '-'}</span>
             <span>组织：{tenantDisplayName(data?.tenantId)}</span>
-            <span>办理人：{organizationMemberName(data?.userId)}</span>
+            <span>登录成员：{organizationMemberName(data?.userId)}</span>
             <span>系统时间：{formatDateTime(data?.time)}</span>
             <span>
               连接器成功率：

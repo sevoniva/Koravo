@@ -217,7 +217,7 @@ const AuditLogs: React.FC = () => {
     };
   }, [location.search]);
   const contextFilterDescription = query.requestId
-    ? `请求追踪号：${query.requestId}`
+    ? `业务追踪号：${query.requestId}`
     : `业务对象：${query.resourceId}，包含该对象及关联任务记录`;
 
   const columns: ProColumns<AuditLogItem>[] = [
@@ -265,7 +265,7 @@ const AuditLogs: React.FC = () => {
       ),
     },
     {
-      title: '追踪号',
+      title: '业务追踪号',
       dataIndex: 'requestId',
       width: 170,
       render: (_, record) => (
@@ -289,12 +289,12 @@ const AuditLogs: React.FC = () => {
   ];
 
   return (
-    <PageContainer title="审计日志" content="查询关键操作记录和请求追踪信息。">
+    <PageContainer title="审计日志" content="查询关键操作记录和业务追踪信息。">
       {query.requestId || query.resourceId ? (
         <Alert
           showIcon
           type="info"
-          title="已按上下文筛选审计记录"
+          title="已按来源筛选审计记录"
           description={contextFilterDescription}
           action={
             <Button size="small" onClick={() => history.push('/audit-logs')}>
@@ -358,7 +358,7 @@ const AuditLogs: React.FC = () => {
               ),
             },
             {
-              title: '追踪号',
+              title: '业务追踪号',
               dataIndex: 'requestId',
               render: (_, record) => (
                 <CopyableText

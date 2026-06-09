@@ -60,19 +60,19 @@ const taskTabRoutes: Record<TaskTabKey, string> = {
 const taskTabMeta: Record<TaskTabKey, { title: string; content: string }> = {
   todo: {
     title: '我的待办',
-    content: '处理已经分配给当前账号的审批任务。',
+    content: '处理已经分配给你的审批任务。',
   },
   candidate: {
     title: '待认领',
-    content: '认领当前账号或职责可处理的候选任务。',
+    content: '认领你所在职责可处理的候选任务。',
   },
   done: {
     title: '已办任务',
-    content: '查看当前账号已处理过的任务和办理记录。',
+    content: '查看你已处理过的任务和办理记录。',
   },
   started: {
     title: '我发起的',
-    content: '查看当前账号发起的流程实例和处理进度。',
+    content: '查看你发起的流程实例和处理进度。',
   },
 };
 
@@ -383,7 +383,7 @@ const Tasks: React.FC = () => {
         type="info"
         title={
           <Space wrap size={8}>
-            <span>当前账号</span>
+            <span>登录成员</span>
             <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
             <span>职责</span>
             <Tag color="blue">{organizationRoleLabel(session.role)}</Tag>
@@ -394,7 +394,7 @@ const Tasks: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              待办按当前账号和职责加载。需要调整成员、部门或职责时，请进入组织权限维护。
+              待办按登录成员和职责加载。需要调整成员、部门或职责时，请进入组织权限维护。
             </span>
             <Space wrap>
               <Button size="small" onClick={reloadTables}>
@@ -424,7 +424,7 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前账号暂无待办任务',
+                    '暂无你的待办任务',
                     <Space wrap>
                       <Button
                         type="primary"
@@ -461,7 +461,7 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前账号暂无可认领任务',
+                    '暂无可认领任务',
                     <Space wrap>
                       <Button onClick={() => switchTab('todo')}>
                         查看待办
@@ -495,7 +495,7 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前账号暂无已办记录',
+                    '暂无你的已办记录',
                     <Button onClick={() => switchTab('todo')}>
                       查看待办
                     </Button>,
@@ -524,7 +524,7 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前账号暂无发起记录',
+                    '暂无你发起的流程',
                     <Button
                       type="primary"
                       onClick={() => history.push('/process-start')}

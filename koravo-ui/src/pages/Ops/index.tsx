@@ -378,7 +378,7 @@ const Ops: React.FC = () => {
           showIcon
           type="warning"
           title="存在待处理的异常任务"
-          description="建议先查看失败任务和死信任务，确认是否需要重试、删除或回到流程实例排查上下文。"
+          description="建议先查看失败任务和死信任务，确认是否需要重试、删除或回到流程实例排查关联流程。"
           action={
             <Space wrap>
               {summary?.failedJobCount ? (

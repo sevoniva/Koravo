@@ -6,7 +6,7 @@ export default () => (
     <Result
       status="403"
       title="403"
-      subTitle="当前账号无权访问该页面。"
+      subTitle="你无权访问该页面。"
       extra={
         <Link to="/" prefetch>
           <Button type="primary">返回总览</Button>

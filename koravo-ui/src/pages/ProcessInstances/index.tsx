@@ -415,7 +415,7 @@ function buildStartVariables(values: StartInstanceForm): JsonRecord {
 
 function profileFieldRules(field: StartFormField) {
   return field.required
-    ? [{ required: true, message: `${field.title}会按当前账号自动带出` }]
+    ? [{ required: true, message: `${field.title}会按登录成员自动带出` }]
     : [];
 }
 
@@ -661,7 +661,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                               undefined,
                               field.title,
                             )}
-                            tooltip="由当前账号和组织成员信息自动带出。"
+                            tooltip="由登录成员和组织成员信息自动带出。"
                             fieldProps={{ readOnly: true }}
                             rules={profileFieldRules(field)}
                           />

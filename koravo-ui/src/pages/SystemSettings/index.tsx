@@ -225,7 +225,7 @@ const SystemSettings: React.FC = () => {
       content={
         isOrganizationPage
           ? '维护用户、部门、角色和流程办理权限。'
-          : '查看当前账号上下文、依赖状态和系统策略。'
+          : '查看登录成员、依赖状态和系统策略。'
       }
     >
       <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
@@ -244,17 +244,16 @@ const SystemSettings: React.FC = () => {
       <Alert
         showIcon
         type="info"
-        title="当前账号上下文"
+        title="我的权限范围"
         description={
           <Flex vertical gap={8}>
             <span>
-              待办、发起和运维操作会按当前登录账号加载权限范围。账号和职责由组织权限维护，不在业务页面临时切换。
+              待办、发起和运维操作会按登录成员加载权限范围。成员、部门和职责统一在组织权限中维护。
             </span>
             <Space wrap>
-              <Tag color="processing">当前账号：{organizationMemberName(session.userId)}</Tag>
+              <Tag color="processing">登录成员：{organizationMemberName(session.userId)}</Tag>
               <Tag color="blue">职责：{roleLabel(session.role)}</Tag>
               <Tag>组织：{tenantDisplayName(session.tenantId)}</Tag>
-              {session.lastRequestId ? <Tag>最近追踪号：{session.lastRequestId}</Tag> : null}
             </Space>
             <Space wrap>
               <Button onClick={() => history.push('/process-start')}>
@@ -270,7 +269,7 @@ const SystemSettings: React.FC = () => {
       />
 
       <ProCard split="vertical" gutter={16} wrap>
-        <ProCard title="当前账号" colSpan={{ xs: 24, xl: 10 }}>
+        <ProCard title="我的权限" colSpan={{ xs: 24, xl: 10 }}>
           {currentRole ? (
             <Alert
               showIcon
@@ -285,19 +284,18 @@ const SystemSettings: React.FC = () => {
             dataSource={session}
             columns={[
               { title: '组织', dataIndex: 'tenantId', renderText: tenantDisplayName },
-              { title: '账号', dataIndex: 'userId', renderText: organizationMemberName },
+              { title: '成员', dataIndex: 'userId', renderText: organizationMemberName },
               { title: '职责', dataIndex: 'role', renderText: () => roleLabel(session.role) },
-              { title: '最近追踪号', dataIndex: 'lastRequestId', renderText: (value) => value || '-' },
             ]}
           />
         </ProCard>
-        <ProCard title="运行信息" colSpan={{ xs: 24, xl: 14 }}>
+        <ProCard title="系统运行" colSpan={{ xs: 24, xl: 14 }}>
           <ProDescriptions
             column={1}
             dataSource={data}
             columns={[
             { title: '组织', dataIndex: 'tenantId', renderText: tenantDisplayName },
-            { title: '办理人', dataIndex: 'userId', renderText: organizationMemberName },
+            { title: '登录成员', dataIndex: 'userId', renderText: organizationMemberName },
             { title: '职责', dataIndex: 'role', renderText: () => roleLabel(session.role) },
               { title: '版本', dataIndex: 'version' },
               { title: '时间', dataIndex: 'time', renderText: formatDateTime },
@@ -315,7 +313,7 @@ const SystemSettings: React.FC = () => {
                     )
                   }
                 >
-                  查看最近审计
+                  查看关联审计
                 </Button>
               </Space>
             }
