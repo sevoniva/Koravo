@@ -1,34 +1,47 @@
 import { PlusOutlined } from '@ant-design/icons';
 import {
+  type ActionType,
   ModalForm,
   PageContainer,
+  type ProColumns,
   ProFormDependency,
   ProFormSelect,
   ProFormText,
   ProTable,
-  type ActionType,
-  type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
-import { Alert, App, Button, Empty, Flex, Form, Modal, Space, Tag, Typography } from 'antd';
+import {
+  Alert,
+  App,
+  Button,
+  Empty,
+  Flex,
+  Form,
+  Modal,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import {
   createFormBinding,
   deleteFormBinding,
-  listFormBindings,
-  listFormSchemas,
-  listProcessModelTaskDefinitions,
-  listProcessModels,
-  updateFormBinding,
   type FormBindingItem,
   type FormSchemaItem,
+  listFormBindings,
+  listFormSchemas,
+  listProcessModels,
+  listProcessModelTaskDefinitions,
   type ProcessModelItem,
+  updateFormBinding,
 } from '@/services/koravo/api';
 import {
+  formSchemaKeyLabel,
   formSchemaNameLabel,
   formSchemaOptionLabel,
   processDisplayName,
+  processModelKeyLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
 
@@ -47,6 +60,16 @@ type BindingTableItem = FormBindingItem & {
 };
 
 const START_FORM_TASK_KEY = '__START__';
+const hiddenBindingModelKeys = new Set(['httpConnectorDemo']);
+const nonBusinessModelPattern = /示例|演示|验证|调试|测试|检查|新\d|demo|test/i;
+
+function isBusinessBindingModel(model?: ProcessModelItem) {
+  if (!model) return true;
+  if (hiddenBindingModelKeys.has(model.modelKey)) return false;
+  return ![model.modelName, model.description, model.modelKey].some((value) =>
+    nonBusinessModelPattern.test(String(value || '')),
+  );
+}
 
 function bindingPayload(values: BindingForm) {
   const taskDefinitionKey =
@@ -69,14 +92,18 @@ function bindingTypeOf(binding?: Pick<FormBindingItem, 'taskDefinitionKey'>) {
 function useQueryProcessModelId() {
   const location = useLocation();
   return React.useMemo(() => {
-    return new URLSearchParams(location.search).get('processModelId') || undefined;
+    return (
+      new URLSearchParams(location.search).get('processModelId') || undefined
+    );
   }, [location.search]);
 }
 
 function useQueryFormSchemaId() {
   const location = useLocation();
   return React.useMemo(() => {
-    return new URLSearchParams(location.search).get('formSchemaId') || undefined;
+    return (
+      new URLSearchParams(location.search).get('formSchemaId') || undefined
+    );
   }, [location.search]);
 }
 
@@ -95,7 +122,7 @@ function modelBindingLabel(record: BindingTableItem) {
       </Typography.Text>
       <CopyableText
         value={record.processModelId}
-        displayValue={`流程标识：${record.processModel.modelKey}`}
+        displayValue={`流程标识：${processModelKeyLabel(record.processModel.modelKey)}`}
       />
     </Flex>
   );
@@ -108,16 +135,20 @@ function formBindingLabel(record: BindingTableItem) {
 
   return (
     <Flex vertical gap={0}>
-      <Typography.Text>{formSchemaNameLabel(record.formSchema.formName)}</Typography.Text>
+      <Typography.Text>
+        {formSchemaNameLabel(record.formSchema.formName)}
+      </Typography.Text>
       <CopyableText
         value={record.formSchemaId}
-        displayValue={`表单标识：${record.formSchema.formKey} · v${record.formSchema.version}`}
+        displayValue={`表单标识：${formSchemaKeyLabel(record.formSchema.formKey)} · v${record.formSchema.version}`}
       />
     </Flex>
   );
 }
 
-function bindingTargetLabel(record: Pick<FormBindingItem, 'taskDefinitionKey'>) {
+function bindingTargetLabel(
+  record: Pick<FormBindingItem, 'taskDefinitionKey'>,
+) {
   if (record.taskDefinitionKey === START_FORM_TASK_KEY) {
     return <Tag color="processing">流程启动</Tag>;
   }
@@ -131,10 +162,7 @@ function bindingModelId(binding: FormBindingItem | BindingForm) {
 const BindingFormItems: React.FC<{
   initialProcessModelId?: string;
   initialFormSchemaId?: string;
-}> = ({
-  initialProcessModelId,
-  initialFormSchemaId,
-}) => {
+}> = ({ initialProcessModelId, initialFormSchemaId }) => {
   const form = Form.useFormInstance();
 
   React.useEffect(() => {
@@ -185,6 +213,7 @@ const BindingFormItems: React.FC<{
         request={async () =>
           (await listProcessModels())
             .filter((item) => item.status !== 'ARCHIVED')
+            .filter(isBusinessBindingModel)
             .map((item) => ({
               label: processDisplayName(item.modelKey, item.modelName),
               value: item.id,
@@ -204,10 +233,7 @@ const BindingFormItems: React.FC<{
           onChange: () => form.setFieldValue('taskDefinitionKey', undefined),
         }}
       />
-      <ProFormText
-        name="processDefinitionId"
-        hidden
-      />
+      <ProFormText name="processDefinitionId" hidden />
       <ProFormDependency name={['processModelId', 'bindingType']}>
         {({ processModelId, bindingType }) =>
           bindingType === 'START' ? null : (
@@ -218,21 +244,19 @@ const BindingFormItems: React.FC<{
               disabled={!processModelId}
               rules={[{ required: true, message: '请选择任务节点' }]}
               params={{ processModelId }}
-              placeholder={
-                processModelId ? '请选择任务节点' : '先选择流程模型'
-              }
+              placeholder={processModelId ? '请选择任务节点' : '先选择流程模型'}
               fieldProps={{
                 showSearch: true,
                 optionFilterProp: 'label',
               }}
               request={async () => {
                 if (!processModelId) return [];
-                return (await listProcessModelTaskDefinitions(processModelId)).map(
-                  (task) => ({
-                    label: taskDefinitionLabel(task.taskDefinitionKey, task),
-                    value: task.taskDefinitionKey,
-                  }),
-                );
+                return (
+                  await listProcessModelTaskDefinitions(processModelId)
+                ).map((task) => ({
+                  label: taskDefinitionLabel(task.taskDefinitionKey, task),
+                  value: task.taskDefinitionKey,
+                }));
               }}
             />
           )
@@ -277,7 +301,10 @@ const FormBindings: React.FC = () => {
   const queryProcessModelId = useQueryProcessModelId();
   const queryFormSchemaId = useQueryFormSchemaId();
 
-  const showBindingSuccess = (binding: FormBindingItem | BindingForm, action: 'created' | 'updated') => {
+  const showBindingSuccess = (
+    binding: FormBindingItem | BindingForm,
+    action: 'created' | 'updated',
+  ) => {
     const processModelId = bindingModelId(binding);
     modal.success({
       title: action === 'created' ? '表单绑定已创建' : '表单绑定已保存',
@@ -371,7 +398,7 @@ const FormBindings: React.FC = () => {
             )
           }
         >
-          发起验证
+          发起流程
         </Button>,
         <Button key="edit" type="link" onClick={() => setEditing(record)}>
           编辑
@@ -401,7 +428,10 @@ const FormBindings: React.FC = () => {
   ];
 
   return (
-    <PageContainer title="表单绑定" content="将流程任务节点绑定到指定表单版本。">
+    <PageContainer
+      title="表单绑定"
+      content="将流程任务节点绑定到指定表单版本。"
+    >
       {contextHolder}
       {queryProcessModelId ? (
         <Alert
@@ -436,7 +466,10 @@ const FormBindings: React.FC = () => {
         rowKey="id"
         columns={columns}
         scroll={{ x: 1000 }}
-        params={{ processModelId: queryProcessModelId, formSchemaId: queryFormSchemaId }}
+        params={{
+          processModelId: queryProcessModelId,
+          formSchemaId: queryFormSchemaId,
+        }}
         request={async (params) => {
           const [bindings, models, schemas] = await Promise.all([
             listFormBindings(
@@ -450,9 +483,7 @@ const FormBindings: React.FC = () => {
           const modelMap = new Map(models.map((item) => [item.id, item]));
           const schemaMap = new Map(schemas.map((item) => [item.id, item]));
           const keyword = String(
-            params.processModelId ||
-              params.taskDefinitionKey ||
-              '',
+            params.processModelId || params.taskDefinitionKey || '',
           ).trim();
           const data = bindings.map((item) => ({
             ...item,
@@ -461,9 +492,14 @@ const FormBindings: React.FC = () => {
               : undefined,
             formSchema: schemaMap.get(item.formSchemaId),
           }));
+          const businessData = data.filter((item) =>
+            isBusinessBindingModel(item.processModel),
+          );
           const scopedData = queryFormSchemaId
-            ? data.filter((item) => item.formSchemaId === queryFormSchemaId)
-            : data;
+            ? businessData.filter(
+                (item) => item.formSchemaId === queryFormSchemaId,
+              )
+            : businessData;
           return {
             data: keyword
               ? scopedData.filter((item) =>
@@ -472,11 +508,11 @@ const FormBindings: React.FC = () => {
                     item.processModel?.modelKey,
                     item.taskDefinitionKey,
                     formSchemaNameLabel(item.formSchema?.formName),
-                    item.formSchema?.formKey,
+                    formSchemaKeyLabel(item.formSchema?.formKey),
                   ]
                     .filter(Boolean)
                     .some((value) => String(value).includes(keyword)),
-                  )
+                )
               : scopedData,
             success: true,
           };
@@ -558,7 +594,10 @@ const FormBindings: React.FC = () => {
         }}
         onFinish={async (values) => {
           if (!editing) return false;
-          const binding = await updateFormBinding(editing.id, bindingPayload(values));
+          const binding = await updateFormBinding(
+            editing.id,
+            bindingPayload(values),
+          );
           showBindingSuccess(binding, 'updated');
           setEditing(undefined);
           actionRef.current?.reload();

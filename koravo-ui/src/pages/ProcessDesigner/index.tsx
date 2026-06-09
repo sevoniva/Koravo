@@ -19,34 +19,35 @@ import {
   ProFormText,
   ProList,
 } from '@ant-design/pro-components';
-import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
+import { history, useLocation } from '@umijs/max';
 import {
-  Button,
   App,
+  Button,
+  Collapse,
   Drawer,
   Dropdown,
   Flex,
   FloatButton,
   Input,
+  type MenuProps,
   Segmented,
   Space,
   Tooltip,
   Typography,
-  type MenuProps,
 } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
+  deployProcessModelDraft,
   getProcessModel,
   importProcessModel,
   listProcessModels,
-  deployProcessModelDraft,
+  type ProcessModelItem,
   updateProcessModel,
   validateProcessModelXml,
-  type ProcessModelItem,
 } from '@/services/koravo/api';
 import {
   organizationGroupOptions,
@@ -205,8 +206,8 @@ function isServiceTask(element?: BpmnSelectedElement) {
 
 function isBusinessModel(record: ProcessModelItem) {
   if (hiddenBusinessModelKeys.has(record.modelKey)) return false;
-  return ![record.modelName, record.description, record.modelKey].some((value) =>
-    nonBusinessModelPattern.test(String(value || '')),
+  return ![record.modelName, record.description, record.modelKey].some(
+    (value) => nonBusinessModelPattern.test(String(value || '')),
   );
 }
 
@@ -245,7 +246,9 @@ const ProcessDesigner: React.FC = () => {
   });
   const activeModel = selectedId ? selected : undefined;
   const visibleModels =
-    modelViewMode === 'business' ? (models || []).filter(isBusinessModel) : models || [];
+    modelViewMode === 'business'
+      ? (models || []).filter(isBusinessModel)
+      : models || [];
   const handlerOptions = organizationHandlerOptions();
   const candidateGroupOptions = organizationGroupOptions();
 
@@ -375,21 +378,28 @@ const ProcessDesigner: React.FC = () => {
         content: (
           <Flex vertical gap={12}>
             <span>
-              {processDisplayName(deployedModel.modelKey, deployedModel.modelName)}
+              {processDisplayName(
+                deployedModel.modelKey,
+                deployedModel.modelName,
+              )}
               已发布，可继续绑定任务表单或发起流程实例。
             </span>
             <Space wrap>
               <Button
                 type="primary"
                 onClick={() =>
-                  history.push(`/form-bindings?processModelId=${deployedModel.id}`)
+                  history.push(
+                    `/form-bindings?processModelId=${deployedModel.id}`,
+                  )
                 }
               >
                 绑定表单
               </Button>
               <Button
                 onClick={() =>
-                  history.push(`/process-start?processModelId=${deployedModel.id}`)
+                  history.push(
+                    `/process-start?processModelId=${deployedModel.id}`,
+                  )
                 }
               >
                 发起流程
@@ -404,7 +414,15 @@ const ProcessDesigner: React.FC = () => {
     } finally {
       setDeploying(false);
     }
-  }, [activeModel, handleSave, message, modal, modelForm, refetch, reloadModels]);
+  }, [
+    activeModel,
+    handleSave,
+    message,
+    modal,
+    modelForm,
+    refetch,
+    reloadModels,
+  ]);
 
   const handleExport = useCallback(async () => {
     const xml = await getCurrentXml();
@@ -532,12 +550,24 @@ const ProcessDesigner: React.FC = () => {
           </>
         )}
         {isServiceTask(selectedElement) && (
-          <>
-            <ProFormText name="delegateExpression" label="Delegate 表达式" />
-            <ProFormText name="serviceClass" label="Java 类" />
-            <ProFormText name="expression" label="执行表达式" />
-            <ProFormText name="resultVariable" label="结果变量" />
-          </>
+          <Collapse
+            size="small"
+            ghost
+            items={[
+              {
+                key: 'service-task-advanced',
+                label: '高级执行配置',
+                children: (
+                  <>
+                    <ProFormText name="delegateExpression" label="执行代理" />
+                    <ProFormText name="serviceClass" label="服务处理类" />
+                    <ProFormText name="expression" label="执行条件" />
+                    <ProFormText name="resultVariable" label="结果变量" />
+                  </>
+                ),
+              },
+            ]}
+          />
         )}
       </ProForm>
     );
