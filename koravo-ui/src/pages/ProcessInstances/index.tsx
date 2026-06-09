@@ -32,7 +32,10 @@ import {
   type ProcessModelItem,
   type TaskItem,
 } from '@/services/koravo/api';
-import { sessionActorLabel } from '@/services/koravo/organization';
+import {
+  organizationMemberName,
+  sessionActorLabel,
+} from '@/services/koravo/organization';
 import {
   getSessionContext,
   roleForUserId,
@@ -281,7 +284,9 @@ function renderCurrentTasks(record: OpsProcessInstance) {
         <Tag key={task.taskId} color="processing">
           <Badge
             status="processing"
-            text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${task.assignee || '未分配'}`}
+            text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${
+              task.assignee ? organizationMemberName(task.assignee) : '未分配'
+            }`}
           />
         </Tag>
       ))}
@@ -316,7 +321,7 @@ function buildColumns(
       />
     ),
   },
-  { title: '发起人', dataIndex: 'startUserId', width: 120 },
+  { title: '发起人', dataIndex: 'startUserId', width: 120, renderText: organizationMemberName },
   {
     title: '当前任务',
     dataIndex: 'currentTasks',
@@ -363,7 +368,9 @@ function buildColumns(
               menu={{
                 items: tasks.map((task) => ({
                   key: task.taskId,
-                  label: `${taskDefinitionLabel(task.taskDefinitionKey)}：${task.assignee || '未分配'}`,
+                  label: `${taskDefinitionLabel(task.taskDefinitionKey)}：${
+                    task.assignee ? organizationMemberName(task.assignee) : '未分配'
+                  }`,
                 })),
                 onClick: ({ key }) => {
                   const task = tasks.find((item) => item.taskId === key);

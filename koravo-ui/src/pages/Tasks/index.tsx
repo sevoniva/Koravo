@@ -122,7 +122,7 @@ function buildTaskColumns(
     search: false,
     render: (_, record) => taskNodeBadge(record.taskDefinitionKey),
   },
-  { title: '处理人', dataIndex: 'assignee', width: 120 },
+  { title: '处理人', dataIndex: 'assignee', width: 120, renderText: organizationMemberName },
   {
     title: '创建时间',
     dataIndex: 'createTime',
@@ -193,7 +193,7 @@ function buildInstanceColumns(
       />
     ),
   },
-  { title: '发起人', dataIndex: 'startUserId', width: 120 },
+  { title: '发起人', dataIndex: 'startUserId', width: 120, renderText: organizationMemberName },
   {
     title: '开始时间',
     dataIndex: 'startTime',

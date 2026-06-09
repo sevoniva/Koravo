@@ -3,6 +3,7 @@ import { Badge, Empty, Flex, Tag, Timeline, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTrace, ProcessTraceNode, TaskItem } from '@/services/koravo/api';
+import { organizationMemberName } from '@/services/koravo/organization';
 import {
   businessKeyLabel,
   processDefinitionLabel,
@@ -129,8 +130,11 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
       ? taskDefinitionLabel(activeTask.taskDefinitionKey)
       : activeNodes.map((node) => nodeLabel(node)).filter(Boolean).join('、') || '-';
   const currentHandlerText =
-    activeTask?.assignee ||
-    pendingTasks.map((task) => task.assignee || '未分配').filter(Boolean).join('、') ||
+    (activeTask?.assignee ? organizationMemberName(activeTask.assignee) : '') ||
+    pendingTasks
+      .map((task) => (task.assignee ? organizationMemberName(task.assignee) : '未分配'))
+      .filter(Boolean)
+      .join('、') ||
     '-';
 
   return (
@@ -182,7 +186,8 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
               <Flex gap={8} wrap>
                 {pendingTasks.map((task) => (
                   <Tag key={task.taskId} color={task.taskId === activeTask?.taskId ? 'processing' : 'default'}>
-                    {taskDefinitionLabel(task.taskDefinitionKey)}：{task.assignee || '未分配'}
+                    {taskDefinitionLabel(task.taskDefinitionKey)}：
+                    {task.assignee ? organizationMemberName(task.assignee) : '未分配'}
                   </Tag>
                 ))}
               </Flex>

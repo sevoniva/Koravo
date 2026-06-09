@@ -29,6 +29,7 @@ import {
   type TaskItem,
 } from '@/services/koravo/api';
 import {
+  organizationMemberName,
   sessionActorLabel,
 } from '@/services/koravo/organization';
 import {
@@ -236,7 +237,12 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     width: 170,
     renderText: formatDateTime,
   },
-  { title: '操作人', dataIndex: 'userId', width: 120 },
+  {
+    title: '操作人',
+    dataIndex: 'userId',
+    width: 120,
+    renderText: organizationMemberName,
+  },
   { title: '操作类型', dataIndex: 'action', renderText: auditActionLabel },
   { title: '对象类型', dataIndex: 'resourceType', renderText: auditResourceLabel },
   {
@@ -332,7 +338,7 @@ const ProcessInstanceDetail: React.FC = () => {
         width: 150,
         renderText: taskDefinitionLabel,
       },
-      { title: '处理人', dataIndex: 'assignee', width: 120 },
+      { title: '处理人', dataIndex: 'assignee', width: 120, renderText: organizationMemberName },
       {
         title: '创建时间',
         dataIndex: 'createTime',
@@ -476,7 +482,7 @@ const ProcessInstanceDetail: React.FC = () => {
                 />
               ),
             },
-            { title: '发起人', dataIndex: 'startUserId' },
+            { title: '发起人', dataIndex: 'startUserId', renderText: organizationMemberName },
             { title: '开始时间', dataIndex: 'startTime', renderText: formatDateTime },
             { title: '结束时间', dataIndex: 'endTime', renderText: formatDateTime },
             { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },

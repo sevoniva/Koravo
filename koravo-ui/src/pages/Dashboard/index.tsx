@@ -111,7 +111,12 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     width: 160,
     renderText: (value) => formatDateTime(value),
   },
-  { title: '操作人', dataIndex: 'userId', width: 120 },
+  {
+    title: '操作人',
+    dataIndex: 'userId',
+    width: 120,
+    renderText: organizationMemberName,
+  },
   {
     title: '操作类型',
     dataIndex: 'action',

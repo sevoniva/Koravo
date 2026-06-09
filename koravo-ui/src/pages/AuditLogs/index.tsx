@@ -9,6 +9,7 @@ import { Alert, Button, Drawer, Empty, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
+import { organizationMemberName } from '@/services/koravo/organization';
 import {
   listAuditLogs,
   type AuditLogItem,
@@ -207,7 +208,12 @@ const AuditLogs: React.FC = () => {
       search: false,
       renderText: (value) => formatDateTime(value),
     },
-    { title: '操作人', dataIndex: 'userId', width: 120 },
+    {
+      title: '操作人',
+      dataIndex: 'userId',
+      width: 120,
+      renderText: organizationMemberName,
+    },
     {
       title: '操作类型',
       dataIndex: 'action',
@@ -315,7 +321,7 @@ const AuditLogs: React.FC = () => {
           dataSource={detail}
           columns={[
             { title: '租户', dataIndex: 'tenantId' },
-            { title: '操作人', dataIndex: 'userId' },
+            { title: '操作人', dataIndex: 'userId', renderText: organizationMemberName },
             { title: '操作类型', dataIndex: 'action', renderText: auditActionLabel },
             { title: '对象类型', dataIndex: 'resourceType', renderText: auditResourceLabel },
             { title: '对象编号', dataIndex: 'resourceId', copyable: true },

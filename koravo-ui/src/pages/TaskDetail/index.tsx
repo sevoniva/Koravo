@@ -40,6 +40,7 @@ import {
 } from '@/services/koravo/session';
 import {
   getOrganizationMembers,
+  organizationMemberName,
   sessionActorLabel,
 } from '@/services/koravo/organization';
 import {
@@ -78,7 +79,7 @@ interface SchemaField {
 }
 
 const commentColumns: ProColumns<TaskCommentItem>[] = [
-  { title: '用户', dataIndex: 'userId', width: 140 },
+  { title: '用户', dataIndex: 'userId', width: 140, renderText: organizationMemberName },
   { title: '意见', dataIndex: 'message' },
   { title: '时间', dataIndex: 'time', width: 170, renderText: formatDateTime },
 ];
@@ -114,7 +115,7 @@ const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
 
 const auditColumns: ProColumns<AuditLogItem>[] = [
   { title: '时间', dataIndex: 'createdAt', width: 170, renderText: formatDateTime },
-  { title: '操作人', dataIndex: 'userId', width: 120 },
+  { title: '操作人', dataIndex: 'userId', width: 120, renderText: organizationMemberName },
   { title: '操作类型', dataIndex: 'action', renderText: auditActionLabel },
   { title: '对象类型', dataIndex: 'resourceType', renderText: auditResourceLabel },
   {
@@ -200,7 +201,7 @@ function taskActionSummary(log: AuditLogItem) {
   return {
     key: log.id || `${log.createdAt}-${log.action}-${log.userId}`,
     time: formatDateTime(log.createdAt),
-    text: `${log.userId || '系统'} ${taskActionVerb(log.action)}${node ? `「${node}」` : ''}`,
+    text: `${log.userId ? organizationMemberName(log.userId) : '系统'} ${taskActionVerb(log.action)}${node ? `「${node}」` : ''}`,
     comment,
   };
 }
@@ -278,7 +279,7 @@ const TaskHandlingContext: React.FC<{
           items={[
             {
               title: hasAssignee ? '已确定处理人' : '等待认领',
-              description: hasAssignee ? task?.assignee : '暂无处理人',
+              description: hasAssignee ? organizationMemberName(task?.assignee) : '暂无处理人',
             },
             {
               title: isDone ? '已提交处理意见' : '填写节点表单',
@@ -294,7 +295,7 @@ const TaskHandlingContext: React.FC<{
           size="small"
           column={{ xs: 1, sm: 1, md: 3 }}
           dataSource={{
-            assignee: task?.assignee || '未分配',
+            assignee: task?.assignee ? organizationMemberName(task.assignee) : '未分配',
             status: taskStatusLabel(task?.status),
             node: taskDefinitionLabel(task?.taskDefinitionKey),
           }}
@@ -340,7 +341,9 @@ function renderParallelTasks(
             <Space size={6}>
               <Badge
                 status={task.taskId === currentTask.taskId ? 'processing' : 'warning'}
-                text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${task.assignee || '未分配'}`}
+                text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${
+                  task.assignee ? organizationMemberName(task.assignee) : '未分配'
+                }`}
               />
               <Typography.Text type="secondary">
                 {parallelTaskStatus(task, currentTask)}
@@ -851,7 +854,7 @@ const TaskDetail: React.FC = () => {
               ),
             },
             { title: '任务节点', dataIndex: 'taskDefinitionKey', renderText: taskDefinitionLabel },
-            { title: '处理人', dataIndex: 'assignee' },
+            { title: '处理人', dataIndex: 'assignee', renderText: organizationMemberName },
             { title: '创建时间', dataIndex: 'createTime', renderText: formatDateTime },
             { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
           ]}

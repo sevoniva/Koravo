@@ -28,6 +28,7 @@ import {
   type OpsJobItem,
   type OpsProcessInstance,
 } from '@/services/koravo/api';
+import { organizationMemberName } from '@/services/koravo/organization';
 import { businessKeyLabel, processDefinitionLabel } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
@@ -62,7 +63,7 @@ const instanceColumns: ProColumns<OpsProcessInstance>[] = [
       />
     ),
   },
-  { title: '发起人', dataIndex: 'startUserId', width: 120 },
+  { title: '发起人', dataIndex: 'startUserId', width: 120, renderText: organizationMemberName },
   {
     title: '开始时间',
     dataIndex: 'startTime',
