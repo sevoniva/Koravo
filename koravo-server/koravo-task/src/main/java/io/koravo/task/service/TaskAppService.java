@@ -1,6 +1,8 @@
 package io.koravo.task.service;
 
 import io.koravo.common.api.PageResult;
+import io.koravo.common.exception.BusinessException;
+import io.koravo.common.exception.ErrorCode;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.CompleteTaskCommand;
 import io.koravo.engine.command.TaskQueryCommand;
@@ -16,6 +18,7 @@ import io.koravo.ops.audit.AuditLogQueryService;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.task.web.CompleteTaskRequest;
+import io.koravo.task.web.TaskActionRequest;
 import io.koravo.task.web.TaskDetailResponse;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
@@ -132,6 +135,43 @@ public class TaskAppService {
         auditLogService.record("TASK_COMPLETE", "TASK", taskId, taskCompleteAuditDetail(task, formSchemaId));
     }
 
+    @Transactional
+    public TaskDTO handleTaskAction(String taskId, TaskActionRequest request) {
+        if (request == null || !StringUtils.hasText(request.action())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Task action is required");
+        }
+        String tenantId = TenantContextHolder.getTenantId();
+        String userId = UserContextHolder.getUserId();
+        String action = request.action().trim().toUpperCase();
+        TaskDTO task = switch (action) {
+            case "TRANSFER" -> processFacade.transferTask(
+                    tenantId,
+                    userId,
+                    taskId,
+                    requireTargetUser(request),
+                    request.comment()
+            );
+            case "DELEGATE" -> processFacade.delegateTask(
+                    tenantId,
+                    userId,
+                    taskId,
+                    requireTargetUser(request),
+                    request.comment()
+            );
+            case "CLAIM" -> processFacade.claimTask(tenantId, userId, taskId, request.comment());
+            default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "Unsupported task action: " + request.action());
+        };
+        auditLogService.record("TASK_" + action, "TASK", taskId, taskActionAuditDetail(task, action, request.targetUserId()));
+        return task;
+    }
+
+    private String requireTargetUser(TaskActionRequest request) {
+        if (!StringUtils.hasText(request.targetUserId())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Target user is required");
+        }
+        return request.targetUserId().trim();
+    }
+
     private String resolveFormSchemaId(TaskDTO task, CompleteTaskRequest request) {
         if (StringUtils.hasText(request.formSchemaId())) {
             return request.formSchemaId();
@@ -164,6 +204,20 @@ public class TaskAppService {
         detail.put("taskDefinitionKey", task.taskDefinitionKey());
         if (StringUtils.hasText(formSchemaId)) {
             detail.put("formSchemaId", formSchemaId);
+        }
+        return detail;
+    }
+
+    private Map<String, Object> taskActionAuditDetail(TaskDTO task, String action, String targetUserId) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("action", action);
+        detail.put("taskId", task.taskId());
+        detail.put("processInstanceId", task.processInstanceId());
+        detail.put("businessKey", task.businessKey());
+        detail.put("taskDefinitionKey", task.taskDefinitionKey());
+        detail.put("assignee", task.assignee());
+        if (StringUtils.hasText(targetUserId)) {
+            detail.put("targetUserId", targetUserId);
         }
         return detail;
     }

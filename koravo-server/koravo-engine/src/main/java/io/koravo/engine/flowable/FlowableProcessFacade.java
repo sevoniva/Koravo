@@ -309,6 +309,76 @@ public class FlowableProcessFacade implements ProcessFacade {
     }
 
     @Override
+    @Transactional
+    public TaskDTO transferTask(String tenantId, String userId, String taskId, String targetUserId, String comment) {
+        Task task = assignedTask(tenantId, userId, taskId);
+        identityService.setAuthenticatedUserId(userId);
+        try {
+            addTaskComment(taskId, task.getProcessInstanceId(), comment, "转交给 " + targetUserId);
+            taskService.setAssignee(taskId, targetUserId);
+            return toTaskDTO(taskService.createTaskQuery().taskId(taskId).taskTenantId(tenantId).singleResult());
+        } finally {
+            identityService.setAuthenticatedUserId(null);
+        }
+    }
+
+    @Override
+    @Transactional
+    public TaskDTO delegateTask(String tenantId, String userId, String taskId, String targetUserId, String comment) {
+        Task task = assignedTask(tenantId, userId, taskId);
+        identityService.setAuthenticatedUserId(userId);
+        try {
+            addTaskComment(taskId, task.getProcessInstanceId(), comment, "委托给 " + targetUserId);
+            taskService.delegateTask(taskId, targetUserId);
+            return toTaskDTO(taskService.createTaskQuery().taskId(taskId).taskTenantId(tenantId).singleResult());
+        } finally {
+            identityService.setAuthenticatedUserId(null);
+        }
+    }
+
+    @Override
+    @Transactional
+    public TaskDTO claimTask(String tenantId, String userId, String taskId, String comment) {
+        Task task = taskService.createTaskQuery()
+                .taskId(taskId)
+                .taskTenantId(tenantId)
+                .singleResult();
+        if (task == null) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found");
+        }
+        if (task.getAssignee() != null && !task.getAssignee().isBlank() && !Objects.equals(task.getAssignee(), userId)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Task has already been assigned");
+        }
+        identityService.setAuthenticatedUserId(userId);
+        try {
+            if (task.getAssignee() == null || task.getAssignee().isBlank()) {
+                taskService.claim(taskId, userId);
+            }
+            addTaskComment(taskId, task.getProcessInstanceId(), comment, "认领任务");
+            return toTaskDTO(taskService.createTaskQuery().taskId(taskId).taskTenantId(tenantId).singleResult());
+        } finally {
+            identityService.setAuthenticatedUserId(null);
+        }
+    }
+
+    private Task assignedTask(String tenantId, String userId, String taskId) {
+        Task task = taskService.createTaskQuery()
+                .taskId(taskId)
+                .taskTenantId(tenantId)
+                .taskAssignee(userId)
+                .singleResult();
+        if (task == null) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
+        }
+        return task;
+    }
+
+    private void addTaskComment(String taskId, String processInstanceId, String comment, String fallback) {
+        String message = comment == null || comment.isBlank() ? fallback : comment;
+        taskService.addComment(taskId, processInstanceId, message);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public ProcessInstanceDetailDTO getInstance(String tenantId, String instanceId) {
         HistoricProcessInstance historic = historyService.createHistoricProcessInstanceQuery()

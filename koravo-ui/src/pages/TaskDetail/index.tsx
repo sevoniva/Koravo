@@ -23,6 +23,7 @@ import {
   completeTask,
   getOpsInstance,
   getTaskDetail,
+  handleTaskAction,
   type AuditLogItem,
   type FormSchemaItem,
   type FormSnapshotItem,
@@ -48,6 +49,11 @@ interface CompleteTaskForm {
   approved?: boolean;
   approvalComment?: string;
   formValues?: JsonRecord;
+}
+
+interface TaskActionForm {
+  targetUserId?: string;
+  comment?: string;
 }
 
 interface SchemaField {
@@ -406,6 +412,56 @@ const CompleteTaskFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
   </>
 );
 
+const taskActionTargetOptions = [
+  { label: '发起人 applicant', value: 'applicant' },
+  { label: '业务处理人 manager', value: 'manager' },
+  { label: '财务复核人 finance', value: 'finance' },
+  { label: '管理员 admin', value: 'admin' },
+];
+
+const TaskActionModal: React.FC<{
+  task: TaskItem;
+  action: 'TRANSFER' | 'DELEGATE' | 'CLAIM';
+  label: string;
+  refetch: () => Promise<unknown>;
+}> = ({ task, action, label, refetch }) => {
+  const { message } = App.useApp();
+  const needsTarget = action !== 'CLAIM';
+
+  return (
+    <ModalForm<TaskActionForm>
+      title={label}
+      trigger={<Button>{label}</Button>}
+      modalProps={{ destroyOnHidden: true }}
+      onFinish={async (values) => {
+        await handleTaskAction(task.taskId, {
+          action,
+          targetUserId: values.targetUserId,
+          comment: values.comment,
+        });
+        message.success(`已${label}`);
+        await refetch();
+        return true;
+      }}
+    >
+      {needsTarget ? (
+        <ProFormSelect
+          name="targetUserId"
+          label="目标处理人"
+          options={taskActionTargetOptions}
+          rules={[{ required: true, message: '请选择目标处理人' }]}
+        />
+      ) : null}
+      <ProFormTextArea
+        name="comment"
+        label="处理说明"
+        fieldProps={{ rows: 3 }}
+        placeholder={needsTarget ? '说明转交或委托原因' : '说明认领原因'}
+      />
+    </ModalForm>
+  );
+};
+
 const TaskDetail: React.FC = () => {
   const params = useParams();
   const taskId = params.taskId || '';
@@ -540,6 +596,13 @@ const TaskDetail: React.FC = () => {
           >
             <CompleteTaskFields formSchema={data?.formSchema} />
           </ModalForm>
+          ) : null}
+          {task && task.status !== 'COMPLETED' ? (
+            <>
+              <TaskActionModal task={task} action="TRANSFER" label="转交" refetch={refetch} />
+              <TaskActionModal task={task} action="DELEGATE" label="委托" refetch={refetch} />
+              <TaskActionModal task={task} action="CLAIM" label="认领" refetch={refetch} />
+            </>
           ) : null}
         </Space>
       }

@@ -21,6 +21,7 @@ import io.koravo.ops.audit.AuditLogService;
 import io.koravo.ops.audit.dto.AuditLogResponse;
 import io.koravo.security.UserContextHolder;
 import io.koravo.task.web.CompleteTaskRequest;
+import io.koravo.task.web.TaskActionRequest;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -249,6 +250,41 @@ class TaskAppServiceTest {
                 "businessKey", "biz-1",
                 "taskDefinitionKey", "approveTask",
                 "formSchemaId", "form-1"
+        )));
+    }
+
+    @Test
+    void transferTaskWritesAuditLog() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("manager");
+        TaskDTO transferred = new TaskDTO(
+                "task-1",
+                "业务验收",
+                "pi-1",
+                "pd-1",
+                "biz-1",
+                null,
+                "finance",
+                "businessAcceptanceTask",
+                "RUNNING"
+        );
+        when(processFacade.transferTask("default", "manager", "task-1", "finance", "需要财务复核"))
+                .thenReturn(transferred);
+
+        TaskDTO result = service.handleTaskAction(
+                "task-1",
+                new TaskActionRequest("TRANSFER", "finance", "需要财务复核")
+        );
+
+        assertThat(result.assignee()).isEqualTo("finance");
+        verify(auditLogService).record(eq("TASK_TRANSFER"), eq("TASK"), eq("task-1"), eq(Map.of(
+                "action", "TRANSFER",
+                "taskId", "task-1",
+                "processInstanceId", "pi-1",
+                "businessKey", "biz-1",
+                "taskDefinitionKey", "businessAcceptanceTask",
+                "assignee", "finance",
+                "targetUserId", "finance"
         )));
     }
 

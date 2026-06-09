@@ -420,6 +420,14 @@ export function completeTask(taskId: string, payload: {
   return apiData(http.post(`/tasks/${taskId}/complete`, payload))
 }
 
+export function handleTaskAction(taskId: string, payload: {
+  action: 'TRANSFER' | 'DELEGATE' | 'CLAIM'
+  targetUserId?: string
+  comment?: string
+}) {
+  return apiData<TaskItem>(http.post(`/tasks/${taskId}/actions`, payload))
+}
+
 export function listFormSchemas() {
   return apiData<FormSchemaItem[]>(http.get('/forms/schemas'))
 }

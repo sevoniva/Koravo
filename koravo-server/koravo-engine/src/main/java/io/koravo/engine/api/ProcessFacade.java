@@ -42,6 +42,12 @@ public interface ProcessFacade {
 
     void completeTask(CompleteTaskCommand command);
 
+    TaskDTO transferTask(String tenantId, String userId, String taskId, String targetUserId, String comment);
+
+    TaskDTO delegateTask(String tenantId, String userId, String taskId, String targetUserId, String comment);
+
+    TaskDTO claimTask(String tenantId, String userId, String taskId, String comment);
+
     ProcessInstanceDetailDTO getInstance(String tenantId, String instanceId);
 
     ProcessTraceDTO getInstanceTrace(String tenantId, String instanceId);

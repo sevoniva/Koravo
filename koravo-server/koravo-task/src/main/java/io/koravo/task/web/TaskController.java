@@ -70,4 +70,9 @@ public class TaskController {
         taskAppService.completeTask(taskId, request);
         return ApiResponse.success(Map.of("taskId", taskId, "status", "COMPLETED"));
     }
+
+    @PostMapping("/api/v1/tasks/{taskId}/actions")
+    public ApiResponse<TaskDTO> action(@PathVariable String taskId, @RequestBody TaskActionRequest request) {
+        return ApiResponse.success(taskAppService.handleTaskAction(taskId, request));
+    }
 }
