@@ -17,7 +17,12 @@ class PlatformAuthenticationFilterTest {
 
     @Test
     void usesTrustedPlatformHeadersForCurrentUser() throws Exception {
-        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter("");
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "",
+                true,
+                "default",
+                PlatformIdentityVerifier.allowAll()
+        );
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
         request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ID, "finance");
         request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ROLE, "finance");
@@ -35,7 +40,12 @@ class PlatformAuthenticationFilterTest {
 
     @Test
     void leavesRequestUnauthenticatedWhenPlatformUserIsMissing() throws Exception {
-        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter("");
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "",
+                false,
+                "default",
+                PlatformIdentityVerifier.allowAll()
+        );
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -49,7 +59,12 @@ class PlatformAuthenticationFilterTest {
 
     @Test
     void rejectsInvalidPlatformToken() throws Exception {
-        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter("trusted-token");
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "trusted-token",
+                false,
+                "default",
+                PlatformIdentityVerifier.allowAll()
+        );
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
         request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ID, "manager");
         request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ROLE, "manager");
@@ -61,6 +76,51 @@ class PlatformAuthenticationFilterTest {
         });
 
         assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void rejectsUnsignedPlatformHeadersUnlessDevModeAllowsThem() throws Exception {
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "",
+                false,
+                "default",
+                PlatformIdentityVerifier.allowAll()
+        );
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ID, "manager");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ROLE, "manager");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            throw new AssertionError("unsigned platform headers must be rejected outside dev mode");
+        });
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void rejectsPlatformIdentityMissingFromTenantDirectory() throws Exception {
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "trusted-token",
+                false,
+                "default",
+                request -> java.util.Optional.empty()
+        );
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ID, "outside-user");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ROLE, "manager");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_PLATFORM_TOKEN, "trusted-token");
+        request.addHeader("X-Koravo-Tenant-Id", "tenant-a");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            throw new AssertionError("unknown tenant identity must stop the request");
+        });
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getContentAsString()).contains("平台身份未同步到当前租户");
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 }
