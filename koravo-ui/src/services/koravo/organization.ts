@@ -69,10 +69,15 @@ export function organizationMemberByUserId(userId?: string | null) {
 
 export function organizationMemberName(userId?: string | null) {
   if (!userId) return '-';
+  if (userId === 'anonymous') return '平台身份未同步';
   const member = organizationMemberByUserId(userId);
   if (member) return member.name;
   if (/^\$\{.+\}$/.test(userId)) return '按流程变量分配';
   return '待同步成员';
+}
+
+export function isPlatformIdentitySynced(userId?: string | null) {
+  return Boolean(userId && userId !== 'anonymous');
 }
 
 type OrganizationProfileFieldKind = 'applicant' | 'department';
@@ -324,6 +329,7 @@ export function organizationRoleLabel(role?: SessionRole | null) {
 export function sessionActorLabel(
   session: Pick<SessionContext, 'userId' | 'role'>,
 ) {
+  if (!isPlatformIdentitySynced(session.userId)) return '平台身份未同步';
   const memberName = organizationMemberName(session.userId);
   const roleName = organizationRoleLabel(session.role);
   return memberName === roleName ? memberName : `${memberName}（${roleName}）`;

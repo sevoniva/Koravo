@@ -62,12 +62,12 @@ describe('session context', () => {
     });
   });
 
-  it('keeps the current product user when health reports anonymous', () => {
+  it('keeps anonymous health responses as unsynced platform identity', () => {
     setRuntimeSessionContext({ userId: 'anonymous', role: undefined });
 
     expect(getSessionContext()).toMatchObject({
-      userId: 'admin',
-      role: 'admin',
+      userId: 'anonymous',
+      role: 'applicant',
     });
   });
 });

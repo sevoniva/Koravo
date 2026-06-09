@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   getOrganizationMembers,
   applyOrganizationProfileValues,
+  isPlatformIdentitySynced,
   isOrganizationAssigneeField,
   isOrganizationProfileField,
   organizationAssigneeFieldValue,
@@ -22,6 +23,12 @@ describe('organization display helpers', () => {
 
   it('does not expose unknown account ids in business-facing copy', () => {
     expect(organizationMemberName('123')).toBe('待同步成员');
+  });
+
+  it('shows anonymous runtime context as unsynced platform identity', () => {
+    expect(organizationMemberName('anonymous')).toBe('平台身份未同步');
+    expect(isPlatformIdentitySynced('anonymous')).toBe(false);
+    expect(isPlatformIdentitySynced('manager')).toBe(true);
   });
 
   it('keeps unresolved assignee expressions readable', () => {

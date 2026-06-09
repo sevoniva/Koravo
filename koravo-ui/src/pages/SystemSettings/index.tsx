@@ -13,6 +13,7 @@ import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import { getSystemHealth, type SystemHealthItem } from '@/services/koravo/api';
 import {
   getOrganizationMembers,
+  isPlatformIdentitySynced,
   type OrganizationMember,
   organizationMemberName,
   organizationRoleLabel,
@@ -151,7 +152,11 @@ const SystemSettings: React.FC = () => {
     [data],
   );
 
-  const currentPermissionProfile = roleOptions.find((item) => item.value === session.role);
+  const identitySynced = isPlatformIdentitySynced(session.userId);
+  const currentPermissionProfile = identitySynced
+    ? roleOptions.find((item) => item.value === session.role)
+    : undefined;
+  const sessionRoleLabel = identitySynced ? roleLabel(session.role) : '待平台同步';
   const systemOperatorName = (userId?: string) =>
     organizationMemberName(userId && userId !== 'anonymous' ? userId : session.userId);
 
@@ -271,18 +276,22 @@ const SystemSettings: React.FC = () => {
 
       <Alert
         showIcon
-        type="info"
-        title="组织权限范围"
+        type={identitySynced ? 'info' : 'warning'}
+        title={identitySynced ? '组织权限范围' : '平台身份未同步'}
         description={
           <Flex vertical gap={8}>
             <span>
-              待办、发起和运维操作会按平台身份源加载权限范围。成员、部门和岗位职责由组织档案同步。
+              {identitySynced
+                ? '待办、发起和运维操作会按平台身份源加载权限范围。成员、部门和岗位职责由组织档案同步。'
+                : '当前会话还没有拿到平台身份源中的成员档案，页面只展示同步状态，不会默认展示为管理员。'}
             </span>
             <Space wrap>
               <Tag color="processing">
                 当前成员：{organizationMemberName(session.userId)}
               </Tag>
-              <Tag color="blue">岗位职责：{roleLabel(session.role)}</Tag>
+              <Tag color={identitySynced ? 'blue' : 'warning'}>
+                岗位职责：{sessionRoleLabel}
+              </Tag>
               <Tag>组织：{tenantDisplayName(session.tenantId)}</Tag>
             </Space>
             <Space wrap>
@@ -326,7 +335,7 @@ const SystemSettings: React.FC = () => {
               {
                 title: '岗位职责',
                 dataIndex: 'role',
-                renderText: () => roleLabel(session.role),
+                renderText: () => sessionRoleLabel,
               },
             ]}
           />
@@ -349,7 +358,7 @@ const SystemSettings: React.FC = () => {
               {
                 title: '岗位职责',
                 dataIndex: 'role',
-                renderText: () => roleLabel(session.role),
+                renderText: () => sessionRoleLabel,
               },
               {
                 title: '构建状态',

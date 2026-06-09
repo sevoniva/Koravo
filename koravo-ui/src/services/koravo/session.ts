@@ -13,8 +13,8 @@ const LAST_REQUEST_STORAGE_KEY = 'koravo.lastRequestId';
 
 const defaultSession: SessionContext = {
   tenantId: 'default',
-  userId: 'admin',
-  role: 'admin',
+  userId: 'anonymous',
+  role: 'applicant',
   requestId: '',
 };
 
@@ -33,7 +33,7 @@ function normalizeRole(role?: string): SessionRole {
 
 function normalizeUserId(userId?: string) {
   const value = String(userId || '').trim();
-  if (!value || value === 'anonymous') return runtimeSession.userId;
+  if (!value) return defaultSession.userId;
   return value;
 }
 
@@ -53,11 +53,17 @@ export function sessionRequestHeaders(headers?: Record<string, string>) {
 }
 
 export function setRuntimeSessionContext(value: Partial<SessionContext>) {
+  const nextUserId = Object.prototype.hasOwnProperty.call(value, 'userId')
+    ? normalizeUserId(value.userId)
+    : runtimeSession.userId;
+  const nextRole = Object.prototype.hasOwnProperty.call(value, 'role')
+    ? normalizeRole(value.role)
+    : runtimeSession.role;
   runtimeSession = {
     ...runtimeSession,
     tenantId: value.tenantId || runtimeSession.tenantId,
-    userId: normalizeUserId(value.userId),
-    role: normalizeRole(value.role || runtimeSession.role),
+    userId: nextUserId,
+    role: nextRole,
     requestId: value.requestId || runtimeSession.requestId,
   };
 }

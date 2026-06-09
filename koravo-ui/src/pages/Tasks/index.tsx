@@ -25,6 +25,7 @@ import {
 } from '@/services/koravo/api';
 import { getSessionContext } from '@/services/koravo/session';
 import {
+  isPlatformIdentitySynced,
   organizationMemberName,
   organizationRoleLabel,
   tenantDisplayName,
@@ -270,6 +271,7 @@ const Tasks: React.FC = () => {
   const doneRef = React.useRef<ActionType>(null);
   const startedRef = React.useRef<ActionType>(null);
   const session = getSessionContext();
+  const identitySynced = isPlatformIdentitySynced(session.userId);
   const [previewTarget, setPreviewTarget] = React.useState<ProcessPreviewTarget>();
   const activeTab = tabFromPath(location.pathname);
   const pageMeta = taskTabMeta[activeTab];
@@ -376,13 +378,15 @@ const Tasks: React.FC = () => {
     <PageContainer title={pageMeta.title} content={pageMeta.content}>
       <Alert
         showIcon
-        type="info"
+        type={identitySynced ? 'info' : 'warning'}
         title={
           <Space wrap size={8}>
             <span>当前成员</span>
             <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
             <span>岗位职责</span>
-            <Tag color="blue">{organizationRoleLabel(session.role)}</Tag>
+            <Tag color={identitySynced ? 'blue' : 'warning'}>
+              {identitySynced ? organizationRoleLabel(session.role) : '待平台同步'}
+            </Tag>
             <span>组织</span>
             <Tag>{tenantDisplayName(session.tenantId)}</Tag>
           </Space>
@@ -390,7 +394,9 @@ const Tasks: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              待办按平台身份源中的成员、部门和岗位职责加载。需要调整组织档案时，请进入组织权限维护。
+              {identitySynced
+                ? '待办按平台身份源中的成员、部门和岗位职责加载。需要调整组织档案时，请进入组织权限维护。'
+                : '当前会话还没有拿到平台身份源中的成员档案，待办不会按默认成员展示。'}
             </span>
             <Space wrap>
               <Button size="small" onClick={reloadTables}>
