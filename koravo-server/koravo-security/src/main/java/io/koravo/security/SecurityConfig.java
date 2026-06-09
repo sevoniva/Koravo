@@ -13,11 +13,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, DevAuthFilter devAuthFilter) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, PlatformAuthenticationFilter platformAuthenticationFilter) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                .addFilterBefore(devAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(platformAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

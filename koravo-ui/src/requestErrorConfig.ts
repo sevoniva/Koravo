@@ -59,9 +59,6 @@ export const errorConfig: RequestConfig = {
       const session = getSessionContext();
       config.headers = {
         ...config.headers,
-        'X-Tenant-Id': session.tenantId,
-        'X-User-Id': session.userId,
-        'X-User-Role': session.role,
         ...(session.requestId ? { 'X-Request-Id': session.requestId } : {}),
       };
       return config;
