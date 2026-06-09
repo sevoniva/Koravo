@@ -10,13 +10,19 @@ import { history, useLocation } from '@umijs/max';
 import { Alert, Button, Flex, Space, Statistic, Tag, Typography } from 'antd';
 import React, { useMemo } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
-import { getSystemHealth, type SystemHealthItem } from '@/services/koravo/api';
+import {
+  getSystemHealth,
+  listOrganizationMembers,
+  type SystemHealthItem,
+} from '@/services/koravo/api';
 import {
   getOrganizationMembers,
   isPlatformIdentitySynced,
+  normalizeOrganizationMembers,
   type OrganizationMember,
   organizationMemberName,
   organizationRoleLabel,
+  setOrganizationMembers,
   tenantDisplayName,
 } from '@/services/koravo/organization';
 import {
@@ -127,12 +133,29 @@ const SystemSettings: React.FC = () => {
   const location = useLocation();
   const isOrganizationPage = location.pathname === '/organization-permissions';
   const session = getSessionContext();
-  const members = getOrganizationMembers();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-health'],
     queryFn: getSystemHealth,
     enabled: !isOrganizationPage,
   });
+  const { data: organizationMembers } = useQuery({
+    queryKey: ['organization-members'],
+    queryFn: listOrganizationMembers,
+    enabled: isOrganizationPage,
+  });
+
+  React.useEffect(() => {
+    if (organizationMembers) {
+      setOrganizationMembers(organizationMembers);
+    }
+  }, [organizationMembers]);
+  const members = useMemo(
+    () =>
+      organizationMembers
+        ? normalizeOrganizationMembers(organizationMembers)
+        : getOrganizationMembers(),
+    [organizationMembers],
+  );
 
   const policy = useMemo(
     () => [

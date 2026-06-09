@@ -10,11 +10,13 @@ import {
   organizationHandlerOptions,
   organizationMemberName,
   organizationProfileFieldValue,
+  setOrganizationMembers,
 } from './organization';
 
 describe('organization display helpers', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    setOrganizationMembers();
   });
 
   it('shows registered members by business name', () => {
@@ -150,6 +152,35 @@ describe('organization display helpers', () => {
       name: '业务审批主管',
       department: '业务一部',
     });
+  });
+
+  it('uses server organization directory as the runtime member source', () => {
+    setOrganizationMembers([
+      {
+        key: 'manager',
+        tenantId: 'tenant-a',
+        name: '租户业务负责人',
+        userId: 'manager',
+        department: '客户成功部',
+        role: 'manager',
+        status: 'ACTIVE',
+      },
+    ]);
+
+    expect(organizationMemberName('manager')).toBe('租户业务负责人');
+    expect(organizationAssigneeFieldValue('managerApprover')).toBe('manager');
+    expect(organizationMemberName('admin')).toBe('待同步成员');
+    expect(getOrganizationMembers()).toEqual([
+      {
+        key: 'manager',
+        tenantId: 'tenant-a',
+        name: '租户业务负责人',
+        userId: 'manager',
+        department: '客户成功部',
+        role: 'manager',
+        status: '启用',
+      },
+    ]);
   });
 
   it('keeps handler options business-facing', () => {

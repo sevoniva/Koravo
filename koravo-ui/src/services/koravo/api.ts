@@ -283,6 +283,16 @@ export interface OpsCapabilityItem {
   description: string
 }
 
+export interface OrganizationMemberItem {
+  key: string
+  tenantId?: string
+  userId: string
+  name: string
+  department: string
+  role: string
+  status: string
+}
+
 export interface TaskListParams {
   page?: number
   pageSize?: number
@@ -406,6 +416,10 @@ export function listCandidateTasks(params?: TaskListParams) {
 
 export function listDoneTasks(params?: TaskListParams) {
   return apiData<PageResult<TaskItem>>(http.get('/tasks/done', { params }))
+}
+
+export function listOrganizationMembers() {
+  return apiData<OrganizationMemberItem[]>(http.get('/organization/members'))
 }
 
 export function listStartedInstances(params?: TaskListParams) {

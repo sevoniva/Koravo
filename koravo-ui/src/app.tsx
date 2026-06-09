@@ -7,10 +7,12 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import React from 'react';
 import { ErrorBoundary, Footer, OfflineBanner } from '@/components';
+import type { OrganizationMemberItem } from '@/services/koravo/api';
 import { setFeedbackApis } from '@/services/koravo/feedback';
 import {
   sessionActorLabel,
   sessionScopeLabel,
+  setOrganizationMembers,
 } from '@/services/koravo/organization';
 import {
   getSessionContext,
@@ -42,6 +44,11 @@ interface HealthResponse {
   requestId?: string;
 }
 
+interface OrganizationMembersResponse {
+  success?: boolean;
+  data?: OrganizationMemberItem[];
+}
+
 async function loadRuntimeSession() {
   try {
     const response = await fetch('/api/v1/health', {
@@ -62,12 +69,27 @@ async function loadRuntimeSession() {
   return getSessionContext();
 }
 
+async function loadOrganizationDirectory() {
+  try {
+    const response = await fetch('/api/v1/organization/members', {
+      headers: sessionRequestHeaders(),
+    });
+    if (!response.ok) return;
+    const payload = (await response.json()) as OrganizationMembersResponse;
+    if (payload.success === false || !Array.isArray(payload.data)) return;
+    setOrganizationMembers(payload.data);
+  } catch {
+    setOrganizationMembers();
+  }
+}
+
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
   currentUser?: KoravoCurrentUser;
   session: SessionContext;
 }> {
   const session = await loadRuntimeSession();
+  await loadOrganizationDirectory();
   return {
     currentUser: {
       name: sessionActorLabel(session),

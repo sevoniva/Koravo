@@ -1,7 +1,9 @@
+import type { OrganizationMemberItem } from './api';
 import { getSessionContext, type SessionContext, type SessionRole } from './session';
 
 export interface OrganizationMember {
   key: string;
+  tenantId?: string;
   name: string;
   userId: string;
   department: string;
@@ -46,6 +48,8 @@ export const defaultOrganizationMembers: OrganizationMember[] = [
   },
 ];
 
+let runtimeOrganizationMembers: OrganizationMember[] = defaultOrganizationMembers;
+
 export const roleLabels: Record<SessionRole, string> = {
   admin: '管理员',
   applicant: '发起人',
@@ -58,8 +62,50 @@ export function tenantDisplayName(tenantId?: string | null) {
   return tenantId === 'default' ? '当前组织' : tenantId;
 }
 
+function normalizeRole(role?: string | null): SessionRole {
+  if (role === 'admin' || role === 'applicant' || role === 'manager' || role === 'finance') {
+    return role;
+  }
+  return 'applicant';
+}
+
+function normalizeMemberStatus(status?: string | null) {
+  const value = String(status || '').trim().toUpperCase();
+  if (value === 'ACTIVE' || value === 'ENABLED' || status === '启用') return '启用';
+  if (value === 'DISABLED' || status === '停用') return '停用';
+  return status || '启用';
+}
+
+export function normalizeOrganizationMember(member: OrganizationMemberItem | OrganizationMember): OrganizationMember {
+  return {
+    key: member.key || member.userId,
+    tenantId: member.tenantId,
+    name: member.name,
+    userId: member.userId,
+    department: member.department,
+    role: normalizeRole(member.role),
+    status: normalizeMemberStatus(member.status),
+  };
+}
+
+export function normalizeOrganizationMembers(members?: Array<OrganizationMemberItem | OrganizationMember>) {
+  return (members || [])
+    .map(normalizeOrganizationMember)
+    .filter((member) => member.userId && member.name);
+}
+
+export function setOrganizationMembers(members?: Array<OrganizationMemberItem | OrganizationMember>) {
+  if (!members) {
+    runtimeOrganizationMembers = defaultOrganizationMembers;
+    return runtimeOrganizationMembers;
+  }
+  const normalized = normalizeOrganizationMembers(members);
+  runtimeOrganizationMembers = normalized;
+  return runtimeOrganizationMembers;
+}
+
 export function getOrganizationMembers() {
-  return defaultOrganizationMembers;
+  return runtimeOrganizationMembers;
 }
 
 export function organizationMemberByUserId(userId?: string | null) {
