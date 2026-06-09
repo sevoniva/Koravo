@@ -2,6 +2,7 @@ package io.koravo.form.service;
 
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.form.domain.FormStatus;
 import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.repo.FormSchemaRepository;
@@ -38,6 +39,7 @@ public class FormSchemaService {
         schema.setSchemaJson(request.schemaJson());
         schema.setUiSchemaJson(request.uiSchemaJson());
         schema.setStatus(FormStatus.ACTIVE);
+        schema.setAssetOrigin(AssetOrigin.USER_FLOW);
         KoFormSchema saved = repository.save(schema);
         auditLogService.record("FORM_SCHEMA_CREATE", "FORM_SCHEMA", saved.getId(), Map.of("formKey", saved.getFormKey()));
         return toResponse(saved);
@@ -85,7 +87,8 @@ public class FormSchemaService {
                 schema.getVersion(),
                 schema.getSchemaJson(),
                 schema.getUiSchemaJson(),
-                schema.getStatus().name()
+                schema.getStatus().name(),
+                schema.getAssetOrigin().name()
         );
     }
 }

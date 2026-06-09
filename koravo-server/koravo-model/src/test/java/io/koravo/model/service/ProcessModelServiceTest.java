@@ -15,6 +15,7 @@ import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.List;
@@ -57,7 +58,8 @@ class ProcessModelServiceTest {
         verify(auditLogService).record("PROCESS_MODEL_DISABLE", "PROCESS_MODEL", "model-1", Map.of(
                 "modelKey", "leaveApproval",
                 "version", 1,
-                "status", "DISABLED"
+                "status", "DISABLED",
+                "assetOrigin", "USER_FLOW"
         ));
     }
 
@@ -76,7 +78,8 @@ class ProcessModelServiceTest {
         verify(auditLogService).record("PROCESS_MODEL_ARCHIVE", "PROCESS_MODEL", "model-1", Map.of(
                 "modelKey", "leaveApproval",
                 "version", 1,
-                "status", "ARCHIVED"
+                "status", "ARCHIVED",
+                "assetOrigin", "USER_FLOW"
         ));
     }
 
@@ -117,6 +120,9 @@ class ProcessModelServiceTest {
 
         assertThat(response.platformModelId()).isEqualTo("model-1");
         assertThat(response.processDefinitionKey()).isEqualTo("leaveApproval");
+        ArgumentCaptor<KoProcessModel> modelCaptor = ArgumentCaptor.forClass(KoProcessModel.class);
+        verify(repository).save(modelCaptor.capture());
+        assertThat(modelCaptor.getValue().getAssetOrigin().name()).isEqualTo("USER_FLOW");
         verify(auditLogService).record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "model-1", Map.of(
                 "deploymentId", "dep-1",
                 "processDefinitionId", "pd-1",
@@ -145,10 +151,12 @@ class ProcessModelServiceTest {
         assertThat(response.id()).isEqualTo("model-import-1");
         assertThat(response.modelKey()).isEqualTo("expenseApproval");
         assertThat(response.status()).isEqualTo("DRAFT");
+        assertThat(response.assetOrigin()).isEqualTo("USER_FLOW");
         verify(auditLogService).record("PROCESS_MODEL_IMPORT", "PROCESS_MODEL", "model-import-1", Map.of(
                 "modelKey", "expenseApproval",
                 "version", 1,
-                "status", "DRAFT"
+                "status", "DRAFT",
+                "assetOrigin", "USER_FLOW"
         ));
         verify(auditLogService, never()).record("PROCESS_MODEL_CREATE", "PROCESS_MODEL", "model-import-1", Map.of(
                 "modelKey", "expenseApproval"
@@ -182,7 +190,8 @@ class ProcessModelServiceTest {
         verify(auditLogService).record("PROCESS_MODEL_IMPORT", "PROCESS_MODEL", "model-import-2", Map.of(
                 "modelKey", "contractFlow",
                 "version", 1,
-                "status", "DRAFT"
+                "status", "DRAFT",
+                "assetOrigin", "USER_FLOW"
         ));
     }
 
@@ -206,7 +215,8 @@ class ProcessModelServiceTest {
         verify(auditLogService).record("PROCESS_MODEL_UPDATE", "PROCESS_MODEL", "model-1", Map.of(
                 "modelKey", "leaveApproval",
                 "version", 2,
-                "status", "DRAFT"
+                "status", "DRAFT",
+                "assetOrigin", "USER_FLOW"
         ));
     }
 

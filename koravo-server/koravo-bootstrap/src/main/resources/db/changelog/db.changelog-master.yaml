@@ -380,3 +380,50 @@ databaseChangeLog:
               - column: { name: updated_by, value: system }
               - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
               - column: { name: deleted, valueBoolean: false }
+  - changeSet:
+      id: 0009-add-workflow-asset-origin
+      author: koravo
+      changes:
+        - addColumn:
+            tableName: ko_process_model
+            columns:
+              - column:
+                  name: asset_origin
+                  type: varchar(64)
+                  defaultValue: USER_FLOW
+                  constraints:
+                    nullable: false
+        - addColumn:
+            tableName: ko_form_schema
+            columns:
+              - column:
+                  name: asset_origin
+                  type: varchar(64)
+                  defaultValue: USER_FLOW
+                  constraints:
+                    nullable: false
+        - update:
+            tableName: ko_process_model
+            columns:
+              - column: { name: asset_origin, value: SYSTEM_TEMPLATE }
+            where: model_key = 'collaborativeApproval'
+        - update:
+            tableName: ko_form_schema
+            columns:
+              - column: { name: asset_origin, value: SYSTEM_TEMPLATE }
+            where: form_key = 'business-request-form'
+        - update:
+            tableName: ko_process_model
+            columns:
+              - column: { name: asset_origin, value: LEGACY_DEMO }
+            where: model_key in ('multiAcceptance', 'purchaseApproval', 'leaveApproval', 'httpConnectorDemo', 'designerDeployCheck')
+        - update:
+            tableName: ko_form_schema
+            columns:
+              - column: { name: asset_origin, value: LEGACY_DEMO }
+            where: form_key in ('acceptance-request-form', 'purchase-request-form', 'leave-form')
+        - update:
+            tableName: ko_process_model
+            columns:
+              - column: { name: asset_origin, value: TEST_FIXTURE }
+            where: model_key like 'koravoProcess%'

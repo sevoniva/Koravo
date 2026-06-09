@@ -1,6 +1,7 @@
 package io.koravo.api.workflow;
 
 import io.koravo.common.api.PageResult;
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
@@ -18,6 +19,7 @@ import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Map;
@@ -116,6 +118,12 @@ class WorkflowEnablementServiceTest {
                 "绑定业务申请表到业务审批",
                 "绑定业务申请表到财务复核"
         );
+        ArgumentCaptor<KoProcessModel> modelCaptor = ArgumentCaptor.forClass(KoProcessModel.class);
+        ArgumentCaptor<KoFormSchema> formCaptor = ArgumentCaptor.forClass(KoFormSchema.class);
+        verify(processModelRepository, org.mockito.Mockito.atLeastOnce()).save(modelCaptor.capture());
+        verify(formSchemaRepository, org.mockito.Mockito.atLeastOnce()).save(formCaptor.capture());
+        assertThat(modelCaptor.getAllValues()).extracting(KoProcessModel::getAssetOrigin).contains(AssetOrigin.SYSTEM_TEMPLATE);
+        assertThat(formCaptor.getAllValues()).extracting(KoFormSchema::getAssetOrigin).contains(AssetOrigin.SYSTEM_TEMPLATE);
         verify(auditLogService).record(eq("WORKFLOW_ENABLEMENT_INIT"), eq("WORKFLOW_ENABLEMENT"), eq("collaborative-approval"), any(Map.class));
     }
 
@@ -295,10 +303,14 @@ class WorkflowEnablementServiceTest {
         WorkflowEnablementInitResponse response = service.init();
 
         assertThat(model.getStatus()).isEqualTo(ProcessModelStatus.DEPLOYED);
+        assertThat(model.getAssetOrigin()).isEqualTo(AssetOrigin.SYSTEM_TEMPLATE);
         assertThat(form.getStatus()).isEqualTo(FormStatus.ACTIVE);
+        assertThat(form.getAssetOrigin()).isEqualTo(AssetOrigin.SYSTEM_TEMPLATE);
         assertThat(demoModel.getStatus()).isEqualTo(ProcessModelStatus.ARCHIVED);
+        assertThat(demoModel.getAssetOrigin()).isEqualTo(AssetOrigin.LEGACY_DEMO);
         assertThat(demoModel.getUpdatedBy()).isEqualTo("admin");
         assertThat(demoForm.getStatus()).isEqualTo(FormStatus.DISABLED);
+        assertThat(demoForm.getAssetOrigin()).isEqualTo(AssetOrigin.LEGACY_DEMO);
         assertThat(demoForm.getUpdatedBy()).isEqualTo("admin");
         assertThat(response.actions()).contains(
                 "归档历史演示流程：请假审批流程",

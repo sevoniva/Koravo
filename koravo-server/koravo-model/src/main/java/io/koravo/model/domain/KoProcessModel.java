@@ -1,5 +1,6 @@
 package io.koravo.model.domain;
 
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.common.model.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -37,6 +38,10 @@ public class KoProcessModel extends BaseEntity {
 
     @Column(name = "bpmn_xml", columnDefinition = "text")
     private String bpmnXml;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_origin", nullable = false, length = 64)
+    private AssetOrigin assetOrigin = AssetOrigin.USER_FLOW;
 
     public String getModelKey() {
         return modelKey;
@@ -108,5 +113,13 @@ public class KoProcessModel extends BaseEntity {
 
     public void setBpmnXml(String bpmnXml) {
         this.bpmnXml = bpmnXml;
+    }
+
+    public AssetOrigin getAssetOrigin() {
+        return assetOrigin == null ? AssetOrigin.USER_FLOW : assetOrigin;
+    }
+
+    public void setAssetOrigin(AssetOrigin assetOrigin) {
+        this.assetOrigin = assetOrigin == null ? AssetOrigin.USER_FLOW : assetOrigin;
     }
 }

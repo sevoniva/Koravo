@@ -37,7 +37,8 @@ class FormSnapshotServiceTest {
                 2,
                 "{\"type\":\"object\",\"properties\":{\"reason\":{\"type\":\"string\"}}}",
                 "{\"reason\":{\"ui:widget\":\"textarea\"}}",
-                "ACTIVE"
+                "ACTIVE",
+                "USER_FLOW"
         );
 
         service.saveSnapshot("pi-1", "task-1", "form-1", schema, Map.of("reason", "ok"));

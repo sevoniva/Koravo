@@ -1,5 +1,6 @@
 package io.koravo.form.domain;
 
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.common.model.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,6 +29,10 @@ public class KoFormSchema extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 64)
     private FormStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_origin", nullable = false, length = 64)
+    private AssetOrigin assetOrigin = AssetOrigin.USER_FLOW;
 
     public String getFormKey() {
         return formKey;
@@ -75,5 +80,13 @@ public class KoFormSchema extends BaseEntity {
 
     public void setStatus(FormStatus status) {
         this.status = status;
+    }
+
+    public AssetOrigin getAssetOrigin() {
+        return assetOrigin == null ? AssetOrigin.USER_FLOW : assetOrigin;
+    }
+
+    public void setAssetOrigin(AssetOrigin assetOrigin) {
+        this.assetOrigin = assetOrigin == null ? AssetOrigin.USER_FLOW : assetOrigin;
     }
 }

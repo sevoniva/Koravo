@@ -94,7 +94,8 @@ class ProcessInstanceAppServiceTest {
                 2,
                 "{\"type\":\"object\"}",
                 "{}",
-                "ACTIVE"
+                "ACTIVE",
+                "USER_FLOW"
         );
         RequestContextHolder.set("req-1", "127.0.0.1");
         TenantContextHolder.setTenantId("tenant-a");
@@ -153,7 +154,8 @@ class ProcessInstanceAppServiceTest {
                 2,
                 "{\"type\":\"object\"}",
                 "{}",
-                "ACTIVE"
+                "ACTIVE",
+                "USER_FLOW"
         );
         RequestContextHolder.set("req-1", "127.0.0.1");
         TenantContextHolder.setTenantId("tenant-a");

@@ -4,6 +4,7 @@ import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.command.TaskQueryCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.form.domain.FormStatus;
 import io.koravo.form.domain.KoFormBinding;
 import io.koravo.form.domain.KoFormSchema;
@@ -306,6 +307,7 @@ public class WorkflowEnablementService {
         model.setStatus(ProcessModelStatus.DRAFT);
         model.setDescription("业务申请提交后，业务审批和财务复核并行处理。");
         model.setBpmnXml(WorkflowEnablementDefaults.businessRequestBpmn());
+        model.setAssetOrigin(AssetOrigin.SYSTEM_TEMPLATE);
         actions.add("创建协同审批流程模型");
         return processModelRepository.save(model);
     }
@@ -331,6 +333,10 @@ public class WorkflowEnablementService {
         }
         if (!"业务申请提交后，业务审批和财务复核并行处理。".equals(model.getDescription())) {
             model.setDescription("业务申请提交后，业务审批和财务复核并行处理。");
+            changed = true;
+        }
+        if (model.getAssetOrigin() != AssetOrigin.SYSTEM_TEMPLATE) {
+            model.setAssetOrigin(AssetOrigin.SYSTEM_TEMPLATE);
             changed = true;
         }
         if (needsDefinitionMigration
@@ -369,6 +375,7 @@ public class WorkflowEnablementService {
         form.setSchemaJson(WorkflowEnablementDefaults.businessRequestFormSchema());
         form.setUiSchemaJson(WorkflowEnablementDefaults.businessRequestFormUiSchema());
         form.setStatus(FormStatus.ACTIVE);
+        form.setAssetOrigin(AssetOrigin.SYSTEM_TEMPLATE);
         actions.add("创建业务申请表");
         return formSchemaRepository.save(form);
     }
@@ -399,6 +406,10 @@ public class WorkflowEnablementService {
         }
         if (form.getStatus() != FormStatus.ACTIVE) {
             form.setStatus(FormStatus.ACTIVE);
+            changed = true;
+        }
+        if (form.getAssetOrigin() != AssetOrigin.SYSTEM_TEMPLATE) {
+            form.setAssetOrigin(AssetOrigin.SYSTEM_TEMPLATE);
             changed = true;
         }
         if (changed) {
@@ -534,25 +545,39 @@ public class WorkflowEnablementService {
             if (currentModel != null && currentModel.getId().equals(model.getId())) {
                 continue;
             }
-            if (model.getStatus() == ProcessModelStatus.ARCHIVED) {
-                continue;
+            boolean changed = false;
+            if (model.getStatus() != ProcessModelStatus.ARCHIVED) {
+                model.setStatus(ProcessModelStatus.ARCHIVED);
+                actions.add("归档历史演示流程：" + model.getModelName());
+                changed = true;
             }
-            model.setStatus(ProcessModelStatus.ARCHIVED);
-            model.setUpdatedBy(userId);
-            processModelRepository.save(model);
-            actions.add("归档历史演示流程：" + model.getModelName());
+            if (model.getAssetOrigin() != AssetOrigin.LEGACY_DEMO) {
+                model.setAssetOrigin(AssetOrigin.LEGACY_DEMO);
+                changed = true;
+            }
+            if (changed) {
+                model.setUpdatedBy(userId);
+                processModelRepository.save(model);
+            }
         }
         for (KoFormSchema form : formSchemaRepository.findByTenantIdAndFormKeyInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, DEMO_FORM_KEYS)) {
             if (currentForm != null && currentForm.getId().equals(form.getId())) {
                 continue;
             }
-            if (form.getStatus() == FormStatus.DISABLED) {
-                continue;
+            boolean changed = false;
+            if (form.getStatus() != FormStatus.DISABLED) {
+                form.setStatus(FormStatus.DISABLED);
+                actions.add("停用历史演示表单：" + form.getFormName());
+                changed = true;
             }
-            form.setStatus(FormStatus.DISABLED);
-            form.setUpdatedBy(userId);
-            formSchemaRepository.save(form);
-            actions.add("停用历史演示表单：" + form.getFormName());
+            if (form.getAssetOrigin() != AssetOrigin.LEGACY_DEMO) {
+                form.setAssetOrigin(AssetOrigin.LEGACY_DEMO);
+                changed = true;
+            }
+            if (changed) {
+                form.setUpdatedBy(userId);
+                formSchemaRepository.save(form);
+            }
         }
     }
 
@@ -613,7 +638,8 @@ public class WorkflowEnablementService {
                 schema.getVersion(),
                 schema.getSchemaJson(),
                 schema.getUiSchemaJson(),
-                schema.getStatus().name()
+                schema.getStatus().name(),
+                schema.getAssetOrigin().name()
         );
     }
 }

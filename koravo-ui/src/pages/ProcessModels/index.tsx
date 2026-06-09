@@ -25,6 +25,7 @@ import {
   Modal,
   Segmented,
   Space,
+  Tag,
   Typography,
   type UploadFile,
 } from 'antd';
@@ -48,6 +49,9 @@ import {
   validateProcessModel,
 } from '@/services/koravo/api';
 import {
+  ASSET_ORIGIN_LABELS,
+  assetOriginColor,
+  assetOriginLabel,
   isBusinessProcessModel,
   processDefinitionLabel,
   processDescriptionLabel,
@@ -412,6 +416,23 @@ const ProcessModels: React.FC = () => {
           status={record.status}
           text={processStatusLabel(record.status)}
         />
+      ),
+    },
+    {
+      title: '来源',
+      dataIndex: 'assetOrigin',
+      width: 120,
+      valueType: 'select',
+      valueEnum: Object.fromEntries(
+        Object.entries(ASSET_ORIGIN_LABELS).map(([value, text]) => [
+          value,
+          { text },
+        ]),
+      ),
+      render: (_, record) => (
+        <Tag color={assetOriginColor(record.assetOrigin)}>
+          {assetOriginLabel(record.assetOrigin)}
+        </Tag>
       ),
     },
     {

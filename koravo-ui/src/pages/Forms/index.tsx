@@ -36,6 +36,9 @@ import {
   organizationProfileFieldValue,
 } from '@/services/koravo/organization';
 import {
+  ASSET_ORIGIN_LABELS,
+  assetOriginColor,
+  assetOriginLabel,
   formSchemaKeyLabel,
   formSchemaNameLabel,
   productCopy,
@@ -712,6 +715,23 @@ const Forms: React.FC = () => {
       dataIndex: 'status',
       width: 110,
       render: (_, record) => <KoravoStatusTag status={record.status} />,
+    },
+    {
+      title: '来源',
+      dataIndex: 'assetOrigin',
+      width: 120,
+      valueType: 'select',
+      valueEnum: Object.fromEntries(
+        Object.entries(ASSET_ORIGIN_LABELS).map(([value, text]) => [
+          value,
+          { text },
+        ]),
+      ),
+      render: (_, record) => (
+        <Tag color={assetOriginColor(record.assetOrigin)}>
+          {assetOriginLabel(record.assetOrigin)}
+        </Tag>
+      ),
     },
     {
       title: '字段数',

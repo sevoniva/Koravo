@@ -93,6 +93,7 @@ export interface ProcessModelItem {
   flowableDeploymentId?: string
   flowableDefinitionId?: string
   status: string
+  assetOrigin?: string
   description?: string
   bpmnXml?: string
   createdAt?: string
@@ -195,6 +196,7 @@ export interface FormSchemaItem {
   schemaJson: string
   uiSchemaJson?: string
   status: string
+  assetOrigin?: string
 }
 
 export interface FormBindingItem {

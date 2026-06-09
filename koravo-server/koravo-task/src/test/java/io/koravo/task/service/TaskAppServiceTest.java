@@ -337,7 +337,8 @@ class TaskAppServiceTest {
                 1,
                 "{\"type\":\"object\"}",
                 null,
-                "ACTIVE"
+                "ACTIVE",
+                "USER_FLOW"
         ));
         when(processFacade.getProcessVariables("default", "pi-1")).thenReturn(Map.of("days", 2));
         when(processFacade.getTaskVariablesForDetail("default", "admin", "task-1")).thenReturn(Map.of("approved", true));
@@ -413,7 +414,8 @@ class TaskAppServiceTest {
                 1,
                 "{\"type\":\"object\"}",
                 null,
-                "ACTIVE"
+                "ACTIVE",
+                "USER_FLOW"
         ));
         when(processFacade.getProcessVariables("default", "pi-1")).thenReturn(Map.of());
         when(processFacade.getTaskVariablesForDetail("default", "admin", "task-1")).thenReturn(Map.of());
@@ -479,7 +481,8 @@ class TaskAppServiceTest {
                 version,
                 "{\"type\":\"object\"}",
                 "{}",
-                "ACTIVE"
+                "ACTIVE",
+                "USER_FLOW"
         );
     }
 }

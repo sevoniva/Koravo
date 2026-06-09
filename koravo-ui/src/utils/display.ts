@@ -77,6 +77,22 @@ const CONNECTOR_TYPE_LABELS: Record<string, string> = {
   JDBC: 'JDBC',
 };
 
+export const ASSET_ORIGIN_LABELS: Record<string, string> = {
+  SYSTEM_TEMPLATE: '系统模板',
+  USER_FLOW: '用户流程',
+  LEGACY_DEMO: '历史演示',
+  TEST_FIXTURE: '测试数据',
+  SAMPLE: '示例模板',
+};
+
+export const ASSET_ORIGIN_COLORS: Record<string, string> = {
+  SYSTEM_TEMPLATE: 'processing',
+  USER_FLOW: 'success',
+  LEGACY_DEMO: 'warning',
+  TEST_FIXTURE: 'default',
+  SAMPLE: 'geekblue',
+};
+
 const BUSINESS_FIELD_LABELS: Record<string, string> = {
   applicant: '发起人',
   requester: '发起人',
@@ -320,6 +336,15 @@ export function resourceTypeLabel(value?: string | null) {
 
 export function connectorTypeLabel(value?: string | null) {
   return auditCodeLabel(value, CONNECTOR_TYPE_LABELS);
+}
+
+export function assetOriginLabel(value?: string | null) {
+  return auditCodeLabel(value, ASSET_ORIGIN_LABELS);
+}
+
+export function assetOriginColor(value?: string | null) {
+  if (!value) return 'default';
+  return ASSET_ORIGIN_COLORS[value] || 'default';
 }
 
 export function connectionAddressLabel(value?: string | null) {

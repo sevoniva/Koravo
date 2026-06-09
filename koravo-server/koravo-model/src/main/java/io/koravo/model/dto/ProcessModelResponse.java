@@ -14,6 +14,7 @@ public record ProcessModelResponse(
         String status,
         String description,
         String bpmnXml,
+        String assetOrigin,
         Instant createdAt,
         Instant updatedAt
 ) {

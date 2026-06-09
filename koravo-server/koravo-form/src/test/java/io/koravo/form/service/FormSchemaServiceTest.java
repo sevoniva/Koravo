@@ -49,6 +49,7 @@ class FormSchemaServiceTest {
         ));
 
         assertThat(result.id()).isEqualTo("form-1");
+        assertThat(result.assetOrigin()).isEqualTo("USER_FLOW");
         verify(auditLogService).record("FORM_SCHEMA_CREATE", "FORM_SCHEMA", "form-1", Map.of("formKey", "leave"));
     }
 

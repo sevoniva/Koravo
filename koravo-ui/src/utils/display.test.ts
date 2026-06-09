@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assetOriginColor,
+  assetOriginLabel,
   buildVersionLabel,
   businessFieldLabel,
   businessKeyLabel,
@@ -64,6 +66,14 @@ describe('display helpers', () => {
     expect(businessFieldLabel('executionId')).toBe('执行编号');
     expect(businessFieldLabel('delegateExpression')).toBe('执行表达式');
     expect(businessFieldLabel('X-Koravo-User-Role')).toBe('职责');
+  });
+
+  it('labels workflow asset origins for governance surfaces', () => {
+    expect(assetOriginLabel('SYSTEM_TEMPLATE')).toBe('系统模板');
+    expect(assetOriginLabel('USER_FLOW')).toBe('用户流程');
+    expect(assetOriginLabel('LEGACY_DEMO')).toBe('历史演示');
+    expect(assetOriginColor('LEGACY_DEMO')).toBe('warning');
+    expect(assetOriginColor(undefined)).toBe('default');
   });
 
   it('does not hide non-business-looking process models in admin surfaces', () => {

@@ -5,6 +5,7 @@ import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.model.dto.ProcessModelCreateRequest;
 import io.koravo.model.dto.ProcessModelDeployResponse;
 import io.koravo.model.dto.ProcessModelExportResponse;
@@ -199,6 +200,7 @@ public class ProcessModelService {
         model.setFlowableDeploymentId(deployment.deploymentId());
         model.setFlowableDefinitionId(deployment.processDefinitionId());
         model.setStatus(ProcessModelStatus.DEPLOYED);
+        model.setAssetOrigin(AssetOrigin.USER_FLOW);
         model.setBpmnXml(bpmnXml);
         repository.save(model);
 
@@ -269,6 +271,7 @@ public class ProcessModelService {
         model.setStatus(ProcessModelStatus.DRAFT);
         model.setDescription(description);
         model.setBpmnXml(bpmnXml);
+        model.setAssetOrigin(AssetOrigin.USER_FLOW);
         repository.save(model);
         return model;
     }
@@ -286,6 +289,7 @@ public class ProcessModelService {
                 model.getStatus().name(),
                 model.getDescription(),
                 model.getBpmnXml(),
+                model.getAssetOrigin().name(),
                 model.getCreatedAt(),
                 model.getUpdatedAt()
         );
@@ -301,6 +305,7 @@ public class ProcessModelService {
         detail.put("modelKey", model.getModelKey());
         detail.put("version", model.getVersion());
         detail.put("status", model.getStatus().name());
+        detail.put("assetOrigin", model.getAssetOrigin().name());
         if (StringUtils.hasText(model.getFlowableDeploymentId())) {
             detail.put("deploymentId", model.getFlowableDeploymentId());
         }

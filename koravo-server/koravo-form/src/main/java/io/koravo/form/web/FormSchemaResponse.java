@@ -7,6 +7,7 @@ public record FormSchemaResponse(
         int version,
         String schemaJson,
         String uiSchemaJson,
-        String status
+        String status,
+        String assetOrigin
 ) {
 }
