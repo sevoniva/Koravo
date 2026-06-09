@@ -1,8 +1,4 @@
-import {
-  EditOutlined,
-  SettingOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import { SettingOutlined, UserOutlined } from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
@@ -66,13 +62,6 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
       return dom;
     },
     actionsRender: () => [
-      <Tooltip title="设计流程" key="process-designer">
-        <Button
-          type="text"
-          icon={<EditOutlined />}
-          onClick={() => history.push('/process-designer')}
-        />
-      </Tooltip>,
       <Tooltip title="系统设置" key="settings">
         <Button
           type="text"
