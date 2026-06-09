@@ -121,6 +121,11 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   taskId: '任务编号',
   taskDefinitionKey: '任务节点',
   taskName: '任务名称',
+  executionId: '执行编号',
+  elementId: '节点编号',
+  elementName: '节点名称',
+  handlerType: '处理器',
+  handlerConfiguration: '处理器配置',
   formSchemaId: '表单',
   formKey: '表单标识',
   formName: '表单名称',
@@ -144,6 +149,12 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   'X-User-Id': '成员',
   request: '请求',
   response: '响应',
+  delegateExpression: '执行表达式',
+  connectorType: '连接器类型',
+  connectionName: '连接名称',
+  retryCount: '重试次数',
+  timeout: '超时时间',
+  timeoutMillis: '超时时间',
 };
 
 function readableIdentifier(value?: string | null) {
@@ -195,7 +206,10 @@ export function productCopy(value?: string | null) {
     .replaceAll('演示接口', '配置接口')
     .replaceAll('内置演示', '内置')
     .replaceAll('演示', '')
-    .replaceAll('采购申请提交后，部门审批和财务审批并行处理。', '验收申请提交后，业务验收和财务验收并行处理。')
+    .replaceAll(
+      '采购申请提交后，部门审批和财务审批并行处理。',
+      '验收申请提交后，业务验收和财务验收并行处理。',
+    )
     .replaceAll('采购申请单', '验收申请表')
     .replaceAll('采购申请', '验收申请')
     .replaceAll('采购内容', '验收事项')
@@ -204,7 +218,10 @@ export function productCopy(value?: string | null) {
     .replaceAll('部门审批', '业务验收')
     .replaceAll('财务审批', '财务验收')
     .replaceAll('允许 localhost', '允许本地服务地址')
-    .replace(/v\d+(?:\.\d+)*\s*未接入对象存储健康探测/g, '对象存储健康探测暂未启用')
+    .replace(
+      /v\d+(?:\.\d+)*\s*未接入对象存储健康探测/g,
+      '对象存储健康探测暂未启用',
+    )
     .replace(/v\d+(?:\.\d+)*\s*未接入/g, '暂未接入')
     .replace(/\s+/g, ' ')
     .trim();
@@ -234,11 +251,14 @@ export function formSchemaKeyLabel(formKey?: string | null) {
   return mapping[formKey] || formKey;
 }
 
-export function formSchemaOptionLabel(schema: {
-  formKey?: string | null;
-  formName?: string | null;
-  version?: number | null;
-}, version?: number | null) {
+export function formSchemaOptionLabel(
+  schema: {
+    formKey?: string | null;
+    formName?: string | null;
+    version?: number | null;
+  },
+  version?: number | null,
+) {
   const schemaVersion = version || schema.version || 1;
   return `${formSchemaNameLabel(schema.formName)} v${schemaVersion}`;
 }
@@ -282,7 +302,8 @@ export function taskNameLabel(task?: {
   taskDefinitionKey?: string | null;
 }) {
   if (!task) return '-';
-  if (task.taskDefinitionKey) return taskDefinitionLabel(task.taskDefinitionKey);
+  if (task.taskDefinitionKey)
+    return taskDefinitionLabel(task.taskDefinitionKey);
   return productCopy(task.name) || '-';
 }
 
@@ -319,7 +340,8 @@ export function connectionAddressLabel(value?: string | null) {
     /(^|@)(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|\/|$)/.test(normalized);
 
   if (!isLocalAddress) return text;
-  if (/\/health\b|\/actuator\/health\b/.test(normalized)) return '本地服务健康检查';
+  if (/\/health\b|\/actuator\/health\b/.test(normalized))
+    return '本地服务健康检查';
   if (normalized.startsWith('jdbc:')) return '本地数据源连接';
   return '本地服务地址';
 }

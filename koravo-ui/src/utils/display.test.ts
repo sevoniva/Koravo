@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildVersionLabel,
+  businessFieldLabel,
   connectionAddressLabel,
   processModelKeyLabel,
   productCopy,
@@ -21,9 +22,9 @@ describe('display helpers', () => {
     expect(connectionAddressLabel('http://localhost:8080/api/v1/health')).toBe(
       '本地服务健康检查',
     );
-    expect(connectionAddressLabel('jdbc:postgresql://127.0.0.1:5432/koravo')).toBe(
-      '本地数据源连接',
-    );
+    expect(
+      connectionAddressLabel('jdbc:postgresql://127.0.0.1:5432/koravo'),
+    ).toBe('本地数据源连接');
   });
 
   it('hides raw build markers from product copy', () => {
@@ -34,5 +35,11 @@ describe('display helpers', () => {
     expect(productCopy('允许 localhost；公网地址必须使用 HTTPS')).toBe(
       '允许本地服务地址；公网地址必须使用 HTTPS',
     );
+  });
+
+  it('uses business labels for operation diagnostics fields', () => {
+    expect(businessFieldLabel('handlerConfiguration')).toBe('处理器配置');
+    expect(businessFieldLabel('executionId')).toBe('执行编号');
+    expect(businessFieldLabel('delegateExpression')).toBe('执行表达式');
   });
 });

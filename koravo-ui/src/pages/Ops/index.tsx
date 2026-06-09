@@ -1,14 +1,14 @@
 import { DeploymentUnitOutlined } from '@ant-design/icons';
 import {
+  type ActionType,
   PageContainer,
   ProCard,
+  type ProColumns,
   ProDescriptions,
   ProTable,
-  type ActionType,
-  type ProColumns,
 } from '@ant-design/pro-components';
-import { history } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
+import { history } from '@umijs/max';
 import {
   Alert,
   App,
@@ -26,6 +26,7 @@ import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
+import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   deleteDeadLetterJob,
   deleteFailedJob,
@@ -37,11 +38,11 @@ import {
   listFailedJobs,
   listOpsCapabilities,
   listOpsInstances,
-  retryDeadLetterJob,
-  retryFailedJob,
   type OpsCapabilityItem,
   type OpsJobItem,
   type OpsProcessInstance,
+  retryDeadLetterJob,
+  retryFailedJob,
 } from '@/services/koravo/api';
 import { organizationMemberName } from '@/services/koravo/organization';
 import {
@@ -144,7 +145,9 @@ function buildInstanceColumns(
           </Button>
           <Button
             type="link"
-            onClick={() => history.push(`/process-instances/${record.instanceId}`)}
+            onClick={() =>
+              history.push(`/process-instances/${record.instanceId}`)
+            }
           >
             查看实例
           </Button>
@@ -178,7 +181,10 @@ function jobColumns(
       dataIndex: 'id',
       width: 140,
       render: (_, record) => (
-        <CopyableText value={record.id} displayValue={shortTraceLabel(record.id)} />
+        <CopyableText
+          value={record.id}
+          displayValue={shortTraceLabel(record.id)}
+        />
       ),
     },
     {
@@ -200,7 +206,9 @@ function jobColumns(
             />
             <Button
               type="link"
-              onClick={() => history.push(`/process-instances/${record.processInstanceId}`)}
+              onClick={() =>
+                history.push(`/process-instances/${record.processInstanceId}`)
+              }
             >
               查看实例
             </Button>
@@ -301,13 +309,8 @@ const capabilityColumns: ProColumns<OpsCapabilityItem>[] = [
 
 function jobEmpty(description: string) {
   return (
-    <Empty
-      description={description}
-      image={Empty.PRESENTED_IMAGE_SIMPLE}
-    >
-      <Button onClick={() => history.push('/audit-logs')}>
-        查看审计日志
-      </Button>
+    <Empty description={description} image={Empty.PRESENTED_IMAGE_SIMPLE}>
+      <Button onClick={() => history.push('/audit-logs')}>查看审计日志</Button>
     </Empty>
   );
 }
@@ -348,7 +351,9 @@ const Ops: React.FC = () => {
         setPreviewTarget({
           instanceId: instance.instanceId,
           title: `${processDefinitionLabel(instance.processDefinitionId)} · ${
-            instance.businessKey ? businessKeyLabel(instance.businessKey) : instance.instanceId
+            instance.businessKey
+              ? businessKeyLabel(instance.businessKey)
+              : instance.instanceId
           }`,
           currentTasks: instance.currentTasks,
         }),
@@ -357,23 +362,41 @@ const Ops: React.FC = () => {
   );
 
   return (
-    <PageContainer title="运维中心" content="查看运行实例、异常任务和平台运维能力。">
+    <PageContainer
+      title="运维中心"
+      content="查看运行实例、异常任务和平台运维能力。"
+    >
       {contextHolder}
-      <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
+      <ProCard
+        gutter={16}
+        wrap
+        loading={isLoading}
+        style={{ marginBottom: 16 }}
+      >
         <ProCard colSpan={{ xs: 24, sm: 6 }}>
-          <Statistic title="运行实例" value={summary?.runningInstanceCount ?? 0} />
+          <Statistic
+            title="运行实例"
+            value={summary?.runningInstanceCount ?? 0}
+          />
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 6 }}>
           <Statistic title="失败任务" value={summary?.failedJobCount ?? 0} />
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 6 }}>
-          <Statistic title="死信任务" value={summary?.deadLetterJobCount ?? 0} />
+          <Statistic
+            title="死信任务"
+            value={summary?.deadLetterJobCount ?? 0}
+          />
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 6 }}>
-          <Statistic title="连接器异常" value={summary?.connectorFailureCount ?? 0} />
+          <Statistic
+            title="连接器异常"
+            value={summary?.connectorFailureCount ?? 0}
+          />
         </ProCard>
       </ProCard>
-      {(summary?.failedJobCount || 0) + (summary?.deadLetterJobCount || 0) > 0 ? (
+      {(summary?.failedJobCount || 0) + (summary?.deadLetterJobCount || 0) >
+      0 ? (
         <Alert
           showIcon
           type="warning"
@@ -387,7 +410,10 @@ const Ops: React.FC = () => {
                 </Button>
               ) : null}
               {summary?.deadLetterJobCount ? (
-                <Button size="small" onClick={() => setActiveTab('dead-letter')}>
+                <Button
+                  size="small"
+                  onClick={() => setActiveTab('dead-letter')}
+                >
                   查看死信任务
                 </Button>
               ) : null}
@@ -415,7 +441,11 @@ const Ops: React.FC = () => {
                     page: Number(params.current || 1),
                     pageSize: Number(params.pageSize || 10),
                   });
-                  return { data: result.items, total: result.total, success: true };
+                  return {
+                    data: result.items,
+                    total: result.total,
+                    success: true,
+                  };
                 }}
               />
             ),
@@ -443,7 +473,11 @@ const Ops: React.FC = () => {
                     page: Number(params.current || 1),
                     pageSize: Number(params.pageSize || 10),
                   });
-                  return { data: result.items, total: result.total, success: true };
+                  return {
+                    data: result.items,
+                    total: result.total,
+                    success: true,
+                  };
                 }}
               />
             ),
@@ -471,7 +505,11 @@ const Ops: React.FC = () => {
                     page: Number(params.current || 1),
                     pageSize: Number(params.pageSize || 10),
                   });
-                  return { data: result.items, total: result.total, success: true };
+                  return {
+                    data: result.items,
+                    total: result.total,
+                    success: true,
+                  };
                 }}
               />
             ),
@@ -505,7 +543,11 @@ const Ops: React.FC = () => {
             <Space wrap>
               <Button
                 type="link"
-                onClick={() => history.push(`/process-instances/${jobDetail.processInstanceId}`)}
+                onClick={() =>
+                  history.push(
+                    `/process-instances/${jobDetail.processInstanceId}`,
+                  )
+                }
               >
                 查看流程实例
               </Button>
@@ -547,7 +589,11 @@ const Ops: React.FC = () => {
                     />
                   ),
                 },
-                { title: '异常类型', dataIndex: 'type', renderText: jobTypeLabel },
+                {
+                  title: '异常类型',
+                  dataIndex: 'type',
+                  renderText: jobTypeLabel,
+                },
                 {
                   title: '关联流程',
                   dataIndex: 'processInstanceId',
@@ -556,12 +602,16 @@ const Ops: React.FC = () => {
                       <Space wrap>
                         <CopyableText
                           value={record.processInstanceId}
-                          displayValue={shortTraceLabel(record.processInstanceId)}
+                          displayValue={shortTraceLabel(
+                            record.processInstanceId,
+                          )}
                         />
                         <Button
                           type="link"
                           onClick={() =>
-                            history.push(`/process-instances/${record.processInstanceId}`)
+                            history.push(
+                              `/process-instances/${record.processInstanceId}`,
+                            )
                           }
                         >
                           查看实例
@@ -579,11 +629,20 @@ const Ops: React.FC = () => {
                 {
                   title: '异常节点',
                   dataIndex: 'elementName',
-                  renderText: (value, record) => value || record.elementId || '-',
+                  renderText: (value, record) =>
+                    value || record.elementId || '-',
                 },
                 { title: '剩余重试', dataIndex: 'retries' },
-                { title: '创建时间', dataIndex: 'createTime', renderText: formatDateTime },
-                { title: '到期时间', dataIndex: 'dueDate', renderText: formatDateTime },
+                {
+                  title: '创建时间',
+                  dataIndex: 'createTime',
+                  renderText: formatDateTime,
+                },
+                {
+                  title: '到期时间',
+                  dataIndex: 'dueDate',
+                  renderText: formatDateTime,
+                },
               ]}
             />
             {jobDetail.processInstanceId ? (
@@ -620,8 +679,12 @@ const Ops: React.FC = () => {
                             ),
                           },
                           { title: '处理器', dataIndex: 'handlerType' },
-                          { title: '处理器配置', dataIndex: 'handlerConfiguration' },
                         ]}
+                      />
+                      <Typography.Title level={5}>处理器配置</Typography.Title>
+                      <StructuredDetailTable
+                        value={jobDetail.handlerConfiguration}
+                        emptyText="暂无处理器配置"
                       />
                       <Typography.Title level={5}>异常堆栈</Typography.Title>
                       {jobDetail.exceptionStacktrace ? (
