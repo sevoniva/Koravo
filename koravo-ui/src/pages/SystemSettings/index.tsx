@@ -27,8 +27,11 @@ import {
 } from '@/services/koravo/session';
 import {
   getOrganizationMembers,
-  roleLabels,
+  organizationMemberName,
+  organizationRoleLabel,
   saveOrganizationMembers,
+  sessionActorLabel,
+  tenantDisplayName,
   type OrganizationMember,
 } from '@/services/koravo/organization';
 import { productCopy } from '@/utils/display';
@@ -137,7 +140,7 @@ const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
 ];
 
 function roleLabel(role: SessionRole) {
-  return roleLabels[role] || role;
+  return organizationRoleLabel(role);
 }
 
 const SystemSettings: React.FC = () => {
@@ -229,7 +232,7 @@ const SystemSettings: React.FC = () => {
       ...state,
       session: next,
       currentUser: {
-        name: next.userId,
+        name: sessionActorLabel(next),
         userid: next.userId,
         access: next.role,
         tenantId: next.tenantId,
@@ -271,9 +274,9 @@ const SystemSettings: React.FC = () => {
               待办、发起和运维操作会按当前身份加载权限范围。发起、办理、复核分别对应不同职责边界。
             </span>
             <Space wrap>
-              <Tag color="processing">当前用户：{session.userId}</Tag>
-              <Tag color="blue">角色：{roleLabel(session.role)}</Tag>
-              <Tag>租户：{session.tenantId}</Tag>
+              <Tag color="processing">办理人：{organizationMemberName(session.userId)}</Tag>
+              <Tag color="blue">职责：{roleLabel(session.role)}</Tag>
+              <Tag>组织：{tenantDisplayName(session.tenantId)}</Tag>
               {session.lastRequestId ? <Tag>最近追踪号：{session.lastRequestId}</Tag> : null}
             </Space>
             <Space wrap>
@@ -335,16 +338,16 @@ const SystemSettings: React.FC = () => {
           >
             <ProFormText
               name="tenantId"
-              label="租户"
-              rules={[{ required: true, message: '请输入租户' }]}
+              label="组织编码"
+              rules={[{ required: true, message: '请输入组织编码' }]}
             />
             <ProFormText
               name="userId"
-              label="当前用户"
-              rules={[{ required: true, message: '请输入用户' }]}
+              label="办理人账号"
+              rules={[{ required: true, message: '请输入办理人账号' }]}
             />
             <ProFormText
-              label="当前角色"
+              label="当前职责"
               fieldProps={{ readOnly: true, value: roleLabel(session.role) }}
             />
             <ProFormText
@@ -364,9 +367,9 @@ const SystemSettings: React.FC = () => {
             column={1}
             dataSource={data}
             columns={[
-              { title: '租户', dataIndex: 'tenantId' },
-              { title: '用户', dataIndex: 'userId' },
-              { title: '角色', dataIndex: 'role', renderText: () => roleLabel(session.role) },
+            { title: '组织', dataIndex: 'tenantId', renderText: tenantDisplayName },
+            { title: '办理人', dataIndex: 'userId', renderText: organizationMemberName },
+            { title: '职责', dataIndex: 'role', renderText: () => roleLabel(session.role) },
               { title: '版本', dataIndex: 'version' },
               { title: '时间', dataIndex: 'time', renderText: formatDateTime },
             ]}

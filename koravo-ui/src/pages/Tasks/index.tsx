@@ -28,6 +28,11 @@ import {
   type SessionContext,
 } from '@/services/koravo/session';
 import {
+  organizationMemberName,
+  organizationRoleLabel,
+  tenantDisplayName,
+} from '@/services/koravo/organization';
+import {
   businessKeyLabel,
   processDefinitionLabel,
   taskDefinitionLabel,
@@ -54,19 +59,19 @@ const taskTabRoutes: Record<TaskTabKey, string> = {
 const taskTabMeta: Record<TaskTabKey, { title: string; content: string }> = {
   todo: {
     title: '我的待办',
-    content: '处理已经分配给当前账号的审批任务。',
+    content: '处理已经分配给当前办理人的审批任务。',
   },
   candidate: {
     title: '待认领',
-    content: '认领当前账号或角色可处理的候选任务。',
+    content: '认领当前办理人或职责可处理的候选任务。',
   },
   done: {
     title: '已办任务',
-    content: '查看当前账号已处理过的任务和办理记录。',
+    content: '查看当前办理人已处理过的任务和办理记录。',
   },
   started: {
     title: '我发起的',
-    content: '查看当前账号发起的流程实例和处理进度。',
+    content: '查看当前办理人发起的流程实例和处理进度。',
   },
 };
 
@@ -364,16 +369,18 @@ const Tasks: React.FC = () => {
         type="info"
         title={
           <Space wrap size={8}>
-            <span>当前账号</span>
-            <Tag color="processing">{session.userId}</Tag>
-            <span>租户</span>
-            <Tag>{session.tenantId}</Tag>
+            <span>办理人</span>
+            <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
+            <span>职责</span>
+            <Tag color="blue">{organizationRoleLabel(session.role)}</Tag>
+            <span>组织</span>
+            <Tag>{tenantDisplayName(session.tenantId)}</Tag>
           </Space>
         }
         description={
           <Flex vertical gap={8}>
             <span>
-              待办按当前登录上下文加载。需要调整用户、部门或角色时，请进入组织权限维护。
+              待办按当前办理人和职责加载。需要调整成员、部门或职责时，请进入组织权限维护。
             </span>
             <Space wrap>
               <Button size="small" onClick={reloadTables}>
@@ -440,7 +447,7 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前账号暂无可认领任务',
+                    '当前办理人暂无可认领任务',
                     <Space wrap>
                       <Button onClick={() => switchTab('todo')}>
                         查看待办
@@ -503,7 +510,7 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前用户暂无发起记录',
+                    '当前办理人暂无发起记录',
                     <Button
                       type="primary"
                       onClick={() => history.push('/process-instances')}

@@ -21,6 +21,10 @@ import {
   initializeWorkflowAssets,
   type WorkflowEnablementStepStatus,
 } from '@/services/koravo/api';
+import {
+  organizationMemberName,
+  tenantDisplayName,
+} from '@/services/koravo/organization';
 import { processKindLabel } from '@/utils/display';
 
 interface StepRow {
@@ -58,7 +62,7 @@ function stepMessage(record: StepRow) {
     process: '流程模型已部署',
     form: '业务表单可用',
     binding: '任务节点已绑定表单',
-    todo: record.status.count ? '当前用户有待办任务' : '暂无待办任务',
+    todo: record.status.count ? '当前办理人有待办任务' : '暂无待办任务',
     audit: '已有审计记录',
   };
   return readyMessages[record.key] || '配置已就绪';
@@ -154,8 +158,16 @@ const QuickStart: React.FC = () => {
         </ProCard>
         <ProCard title="当前上下文" colSpan={{ xs: 24, xl: 8 }}>
           <ProDescriptions column={1} dataSource={data || {}}>
-            <ProDescriptions.Item label="租户" dataIndex="tenantId" />
-            <ProDescriptions.Item label="用户" dataIndex="userId" />
+            <ProDescriptions.Item
+              label="组织"
+              dataIndex="tenantId"
+              renderText={tenantDisplayName}
+            />
+            <ProDescriptions.Item
+              label="办理人"
+              dataIndex="userId"
+              renderText={organizationMemberName}
+            />
             <ProDescriptions.Item
               label="流程"
               dataIndex="processDefinitionKey"

@@ -1,4 +1,4 @@
-import type { SessionRole } from './session';
+import type { SessionContext, SessionRole } from './session';
 
 export interface OrganizationMember {
   key: string;
@@ -54,6 +54,11 @@ export const roleLabels: Record<SessionRole, string> = {
   finance: '财务复核人',
 };
 
+export function tenantDisplayName(tenantId?: string | null) {
+  if (!tenantId) return '-';
+  return tenantId === 'default' ? '默认组织' : tenantId;
+}
+
 export function getOrganizationMembers() {
   if (typeof window === 'undefined') return defaultOrganizationMembers;
   const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -64,6 +69,33 @@ export function getOrganizationMembers() {
   } catch {
     return defaultOrganizationMembers;
   }
+}
+
+export function organizationMemberByUserId(userId?: string | null) {
+  if (!userId) return undefined;
+  return getOrganizationMembers().find((item) => item.userId === userId);
+}
+
+export function organizationMemberName(userId?: string | null) {
+  return organizationMemberByUserId(userId)?.name || userId || '-';
+}
+
+export function organizationRoleLabel(role?: SessionRole | null) {
+  return role ? roleLabels[role] || role : '-';
+}
+
+export function sessionActorLabel(
+  session: Pick<SessionContext, 'userId' | 'role'>,
+) {
+  const memberName = organizationMemberName(session.userId);
+  const roleName = organizationRoleLabel(session.role);
+  return memberName === roleName ? memberName : `${memberName}（${roleName}）`;
+}
+
+export function sessionScopeLabel(session: Pick<SessionContext, 'tenantId' | 'userId' | 'role'>) {
+  const member = organizationMemberByUserId(session.userId);
+  const department = member?.department ? ` · ${member.department}` : '';
+  return `${sessionActorLabel(session)}${department} · ${tenantDisplayName(session.tenantId)}`;
 }
 
 export function saveOrganizationMembers(members: OrganizationMember[]) {

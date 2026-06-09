@@ -38,7 +38,10 @@ import {
   roleForUserId,
   setSessionContext,
 } from '@/services/koravo/session';
-import { getOrganizationMembers } from '@/services/koravo/organization';
+import {
+  getOrganizationMembers,
+  sessionActorLabel,
+} from '@/services/koravo/organization';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -675,13 +678,13 @@ const TaskDetail: React.FC = () => {
           ...state,
           session: next,
           currentUser: {
-            name: next.userId,
+            name: sessionActorLabel(next),
             userid: next.userId,
             access: next.role,
             tenantId: next.tenantId,
           },
         }));
-        message.success(`已进入 ${userId} 的办理上下文`);
+        message.success(`已进入 ${sessionActorLabel(next)} 办理上下文`);
       }
       history.push(`/tasks/${nextTask.taskId}`);
     },

@@ -24,6 +24,10 @@ import {
   type AuditLogItem,
 } from '@/services/koravo/api';
 import {
+  organizationMemberName,
+  tenantDisplayName,
+} from '@/services/koravo/organization';
+import {
   auditActionLabel,
   auditResourceLabel,
   shortTraceLabel,
@@ -212,7 +216,7 @@ const Dashboard: React.FC = () => {
           type="warning"
           showIcon
           title="摘要加载失败"
-          description="请确认 koravo-server 已启动，并检查当前租户和用户上下文。"
+          description="请确认 koravo-server 已启动，并检查当前组织和办理人上下文。"
           style={{ marginBottom: 16 }}
         />
       )}
@@ -260,7 +264,7 @@ const Dashboard: React.FC = () => {
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 12, xl: 6 }}>
           <Statistic title="运行实例" value={data?.runningInstanceCount ?? 0} />
-          <span>当前租户</span>
+          <span>{tenantDisplayName(data?.tenantId)}</span>
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 12, xl: 6 }}>
           <Statistic
@@ -285,8 +289,8 @@ const Dashboard: React.FC = () => {
         <ProCard title="运行概览" colSpan={{ xs: 24, xl: 8 }}>
           <Flex vertical gap={12}>
             <span>平台版本：{data?.version || '-'}</span>
-            <span>租户：{data?.tenantId || '-'}</span>
-            <span>用户：{data?.userId || '-'}</span>
+            <span>组织：{tenantDisplayName(data?.tenantId)}</span>
+            <span>办理人：{organizationMemberName(data?.userId)}</span>
             <span>系统时间：{formatDateTime(data?.time)}</span>
             <span>
               连接器成功率：

@@ -13,6 +13,10 @@ import React from 'react';
 import { ErrorBoundary, Footer, OfflineBanner } from '@/components';
 import { setFeedbackApis } from '@/services/koravo/feedback';
 import {
+  sessionActorLabel,
+  sessionScopeLabel,
+} from '@/services/koravo/organization';
+import {
   getSessionContext,
   type SessionContext,
   type SessionRole,
@@ -37,7 +41,7 @@ export async function getInitialState(): Promise<{
   const session = getSessionContext();
   return {
     currentUser: {
-      name: session.userId,
+      name: sessionActorLabel(session),
       userid: session.userId,
       access: session.role,
       tenantId: session.tenantId,
@@ -79,7 +83,7 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
     ],
     avatarProps: {
       icon: <UserOutlined />,
-      title: `${session.tenantId} / ${session.userId} / ${session.role}`,
+      title: sessionScopeLabel(session),
     },
     footerRender: () => <Footer />,
     ErrorBoundary,
