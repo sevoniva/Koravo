@@ -45,7 +45,7 @@ const actionOptions = {
   DATASOURCE_CREATE: { text: '创建数据源' },
   DATASOURCE_UPDATE: { text: '更新数据源' },
   DATASOURCE_DELETE: { text: '删除数据源' },
-  DATASOURCE_TEST: { text: '测试数据源' },
+  DATASOURCE_TEST: { text: '检测数据源连接' },
   CONNECTOR_EXECUTE: { text: '执行连接器' },
 };
 
@@ -57,7 +57,7 @@ const resourceOptions = {
   FORM_SCHEMA: { text: '表单' },
   FORM_BINDING: { text: '表单绑定' },
   DATASOURCE: { text: '数据源' },
-  DATASOURCE_TEST_LOG: { text: '数据源测试' },
+  DATASOURCE_TEST_LOG: { text: '数据源检测记录' },
   FAILED_JOB: { text: '失败任务' },
   DEAD_LETTER_JOB: { text: '死信任务' },
   CONNECTOR_EXECUTION: { text: '连接器执行' },

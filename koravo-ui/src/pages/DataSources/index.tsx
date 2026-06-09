@@ -196,10 +196,10 @@ const DataSources: React.FC = () => {
               actionRef.current?.reload();
             }}
           >
-            测试
+            检测连接
           </Button>
           <Button type="link" onClick={() => setTestLogSource(record)}>
-            测试记录
+            检测记录
           </Button>
           <Button type="link" onClick={() => setDetail(record)}>
             详情
@@ -385,7 +385,7 @@ const DataSources: React.FC = () => {
         extra={
           detail ? (
             <Space>
-              <Button onClick={() => setTestLogSource(detail)}>测试记录</Button>
+              <Button onClick={() => setTestLogSource(detail)}>检测记录</Button>
               <Button type="primary" onClick={() => setEditing(detail)}>
                 编辑
               </Button>
@@ -431,7 +431,7 @@ const DataSources: React.FC = () => {
       </Drawer>
 
       <Drawer
-        title={testLogSource ? `${testLogSource.name} 测试记录` : '测试记录'}
+        title={testLogSource ? `${testLogSource.name} 检测记录` : '检测记录'}
         size={720}
         open={Boolean(testLogSource)}
         onClose={() => setTestLogSource(undefined)}
@@ -442,7 +442,7 @@ const DataSources: React.FC = () => {
             columns={testLogColumns}
             search={false}
             options={false}
-            locale={{ emptyText: <Empty description="暂无测试记录" /> }}
+            locale={{ emptyText: <Empty description="暂无检测记录" /> }}
             request={async (params) => {
               const result = await listDataSourceTestLogs(testLogSource.id, {
                 page: Number(params.current || 1),

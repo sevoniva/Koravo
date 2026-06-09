@@ -27,7 +27,7 @@ function openAuditByRequestId(requestId?: string) {
 
 function connectorTraceDisplay(requestId?: string) {
   if (!requestId) return '';
-  return shortTraceLabel(requestId.replace(/^demo-http-/i, 'http-call-'));
+  return shortTraceLabel(requestId);
 }
 
 function useQueryRequestId() {

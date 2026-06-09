@@ -25,7 +25,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   DATASOURCE_CREATE: '创建数据源',
   DATASOURCE_UPDATE: '更新数据源',
   DATASOURCE_DELETE: '删除数据源',
-  DATASOURCE_TEST: '测试数据源',
+  DATASOURCE_TEST: '检测数据源连接',
   CONNECTOR_EXECUTE: '执行连接器',
 };
 
@@ -38,7 +38,7 @@ const AUDIT_RESOURCE_LABELS: Record<string, string> = {
   FORM_SCHEMA: '表单',
   FORM_BINDING: '表单绑定',
   DATASOURCE: '数据源',
-  DATASOURCE_TEST_LOG: '数据源测试',
+  DATASOURCE_TEST_LOG: '数据源检测记录',
   FAILED_JOB: '失败任务',
   DEAD_LETTER_JOB: '死信任务',
   CONNECTOR_EXECUTION: '连接器执行',
@@ -67,7 +67,7 @@ const DATASOURCE_TYPE_LABELS: Record<string, string> = {
 
 const RESOURCE_TYPE_LABELS: Record<string, string> = {
   ...AUDIT_RESOURCE_LABELS,
-  DATASOURCE_TEST_LOG: '数据源测试',
+  DATASOURCE_TEST_LOG: '数据源检测记录',
   FAILED_JOB: '失败任务',
   DEAD_LETTER_JOB: '死信任务',
 };
