@@ -42,4 +42,14 @@ public class FormSchemaController {
     public ApiResponse<FormSchemaResponse> update(@PathVariable String id, @Valid @RequestBody FormSchemaRequest request) {
         return ApiResponse.success(formSchemaService.update(id, request));
     }
+
+    @PostMapping("/api/v1/forms/schemas/{id}/activate")
+    public ApiResponse<FormSchemaResponse> activate(@PathVariable String id) {
+        return ApiResponse.success(formSchemaService.activate(id));
+    }
+
+    @PostMapping("/api/v1/forms/schemas/{id}/disable")
+    public ApiResponse<FormSchemaResponse> disable(@PathVariable String id) {
+        return ApiResponse.success(formSchemaService.disable(id));
+    }
 }

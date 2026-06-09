@@ -550,6 +550,14 @@ export function updateFormSchema(id: string, payload: {
   return apiData<FormSchemaItem>(http.put(`/forms/schemas/${id}`, payload))
 }
 
+export function activateFormSchema(id: string) {
+  return apiData<FormSchemaItem>(http.post(`/forms/schemas/${id}/activate`))
+}
+
+export function disableFormSchema(id: string) {
+  return apiData<FormSchemaItem>(http.post(`/forms/schemas/${id}/disable`))
+}
+
 export function getFormSchema(id: string) {
   return apiData<FormSchemaItem>(http.get(`/forms/schemas/${id}`))
 }

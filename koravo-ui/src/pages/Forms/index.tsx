@@ -24,6 +24,7 @@ import {
   Drawer,
   Empty,
   Flex,
+  Popconfirm,
   Space,
   Tabs,
   Tag,
@@ -34,7 +35,9 @@ import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import {
+  activateFormSchema,
   createFormSchema,
+  disableFormSchema,
   type FormBindingItem,
   type FormSchemaItem,
   listFormBindings,
@@ -843,6 +846,17 @@ const Forms: React.FC = () => {
     return true;
   };
 
+  const changeFormStatus = async (record: FormSchemaItem) => {
+    if (record.status === 'DISABLED') {
+      await activateFormSchema(record.id);
+      message.success('已启用');
+    } else {
+      await disableFormSchema(record.id);
+      message.success('已停用');
+    }
+    actionRef.current?.reload();
+  };
+
   const columns: ProColumns<FormSchemaItem>[] = [
     {
       title: '表单名称',
@@ -913,24 +927,48 @@ const Forms: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 220,
-      render: (_, record) => [
-        <Button key="preview" type="link" onClick={() => setPreview(record)}>
-          查看
-        </Button>,
-        <Button key="edit" type="link" onClick={() => setEditing(record)}>
-          编辑
-        </Button>,
-        <Button
-          key="bind"
-          type="link"
-          onClick={() =>
-            history.push(`/form-bindings?formSchemaId=${record.id}`)
-          }
-        >
-          绑定节点
-        </Button>,
-      ],
+      width: 280,
+      render: (_, record) => {
+        const impact = bindingImpact(record.id, formBindings);
+        const willActivate = record.status === 'DISABLED';
+        return [
+          <Button key="preview" type="link" onClick={() => setPreview(record)}>
+            查看
+          </Button>,
+          <Button key="edit" type="link" onClick={() => setEditing(record)}>
+            编辑
+          </Button>,
+          <Button
+            key="bind"
+            type="link"
+            disabled={record.status === 'DISABLED'}
+            onClick={() =>
+              history.push(`/form-bindings?formSchemaId=${record.id}`)
+            }
+          >
+            绑定节点
+          </Button>,
+          <Popconfirm
+            key="status"
+            title={willActivate ? '启用表单' : '停用表单'}
+            description={
+              willActivate
+                ? '启用后可被新的流程绑定和发起使用。'
+                : impact.total
+                  ? `该表单已被 ${impact.total} 处流程配置使用。停用后不能再新建绑定，已有历史快照不受影响。`
+                  : '停用后不能再新建绑定。'
+            }
+            okText={willActivate ? '启用' : '停用'}
+            cancelText="取消"
+            okType={willActivate ? 'primary' : 'danger'}
+            onConfirm={() => changeFormStatus(record)}
+          >
+            <Button type="link" danger={!willActivate}>
+              {willActivate ? '启用' : '停用'}
+            </Button>
+          </Popconfirm>,
+        ];
+      },
     },
   ];
 

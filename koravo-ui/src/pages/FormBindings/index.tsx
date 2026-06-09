@@ -261,16 +261,20 @@ const BindingFormItems: React.FC<{
           showSearch: true,
           optionFilterProp: 'label',
           onChange: async (value) => {
-            const schemas = await listFormSchemas();
+            const schemas = (await listFormSchemas()).filter(
+              (item) => item.status === 'ACTIVE',
+            );
             const schema = schemas.find((item) => item.id === value);
             form.setFieldValue('formSchemaVersion', schema?.version || 1);
           },
         }}
         request={async () =>
-          (await listFormSchemas()).map((item) => ({
-            label: formSchemaOptionLabel(item),
-            value: item.id,
-          }))
+          (await listFormSchemas())
+            .filter((item) => item.status === 'ACTIVE')
+            .map((item) => ({
+              label: formSchemaOptionLabel(item),
+              value: item.id,
+            }))
         }
       />
       <ProFormText

@@ -92,12 +92,34 @@ public class FormSchemaService {
         schema.setSchemaJson(request.schemaJson());
         schema.setUiSchemaJson(request.uiSchemaJson());
         schema.setVersion(schema.getVersion() + 1);
-        schema.setStatus(FormStatus.ACTIVE);
         schema.setUpdatedBy(UserContextHolder.getUserId());
         KoFormSchema saved = repository.save(schema);
         auditLogService.record("FORM_SCHEMA_UPDATE", "FORM_SCHEMA", saved.getId(), Map.of(
                 "formKey", saved.getFormKey(),
                 "version", saved.getVersion()
+        ));
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public FormSchemaResponse activate(String id) {
+        return updateStatus(id, FormStatus.ACTIVE, "FORM_SCHEMA_ACTIVATE");
+    }
+
+    @Transactional
+    public FormSchemaResponse disable(String id) {
+        return updateStatus(id, FormStatus.DISABLED, "FORM_SCHEMA_DISABLE");
+    }
+
+    private FormSchemaResponse updateStatus(String id, FormStatus status, String action) {
+        KoFormSchema schema = repository.findByIdAndTenantIdAndDeletedFalse(id, TenantContextHolder.getTenantId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema not found"));
+        schema.setStatus(status);
+        schema.setUpdatedBy(UserContextHolder.getUserId());
+        KoFormSchema saved = repository.save(schema);
+        auditLogService.record(action, "FORM_SCHEMA", saved.getId(), Map.of(
+                "formKey", saved.getFormKey(),
+                "status", saved.getStatus().name()
         ));
         return toResponse(saved);
     }

@@ -85,9 +85,10 @@ class FormSchemaServiceTest {
     }
 
     @Test
-    void updateIncrementsVersion() {
+    void updateIncrementsVersionAndKeepsCurrentStatus() {
         TenantContextHolder.setTenantId("default");
         KoFormSchema schema = schema("form-1", 1);
+        schema.setStatus(FormStatus.DISABLED);
         when(repository.findByIdAndTenantIdAndDeletedFalse("form-1", "default")).thenReturn(Optional.of(schema));
         when(repository.save(any(KoFormSchema.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -100,10 +101,33 @@ class FormSchemaServiceTest {
 
         assertThat(result.version()).isEqualTo(2);
         assertThat(result.formName()).isEqualTo("Leave Approval");
-        assertThat(result.status()).isEqualTo("ACTIVE");
+        assertThat(result.status()).isEqualTo("DISABLED");
         verify(auditLogService).record("FORM_SCHEMA_UPDATE", "FORM_SCHEMA", "form-1", Map.of(
                 "formKey", "leave",
                 "version", 2
+        ));
+    }
+
+    @Test
+    void disableAndActivateUpdateStatusWithAuditLog() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoFormSchema schema = schema("form-1", 1);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("form-1", "default")).thenReturn(Optional.of(schema));
+        when(repository.save(any(KoFormSchema.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var disabled = service.disable("form-1");
+        var active = service.activate("form-1");
+
+        assertThat(disabled.status()).isEqualTo("DISABLED");
+        assertThat(active.status()).isEqualTo("ACTIVE");
+        verify(auditLogService).record("FORM_SCHEMA_DISABLE", "FORM_SCHEMA", "form-1", Map.of(
+                "formKey", "leave",
+                "status", "DISABLED"
+        ));
+        verify(auditLogService).record("FORM_SCHEMA_ACTIVATE", "FORM_SCHEMA", "form-1", Map.of(
+                "formKey", "leave",
+                "status", "ACTIVE"
         ));
     }
 
