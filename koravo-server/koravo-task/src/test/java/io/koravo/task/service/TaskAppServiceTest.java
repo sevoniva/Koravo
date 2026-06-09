@@ -133,6 +133,30 @@ class TaskAppServiceTest {
     }
 
     @Test
+    void queryCandidateTasksCanUseWorkflowCandidateGroup() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUser("approver-02", "manager");
+        TaskQueryCommand command = new TaskQueryCommand(
+                "default",
+                "approver-02",
+                "role-02",
+                1,
+                20,
+                "部门01",
+                "RUNNING",
+                null,
+                null
+        );
+        when(processFacade.queryCandidateTasks(command))
+                .thenReturn(PageResult.of(List.of(), 0, 1, 20));
+
+        var result = service.queryCandidateTasks(1, 20, "role-02", "部门01", "RUNNING", null, null);
+
+        assertThat(result.items()).isEmpty();
+        verify(processFacade).queryCandidateTasks(command);
+    }
+
+    @Test
     void queryStartedInstancesUsesCurrentTenantAndUser() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");

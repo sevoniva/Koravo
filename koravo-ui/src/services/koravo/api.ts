@@ -321,6 +321,7 @@ export interface LoginResult {
 export interface TaskListParams {
   page?: number
   pageSize?: number
+  candidateGroup?: string
   keyword?: string
   status?: string
   startTime?: string

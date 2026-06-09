@@ -1,12 +1,20 @@
 @baseUrl = http://localhost:8080/api/v1
 @tenantId = default
 @userId = admin
+@adminUserId = admin
+@applicantUserId = applicant
+@operatorUserId = operator
 @requestId = workflow-request-1
 @httpRequestId = health-check-request-1
+@enterpriseRequestId = enterprise-approval-request-1
 @processInstanceId = replace-with-instance-id
+@enterpriseProcessInstanceId = replace-with-enterprise-instance-id
 @processModelId = replace-with-model-id
 @processDefinitionId = replace-with-process-definition-id
 @taskId = replace-with-task-id
+@enterpriseTaskId = replace-with-enterprise-task-id
+@enterpriseApproverId = user-role-02
+@enterpriseCandidateGroup = role-02
 @httpTaskId = replace-with-http-task-id
 @formSchemaId = replace-with-form-schema-id
 @datasourceId = replace-with-datasource-id
@@ -14,13 +22,13 @@
 
 ### 1. Health check
 GET {{baseUrl}}/health
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 2. Deploy custom process model
 POST {{baseUrl}}/process-models/deploy?modelName=HTTP%20Health%20Check
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: multipart/form-data; boundary=KoravoBoundary
 
 --KoravoBoundary
@@ -32,46 +40,70 @@ Content-Type: application/xml
 
 ### 2a. Query process models
 GET {{baseUrl}}/process-models?status=DEPLOYED
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 2b. Get process model detail
 GET {{baseUrl}}/process-models/{{processModelId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 2c. Validate stored process model
 POST {{baseUrl}}/process-models/{{processModelId}}/validate
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 2d. Export stored process model
 GET {{baseUrl}}/process-models/{{processModelId}}/export
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 2e. Validate raw BPMN XML
 POST {{baseUrl}}/process-models/validate
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: text/plain
 
 < ../bpmn/http-health-check.bpmn20.xml
 
 ### 2f. Disable process model
 POST {{baseUrl}}/process-models/{{processModelId}}/disable
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 2g. Archive process model
 POST {{baseUrl}}/process-models/{{processModelId}}/archive
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
+
+### 2h. Deploy enterprise approval workflow
+POST {{baseUrl}}/process-models/deploy?modelName=%E4%BC%81%E4%B8%9A%E7%BA%A7%E5%A4%9A%E9%83%A8%E9%97%A8%E5%AE%A1%E6%89%B9
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{adminUserId}}
+X-Koravo-User-Role: admin
+Content-Type: multipart/form-data; boundary=KoravoEnterpriseBoundary
+
+--KoravoEnterpriseBoundary
+Content-Disposition: form-data; name="file"; filename="enterprise-approval-30-node.bpmn20.xml"
+Content-Type: application/xml
+
+< ../bpmn/enterprise-approval-30-node.bpmn20.xml
+--KoravoEnterpriseBoundary--
+
+### 2i. Validate enterprise approval BPMN
+POST {{baseUrl}}/process-models/validate
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{adminUserId}}
+X-Koravo-User-Role: admin
+Content-Type: text/plain
+
+< ../bpmn/enterprise-approval-30-node.bpmn20.xml
 
 ### 3. Start process instance
 POST {{baseUrl}}/process-instances/start
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{applicantUserId}}
+X-Koravo-User-Role: applicant
 X-Request-Id: {{requestId}}
 Content-Type: application/json
 
@@ -87,30 +119,106 @@ Content-Type: application/json
   }
 }
 
+### 3a. Start enterprise approval workflow
+POST {{baseUrl}}/process-instances/start
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{applicantUserId}}
+X-Koravo-User-Role: applicant
+X-Request-Id: {{enterpriseRequestId}}
+Content-Type: application/json
+
+{
+  "processDefinitionKey": "enterpriseApproval30",
+  "businessKey": "EA-2026-0001",
+  "variables": {
+    "subject": "企业级多部门审批",
+    "businessDescription": "覆盖10个部门、20个流程角色、子流程和候选组认领节点的审批验证",
+    "departmentCount": 10,
+    "roleCount": 20,
+    "approvalNodeCount": 34,
+    "role01User": "user-role-01",
+    "role02User": "user-role-02",
+    "role03User": "user-role-03",
+    "role04User": "user-role-04",
+    "role05User": "user-role-05",
+    "role06User": "user-role-06",
+    "role07User": "user-role-07",
+    "role08User": "user-role-08",
+    "role09User": "user-role-09",
+    "role10User": "user-role-10",
+    "role11User": "user-role-11",
+    "role12User": "user-role-12",
+    "role13User": "user-role-13",
+    "role14User": "user-role-14",
+    "role15User": "user-role-15",
+    "role16User": "user-role-16",
+    "role17User": "user-role-17",
+    "role18User": "user-role-18",
+    "role19User": "user-role-19",
+    "role20User": "user-role-20"
+  }
+}
+
 ### 4. Query my tasks
 GET {{baseUrl}}/tasks/my?page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
+
+### 4a. Query enterprise candidate tasks by workflow role
+GET {{baseUrl}}/tasks/candidates?page=1&pageSize=20&candidateGroup={{enterpriseCandidateGroup}}&keyword=%E9%83%A8%E9%97%A801
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{enterpriseApproverId}}
+X-Koravo-User-Role: manager
+
+### 4b. Claim enterprise candidate task
+POST {{baseUrl}}/tasks/{{enterpriseTaskId}}/actions
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{enterpriseApproverId}}
+X-Koravo-User-Role: manager
+Content-Type: application/json
+
+{
+  "action": "CLAIM",
+  "comment": "认领企业级审批节点"
+}
+
+### 4c. Complete enterprise task
+POST {{baseUrl}}/tasks/{{enterpriseTaskId}}/complete
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{enterpriseApproverId}}
+X-Koravo-User-Role: manager
+Content-Type: application/json
+
+{
+  "variables": {
+    "approved": true
+  },
+  "formData": {
+    "decision": "APPROVED",
+    "opinion": "通过"
+  },
+  "comment": "通过"
+}
 
 ### 5. Query done tasks
 GET {{baseUrl}}/tasks/done?page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 6. Query started process instances
 GET {{baseUrl}}/tasks/started?page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 7. Get task detail
 GET {{baseUrl}}/tasks/{{taskId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 7a. Create form schema
 POST {{baseUrl}}/forms/schemas
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: application/json
 
 {
@@ -122,13 +230,13 @@ Content-Type: application/json
 
 ### 7b. Get form schema detail
 GET {{baseUrl}}/forms/schemas/{{formSchemaId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 7c. Update form schema
 PUT {{baseUrl}}/forms/schemas/{{formSchemaId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: application/json
 
 {
@@ -140,8 +248,8 @@ Content-Type: application/json
 
 ### 7d. Bind form schema to task node
 POST {{baseUrl}}/form-bindings
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: application/json
 
 {
@@ -154,18 +262,18 @@ Content-Type: application/json
 
 ### 7e. Query model-scoped form bindings
 GET {{baseUrl}}/form-bindings?processModelId={{processModelId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 7e-1. Query definition-scoped form bindings
 GET {{baseUrl}}/form-bindings?processDefinitionId={{processDefinitionId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 7f. Update form binding
 PUT {{baseUrl}}/form-bindings/replace-with-binding-id
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: application/json
 
 {
@@ -178,13 +286,13 @@ Content-Type: application/json
 
 ### 7g. Delete form binding
 DELETE {{baseUrl}}/form-bindings/replace-with-binding-id
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 8. Complete task
 POST {{baseUrl}}/tasks/{{taskId}}/complete
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: application/json
 
 {
@@ -200,13 +308,13 @@ Content-Type: application/json
 
 ### 9. Get process instance detail
 GET {{baseUrl}}/process-instances/{{processInstanceId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 10. Create datasource
 POST {{baseUrl}}/datasources
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: application/json
 
 {
@@ -221,28 +329,28 @@ Content-Type: application/json
 
 ### 10a. Query datasources
 GET {{baseUrl}}/datasources
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 11. Test datasource
 POST {{baseUrl}}/datasources/{{datasourceId}}/test
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 11a. Get datasource detail
 GET {{baseUrl}}/datasources/{{datasourceId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 11b. Query datasource test logs
 GET {{baseUrl}}/datasources/{{datasourceId}}/test-logs?page=1&pageSize=10
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 11c. Update datasource
 PUT {{baseUrl}}/datasources/{{datasourceId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: application/json
 
 {
@@ -257,48 +365,48 @@ Content-Type: application/json
 
 ### 11d. Delete datasource
 DELETE {{baseUrl}}/datasources/{{datasourceId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 12. Query audit logs
 GET {{baseUrl}}/audit-logs?page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 12a. Query audit logs by request ID
 GET {{baseUrl}}/audit-logs?requestId={{requestId}}&page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 12b. Query task audit logs by resource
 GET {{baseUrl}}/audit-logs?resourceType=TASK&resourceId={{taskId}}&page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 13. Trace process instance
 GET {{baseUrl}}/ops/process-instances/{{processInstanceId}}/trace
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 13a. Query ops capabilities
 GET {{baseUrl}}/ops/capabilities
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 14. Suspend process instance
 POST {{baseUrl}}/ops/process-instances/{{processInstanceId}}/suspend
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 15. Activate process instance
 POST {{baseUrl}}/ops/process-instances/{{processInstanceId}}/activate
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 16. Terminate process instance
 POST {{baseUrl}}/ops/process-instances/{{processInstanceId}}/terminate
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: application/json
 
 {
@@ -307,18 +415,18 @@ Content-Type: application/json
 
 ### 17. Query process ops audit logs
 GET {{baseUrl}}/audit-logs?action=PROCESS_INSTANCE_SUSPEND&resourceType=PROCESS_INSTANCE&page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 18. Query audit logs by time range
 GET {{baseUrl}}/audit-logs?startTime=2026-06-07T00:00:00Z&endTime=2026-06-07T23:59:59Z&page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 19. Deploy HTTP connector workflow
 POST {{baseUrl}}/process-models/deploy?modelName=HTTP%20Health%20Check
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: multipart/form-data; boundary=KoravoBoundary
 
 --KoravoBoundary
@@ -330,8 +438,8 @@ Content-Type: application/xml
 
 ### 20. Start HTTP connector workflow
 POST {{baseUrl}}/process-instances/start
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 X-Request-Id: {{httpRequestId}}
 Content-Type: application/json
 
@@ -345,18 +453,18 @@ Content-Type: application/json
 
 ### 21. Query HTTP connector workflow review task
 GET {{baseUrl}}/tasks/my?page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 22. Get HTTP connector workflow review task detail
 GET {{baseUrl}}/tasks/{{httpTaskId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 23. Complete HTTP connector workflow review task
 POST {{baseUrl}}/tasks/{{httpTaskId}}/complete
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 Content-Type: application/json
 
 {
@@ -368,35 +476,35 @@ Content-Type: application/json
 
 ### 24. Trace HTTP connector workflow
 GET {{baseUrl}}/ops/process-instances/{{httpProcessInstanceId}}/trace
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 24a. Get HTTP connector workflow instance detail and variables
 GET {{baseUrl}}/process-instances/{{httpProcessInstanceId}}
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 25. Query HTTP connector execution logs
 GET {{baseUrl}}/connector-execution-logs?connectorType=http&page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 25a. Query HTTP connector execution logs by request ID
 GET {{baseUrl}}/connector-execution-logs?connectorType=http&requestId={{httpRequestId}}&page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 26. Query HTTP connector exception summary
 GET {{baseUrl}}/connector-execution-logs/summary?connectorType=http
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 27. Query HTTP connector audit logs
 GET {{baseUrl}}/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
 
 ### 27a. Query HTTP connector audit logs by request ID
 GET {{baseUrl}}/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&requestId={{httpRequestId}}&page=1&pageSize=20
-X-Tenant-Id: {{tenantId}}
-X-User-Id: {{userId}}
+X-Koravo-Tenant-Id: {{tenantId}}
+X-Koravo-User-Id: {{userId}}
