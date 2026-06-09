@@ -418,8 +418,8 @@ public class WorkflowEnablementService {
 
     public Map<String, Object> defaultStartVariables() {
         Map<String, Object> variables = new LinkedHashMap<>();
-        variables.put("applicant", "张三");
-        variables.put("department", "业务部门");
+        variables.put("applicant", "业务申请专员");
+        variables.put("department", "业务一部");
         variables.put("subject", "交付成果验收");
         variables.put("acceptanceScope", "确认交付内容、数量、质量和资料齐备情况");
         variables.put("expectedResult", "业务验收和财务验收均通过后完成流程");

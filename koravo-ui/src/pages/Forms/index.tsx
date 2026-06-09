@@ -6,6 +6,7 @@ import {
   type ProColumns,
   ProForm,
   ProFormDatePicker,
+  ProFormDependency,
   ProFormDigit,
   ProFormList,
   ProFormSelect,
@@ -50,7 +51,14 @@ interface FormFieldConfig {
   fieldKey: string;
   title: string;
   type: 'string' | 'number' | 'boolean';
-  widget?: 'input' | 'textarea' | 'number' | 'switch' | 'select';
+  widget?:
+    | 'input'
+    | 'textarea'
+    | 'number'
+    | 'switch'
+    | 'select'
+    | 'organizationProfile'
+    | 'organizationMember';
   placeholder?: string;
   options?: string[];
   format?: string;
@@ -71,14 +79,14 @@ const defaultFields: FormFieldConfig[] = [
     fieldKey: 'requester',
     title: '发起人',
     type: 'string',
-    widget: 'input',
+    widget: 'organizationProfile',
     required: true,
   },
   {
     fieldKey: 'department',
     title: '所属部门',
     type: 'string',
-    widget: 'input',
+    widget: 'organizationProfile',
   },
   {
     fieldKey: 'subject',
@@ -126,6 +134,8 @@ const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
   select: '下拉选择',
   number: '数字输入',
   switch: '开关',
+  organizationProfile: '系统带出',
+  organizationMember: '组织成员',
 };
 
 const parseJsonObject = (value?: string) => {
@@ -148,6 +158,8 @@ const normalizeWidget = (
   widget: unknown,
   type: FormFieldConfig['type'],
 ): NonNullable<FormFieldConfig['widget']> => {
+  if (widget === 'organizationProfile') return 'organizationProfile';
+  if (widget === 'organizationMember') return 'organizationMember';
   if (type === 'boolean') return 'switch';
   if (type === 'number') return 'number';
   if (widget === 'textarea') return 'textarea';
@@ -187,6 +199,8 @@ const schemaToFields = (
   return Object.entries(properties).map(([fieldKey, property]) => {
     const type = normalizeFieldType(property?.type);
     const uiField = uiSchema[fieldKey] as Record<string, unknown> | undefined;
+    const isProfileField = isOrganizationProfileField(fieldKey, property?.title);
+    const isAssigneeField = isOrganizationAssigneeField(fieldKey, property?.title);
     const widget =
       uiField?.['ui:widget'] || uiField?.widget || property?.['ui:widget'];
     const placeholder =
@@ -197,11 +211,22 @@ const schemaToFields = (
     return {
       fieldKey,
       title: productCopy(property?.title) || fieldKey,
-      type,
-      widget: options?.length ? 'select' : normalizeWidget(widget, type),
-      placeholder: typeof placeholder === 'string' ? placeholder : undefined,
-      options,
-      format: property?.format,
+      type: isProfileField || isAssigneeField ? 'string' : type,
+      widget: isProfileField
+        ? 'organizationProfile'
+        : isAssigneeField
+          ? 'organizationMember'
+          : options?.length
+            ? 'select'
+            : normalizeWidget(widget, type),
+      placeholder:
+        isProfileField || isAssigneeField
+          ? undefined
+          : typeof placeholder === 'string'
+            ? placeholder
+            : undefined,
+      options: isProfileField || isAssigneeField ? undefined : options,
+      format: isProfileField || isAssigneeField ? undefined : property?.format,
       required: required.includes(fieldKey),
     };
   });
@@ -209,17 +234,36 @@ const schemaToFields = (
 
 const buildPayload = (values: FormSchemaForm) => {
   const fields = (values.fields || []).map((field) => {
-    const options = normalizeOptionValues(field.options);
-    const widget =
-      field.type === 'string' && options?.length
-        ? 'select'
-        : normalizeWidget(field.widget, field.type);
+    const isProfileField = isOrganizationProfileField(
+      field.fieldKey,
+      field.title,
+    );
+    const isAssigneeField = isOrganizationAssigneeField(
+      field.fieldKey,
+      field.title,
+    );
+    const type = isProfileField || isAssigneeField ? 'string' : field.type;
+    const options =
+      isProfileField || isAssigneeField
+        ? undefined
+        : normalizeOptionValues(field.options);
+    const widget = isProfileField
+      ? 'organizationProfile'
+      : isAssigneeField
+        ? 'organizationMember'
+        : field.type === 'string' && options?.length
+          ? 'select'
+          : normalizeWidget(field.widget, field.type);
     return {
       ...field,
       fieldKey: field.fieldKey.trim(),
       title: field.title.trim(),
+      type,
       widget,
       options,
+      placeholder:
+        isProfileField || isAssigneeField ? undefined : field.placeholder,
+      format: isProfileField || isAssigneeField ? undefined : field.format,
     };
   });
 
@@ -352,7 +396,7 @@ const renderPreviewField = (field: FormFieldConfig) => {
         options={organizationMemberSelectOptions(
           organizationAssigneeRole(field.fieldKey, field.title),
         )}
-        tooltip="办理人来自组织成员，不在业务表单中手工录入。"
+        tooltip="办理人由组织成员带出。"
         disabled
         rules={
           field.required
@@ -494,45 +538,75 @@ const renderFormFieldsEditor = () => (
           width="sm"
           rules={[{ required: true, message: '请输入字段名称' }]}
         />
-        <ProFormSelect
-          name="type"
-          label="类型"
-          width="xs"
-          options={fieldTypeOptions}
-          rules={[{ required: true, message: '请选择类型' }]}
-        />
-        <ProFormSelect
-          name="widget"
-          label="控件"
-          width="sm"
-          options={widgetOptions}
-          rules={[{ required: true, message: '请选择控件' }]}
-        />
-        <ProFormText
-          name="placeholder"
-          label="输入提示"
-          width="sm"
-          placeholder="例如：请输入事项说明"
-        />
-        <ProFormSelect
-          name="format"
-          label="格式"
-          width="xs"
-          allowClear
-          options={formatOptions}
-          placeholder="不限制"
-        />
-        <ProFormSelect
-          name="options"
-          label="选项"
-          width="sm"
-          placeholder="输入选项后回车"
-          tooltip="配置后在发起和办理表单中显示为下拉选择。"
-          fieldProps={{
-            mode: 'tags',
-            tokenSeparators: [',', '，'],
+        <ProFormDependency name={['fieldKey', 'title']}>
+          {({ fieldKey, title }) => {
+            const isProfileField = isOrganizationProfileField(
+              fieldKey,
+              title,
+            );
+            const isAssigneeField = isOrganizationAssigneeField(
+              fieldKey,
+              title,
+            );
+            const isSystemField = isProfileField || isAssigneeField;
+            return (
+              <>
+                <ProFormSelect
+                  name="type"
+                  label="类型"
+                  width="xs"
+                  disabled={isSystemField}
+                  options={fieldTypeOptions}
+                  rules={[{ required: true, message: '请选择类型' }]}
+                />
+                <ProFormSelect
+                  name="widget"
+                  label="控件"
+                  width="sm"
+                  disabled={isSystemField}
+                  options={
+                    isProfileField
+                      ? [{ label: '系统带出', value: 'organizationProfile' }]
+                      : isAssigneeField
+                        ? [{ label: '组织成员', value: 'organizationMember' }]
+                        : widgetOptions
+                  }
+                  rules={[{ required: true, message: '请选择控件' }]}
+                />
+                <ProFormText
+                  name="placeholder"
+                  label="输入提示"
+                  width="sm"
+                  disabled={isSystemField}
+                  placeholder={
+                    isSystemField ? '自动联动' : '例如：请输入事项说明'
+                  }
+                />
+                <ProFormSelect
+                  name="format"
+                  label="格式"
+                  width="xs"
+                  allowClear
+                  disabled={isSystemField}
+                  options={formatOptions}
+                  placeholder="不限制"
+                />
+                <ProFormSelect
+                  name="options"
+                  label="选项"
+                  width="sm"
+                  disabled={isSystemField}
+                  placeholder={isSystemField ? '自动联动' : '输入选项后回车'}
+                  tooltip="配置后在发起和办理表单中显示为下拉选择。"
+                  fieldProps={{
+                    mode: 'tags',
+                    tokenSeparators: [',', '，'],
+                  }}
+                />
+              </>
+            );
           }}
-        />
+        </ProFormDependency>
         <ProFormSwitch name="required" label="必填" />
       </Space>
     </ProFormList>

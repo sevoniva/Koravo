@@ -9,7 +9,11 @@ import { Alert, Button, Drawer, Empty, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
-import { organizationMemberName, tenantDisplayName } from '@/services/koravo/organization';
+import {
+  organizationMemberName,
+  organizationMemberSelectOptions,
+  tenantDisplayName,
+} from '@/services/koravo/organization';
 import {
   listAuditLogs,
   type AuditLogItem,
@@ -17,6 +21,7 @@ import {
 import {
   auditActionLabel,
   auditResourceLabel,
+  businessKeyLabel,
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
@@ -186,7 +191,9 @@ function auditResourceText(log?: AuditLogItem) {
     detail.modelName,
     detail.formName,
     detail.name,
-    detail.businessKey,
+    typeof detail.businessKey === 'string'
+      ? businessKeyLabel(detail.businessKey)
+      : undefined,
     detail.taskName,
   ]
     .map((item) => (typeof item === 'string' ? item.trim() : ''))
@@ -232,6 +239,12 @@ const AuditLogs: React.FC = () => {
       title: '操作人',
       dataIndex: 'userId',
       width: 120,
+      valueType: 'select',
+      fieldProps: {
+        options: organizationMemberSelectOptions(),
+        showSearch: true,
+        optionFilterProp: 'label',
+      },
       renderText: organizationMemberName,
     },
     {

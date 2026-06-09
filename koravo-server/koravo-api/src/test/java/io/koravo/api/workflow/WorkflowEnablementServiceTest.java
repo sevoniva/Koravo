@@ -217,6 +217,8 @@ class WorkflowEnablementServiceTest {
         assertThat(response.form().ready()).isTrue();
         assertThat(response.binding().ready()).isTrue();
         assertThat(response.audit().count()).isEqualTo(3);
+        assertThat(response.defaultStartVariables()).containsEntry("applicant", "业务申请专员");
+        assertThat(response.defaultStartVariables()).containsEntry("department", "业务一部");
         assertThat(response.defaultStartVariables()).containsEntry("managerApprover", "manager");
         assertThat(response.defaultStartVariables()).containsEntry("financeApprover", "finance");
         verify(processFacade, never()).deploy(any());
