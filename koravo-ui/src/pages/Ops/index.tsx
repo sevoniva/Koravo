@@ -28,7 +28,7 @@ import {
   type OpsJobItem,
   type OpsProcessInstance,
 } from '@/services/koravo/api';
-import { processDefinitionLabel } from '@/utils/display';
+import { businessKeyLabel, processDefinitionLabel } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
 type JobKind = 'failed' | 'dead-letter';
@@ -55,7 +55,12 @@ const instanceColumns: ProColumns<OpsProcessInstance>[] = [
     title: '业务编号',
     dataIndex: 'businessKey',
     width: 180,
-    render: (_, record) => <CopyableText value={record.businessKey} />,
+    render: (_, record) => (
+      <CopyableText
+        value={record.businessKey}
+        displayValue={businessKeyLabel(record.businessKey)}
+      />
+    ),
   },
   { title: '发起人', dataIndex: 'startUserId', width: 120 },
   {

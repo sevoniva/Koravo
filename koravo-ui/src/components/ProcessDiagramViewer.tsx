@@ -7,7 +7,7 @@ import { Alert, Empty, Flex, Spin, Steps, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTraceNode } from '@/services/koravo/api';
-import { processStatusLabel, taskDefinitionLabel } from '@/utils/display';
+import { processStatusLabel, productCopy, taskDefinitionLabel } from '@/utils/display';
 
 type ViewerConstructor = new (options: Record<string, unknown>) => BpmnViewer;
 
@@ -175,7 +175,7 @@ function generatedStepStatus(node: ProcessTraceNode, currentActivityIds: string[
 function nodeTitle(node: ProcessTraceNode) {
   if (node.activityType === 'startEvent') return '开始';
   if (node.activityType === 'endEvent') return '结束';
-  return node.activityName || taskDefinitionLabel(node.activityId) || node.activityId;
+  return taskDefinitionLabel(node.activityId, { name: node.activityName }) || node.activityId;
 }
 
 function activityTypeLabel(activityType?: string) {
@@ -312,7 +312,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
       setLoading(true);
       setError(undefined);
       try {
-        await viewerRef.current.importXML(bpmnXml);
+        await viewerRef.current.importXML(productCopy(bpmnXml));
         const canvas = viewerRef.current.get('canvas') as Canvas;
         canvas.zoom('fit-viewport', 'auto');
         applyMarkers();

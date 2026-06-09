@@ -53,6 +53,7 @@ import {
   processDisplayName,
   processModelKeyLabel,
   processStatusLabel,
+  taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
@@ -148,7 +149,7 @@ function buildModelReadiness(
           (binding) => binding.taskDefinitionKey === task.taskDefinitionKey,
         ),
     )
-    .map((task) => task.name || task.taskDefinitionKey);
+    .map((task) => taskDefinitionLabel(task.taskDefinitionKey, task));
   const boundTaskCount = tasks.length - missingTaskKeys.length;
   const deployReady = hasStartBinding && missingTaskKeys.length === 0;
   const canStart = record.status === 'DEPLOYED' && deployReady;

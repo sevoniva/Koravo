@@ -201,8 +201,15 @@ export function productCopy(value?: string | null) {
     .replaceAll('采购内容', '验收事项')
     .replaceAll('采购原因', '事项说明')
     .replaceAll('部门验收', '业务验收')
+    .replaceAll('部门审批', '业务验收')
+    .replaceAll('财务审批', '财务验收')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+export function businessKeyLabel(value?: string | null) {
+  if (!value) return '-';
+  return productCopy(value).replace(/^PO-/, 'ACC-');
 }
 
 export function formSchemaNameLabel(formName?: string | null) {
@@ -249,7 +256,16 @@ export function taskDefinitionLabel(
     Task_1: '提交申请',
     approveTask: '处理任务',
   };
-  return task?.name || mapping[key] || readableIdentifier(key);
+  return mapping[key] || productCopy(task?.name) || readableIdentifier(key);
+}
+
+export function taskNameLabel(task?: {
+  name?: string | null;
+  taskDefinitionKey?: string | null;
+}) {
+  if (!task) return '-';
+  if (task.taskDefinitionKey) return taskDefinitionLabel(task.taskDefinitionKey);
+  return productCopy(task.name) || '-';
 }
 
 export function auditActionLabel(value?: string | null) {

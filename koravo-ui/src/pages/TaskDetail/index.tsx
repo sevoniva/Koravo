@@ -42,9 +42,11 @@ import { getOrganizationMembers } from '@/services/koravo/organization';
 import {
   auditActionLabel,
   auditResourceLabel,
+  businessKeyLabel,
   formSchemaNameLabel,
   processDefinitionLabel,
   taskDefinitionLabel,
+  taskNameLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 
@@ -812,7 +814,7 @@ const TaskDetail: React.FC = () => {
           dataSource={task}
           columns={[
             { title: '任务编号', dataIndex: 'taskId', copyable: true },
-            { title: '任务名称', dataIndex: 'name' },
+            { title: '任务名称', dataIndex: 'name', renderText: (_, record) => taskNameLabel(record) },
             {
               title: '流程定义',
               dataIndex: 'processDefinitionId',
@@ -835,7 +837,16 @@ const TaskDetail: React.FC = () => {
                 </Flex>
               ),
             },
-            { title: '业务编号', dataIndex: 'businessKey', copyable: true },
+            {
+              title: '业务编号',
+              dataIndex: 'businessKey',
+              render: (_, record) => (
+                <CopyableText
+                  value={record.businessKey}
+                  displayValue={businessKeyLabel(record.businessKey)}
+                />
+              ),
+            },
             { title: '任务节点', dataIndex: 'taskDefinitionKey', renderText: taskDefinitionLabel },
             { title: '处理人', dataIndex: 'assignee' },
             { title: '创建时间', dataIndex: 'createTime', renderText: formatDateTime },

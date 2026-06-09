@@ -36,9 +36,11 @@ import {
 import {
   auditActionLabel,
   auditResourceLabel,
+  businessKeyLabel,
   processDefinitionLabel,
   processStatusLabel,
   taskDefinitionLabel,
+  taskNameLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 
@@ -197,7 +199,8 @@ const traceColumns: ProColumns<ProcessTraceNode>[] = [
     title: '节点',
     dataIndex: 'activityId',
     width: 180,
-    renderText: (value, record) => record.activityName || taskDefinitionLabel(value),
+    renderText: (value, record) =>
+      taskDefinitionLabel(value, { name: record.activityName }),
   },
   { title: '节点编号', dataIndex: 'activityId', width: 180, copyable: true },
   { title: '类型', dataIndex: 'activityType', width: 150, renderText: activityTypeLabel },
@@ -319,7 +322,7 @@ const ProcessInstanceDetail: React.FC = () => {
   );
   const currentTaskColumns = React.useMemo<ProColumns<TaskItem>[]>(
     () => [
-      { title: '任务名称', dataIndex: 'name' },
+      { title: '任务名称', dataIndex: 'name', renderText: (_, record) => taskNameLabel(record) },
       {
         title: '节点',
         dataIndex: 'taskDefinitionKey',
@@ -460,7 +463,16 @@ const ProcessInstanceDetail: React.FC = () => {
               dataIndex: 'processDefinitionId',
               renderText: processDefinitionLabel,
             },
-            { title: '业务编号', dataIndex: 'businessKey', copyable: true },
+            {
+              title: '业务编号',
+              dataIndex: 'businessKey',
+              render: (_, record) => (
+                <CopyableText
+                  value={record.businessKey}
+                  displayValue={businessKeyLabel(record.businessKey)}
+                />
+              ),
+            },
             { title: '发起人', dataIndex: 'startUserId' },
             { title: '开始时间', dataIndex: 'startTime', renderText: formatDateTime },
             { title: '结束时间', dataIndex: 'endTime', renderText: formatDateTime },

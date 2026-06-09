@@ -4,6 +4,7 @@ import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTrace, ProcessTraceNode, TaskItem } from '@/services/koravo/api';
 import {
+  businessKeyLabel,
   processDefinitionLabel,
   processStatusLabel,
   taskDefinitionLabel,
@@ -37,7 +38,7 @@ function nodeLabel(node?: ProcessTraceNode, fallback?: string) {
   if (!node) return fallback || '-';
   if (node.activityType === 'startEvent') return '开始';
   if (node.activityType === 'endEvent') return '结束';
-  return node.activityName || taskDefinitionLabel(node.activityId) || fallback || node.activityId;
+  return taskDefinitionLabel(node.activityId, { name: node.activityName }) || fallback || node.activityId;
 }
 
 function currentNodes(trace?: ProcessTrace, currentTasks: TaskItem[] = []) {
@@ -156,7 +157,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             column={1}
             dataSource={{
               processDefinitionId: trace?.processDefinitionId,
-              businessKey: trace?.businessKey,
+              businessKey: businessKeyLabel(trace?.businessKey),
               status: processStatusLabel(trace?.status),
               currentNodeText,
               currentHandlerText,

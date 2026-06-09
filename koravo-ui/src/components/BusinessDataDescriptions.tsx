@@ -4,7 +4,7 @@ import {
 } from '@ant-design/pro-components';
 import { Empty, Tag, Typography } from 'antd';
 import React from 'react';
-import { businessFieldLabel } from '@/utils/display';
+import { businessFieldLabel, productCopy } from '@/utils/display';
 import { maskSecret } from '@/utils/format';
 
 type JsonRecord = Record<string, unknown>;
@@ -73,7 +73,7 @@ function valueText(value: unknown): string {
       .map(([key, item]) => `${businessFieldLabel(key)}：${valueText(item)}`)
       .join('，');
   }
-  return String(value);
+  return productCopy(String(value)) || String(value);
 }
 
 function renderValue(field: BusinessField, value: unknown) {

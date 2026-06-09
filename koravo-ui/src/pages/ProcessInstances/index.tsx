@@ -38,6 +38,7 @@ import {
   setSessionContext,
 } from '@/services/koravo/session';
 import {
+  businessKeyLabel,
   formSchemaOptionLabel,
   processDefinitionLabel,
   processDisplayName,
@@ -307,7 +308,12 @@ function buildColumns(
     title: '业务编号',
     dataIndex: 'businessKey',
     width: 180,
-    render: (_, record) => <CopyableText value={record.businessKey} />,
+    render: (_, record) => (
+      <CopyableText
+        value={record.businessKey}
+        displayValue={businessKeyLabel(record.businessKey)}
+      />
+    ),
   },
   { title: '发起人', dataIndex: 'startUserId', width: 120 },
   {

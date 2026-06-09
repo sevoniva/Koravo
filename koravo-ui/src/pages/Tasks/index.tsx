@@ -27,7 +27,12 @@ import {
   getSessionContext,
   type SessionContext,
 } from '@/services/koravo/session';
-import { processDefinitionLabel, taskDefinitionLabel } from '@/utils/display';
+import {
+  businessKeyLabel,
+  processDefinitionLabel,
+  taskDefinitionLabel,
+  taskNameLabel,
+} from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
 type TaskTabKey = 'todo' | 'candidate' | 'done' | 'started';
@@ -81,12 +86,17 @@ function buildTaskColumns(
   onPreview: (task: TaskItem) => void,
 ): ProColumns<TaskItem>[] {
   return [
-  { title: '任务名称', dataIndex: 'name' },
+  { title: '任务名称', dataIndex: 'name', renderText: (_, record) => taskNameLabel(record) },
   {
     title: '业务编号',
     dataIndex: 'businessKey',
     width: 180,
-    render: (_, record) => <CopyableText value={record.businessKey} />,
+    render: (_, record) => (
+      <CopyableText
+        value={record.businessKey}
+        displayValue={businessKeyLabel(record.businessKey)}
+      />
+    ),
   },
   {
     title: '流程定义',
@@ -171,7 +181,12 @@ function buildInstanceColumns(
     title: '业务编号',
     dataIndex: 'businessKey',
     width: 180,
-    render: (_, record) => <CopyableText value={record.businessKey} />,
+    render: (_, record) => (
+      <CopyableText
+        value={record.businessKey}
+        displayValue={businessKeyLabel(record.businessKey)}
+      />
+    ),
   },
   { title: '发起人', dataIndex: 'startUserId', width: 120 },
   {
@@ -259,7 +274,9 @@ const Tasks: React.FC = () => {
   const openTaskPreview = React.useCallback((task: TaskItem) => {
     setPreviewTarget({
       instanceId: task.processInstanceId,
-      title: `${taskDefinitionLabel(task.taskDefinitionKey)} · ${task.businessKey || task.processInstanceId}`,
+      title: `${taskDefinitionLabel(task.taskDefinitionKey)} · ${
+        task.businessKey ? businessKeyLabel(task.businessKey) : task.processInstanceId
+      }`,
       activeTask: task,
       currentTasks: [task],
     });
@@ -268,7 +285,9 @@ const Tasks: React.FC = () => {
   const openInstancePreview = React.useCallback((instance: OpsProcessInstance) => {
     setPreviewTarget({
       instanceId: instance.instanceId,
-      title: `${processDefinitionLabel(instance.processDefinitionId)} · ${instance.businessKey || instance.instanceId}`,
+      title: `${processDefinitionLabel(instance.processDefinitionId)} · ${
+        instance.businessKey ? businessKeyLabel(instance.businessKey) : instance.instanceId
+      }`,
       currentTasks: instance.currentTasks,
     });
   }, []);
