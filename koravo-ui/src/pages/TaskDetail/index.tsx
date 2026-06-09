@@ -45,6 +45,7 @@ import {
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 
 interface CompleteTaskForm {
+  decision?: 'APPROVED' | 'REJECTED' | 'RETURNED';
   comment?: string;
   approved?: boolean;
   approvalComment?: string;
@@ -267,7 +268,15 @@ function buildCompletePayload(
   formSchemaId: string | undefined,
   values: CompleteTaskForm,
 ) {
-  const formData = normalizeFormValues(values.formValues);
+  const decision = values.decision || 'APPROVED';
+  const decisionText =
+    decision === 'APPROVED' ? '同意' : decision === 'REJECTED' ? '不同意' : '退回补充';
+  const formData = {
+    ...normalizeFormValues(values.formValues),
+    decision,
+    decisionText,
+    approved: decision === 'APPROVED',
+  };
   return {
     variables: formData,
     formData,
@@ -407,6 +416,17 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
 
 const CompleteTaskFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSchema }) => (
   <>
+    <ProFormSelect
+      name="decision"
+      label="处理结论"
+      initialValue="APPROVED"
+      options={[
+        { label: '同意', value: 'APPROVED' },
+        { label: '不同意', value: 'REJECTED' },
+        { label: '退回补充', value: 'RETURNED' },
+      ]}
+      rules={[{ required: true, message: '请选择处理结论' }]}
+    />
     <SchemaDrivenFields formSchema={formSchema} />
     <ProFormTextArea name="comment" label="处理意见" fieldProps={{ rows: 4 }} />
   </>

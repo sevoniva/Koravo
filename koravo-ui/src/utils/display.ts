@@ -91,6 +91,8 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   handler: '处理人',
   role: '角色',
   approved: '处理结论',
+  decision: '处理结论',
+  decisionText: '处理结论',
   opinion: '处理意见',
   businessKey: '业务编号',
   id: '编号',
