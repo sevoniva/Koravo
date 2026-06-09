@@ -23,7 +23,7 @@ export default {
   'menu.ops-group': '运维审计',
   'menu.ops': '运维中心',
   'menu.audit-logs': '审计日志',
-  'menu.system-settings': '系统设置',
+  'menu.system-settings': '系统状态',
   'menu.exception.403': '403',
   'menu.exception.404': '404',
   'menu.exception.500': '500',

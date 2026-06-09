@@ -1,8 +1,8 @@
-import { SettingOutlined, UserOutlined } from '@ant-design/icons';
+import { UserOutlined } from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
-import { history, Link } from '@umijs/max';
-import { App as AntdApp, Button, Tooltip } from 'antd';
+import { Link } from '@umijs/max';
+import { App as AntdApp } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import React from 'react';
@@ -94,15 +94,6 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
       }
       return dom;
     },
-    actionsRender: () => [
-      <Tooltip title="系统设置" key="settings">
-        <Button
-          type="text"
-          icon={<SettingOutlined />}
-          onClick={() => history.push('/system-settings')}
-        />
-      </Tooltip>,
-    ],
     avatarProps: {
       icon: <UserOutlined />,
       title: sessionScopeLabel(session),

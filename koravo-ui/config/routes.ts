@@ -153,7 +153,7 @@ export default [
       },
       {
         path: '/system-settings',
-        name: '系统设置',
+        name: '系统状态',
         icon: 'setting',
         component: './SystemSettings',
       },

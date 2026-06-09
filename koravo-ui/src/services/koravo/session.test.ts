@@ -49,7 +49,7 @@ describe('session context', () => {
     });
   });
 
-  it('sends the current session as request context headers', () => {
+  it('does not send identity headers from the browser', () => {
     setRuntimeSessionContext({
       tenantId: 'finance-org',
       userId: 'finance',
@@ -57,10 +57,7 @@ describe('session context', () => {
       requestId: 'TRACE-20260609-002',
     });
 
-    expect(sessionRequestHeaders()).toMatchObject({
-      'X-Tenant-Id': 'finance-org',
-      'X-User-Id': 'finance',
-      'X-User-Role': 'finance',
+    expect(sessionRequestHeaders()).toEqual({
       'X-Request-Id': 'TRACE-20260609-002',
     });
   });

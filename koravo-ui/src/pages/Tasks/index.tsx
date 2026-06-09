@@ -383,7 +383,7 @@ const Tasks: React.FC = () => {
         type="info"
         title={
           <Space wrap size={8}>
-            <span>登录成员</span>
+            <span>当前操作者</span>
             <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
             <span>职责</span>
             <Tag color="blue">{organizationRoleLabel(session.role)}</Tag>
@@ -394,7 +394,7 @@ const Tasks: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              待办按登录成员和职责加载。需要调整成员、部门或职责时，请进入组织权限维护。
+              待办按当前操作者和职责加载。需要调整成员、部门或职责时，请进入组织权限维护。
             </span>
             <Space wrap>
               <Button size="small" onClick={reloadTables}>

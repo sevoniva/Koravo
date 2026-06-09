@@ -27,6 +27,7 @@ import {
   organizationMemberName,
   tenantDisplayName,
 } from '@/services/koravo/organization';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -143,10 +144,13 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
 ];
 
 const Dashboard: React.FC = () => {
+  const session = getSessionContext();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: getDashboardSummary,
   });
+  const operatorUserId =
+    data?.userId && data.userId !== 'anonymous' ? data.userId : session.userId;
 
   const workloadRows = useMemo<WorkloadRow[]>(
     () => [
@@ -221,7 +225,7 @@ const Dashboard: React.FC = () => {
           type="warning"
           showIcon
           title="摘要加载失败"
-          description="请确认服务已启动，并检查登录成员权限。"
+          description="请确认服务已启动，并检查当前操作者权限。"
           style={{ marginBottom: 16 }}
         />
       )}
@@ -294,7 +298,7 @@ const Dashboard: React.FC = () => {
         <ProCard title="运行概览" colSpan={{ xs: 24, xl: 8 }}>
           <Flex vertical gap={12}>
             <span>组织：{tenantDisplayName(data?.tenantId)}</span>
-            <span>登录成员：{organizationMemberName(data?.userId)}</span>
+            <span>当前操作者：{organizationMemberName(operatorUserId)}</span>
             <span>系统时间：{formatDateTime(data?.time)}</span>
             <span>
               连接器成功率：

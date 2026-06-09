@@ -152,6 +152,8 @@ const SystemSettings: React.FC = () => {
   );
 
   const currentRole = roleOptions.find((item) => item.value === session.role);
+  const systemOperatorName = (userId?: string) =>
+    organizationMemberName(userId && userId !== 'anonymous' ? userId : session.userId);
 
   const memberColumns: ProColumns<OrganizationMember>[] = [
     {
@@ -166,7 +168,7 @@ const SystemSettings: React.FC = () => {
       ),
     },
     {
-      title: '登录账号',
+      title: '成员账号',
       dataIndex: 'userId',
       width: 120,
       renderText: (value) => value || '-',
@@ -243,8 +245,8 @@ const SystemSettings: React.FC = () => {
 
   return (
     <PageContainer
-      title="系统设置"
-      content="查看登录成员、依赖状态和系统策略。"
+      title="系统状态"
+      content="查看当前操作者、依赖状态和系统策略。"
     >
       <ProCard
         gutter={16}
@@ -274,11 +276,11 @@ const SystemSettings: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              待办、发起和运维操作会按登录成员加载权限范围。成员、部门和职责由平台身份源同步。
+              待办、发起和运维操作会按当前操作者加载权限范围。成员、部门和职责由平台身份源同步。
             </span>
             <Space wrap>
               <Tag color="processing">
-                登录成员：{organizationMemberName(session.userId)}
+                当前操作者：{organizationMemberName(session.userId)}
               </Tag>
               <Tag color="blue">职责：{roleLabel(session.role)}</Tag>
               <Tag>组织：{tenantDisplayName(session.tenantId)}</Tag>
@@ -340,9 +342,9 @@ const SystemSettings: React.FC = () => {
                 renderText: tenantDisplayName,
               },
               {
-                title: '登录成员',
+                title: '当前操作者',
                 dataIndex: 'userId',
-                renderText: organizationMemberName,
+                renderText: systemOperatorName,
               },
               {
                 title: '职责',
