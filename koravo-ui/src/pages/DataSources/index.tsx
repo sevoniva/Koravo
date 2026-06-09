@@ -2,6 +2,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import {
   ModalForm,
   PageContainer,
+  ProDescriptions,
   ProFormDigit,
   ProFormSelect,
   ProFormSwitch,
@@ -101,10 +102,16 @@ function buildDataSourcePayload(values: DataSourceForm) {
   };
 }
 
+function poolConfigText(record: DataSourceItem) {
+  const config = parsePoolConfig(record.poolConfigJson);
+  return `最大 ${config.maximumPoolSize} / 空闲 ${config.minimumIdle} / 超时 ${formatDuration(config.connectionTimeout)}`;
+}
+
 const DataSources: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<DataSourceItem>();
+  const [detail, setDetail] = useState<DataSourceItem>();
   const [testLogSource, setTestLogSource] = useState<DataSourceItem>();
   const [modal, contextHolder] = Modal.useModal();
 
@@ -153,6 +160,13 @@ const DataSources: React.FC = () => {
       search: false,
     },
     {
+      title: '连接池',
+      dataIndex: 'poolConfigJson',
+      width: 210,
+      search: false,
+      renderText: (_, record) => poolConfigText(record),
+    },
+    {
       title: '只读',
       dataIndex: 'readOnly',
       width: 90,
@@ -169,7 +183,7 @@ const DataSources: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 250,
+      width: 300,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -186,6 +200,9 @@ const DataSources: React.FC = () => {
           </Button>
           <Button type="link" onClick={() => setTestLogSource(record)}>
             测试记录
+          </Button>
+          <Button type="link" onClick={() => setDetail(record)}>
+            详情
           </Button>
           <Button type="link" onClick={() => setEditing(record)}>
             编辑
@@ -359,6 +376,59 @@ const DataSources: React.FC = () => {
       >
         {formItems}
       </ModalForm>
+
+      <Drawer
+        title={detail?.name || '数据源详情'}
+        size={720}
+        open={Boolean(detail)}
+        onClose={() => setDetail(undefined)}
+        extra={
+          detail ? (
+            <Space>
+              <Button onClick={() => setTestLogSource(detail)}>测试记录</Button>
+              <Button type="primary" onClick={() => setEditing(detail)}>
+                编辑
+              </Button>
+            </Space>
+          ) : null
+        }
+      >
+        <ProDescriptions<DataSourceItem>
+          column={1}
+          dataSource={detail}
+          columns={[
+            { title: '名称', dataIndex: 'name' },
+            { title: '类型', dataIndex: 'type', renderText: dataSourceTypeLabel },
+            { title: '连接地址', dataIndex: 'jdbcUrl', copyable: true },
+            { title: '用户名', dataIndex: 'username' },
+            { title: '驱动类', dataIndex: 'driverClassName' },
+            {
+              title: '读写策略',
+              dataIndex: 'readOnly',
+              render: (_, record) => (record.readOnly ? '只读' : '可写'),
+            },
+            { title: '状态', dataIndex: 'status' },
+            {
+              title: '最大连接数',
+              dataIndex: 'poolConfigJson',
+              renderText: (_, record) =>
+                parsePoolConfig(record.poolConfigJson).maximumPoolSize,
+            },
+            {
+              title: '最小空闲连接',
+              dataIndex: 'poolConfigJson',
+              renderText: (_, record) =>
+                parsePoolConfig(record.poolConfigJson).minimumIdle,
+            },
+            {
+              title: '连接超时',
+              dataIndex: 'poolConfigJson',
+              renderText: (_, record) =>
+                formatDuration(parsePoolConfig(record.poolConfigJson).connectionTimeout),
+            },
+          ]}
+        />
+      </Drawer>
 
       <Drawer
         title={testLogSource ? `${testLogSource.name} 测试记录` : '测试记录'}

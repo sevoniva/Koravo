@@ -49,6 +49,14 @@ const PROCESS_STATUS_LABELS: Record<string, string> = {
   DEPLOYED: '已部署',
   DISABLED: '已停用',
   ARCHIVED: '已归档',
+  RUNNING: '运行中',
+  ACTIVE: '处理中',
+  COMPLETED: '已完成',
+  TERMINATED: '已终止',
+  SUSPENDED: '已挂起',
+  FAILED: '失败',
+  READY: '就绪',
+  AVAILABLE: '可用',
 };
 
 const DATASOURCE_TYPE_LABELS: Record<string, string> = {

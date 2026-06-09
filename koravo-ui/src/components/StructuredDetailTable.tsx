@@ -1,7 +1,17 @@
 import { ProTable, type ProColumns } from '@ant-design/pro-components';
 import { Empty, Tag, Typography } from 'antd';
 import React from 'react';
-import { businessFieldLabel } from '@/utils/display';
+import {
+  auditActionLabel,
+  auditResourceLabel,
+  businessFieldLabel,
+  dataSourceTypeLabel,
+  processDefinitionLabel,
+  processModelKeyLabel,
+  processStatusLabel,
+  productCopy,
+  taskDefinitionLabel,
+} from '@/utils/display';
 import { maskSecret } from '@/utils/format';
 
 interface DetailRow {
@@ -86,21 +96,46 @@ function tryParseStructuredValue(value?: unknown) {
   return parseJsonValue(text) ?? parseSummaryText(text) ?? value;
 }
 
-function valueToText(value: unknown): string {
+function domainText(rowKey: string, value: unknown) {
+  if (typeof value !== 'string') return undefined;
+  const field = rowKey.split('.').pop();
+  if (field === 'action') return auditActionLabel(value);
+  if (field === 'resourceType') return auditResourceLabel(value);
+  if (field === 'processDefinitionId') return processDefinitionLabel(value);
+  if (field === 'processDefinitionKey' || field === 'modelKey') {
+    return processModelKeyLabel(value);
+  }
+  if (field === 'taskDefinitionKey' || field === 'elementId') {
+    return taskDefinitionLabel(value);
+  }
+  if (field === 'type') return dataSourceTypeLabel(value);
+  if (field === 'status' || field === 'statusText') return processStatusLabel(value);
+  const copy = productCopy(value);
+  return copy && copy !== value ? copy : undefined;
+}
+
+function valueToText(value: unknown, rowKey = ''): string {
+  const domainValue = domainText(rowKey, value);
+  if (domainValue) return domainValue;
   if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'boolean') return value ? '是' : '否';
-  if (Array.isArray(value)) return value.map(valueToText).join('、');
+  if (Array.isArray(value)) {
+    return value
+      .map((item, index) => valueToText(item, `${rowKey}.${index + 1}`))
+      .join('、');
+  }
   if (typeof value === 'object') {
     return Object.entries(value as Record<string, unknown>)
       .map(
-        ([key, child]) => `${businessFieldLabel(key)}：${valueToText(child)}`,
+        ([key, child]) =>
+          `${businessFieldLabel(key)}：${valueToText(child, rowKey ? `${rowKey}.${key}` : key)}`,
       )
       .join('，');
   }
   return String(value);
 }
 
-function formatValue(value: unknown): React.ReactNode {
+function formatValue(value: unknown, rowKey = ''): React.ReactNode {
   if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'boolean') {
     return <Tag color={value ? 'success' : 'error'}>{value ? '是' : '否'}</Tag>;
@@ -108,11 +143,13 @@ function formatValue(value: unknown): React.ReactNode {
   if (typeof value === 'number') return value;
   if (Array.isArray(value)) {
     if (!value.length) return '无';
-    return value.map(valueToText).join('、');
+    return value
+      .map((item, index) => valueToText(item, `${rowKey}.${index + 1}`))
+      .join('、');
   }
   return (
-    <Typography.Text copyable ellipsis={{ tooltip: String(value) }}>
-      {valueToText(value)}
+    <Typography.Text copyable ellipsis={{ tooltip: valueToText(value, rowKey) }}>
+      {valueToText(value, rowKey)}
     </Typography.Text>
   );
 }
@@ -136,7 +173,7 @@ function buildRows(value: unknown, parentKey?: string): DetailRow[] {
         : String(index + 1);
       if (item && typeof item === 'object') return buildRows(item, rowKey);
       return [
-        { key: rowKey, field: pathLabel(rowKey), value: formatValue(item) },
+        { key: rowKey, field: pathLabel(rowKey), value: formatValue(item, rowKey) },
       ];
     });
   }
@@ -151,7 +188,7 @@ function buildRows(value: unknown, parentKey?: string): DetailRow[] {
         {
           key: rowKey,
           field: pathLabel(rowKey),
-          value: formatValue(item),
+          value: formatValue(item, rowKey),
         },
       ];
     },
@@ -190,7 +227,7 @@ const StructuredDetailTable: React.FC<StructuredDetailTableProps> = ({
         rowKey="key"
         columns={columns}
         dataSource={[
-          { key: 'content', field: '内容', value: formatValue(parsed) },
+          { key: 'content', field: '内容', value: formatValue(parsed, 'content') },
         ]}
         search={false}
         pagination={false}
