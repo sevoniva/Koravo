@@ -201,7 +201,6 @@ const traceColumns: ProColumns<ProcessTraceNode>[] = [
     renderText: (value, record) =>
       taskDefinitionLabel(value, { name: record.activityName }),
   },
-  { title: '节点编号', dataIndex: 'activityId', width: 180, copyable: true },
   { title: '类型', dataIndex: 'activityType', width: 150, renderText: activityTypeLabel },
   {
     title: '开始时间',
@@ -448,19 +447,32 @@ const ProcessInstanceDetail: React.FC = () => {
           column={{ xs: 1, sm: 1, md: 2 }}
           dataSource={instance}
           columns={[
-            { title: '实例编号', dataIndex: 'instanceId', copyable: true },
             {
-              title: '流程定义',
+              title: '业务对象',
+              dataIndex: 'businessKey',
+              render: (_, record) => (
+                <CopyableText
+                  value={record.businessKey || record.instanceId}
+                  displayValue={
+                    record.businessKey
+                      ? businessKeyLabel(record.businessKey)
+                      : shortTraceLabel(record.instanceId)
+                  }
+                />
+              ),
+            },
+            {
+              title: '流程',
               dataIndex: 'processDefinitionId',
               renderText: processDefinitionLabel,
             },
             {
-              title: '业务编号',
-              dataIndex: 'businessKey',
+              title: '实例追踪',
+              dataIndex: 'instanceId',
               render: (_, record) => (
                 <CopyableText
-                  value={record.businessKey}
-                  displayValue={businessKeyLabel(record.businessKey)}
+                  value={record.instanceId}
+                  displayValue={shortTraceLabel(record.instanceId)}
                 />
               ),
             },

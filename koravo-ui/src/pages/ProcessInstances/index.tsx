@@ -46,6 +46,7 @@ import {
   formSchemaOptionLabel,
   processDefinitionLabel,
   processDisplayName,
+  shortTraceLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
@@ -300,25 +301,35 @@ function buildColumns(
 ): ProColumns<OpsProcessInstance>[] {
   return [
   {
-    title: '实例编号',
-    dataIndex: 'instanceId',
-    width: 220,
-    render: (_, record) => <CopyableText value={record.instanceId} />,
+    title: '业务对象',
+    dataIndex: 'businessKey',
+    width: 180,
+    render: (_, record) => (
+      <CopyableText
+        value={record.businessKey || record.instanceId}
+        displayValue={
+          record.businessKey
+            ? businessKeyLabel(record.businessKey)
+            : shortTraceLabel(record.instanceId)
+        }
+      />
+    ),
   },
   {
-    title: '流程定义',
+    title: '流程',
     dataIndex: 'processDefinitionId',
     ellipsis: true,
     renderText: (value) => processDefinitionLabel(value),
   },
   {
-    title: '业务编号',
-    dataIndex: 'businessKey',
-    width: 180,
+    title: '实例追踪',
+    dataIndex: 'instanceId',
+    width: 140,
+    search: false,
     render: (_, record) => (
       <CopyableText
-        value={record.businessKey}
-        displayValue={businessKeyLabel(record.businessKey)}
+        value={record.instanceId}
+        displayValue={shortTraceLabel(record.instanceId)}
       />
     ),
   },

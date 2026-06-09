@@ -86,10 +86,12 @@ const commentColumns: ProColumns<TaskCommentItem>[] = [
 
 const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
   {
-    title: '快照编号',
+    title: '快照',
     dataIndex: 'id',
-    width: 220,
-    render: (_, record) => <CopyableText value={record.id} />,
+    width: 140,
+    render: (_, record) => (
+      <CopyableText value={record.id} displayValue={shortTraceLabel(record.id)} />
+    ),
   },
   {
     title: '表单',
@@ -307,7 +309,7 @@ const TaskHandlingContext: React.FC<{
           columns={[
             { title: '处理人', dataIndex: 'assignee' },
             { title: '任务状态', dataIndex: 'status' },
-            { title: '任务节点', dataIndex: 'node' },
+            { title: '当前节点', dataIndex: 'node' },
           ]}
         />
         <TaskActionTimeline logs={logs} />
@@ -851,19 +853,31 @@ const TaskDetail: React.FC = () => {
           column={{ xs: 1, sm: 1, md: 2 }}
           dataSource={task}
           columns={[
-            { title: '任务编号', dataIndex: 'taskId', copyable: true },
+            {
+              title: '任务追踪',
+              dataIndex: 'taskId',
+              render: (_, record) => (
+                <CopyableText
+                  value={record.taskId}
+                  displayValue={shortTraceLabel(record.taskId)}
+                />
+              ),
+            },
             { title: '任务名称', dataIndex: 'name', renderText: (_, record) => taskNameLabel(record) },
             {
-              title: '流程定义',
+              title: '流程',
               dataIndex: 'processDefinitionId',
               renderText: processDefinitionLabel,
             },
             {
-              title: '流程实例',
+              title: '实例追踪',
               dataIndex: 'processInstanceId',
               render: (_, record) => (
                 <Flex align="center" gap={8} wrap>
-                  <CopyableText value={record.processInstanceId} />
+                  <CopyableText
+                    value={record.processInstanceId}
+                    displayValue={shortTraceLabel(record.processInstanceId)}
+                  />
                   <Button
                     type="link"
                     onClick={() =>
@@ -876,16 +890,20 @@ const TaskDetail: React.FC = () => {
               ),
             },
             {
-              title: '业务编号',
+              title: '业务对象',
               dataIndex: 'businessKey',
               render: (_, record) => (
                 <CopyableText
-                  value={record.businessKey}
-                  displayValue={businessKeyLabel(record.businessKey)}
+                  value={record.businessKey || record.processInstanceId}
+                  displayValue={
+                    record.businessKey
+                      ? businessKeyLabel(record.businessKey)
+                      : shortTraceLabel(record.processInstanceId)
+                  }
                 />
               ),
             },
-            { title: '任务节点', dataIndex: 'taskDefinitionKey', renderText: taskDefinitionLabel },
+            { title: '当前节点', dataIndex: 'taskDefinitionKey', renderText: taskDefinitionLabel },
             { title: '处理人', dataIndex: 'assignee', renderText: organizationMemberName },
             { title: '创建时间', dataIndex: 'createTime', renderText: formatDateTime },
             { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
