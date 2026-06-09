@@ -1,33 +1,28 @@
 import {
-  ModalForm,
   PageContainer,
   ProCard,
-  ProDescriptions,
-  ProFormSelect,
-  ProFormText,
-  ProTable,
   type ProColumns,
+  ProDescriptions,
+  ProTable,
 } from '@ant-design/pro-components';
-import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Button, Flex, Space, Statistic, Tag } from 'antd';
-import React, { useMemo, useState } from 'react';
+import { history, useLocation } from '@umijs/max';
+import { Alert, Button, Flex, Space, Statistic, Tag, Typography } from 'antd';
+import React, { useMemo } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import { getSystemHealth, type SystemHealthItem } from '@/services/koravo/api';
+import {
+  getOrganizationMembers,
+  type OrganizationMember,
+  organizationMemberName,
+  organizationRoleLabel,
+  tenantDisplayName,
+} from '@/services/koravo/organization';
 import {
   getSessionContext,
   type SessionContext,
   type SessionRole,
 } from '@/services/koravo/session';
-import {
-  getOrganizationMembers,
-  organizationDepartmentSelectOptions,
-  organizationMemberName,
-  organizationRoleLabel,
-  saveOrganizationMembers,
-  tenantDisplayName,
-  type OrganizationMember,
-} from '@/services/koravo/organization';
 import { buildVersionLabel, productCopy } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
@@ -117,10 +112,10 @@ const permissionMatrix: PermissionMatrixItem[] = [
 
 const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
   { title: '权限域', dataIndex: 'scope', width: 200 },
-  { title: '管理员', dataIndex: 'admin' },
-  { title: '发起人', dataIndex: 'applicant' },
-  { title: '业务处理人', dataIndex: 'manager' },
-  { title: '财务复核人', dataIndex: 'finance' },
+  { title: '管理员', dataIndex: 'admin', width: 96 },
+  { title: '发起人', dataIndex: 'applicant', width: 96 },
+  { title: '业务处理人', dataIndex: 'manager', width: 112 },
+  { title: '财务复核人', dataIndex: 'finance', width: 112 },
 ];
 
 function roleLabel(role: SessionRole) {
@@ -128,13 +123,10 @@ function roleLabel(role: SessionRole) {
 }
 
 const SystemSettings: React.FC = () => {
-  const { message } = App.useApp();
   const location = useLocation();
   const isOrganizationPage = location.pathname === '/organization-permissions';
-  const [session] = useState<SessionContext>(() => getSessionContext());
-  const [members, setMembers] = useState<OrganizationMember[]>(() =>
-    getOrganizationMembers(),
-  );
+  const session = getSessionContext();
+  const members = getOrganizationMembers();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-health'],
     queryFn: getSystemHealth,
@@ -161,17 +153,29 @@ const SystemSettings: React.FC = () => {
 
   const currentRole = roleOptions.find((item) => item.value === session.role);
 
-  const updateMembers = (nextMembers: OrganizationMember[]) => {
-    setMembers(nextMembers);
-    saveOrganizationMembers(nextMembers);
-  };
-
   const memberColumns: ProColumns<OrganizationMember>[] = [
-    { title: '成员', dataIndex: 'name' },
-    { title: '部门', dataIndex: 'department' },
+    {
+      title: '成员',
+      dataIndex: 'name',
+      width: 160,
+      ellipsis: true,
+      render: (_, record) => (
+        <Typography.Text ellipsis={{ tooltip: record.name }}>
+          {record.name}
+        </Typography.Text>
+      ),
+    },
+    {
+      title: '登录账号',
+      dataIndex: 'userId',
+      width: 120,
+      renderText: (value) => value || '-',
+    },
+    { title: '部门', dataIndex: 'department', width: 120, ellipsis: true },
     {
       title: '角色',
       dataIndex: 'role',
+      width: 112,
       render: (_, record) => (
         <Tag color="processing">{roleLabel(record.role)}</Tag>
       ),
@@ -186,30 +190,6 @@ const SystemSettings: React.FC = () => {
         </Tag>
       ),
     },
-    {
-      title: '操作',
-      valueType: 'option',
-      width: 96,
-      render: (_, record) => (
-        <Button
-          type="link"
-          onClick={() => {
-            updateMembers(
-              members.map((item) =>
-                item.key === record.key
-                  ? {
-                      ...item,
-                      status: item.status === '启用' ? '停用' : '启用',
-                    }
-                  : item,
-              ),
-            );
-          }}
-        >
-          {record.status === '启用' ? '停用' : '启用'}
-        </Button>
-      ),
-    },
   ];
 
   const organizationPermissionsContent = (
@@ -217,12 +197,12 @@ const SystemSettings: React.FC = () => {
       <Alert
         showIcon
         type="info"
-        title="成员、部门和职责会影响待办分配"
-        description="维护组织成员后，发起表单、审批人选择、待办列表和审计记录都会按成员名称展示。"
+        title="组织档案由平台身份源同步"
+        description="成员、部门和职责会影响待办分配。发起表单、审批人选择、待办列表和审计记录都会按成员名称展示。"
         style={{ marginBottom: 16 }}
       />
       <ProCard title="组织权限" split="vertical" gutter={16} wrap>
-        <ProCard title="成员清单" colSpan={{ xs: 24, xl: 10 }}>
+        <ProCard title="成员清单" colSpan={{ xs: 24, xl: 12 }}>
           <ProTable<OrganizationMember>
             rowKey="key"
             columns={memberColumns}
@@ -230,61 +210,11 @@ const SystemSettings: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
+            scroll={{ x: 592 }}
             size="small"
-            toolBarRender={() => [
-              <ModalForm<OrganizationMember>
-                key="create-member"
-                title="新增成员"
-                trigger={<Button type="primary">新增成员</Button>}
-                modalProps={{ destroyOnHidden: true }}
-                onFinish={async (values) => {
-                  const userId = values.userId.trim();
-                  const next = {
-                    ...values,
-                    key: userId,
-                    userId,
-                    status: '启用',
-                  };
-                  updateMembers([
-                    ...members.filter((item) => item.userId !== userId),
-                    next,
-                  ]);
-                  message.success('成员已保存');
-                  return true;
-                }}
-              >
-                <ProFormText
-                  name="name"
-                  label="成员名称"
-                  rules={[{ required: true, message: '请输入成员名称' }]}
-                />
-                <ProFormText
-                  name="userId"
-                  label="登录账号"
-                  tooltip="用于待办分配和审计追踪，业务页面优先显示成员名称。"
-                  rules={[{ required: true, message: '请输入登录账号' }]}
-                />
-                <ProFormSelect
-                  name="department"
-                  label="部门"
-                  options={organizationDepartmentSelectOptions()}
-                  fieldProps={{ showSearch: true, optionFilterProp: 'label' }}
-                  rules={[{ required: true, message: '请选择部门' }]}
-                />
-                <ProFormSelect
-                  name="role"
-                  label="职责"
-                  options={roleOptions.map((item) => ({
-                    label: item.label,
-                    value: item.value,
-                  }))}
-                  rules={[{ required: true, message: '请选择职责' }]}
-                />
-              </ModalForm>,
-            ]}
           />
         </ProCard>
-        <ProCard title="权限矩阵" colSpan={{ xs: 24, xl: 14 }}>
+        <ProCard title="权限矩阵" colSpan={{ xs: 24, xl: 12 }}>
           <ProTable<PermissionMatrixItem>
             rowKey="key"
             columns={permissionColumns}
@@ -292,6 +222,7 @@ const SystemSettings: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
+            scroll={{ x: 616 }}
             size="small"
           />
         </ProCard>
@@ -303,7 +234,7 @@ const SystemSettings: React.FC = () => {
     return (
       <PageContainer
         title="组织权限"
-        content="维护成员、部门、职责和流程办理权限。"
+        content="查看平台同步的成员、部门、职责和流程办理权限。"
       >
         {organizationPermissionsContent}
       </PageContainer>
@@ -343,7 +274,7 @@ const SystemSettings: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              待办、发起和运维操作会按登录成员加载权限范围。成员、部门和职责统一在组织权限中维护。
+              待办、发起和运维操作会按登录成员加载权限范围。成员、部门和职责由平台身份源同步。
             </span>
             <Space wrap>
               <Tag color="processing">

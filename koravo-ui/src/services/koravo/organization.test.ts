@@ -86,7 +86,7 @@ describe('organization display helpers', () => {
     });
   });
 
-  it('migrates old default role names from browser storage', () => {
+  it('uses the platform organization profile instead of browser-local overrides', () => {
     window.localStorage.setItem(
       'koravo:organization-members',
       JSON.stringify([
@@ -98,11 +98,20 @@ describe('organization display helpers', () => {
           role: 'manager',
           status: '启用',
         },
+        {
+          key: 'local-only',
+          name: '浏览器本地成员',
+          userId: 'local-only',
+          department: '临时部门',
+          role: 'manager',
+          status: '启用',
+        },
       ]),
     );
 
     expect(organizationMemberName('manager')).toBe('业务审批主管');
     expect(organizationMemberName('admin')).toBe('流程平台负责人');
+    expect(organizationMemberName('local-only')).toBe('未登记成员');
     expect(
       getOrganizationMembers().find((item) => item.userId === 'manager'),
     ).toMatchObject({

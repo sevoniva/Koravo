@@ -278,7 +278,7 @@ Default `mvn test` remains fast and does not require Docker-backed integration i
 - Passwords are encrypted before storage and never returned by datasource APIs.
 - Flowable tables are not modified by Koravo migrations.
 - The web console sends the current tenant, member, role, and request trace context on API calls.
-- Organization members and responsibilities are maintained from Organization Permissions, not by switching identity in page headers.
+- Organization members and responsibilities are synchronized into Organization Permissions, not changed by switching identity in page headers.
 - The first frontend bundle is large because Ant Design Pro, ProComponents, antd, and bpmn-js are all used by the console.
 
 ## License

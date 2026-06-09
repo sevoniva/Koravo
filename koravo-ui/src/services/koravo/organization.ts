@@ -9,7 +9,6 @@ export interface OrganizationMember {
   status: string;
 }
 
-const STORAGE_KEY = 'koravo:organization-members';
 const expression = (name: string) => '$' + `{${name}}`;
 
 export const defaultOrganizationMembers: OrganizationMember[] = [
@@ -54,59 +53,13 @@ export const roleLabels: Record<SessionRole, string> = {
   finance: '财务复核人',
 };
 
-const legacyDefaultMemberNames: Record<string, string> = {
-  admin: '管理员',
-  applicant: '发起人',
-  manager: '业务处理人',
-  finance: '财务复核人',
-};
-
-function normalizeStoredOrganizationMembers(members: OrganizationMember[]) {
-  const normalized = members.map((member) => {
-    const defaultMember = defaultOrganizationMembers.find(
-      (item) => item.userId === member.userId,
-    );
-    if (!defaultMember) return member;
-    const legacyName = legacyDefaultMemberNames[member.userId];
-    return {
-      ...member,
-      name: member.name === legacyName ? defaultMember.name : member.name,
-      department:
-        member.department === '业务部门'
-          ? defaultMember.department
-      : member.department,
-    };
-  });
-  const memberByUserId = new Map(
-    normalized.map((member) => [member.userId, member]),
-  );
-  const mergedDefaults = defaultOrganizationMembers.map(
-    (member) => memberByUserId.get(member.userId) || member,
-  );
-  const extraMembers = normalized.filter(
-    (member) =>
-      !defaultOrganizationMembers.some((item) => item.userId === member.userId),
-  );
-  return [...mergedDefaults, ...extraMembers];
-}
-
 export function tenantDisplayName(tenantId?: string | null) {
   if (!tenantId) return '-';
   return tenantId === 'default' ? '当前组织' : tenantId;
 }
 
 export function getOrganizationMembers() {
-  if (typeof window === 'undefined') return defaultOrganizationMembers;
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) return defaultOrganizationMembers;
-  try {
-    const members = JSON.parse(raw) as OrganizationMember[];
-    return Array.isArray(members) && members.length
-      ? normalizeStoredOrganizationMembers(members)
-      : defaultOrganizationMembers;
-  } catch {
-    return defaultOrganizationMembers;
-  }
+  return defaultOrganizationMembers;
 }
 
 export function organizationMemberByUserId(userId?: string | null) {
@@ -360,11 +313,6 @@ export function sessionScopeLabel(session: Pick<SessionContext, 'tenantId' | 'us
   return `${sessionActorLabel(session)}${department} · ${tenantDisplayName(session.tenantId)}`;
 }
 
-export function saveOrganizationMembers(members: OrganizationMember[]) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
-}
-
 export function organizationHandlerOptions() {
   const userOptions = getOrganizationMembers()
     .filter((item) => item.status === '启用')
@@ -384,8 +332,4 @@ export function organizationGroupOptions() {
   return Array.from(new Set(getOrganizationMembers().map((item) => item.department)))
     .filter(Boolean)
     .map((department) => ({ label: department, value: department }));
-}
-
-export function organizationDepartmentSelectOptions() {
-  return organizationGroupOptions();
 }
