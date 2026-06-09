@@ -179,7 +179,7 @@ const useStyles = createStyles(({ css, token }) => ({
 }));
 
 function createDraftModelKey() {
-  return `koravoProcess${Date.now().toString(36)}`;
+  return `businessFlow${Date.now().toString(36)}`;
 }
 
 function downloadXml(xml: string, filename: string) {

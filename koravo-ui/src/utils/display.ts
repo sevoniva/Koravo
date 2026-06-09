@@ -179,19 +179,9 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
 }
 
 export function processModelKeyLabel(modelKey?: string | null) {
-  const mapping: Record<string, string> = {
-    collaborativeApproval: 'collaborativeApproval',
-    httpHealthCheck: 'integrationHealthCheck',
-  };
   if (!modelKey) return '-';
-  const mapped = mapping[modelKey] || modelKey;
-  if (/^koravo\s*process[a-z0-9]*$/i.test(mapped)) return 'businessProcess';
-  return mapped;
+  return modelKey;
 }
-
-const hiddenProcessModelKeys = new Set<string>();
-const nonBusinessProcessModelPattern =
-  /示例|演示|验证|调试|测试|检查|新\d|demo|test|sample/i;
 
 export function isBusinessProcessModel(
   model?: Pick<
@@ -199,11 +189,8 @@ export function isBusinessProcessModel(
     'modelKey' | 'modelName' | 'description'
   > | null,
 ) {
-  if (!model) return true;
-  if (hiddenProcessModelKeys.has(model.modelKey)) return false;
-  return ![model.modelName, model.description, model.modelKey].some((value) =>
-    nonBusinessProcessModelPattern.test(String(value || '')),
-  );
+  void model;
+  return true;
 }
 
 export function processDescriptionLabel(
@@ -232,7 +219,6 @@ export function productCopy(value?: string | null) {
 export function processNameLabel(value?: string | null) {
   const text = productCopy(value);
   if (!text) return '';
-  if (/^koravo\s*process[a-z0-9]*$/i.test(text)) return '业务审批流程';
   if (/^http\s*健康检查$/i.test(text)) return '接口巡检流程';
   return text;
 }
@@ -246,9 +232,7 @@ export function buildVersionLabel(value?: string | null) {
 
 export function businessKeyLabel(value?: string | null) {
   if (!value) return '-';
-  return productCopy(value)
-    .replace(/\bPO-/g, 'ACC-')
-    .replace(/\bHTTP-/g, 'INT-');
+  return productCopy(value);
 }
 
 export function formSchemaNameLabel(formName?: string | null) {
@@ -356,11 +340,6 @@ export function connectionAddressLabel(value?: string | null) {
 export function shortTraceLabel(value?: string | number | null) {
   if (value === undefined || value === null || value === '') return '';
   const text = String(value);
-  if (/demo|mock|sample|test/i.test(text)) {
-    let hash = 0;
-    for (const char of text) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-    return `TRACE-${hash.toString(16).slice(0, 8).toUpperCase()}`;
-  }
   return text.length > 12 ? text.slice(0, 8) : text;
 }
 

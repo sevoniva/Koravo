@@ -12,14 +12,14 @@ function escapeXml(value: string) {
 }
 
 function normalizeBpmnId(value?: string) {
-  const normalized = (value?.trim() || 'koravoProcess')
+  const normalized = (value?.trim() || 'businessFlow')
     .replace(/[^\w.-]/g, '_')
     .replace(/_+/g, '_');
 
   if (/^[A-Za-z_]/.test(normalized)) {
     return normalized;
   }
-  return `koravoProcess${normalized}`;
+  return `businessFlow${normalized}`;
 }
 
 export function createDefaultBpmnXml(modelKey?: string, modelName?: string) {

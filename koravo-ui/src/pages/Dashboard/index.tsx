@@ -277,7 +277,7 @@ const Dashboard: React.FC = () => {
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 12, xl: 6 }}>
           <Statistic
-            title="HTTP 调用"
+            title="集成调用"
             value={data?.connectorSuccessCount ?? 0}
           />
           <span>失败 {data?.connectorFailedCount ?? 0}</span>

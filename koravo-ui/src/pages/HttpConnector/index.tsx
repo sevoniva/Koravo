@@ -138,7 +138,7 @@ const HttpConnector: React.FC = () => {
   ];
 
   return (
-    <PageContainer title="HTTP 连接器" content="查看连接器调用质量和执行明细。">
+    <PageContainer title="集成动作" content="查看外部系统动作的调用质量和执行明细。">
       <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
           <Statistic title="调用总数" value={summary?.total ?? 0} />

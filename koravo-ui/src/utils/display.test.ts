@@ -16,29 +16,28 @@ import {
 describe('display helpers', () => {
   it('uses product process identifiers for visible process model labels', () => {
     expect(processModelKeyLabel('collaborativeApproval')).toBe('collaborativeApproval');
-    expect(processModelKeyLabel('koravoProcessmq5amzdq')).toBe('businessProcess');
+    expect(processModelKeyLabel('koravoProcessmq5amzdq')).toBe('koravoProcessmq5amzdq');
   });
 
   it('normalizes process names and definitions', () => {
-    expect(processDisplayName('koravo Processmq5amzdq')).toBe('业务审批流程');
+    expect(processDisplayName('koravo Processmq5amzdq')).toBe('koravo Processmq5amzdq');
     expect(processDisplayName('collaborativeApproval')).toBe('协同审批流程');
     expect(processDefinitionLabel('collaborativeApproval:1:5fed0551')).toBe('协同审批流程 v1');
-    expect(processNameLabel('koravo Processmq5amzdq')).toBe('业务审批流程');
+    expect(processNameLabel('koravo Processmq5amzdq')).toBe('koravo Processmq5amzdq');
   });
 
-  it('normalizes historical business object prefixes everywhere in the value', () => {
+  it('keeps historical business object prefixes visible for data cleanup', () => {
     expect(businessKeyLabel('PO-CONTINUE-20260609-0437')).toBe(
-      'ACC-CONTINUE-20260609-0437',
+      'PO-CONTINUE-20260609-0437',
     );
     expect(businessKeyLabel('任务：PO-CONTINUE-20260609-0437')).toBe(
-      '任务：ACC-CONTINUE-20260609-0437',
+      '任务：PO-CONTINUE-20260609-0437',
     );
-    expect(businessKeyLabel('HTTP-1780845610965')).toBe('INT-1780845610965');
+    expect(businessKeyLabel('HTTP-1780845610965')).toBe('HTTP-1780845610965');
   });
 
-  it('hides legacy demo markers from visible trace labels', () => {
-    expect(shortTraceLabel('demo-http-connector')).not.toContain('demo');
-    expect(shortTraceLabel('demo-http-connector')).toMatch(/^TRACE-/);
+  it('keeps legacy demo markers visible for governance cleanup', () => {
+    expect(shortTraceLabel('demo-http-connector')).toBe('demo-htt');
   });
 
   it('hides local development addresses from primary labels', () => {
@@ -67,21 +66,21 @@ describe('display helpers', () => {
     expect(businessFieldLabel('X-Koravo-User-Role')).toBe('职责');
   });
 
-  it('filters non-business process models consistently', () => {
+  it('does not hide non-business-looking process models in admin surfaces', () => {
     expect(
       isBusinessProcessModel({
         modelKey: 'designerDeployCheck',
         modelName: '流程发布检查',
         description: '验证设计器部署入口',
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isBusinessProcessModel({
         modelKey: 'koravoProcessmq5amzdq',
         modelName: '新12313流程123',
         description: '',
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isBusinessProcessModel({
         modelKey: 'collaborativeApproval',

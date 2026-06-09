@@ -26,7 +26,7 @@ describe('ProcessDesigner BPMN XML helpers', () => {
   it('normalizes generated BPMN ids for the modeler', () => {
     const xml = createDefaultBpmnXml('123', 'Numeric flow');
 
-    expect(xml).toContain('id="koravoProcess123"');
+    expect(xml).toContain('id="businessFlow123"');
     expect(xml).not.toContain('id="123"');
   });
 

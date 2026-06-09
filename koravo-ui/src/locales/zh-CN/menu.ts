@@ -19,7 +19,7 @@ export default {
   'menu.organization-permissions': '组织权限',
   'menu.integration': '集成管理',
   'menu.datasources': '数据源管理',
-  'menu.http-connector': 'HTTP 连接器',
+  'menu.http-connector': '集成动作',
   'menu.ops-group': '运维审计',
   'menu.ops': '运维中心',
   'menu.audit-logs': '审计日志',
