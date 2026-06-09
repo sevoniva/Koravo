@@ -34,17 +34,17 @@ export const defaultOrganizationMembers: OrganizationMember[] = [
   },
   {
     key: 'manager',
-    name: '业务审批主管',
+    name: '审批主管',
     userId: 'manager',
-    department: '业务一部',
+    department: '审批中心',
     role: 'manager',
     status: '启用',
   },
   {
     key: 'finance',
-    name: '财务复核专员',
+    name: '复核专员',
     userId: 'finance',
-    department: '财务部门',
+    department: '审批中心',
     role: 'finance',
     status: '启用',
   },
@@ -63,8 +63,8 @@ let runtimeOrganizationMembers: OrganizationMember[] = defaultOrganizationMember
 export const roleLabels: Record<SessionRole, string> = {
   admin: '管理员',
   applicant: '发起人',
-  manager: '业务处理人',
-  finance: '财务复核人',
+  manager: '审批人',
+  finance: '复核人',
   operator: '运维审计人',
 };
 
@@ -312,8 +312,8 @@ export function organizationAssigneeRole(
 
   const key = normalizeSemanticKey(fieldKey);
   const title = String(fieldTitle || '').trim();
-  if (/finance|财务/.test(`${key} ${title}`)) return 'finance';
-  if (/manager|business|department|业务|部门/.test(`${key} ${title}`)) return 'manager';
+  if (/finance|财务|复核/.test(`${key} ${title}`)) return 'finance';
+  if (/manager|business|department|业务|部门|审批|办理|负责人/.test(`${key} ${title}`)) return 'manager';
   return undefined;
 }
 
@@ -415,8 +415,8 @@ export function organizationHandlerOptions() {
     }));
   return [
     { label: '流程发起人', value: expression('startUserId') },
-    { label: '业务审批主管', value: expression('managerApprover') },
-    { label: '财务复核专员', value: expression('financeApprover') },
+    { label: '第一审批人', value: expression('managerApprover') },
+    { label: '第二审批人', value: expression('financeApprover') },
     ...userOptions,
   ];
 }

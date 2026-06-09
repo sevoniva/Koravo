@@ -93,14 +93,14 @@ const roleOptions: RoleOption[] = [
     description: '发起业务流程并跟踪实例进度。',
   },
   {
-    label: '业务处理人',
+    label: '审批人',
     value: 'manager',
-    description: '处理业务审批、复核和协同待办。',
+    description: '处理分配给自己的审批和协同待办。',
   },
   {
-    label: '财务复核人',
+    label: '复核人',
     value: 'finance',
-    description: '处理财务复核和金额确认待办。',
+    description: '处理分配给自己的复核和会签待办。',
   },
   {
     label: '运维审计人',
@@ -161,8 +161,8 @@ const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
   { title: '权限域', dataIndex: 'scope', width: 200 },
   { title: '管理员', dataIndex: 'admin', width: 96 },
   { title: '发起人', dataIndex: 'applicant', width: 96 },
-  { title: '业务处理人', dataIndex: 'manager', width: 112 },
-  { title: '财务复核人', dataIndex: 'finance', width: 112 },
+  { title: '审批人', dataIndex: 'manager', width: 112 },
+  { title: '复核人', dataIndex: 'finance', width: 112 },
   { title: '运维审计人', dataIndex: 'operator', width: 112 },
 ];
 

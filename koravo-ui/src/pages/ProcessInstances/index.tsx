@@ -216,8 +216,8 @@ function isStartAssigneeMultiField(field: StartFormField) {
 function defaultApprovalUsers(field: StartFormField) {
   if (!isStartAssigneeMultiField(field)) return undefined;
   const values = [
-    organizationAssigneeFieldValue('managerApprover', undefined, '业务审批人'),
-    organizationAssigneeFieldValue('financeApprover', undefined, '财务复核人'),
+    organizationAssigneeFieldValue('managerApprover', undefined, '第一审批人'),
+    organizationAssigneeFieldValue('financeApprover', undefined, '第二审批人'),
   ].filter(Boolean);
   return Array.from(new Set(values));
 }

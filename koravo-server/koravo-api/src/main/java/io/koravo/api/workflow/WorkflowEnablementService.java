@@ -306,7 +306,7 @@ public class WorkflowEnablementService {
         model.setModelType("BPMN");
         model.setVersion(1);
         model.setStatus(ProcessModelStatus.DRAFT);
-        model.setDescription("业务申请提交后，业务审批和财务复核并行处理。");
+        model.setDescription("业务申请提交后，由多个审批人并行会签处理。");
         model.setBpmnXml(WorkflowEnablementDefaults.businessRequestBpmn());
         model.setAssetOrigin(AssetOrigin.SYSTEM_TEMPLATE);
         actions.add("创建协同审批流程模型");
@@ -332,8 +332,8 @@ public class WorkflowEnablementService {
             model.setModelName(WorkflowEnablementDefaults.PROCESS_NAME);
             changed = true;
         }
-        if (!"业务申请提交后，业务审批和财务复核并行处理。".equals(model.getDescription())) {
-            model.setDescription("业务申请提交后，业务审批和财务复核并行处理。");
+        if (!"业务申请提交后，由多个审批人并行会签处理。".equals(model.getDescription())) {
+            model.setDescription("业务申请提交后，由多个审批人并行会签处理。");
             changed = true;
         }
         if (model.getAssetOrigin() != AssetOrigin.SYSTEM_TEMPLATE) {

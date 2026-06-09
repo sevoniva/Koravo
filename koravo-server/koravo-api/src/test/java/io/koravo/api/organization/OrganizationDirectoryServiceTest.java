@@ -37,7 +37,7 @@ class OrganizationDirectoryServiceTest {
         TenantContextHolder.setTenantId("tenant-a");
         when(repository.countByTenantIdAndDeletedFalse("tenant-a")).thenReturn(1L);
         when(repository.findByTenantIdAndDeletedFalseOrderByDepartmentAscNameAsc("tenant-a"))
-                .thenReturn(List.of(member("manager", "tenant-a", "业务审批主管", "业务一部", UserContextHolder.ROLE_MANAGER)));
+                .thenReturn(List.of(member("manager", "tenant-a", "审批主管", "审批中心", UserContextHolder.ROLE_MANAGER)));
 
         var members = service.members();
 
@@ -46,8 +46,8 @@ class OrganizationDirectoryServiceTest {
                 .containsOnly("tenant-a");
         assertThat(members).anySatisfy(member -> {
             assertThat(member.userId()).isEqualTo("manager");
-            assertThat(member.name()).isEqualTo("业务审批主管");
-            assertThat(member.department()).isEqualTo("业务一部");
+            assertThat(member.name()).isEqualTo("审批主管");
+            assertThat(member.department()).isEqualTo("审批中心");
             assertThat(member.role()).isEqualTo(UserContextHolder.ROLE_MANAGER);
             assertThat(member.status()).isEqualTo("ACTIVE");
             assertThat(member.passwordConfigured()).isTrue();

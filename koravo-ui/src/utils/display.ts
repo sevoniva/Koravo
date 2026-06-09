@@ -105,8 +105,8 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   description: '事项说明',
   remark: '备注',
   approvalUsers: '审批人',
-  managerApprover: '业务处理人',
-  financeApprover: '财务复核人',
+  managerApprover: '第一审批人',
+  financeApprover: '第二审批人',
   accepted: '审批通过',
   reviewComment: '处理意见',
   approver: '处理人',
@@ -294,11 +294,11 @@ export function taskDefinitionLabel(
 ) {
   if (!key) return '-';
   const mapping: Record<string, string> = {
-    managerApprovalTask: '业务审批',
-    financeApprovalTask: '财务复核',
-    businessReviewTask: '业务审批',
-    financeReviewTask: '财务复核',
-    reviewTask: '业务审批',
+    managerApprovalTask: '审批',
+    financeApprovalTask: '复核',
+    businessReviewTask: '审批',
+    financeReviewTask: '复核',
+    reviewTask: '审批',
     Task_1: '提交申请',
     approveTask: '处理任务',
   };

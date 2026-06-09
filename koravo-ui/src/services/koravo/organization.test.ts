@@ -20,7 +20,7 @@ describe('organization display helpers', () => {
   });
 
   it('shows registered members by business name', () => {
-    expect(organizationMemberName('manager')).toBe('业务审批主管');
+    expect(organizationMemberName('manager')).toBe('审批主管');
     expect(organizationMemberName('operator')).toBe('运行审计专员');
   });
 
@@ -127,9 +127,9 @@ describe('organization display helpers', () => {
       JSON.stringify([
         {
           key: 'manager',
-          name: '业务处理人',
+          name: '审批人',
           userId: 'manager',
-          department: '业务部门',
+          department: '审批中心',
           role: 'manager',
           status: '启用',
         },
@@ -144,14 +144,14 @@ describe('organization display helpers', () => {
       ]),
     );
 
-    expect(organizationMemberName('manager')).toBe('业务审批主管');
+    expect(organizationMemberName('manager')).toBe('审批主管');
     expect(organizationMemberName('admin')).toBe('流程平台负责人');
     expect(organizationMemberName('local-only')).toBe('待同步成员');
     expect(
       getOrganizationMembers().find((item) => item.userId === 'manager'),
     ).toMatchObject({
-      name: '业务审批主管',
-      department: '业务一部',
+      name: '审批主管',
+      department: '审批中心',
     });
   });
 
@@ -198,8 +198,8 @@ describe('organization display helpers', () => {
   });
 
   it('recognizes approver fields without treating comments as assignees', () => {
-    expect(isOrganizationAssigneeField('businessUser', '业务审批人')).toBe(true);
-    expect(organizationAssigneeRole('businessUser', '业务审批人')).toBe('manager');
+    expect(isOrganizationAssigneeField('approvalUser', '审批人')).toBe(true);
+    expect(organizationAssigneeRole('approvalUser', '审批人')).toBe('manager');
     expect(isOrganizationAssigneeField('approvalComment', '审批意见')).toBe(false);
   });
 });

@@ -557,8 +557,8 @@ const renderPreviewField = (field: FormFieldConfig) => {
         initialValue={
           isMulti
             ? [
-                organizationAssigneeFieldValue('managerApprover', undefined, '业务审批人'),
-                organizationAssigneeFieldValue('financeApprover', undefined, '财务复核人'),
+                organizationAssigneeFieldValue('managerApprover', undefined, '第一审批人'),
+                organizationAssigneeFieldValue('financeApprover', undefined, '第二审批人'),
               ].filter(Boolean)
             : organizationAssigneeFieldValue(field.fieldKey, undefined, field.title)
         }
