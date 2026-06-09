@@ -17,7 +17,7 @@ import {
   listConnectorExecutionLogs,
   type ConnectorExecutionLogItem,
 } from '@/services/koravo/api';
-import { connectorTypeLabel, shortTraceLabel } from '@/utils/display';
+import { connectionAddressLabel, connectorTypeLabel, shortTraceLabel } from '@/utils/display';
 import { formatDateTime, formatDuration } from '@/utils/format';
 
 function openAuditByRequestId(requestId?: string) {
@@ -68,7 +68,18 @@ const HttpConnector: React.FC = () => {
       renderText: (value) => connectorTypeLabel(value),
     },
     { title: '方法', dataIndex: 'method', width: 96 },
-    { title: '地址', dataIndex: 'url', ellipsis: true, search: false },
+    {
+      title: '地址',
+      dataIndex: 'url',
+      ellipsis: true,
+      search: false,
+      render: (_, record) => (
+        <CopyableText
+          value={record.url}
+          displayValue={connectionAddressLabel(record.url)}
+        />
+      ),
+    },
     {
       title: '状态',
       dataIndex: 'status',
@@ -196,7 +207,16 @@ const HttpConnector: React.FC = () => {
             columns={[
               { title: '连接器', dataIndex: 'connectorType', renderText: connectorTypeLabel },
               { title: '方法', dataIndex: 'method' },
-              { title: '地址', dataIndex: 'url', copyable: true },
+              {
+                title: '地址',
+                dataIndex: 'url',
+                render: (_, record) => (
+                  <CopyableText
+                    value={record.url}
+                    displayValue={connectionAddressLabel(record.url)}
+                  />
+                ),
+              },
               { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
               { title: '状态码', dataIndex: 'statusCode' },
               { title: '耗时', dataIndex: 'elapsedMillis', renderText: formatDuration },

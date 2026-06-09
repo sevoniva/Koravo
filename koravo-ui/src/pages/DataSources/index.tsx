@@ -13,6 +13,7 @@ import {
 } from '@ant-design/pro-components';
 import { App, Button, Drawer, Empty, Modal, Space } from 'antd';
 import React, { useRef, useState } from 'react';
+import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   createDataSource,
@@ -24,7 +25,7 @@ import {
   type DataSourceItem,
   type DataSourceTestLogItem,
 } from '@/services/koravo/api';
-import { dataSourceTypeLabel } from '@/utils/display';
+import { connectionAddressLabel, dataSourceTypeLabel } from '@/utils/display';
 import { formatDateTime, formatDuration } from '@/utils/format';
 
 interface DataSourceForm extends Record<string, unknown> {
@@ -151,6 +152,12 @@ const DataSources: React.FC = () => {
       dataIndex: 'jdbcUrl',
       ellipsis: true,
       search: false,
+      render: (_, record) => (
+        <CopyableText
+          value={record.jdbcUrl}
+          displayValue={connectionAddressLabel(record.jdbcUrl)}
+        />
+      ),
     },
     { title: '用户名', dataIndex: 'username', width: 140, search: false },
     {
@@ -399,7 +406,16 @@ const DataSources: React.FC = () => {
           columns={[
             { title: '名称', dataIndex: 'name' },
             { title: '类型', dataIndex: 'type', renderText: dataSourceTypeLabel },
-            { title: '连接地址', dataIndex: 'jdbcUrl', copyable: true },
+            {
+              title: '连接地址',
+              dataIndex: 'jdbcUrl',
+              render: (_, record) => (
+                <CopyableText
+                  value={record.jdbcUrl}
+                  displayValue={connectionAddressLabel(record.jdbcUrl)}
+                />
+              ),
+            },
             { title: '用户名', dataIndex: 'username' },
             { title: '驱动类', dataIndex: 'driverClassName' },
             {

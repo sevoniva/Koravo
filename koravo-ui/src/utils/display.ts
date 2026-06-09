@@ -300,6 +300,20 @@ export function connectorTypeLabel(value?: string | null) {
   return auditCodeLabel(value, CONNECTOR_TYPE_LABELS);
 }
 
+export function connectionAddressLabel(value?: string | null) {
+  if (!value) return '-';
+  const text = String(value);
+  const normalized = text.toLowerCase();
+  const isLocalAddress =
+    /(^|\/\/)(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|\/|$)/.test(normalized) ||
+    /(^|@)(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|\/|$)/.test(normalized);
+
+  if (!isLocalAddress) return text;
+  if (/\/health\b|\/actuator\/health\b/.test(normalized)) return '本地服务健康检查';
+  if (normalized.startsWith('jdbc:')) return '本地数据源连接';
+  return '本地服务地址';
+}
+
 export function shortTraceLabel(value?: string | number | null) {
   if (value === undefined || value === null || value === '') return '';
   const text = String(value);
