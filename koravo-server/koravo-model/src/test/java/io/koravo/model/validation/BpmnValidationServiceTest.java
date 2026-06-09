@@ -49,6 +49,26 @@ class BpmnValidationServiceTest {
     }
 
     @Test
+    void userTaskWithCandidateGroupIsValid() {
+        BpmnValidationResult result = service.validate("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                             xmlns:flowable="http://flowable.org/bpmn">
+                  <process id="demo" name="Demo" isExecutable="true">
+                    <startEvent id="start"/>
+                    <sequenceFlow id="flow1" sourceRef="start" targetRef="approve"/>
+                    <userTask id="approve" name="Approve" flowable:candidateGroups="business"/>
+                    <sequenceFlow id="flow2" sourceRef="approve" targetRef="end"/>
+                    <endEvent id="end"/>
+                  </process>
+                </definitions>
+                """);
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
+    }
+
+    @Test
     void blankXmlReturnsError() {
         BpmnValidationResult result = service.validate(" ");
 

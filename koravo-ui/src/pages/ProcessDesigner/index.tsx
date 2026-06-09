@@ -15,6 +15,7 @@ import {
   PageContainer,
   ProDescriptions,
   ProForm,
+  ProFormSelect,
   ProFormText,
   ProList,
 } from '@ant-design/pro-components';
@@ -70,6 +71,23 @@ type ModelViewMode = 'business' | 'all';
 
 const hiddenBusinessModelKeys = new Set(['httpConnectorDemo']);
 const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
+const flowableExpression = (name: string) => `$${`{${name}}`}`;
+
+const handlerOptions = [
+  { label: '发起人', value: flowableExpression('startUserId') },
+  { label: '业务处理人', value: flowableExpression('managerApprover') },
+  { label: '财务复核人', value: flowableExpression('financeApprover') },
+  { label: '管理员', value: 'admin' },
+  { label: '固定用户 applicant', value: 'applicant' },
+  { label: '固定用户 manager', value: 'manager' },
+  { label: '固定用户 finance', value: 'finance' },
+];
+
+const candidateGroupOptions = [
+  { label: '业务部门', value: 'business' },
+  { label: '财务部门', value: 'finance' },
+  { label: '流程平台组', value: 'admin' },
+];
 
 const useStyles = createStyles(({ css, token }) => ({
   workbench: css`
@@ -503,9 +521,24 @@ const ProcessDesigner: React.FC = () => {
         <ProFormText name="name" label="名称" />
         {isUserTask(selectedElement) && (
           <>
-            <ProFormText name="assignee" label="办理人" />
-            <ProFormText name="candidateUsers" label="候选用户" />
-            <ProFormText name="candidateGroups" label="候选组" />
+            <ProFormSelect
+              name="assignee"
+              label="办理人"
+              options={handlerOptions}
+              fieldProps={{ allowClear: true, showSearch: true }}
+            />
+            <ProFormSelect
+              name="candidateUsers"
+              label="候选用户"
+              options={handlerOptions}
+              fieldProps={{ allowClear: true, showSearch: true }}
+            />
+            <ProFormSelect
+              name="candidateGroups"
+              label="候选组"
+              options={candidateGroupOptions}
+              fieldProps={{ allowClear: true, showSearch: true }}
+            />
             <ProFormText name="formKey" label="表单编码" />
           </>
         )}

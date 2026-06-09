@@ -67,10 +67,13 @@ public class BpmnValidationService {
         for (int i = 0; i < userTasks.getLength(); i++) {
             Element userTask = (Element) userTasks.item(i);
             String taskId = userTask.getAttribute("id");
-            if (!StringUtils.hasText(readAttribute(userTask, "assignee"))) {
+            boolean hasHandler = StringUtils.hasText(readAttribute(userTask, "assignee"))
+                    || StringUtils.hasText(readAttribute(userTask, "candidateUsers"))
+                    || StringUtils.hasText(readAttribute(userTask, "candidateGroups"));
+            if (!hasHandler) {
                 errors.add(new BpmnValidationIssue(
                         "BPMN_USER_TASK_ASSIGNEE_REQUIRED",
-                        "User task " + (StringUtils.hasText(taskId) ? taskId : "<unknown>") + " must define a flowable assignee",
+                        "User task " + (StringUtils.hasText(taskId) ? taskId : "<unknown>") + " must define an assignee, candidate users, or candidate groups",
                         taskId
                 ));
             }
