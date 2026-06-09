@@ -14,7 +14,20 @@ import {
 } from '@ant-design/pro-components';
 import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Steps, Tag, Typography } from 'antd';
+import {
+  Alert,
+  App,
+  Badge,
+  Button,
+  Drawer,
+  Empty,
+  Flex,
+  Modal,
+  Space,
+  Steps,
+  Tag,
+  Typography,
+} from 'antd';
 import React, { useState } from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
@@ -48,6 +61,7 @@ import {
   auditResourceLabel,
   businessKeyLabel,
   formSchemaNameLabel,
+  productCopy,
   processDefinitionLabel,
   shortTraceLabel,
   taskDefinitionLabel,
@@ -80,7 +94,12 @@ interface SchemaField {
 }
 
 const commentColumns: ProColumns<TaskCommentItem>[] = [
-  { title: '处理人', dataIndex: 'userId', width: 140, renderText: organizationMemberName },
+  {
+    title: '处理人',
+    dataIndex: 'userId',
+    width: 140,
+    renderText: organizationMemberName,
+  },
   { title: '意见', dataIndex: 'message' },
   { title: '时间', dataIndex: 'time', width: 170, renderText: formatDateTime },
 ];
@@ -91,7 +110,10 @@ const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     dataIndex: 'id',
     width: 140,
     render: (_, record) => (
-      <CopyableText value={record.id} displayValue={shortTraceLabel(record.id)} />
+      <CopyableText
+        value={record.id}
+        displayValue={shortTraceLabel(record.id)}
+      />
     ),
   },
   {
@@ -118,14 +140,33 @@ const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     search: false,
     render: (_, record) => snapshotSummary(record),
   },
-  { title: '时间', dataIndex: 'createdAt', width: 170, renderText: formatDateTime },
+  {
+    title: '时间',
+    dataIndex: 'createdAt',
+    width: 170,
+    renderText: formatDateTime,
+  },
 ];
 
 const auditColumns: ProColumns<AuditLogItem>[] = [
-  { title: '时间', dataIndex: 'createdAt', width: 170, renderText: formatDateTime },
-  { title: '操作人', dataIndex: 'userId', width: 120, renderText: organizationMemberName },
+  {
+    title: '时间',
+    dataIndex: 'createdAt',
+    width: 170,
+    renderText: formatDateTime,
+  },
+  {
+    title: '操作人',
+    dataIndex: 'userId',
+    width: 120,
+    renderText: organizationMemberName,
+  },
   { title: '操作类型', dataIndex: 'action', renderText: auditActionLabel },
-  { title: '对象类型', dataIndex: 'resourceType', renderText: auditResourceLabel },
+  {
+    title: '对象类型',
+    dataIndex: 'resourceType',
+    renderText: auditResourceLabel,
+  },
   {
     title: '业务追踪号',
     dataIndex: 'requestId',
@@ -235,14 +276,13 @@ function nextTaskInstruction(task?: TaskItem, hasForm?: boolean) {
   return '核对业务数据，填写本节点表单和处理意见，然后提交审批结果。';
 }
 
-const TaskActionTimeline: React.FC<{ logs?: AuditLogItem[] }> = ({ logs = [] }) => {
+const TaskActionTimeline: React.FC<{ logs?: AuditLogItem[] }> = ({
+  logs = [],
+}) => {
   const actions = latestTaskActions(logs);
   if (!actions.length) {
     return (
-      <Empty
-        description="暂无已办动作"
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-      />
+      <Empty description="暂无已办动作" image={Empty.PRESENTED_IMAGE_SIMPLE} />
     );
   }
   return (
@@ -287,7 +327,9 @@ const TaskHandlingContext: React.FC<{
           items={[
             {
               title: hasAssignee ? '已确定处理人' : '等待认领',
-              description: hasAssignee ? organizationMemberName(task?.assignee) : '暂无处理人',
+              description: hasAssignee
+                ? organizationMemberName(task?.assignee)
+                : '暂无处理人',
             },
             {
               title: isDone ? '已提交处理意见' : '填写节点表单',
@@ -303,7 +345,9 @@ const TaskHandlingContext: React.FC<{
           size="small"
           column={{ xs: 1, sm: 1, md: 3 }}
           dataSource={{
-            assignee: task?.assignee ? organizationMemberName(task.assignee) : '未分配',
+            assignee: task?.assignee
+              ? organizationMemberName(task.assignee)
+              : '未分配',
             status: taskStatusLabel(task?.status),
             node: taskDefinitionLabel(task?.taskDefinitionKey),
           }}
@@ -333,7 +377,9 @@ function renderParallelTasks(
       extra={
         <Button
           type="link"
-          onClick={() => history.push(`/process-instances/${currentTask.processInstanceId}`)}
+          onClick={() =>
+            history.push(`/process-instances/${currentTask.processInstanceId}`)
+          }
         >
           查看实例进度
         </Button>
@@ -344,20 +390,30 @@ function renderParallelTasks(
         {pendingTasks.map((task) => (
           <Tag
             key={task.taskId}
-            color={task.taskId === currentTask.taskId ? 'processing' : 'default'}
+            color={
+              task.taskId === currentTask.taskId ? 'processing' : 'default'
+            }
           >
             <Space size={6}>
               <Badge
-                status={task.taskId === currentTask.taskId ? 'processing' : 'warning'}
+                status={
+                  task.taskId === currentTask.taskId ? 'processing' : 'warning'
+                }
                 text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${
-                  task.assignee ? organizationMemberName(task.assignee) : '未分配'
+                  task.assignee
+                    ? organizationMemberName(task.assignee)
+                    : '未分配'
                 }`}
               />
               <Typography.Text type="secondary">
                 {parallelTaskStatus(task, currentTask)}
               </Typography.Text>
               {task.taskId !== currentTask.taskId ? (
-                <Button type="link" size="small" onClick={() => openTaskAsAssignee(task)}>
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={() => openTaskAsAssignee(task)}
+                >
                   进入办理
                 </Button>
               ) : null}
@@ -378,9 +434,13 @@ function normalizeSchemaType(type?: string): SchemaField['type'] {
 function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
   const schema = parseJsonObject(formSchema?.schemaJson);
   const uiSchema = parseJsonObject(formSchema?.uiSchemaJson);
-  const properties = schema.properties as Record<string, JsonRecord> | undefined;
+  const properties = schema.properties as
+    | Record<string, JsonRecord>
+    | undefined;
   if (!properties || typeof properties !== 'object') return [];
-  const required = Array.isArray(schema.required) ? schema.required.map(String) : [];
+  const required = Array.isArray(schema.required)
+    ? schema.required.map(String)
+    : [];
 
   return Object.entries(properties).map(([fieldKey, property]) => {
     const type = normalizeSchemaType(String(property.type || 'string'));
@@ -391,7 +451,7 @@ function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
       property['ui:placeholder'];
     return {
       fieldKey,
-      title: String(property.title || fieldKey),
+      title: productCopy(String(property.title || '')) || fieldKey,
       type,
       format: typeof property.format === 'string' ? property.format : undefined,
       widget: String(
@@ -403,26 +463,34 @@ function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
       placeholder: typeof placeholder === 'string' ? placeholder : undefined,
       required: required.includes(fieldKey),
       options: Array.isArray(property.enum)
-        ? property.enum.map((item) => ({ label: String(item), value: String(item) }))
+        ? property.enum.map((item) => ({
+            label: String(item),
+            value: String(item),
+          }))
         : undefined,
     };
   });
 }
 
 function normalizeFormValues(values?: JsonRecord): JsonRecord {
-  return Object.entries(values || {}).reduce<JsonRecord>((result, [key, value]) => {
-    if (
-      value &&
-      typeof value === 'object' &&
-      'format' in value &&
-      typeof (value as { format?: unknown }).format === 'function'
-    ) {
-      result[key] = (value as { format: (template: string) => string }).format('YYYY-MM-DD');
+  return Object.entries(values || {}).reduce<JsonRecord>(
+    (result, [key, value]) => {
+      if (
+        value &&
+        typeof value === 'object' &&
+        'format' in value &&
+        typeof (value as { format?: unknown }).format === 'function'
+      ) {
+        result[key] = (
+          value as { format: (template: string) => string }
+        ).format('YYYY-MM-DD');
+        return result;
+      }
+      result[key] = value;
       return result;
-    }
-    result[key] = value;
-    return result;
-  }, {});
+    },
+    {},
+  );
 }
 
 function buildCompletePayload(
@@ -431,7 +499,11 @@ function buildCompletePayload(
 ) {
   const decision = values.decision || 'APPROVED';
   const decisionText =
-    decision === 'APPROVED' ? '同意' : decision === 'REJECTED' ? '不同意' : '退回补充';
+    decision === 'APPROVED'
+      ? '同意'
+      : decision === 'REJECTED'
+        ? '不同意'
+        : '退回补充';
   const formData = {
     ...normalizeFormValues(values.formValues),
     decision,
@@ -465,7 +537,9 @@ function snapshotSummary(record: FormSnapshotItem) {
           {approved ? '同意' : '不同意'}
         </Tag>
       ) : null}
-      {opinion ? <Typography.Text type="secondary">{opinion}</Typography.Text> : null}
+      {opinion ? (
+        <Typography.Text type="secondary">{opinion}</Typography.Text>
+      ) : null}
     </Flex>
   );
 }
@@ -536,7 +610,7 @@ const SchemaDrivenFields: React.FC<{
                 field.title,
               )}
               tooltip="由流程发起信息或登录成员自动带出。"
-              fieldProps={{ readOnly: true }}
+              disabled
               rules={
                 field.required
                   ? [{ required: true, message: `${field.title}会自动带出` }]
@@ -704,11 +778,7 @@ const TaskDetail: React.FC = () => {
   const [snapshot, setSnapshot] = useState<FormSnapshotItem>();
   const [modal, contextHolder] = Modal.useModal();
   const { message } = App.useApp();
-  const {
-    data,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['task-detail', taskId],
     queryFn: () => getTaskDetail(taskId),
     enabled: Boolean(taskId),
@@ -725,17 +795,12 @@ const TaskDetail: React.FC = () => {
     enabled: Boolean(task?.processInstanceId),
   });
   const canCompleteTask = Boolean(
-    task &&
-      task.status !== 'COMPLETED' &&
-      data?.formSchema,
+    task && task.status !== 'COMPLETED' && data?.formSchema,
   );
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
-  const openTaskAsAssignee = React.useCallback(
-    (nextTask: TaskItem) => {
-      history.push(`/tasks/${nextTask.taskId}`);
-    },
-    [],
-  );
+  const openTaskAsAssignee = React.useCallback((nextTask: TaskItem) => {
+    history.push(`/tasks/${nextTask.taskId}`);
+  }, []);
 
   return (
     <PageContainer
@@ -743,92 +808,104 @@ const TaskDetail: React.FC = () => {
       content="查看任务状态、表单快照、处理意见和审计记录。"
       extra={
         <Space wrap>
-          <Button onClick={() => history.push('/tasks')}>
-            返回列表
-          </Button>
+          <Button onClick={() => history.push('/tasks')}>返回列表</Button>
           {task && canCompleteTask ? (
-          <ModalForm<CompleteTaskForm>
-            title="完成任务"
-            trigger={
-              <Button type="primary">
-                完成任务
-              </Button>
-            }
-            modalProps={{ destroyOnHidden: true }}
-            onFinish={async (values) => {
-              await completeTask(
-                task.taskId,
-                buildCompletePayload(data?.formSchema?.id, values),
-              );
-              const instance = await getOpsInstance(task.processInstanceId);
-              const nextTask = nextPendingTask(
-                task,
-                instance.currentTasks || [],
-              );
-              message.success('已完成');
-              await refetch();
-              let taskCompleteModal: { destroy: () => void } | undefined;
-              taskCompleteModal = modal.success({
-                title: '任务已完成',
-                width: 520,
-                okText: '留在当前页',
-                content: (
-                  <Flex vertical gap={12}>
-                    <span>
-                      {nextTask
-                        ? `${taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，当前实例还有 ${taskDefinitionLabel(nextTask.taskDefinitionKey)} 待处理。`
-                        : `${taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，可回到实例查看当前进度、表单快照和审计记录。`}
-                    </span>
-                    <Flex gap={8} wrap>
-                      {nextTask ? (
+            <ModalForm<CompleteTaskForm>
+              title="完成任务"
+              trigger={<Button type="primary">完成任务</Button>}
+              modalProps={{ destroyOnHidden: true }}
+              onFinish={async (values) => {
+                await completeTask(
+                  task.taskId,
+                  buildCompletePayload(data?.formSchema?.id, values),
+                );
+                const instance = await getOpsInstance(task.processInstanceId);
+                const nextTask = nextPendingTask(
+                  task,
+                  instance.currentTasks || [],
+                );
+                message.success('已完成');
+                await refetch();
+                let taskCompleteModal: { destroy: () => void } | undefined;
+                taskCompleteModal = modal.success({
+                  title: '任务已完成',
+                  width: 520,
+                  okText: '留在当前页',
+                  content: (
+                    <Flex vertical gap={12}>
+                      <span>
+                        {nextTask
+                          ? `${taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，当前实例还有 ${taskDefinitionLabel(nextTask.taskDefinitionKey)} 待处理。`
+                          : `${taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，可回到实例查看当前进度、表单快照和审计记录。`}
+                      </span>
+                      <Flex gap={8} wrap>
+                        {nextTask ? (
+                          <Button
+                            type="primary"
+                            onClick={() => {
+                              taskCompleteModal?.destroy();
+                              Modal.destroyAll();
+                              openTaskAsAssignee(nextTask);
+                            }}
+                          >
+                            继续处理
+                            {taskDefinitionLabel(nextTask.taskDefinitionKey)}
+                          </Button>
+                        ) : null}
                         <Button
-                          type="primary"
+                          type={nextTask ? 'default' : 'primary'}
                           onClick={() => {
                             taskCompleteModal?.destroy();
                             Modal.destroyAll();
-                            openTaskAsAssignee(nextTask);
+                            history.push(
+                              `/process-instances/${task.processInstanceId}`,
+                            );
                           }}
                         >
-                          继续处理{taskDefinitionLabel(nextTask.taskDefinitionKey)}
+                          查看实例进度
                         </Button>
-                      ) : null}
-                      <Button
-                        type={nextTask ? 'default' : 'primary'}
-                        onClick={() => {
-                          taskCompleteModal?.destroy();
-                          Modal.destroyAll();
-                          history.push(`/process-instances/${task.processInstanceId}`);
-                        }}
-                      >
-                        查看实例进度
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          taskCompleteModal?.destroy();
-                          Modal.destroyAll();
-                          history.push('/tasks');
-                        }}
-                      >
-                        返回我的待办
-                      </Button>
+                        <Button
+                          onClick={() => {
+                            taskCompleteModal?.destroy();
+                            Modal.destroyAll();
+                            history.push('/tasks');
+                          }}
+                        >
+                          返回我的待办
+                        </Button>
+                      </Flex>
                     </Flex>
-                  </Flex>
-                ),
-              });
-              return true;
-            }}
-          >
-            <CompleteTaskFields
-              formSchema={data?.formSchema}
-              values={data?.processVariables}
-            />
-          </ModalForm>
+                  ),
+                });
+                return true;
+              }}
+            >
+              <CompleteTaskFields
+                formSchema={data?.formSchema}
+                values={data?.processVariables}
+              />
+            </ModalForm>
           ) : null}
           {task && task.status !== 'COMPLETED' ? (
             <>
-              <TaskActionModal task={task} action="TRANSFER" label="转交" refetch={refetch} />
-              <TaskActionModal task={task} action="DELEGATE" label="委托" refetch={refetch} />
-              <TaskActionModal task={task} action="CLAIM" label="认领" refetch={refetch} />
+              <TaskActionModal
+                task={task}
+                action="TRANSFER"
+                label="转交"
+                refetch={refetch}
+              />
+              <TaskActionModal
+                task={task}
+                action="DELEGATE"
+                label="委托"
+                refetch={refetch}
+              />
+              <TaskActionModal
+                task={task}
+                action="CLAIM"
+                label="认领"
+                refetch={refetch}
+              />
             </>
           ) : null}
         </Space>
@@ -836,11 +913,7 @@ const TaskDetail: React.FC = () => {
     >
       {contextHolder}
       {task && instance?.currentTasks
-        ? renderParallelTasks(
-            task,
-            instance.currentTasks,
-            openTaskAsAssignee,
-          )
+        ? renderParallelTasks(task, instance.currentTasks, openTaskAsAssignee)
         : null}
       <TaskHandlingContext
         task={task}
@@ -875,7 +948,11 @@ const TaskDetail: React.FC = () => {
                 />
               ),
             },
-            { title: '任务名称', dataIndex: 'name', renderText: (_, record) => taskNameLabel(record) },
+            {
+              title: '任务名称',
+              dataIndex: 'name',
+              renderText: (_, record) => taskNameLabel(record),
+            },
             {
               title: '流程',
               dataIndex: 'processDefinitionId',
@@ -893,7 +970,9 @@ const TaskDetail: React.FC = () => {
                   <Button
                     type="link"
                     onClick={() =>
-                      history.push(`/process-instances/${record.processInstanceId}`)
+                      history.push(
+                        `/process-instances/${record.processInstanceId}`,
+                      )
                     }
                   >
                     查看实例
@@ -915,10 +994,26 @@ const TaskDetail: React.FC = () => {
                 />
               ),
             },
-            { title: '当前节点', dataIndex: 'taskDefinitionKey', renderText: taskDefinitionLabel },
-            { title: '处理人', dataIndex: 'assignee', renderText: organizationMemberName },
-            { title: '创建时间', dataIndex: 'createTime', renderText: formatDateTime },
-            { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
+            {
+              title: '当前节点',
+              dataIndex: 'taskDefinitionKey',
+              renderText: taskDefinitionLabel,
+            },
+            {
+              title: '处理人',
+              dataIndex: 'assignee',
+              renderText: organizationMemberName,
+            },
+            {
+              title: '创建时间',
+              dataIndex: 'createTime',
+              renderText: formatDateTime,
+            },
+            {
+              title: '状态',
+              dataIndex: 'status',
+              render: (_, record) => <KoravoStatusTag status={record.status} />,
+            },
           ]}
         />
       </ProCard>
@@ -935,8 +1030,18 @@ const TaskDetail: React.FC = () => {
                 renderText: (value) => formSchemaNameLabel(value),
               },
               { title: '表单标识', dataIndex: 'formKey' },
-              { title: '版本', dataIndex: 'version', renderText: (value) => `v${value || 1}` },
-              { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
+              {
+                title: '版本',
+                dataIndex: 'version',
+                renderText: (value) => `v${value || 1}`,
+              },
+              {
+                title: '状态',
+                dataIndex: 'status',
+                render: (_, record) => (
+                  <KoravoStatusTag status={record.status} />
+                ),
+              },
             ]}
           />
         </ProCard>
@@ -966,7 +1071,13 @@ const TaskDetail: React.FC = () => {
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 >
                   {task ? (
-                    <Button onClick={() => history.push(`/process-instances/${task.processInstanceId}`)}>
+                    <Button
+                      onClick={() =>
+                        history.push(
+                          `/process-instances/${task.processInstanceId}`,
+                        )
+                      }
+                    >
                       查看实例进度
                     </Button>
                   ) : null}

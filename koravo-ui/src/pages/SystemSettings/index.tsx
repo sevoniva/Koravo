@@ -13,10 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Button, Flex, Space, Statistic, Tag } from 'antd';
 import React, { useMemo, useState } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
-import {
-  getSystemHealth,
-  type SystemHealthItem,
-} from '@/services/koravo/api';
+import { getSystemHealth, type SystemHealthItem } from '@/services/koravo/api';
 import {
   getSessionContext,
   type SessionContext,
@@ -24,6 +21,7 @@ import {
 } from '@/services/koravo/session';
 import {
   getOrganizationMembers,
+  organizationDepartmentSelectOptions,
   organizationMemberName,
   organizationRoleLabel,
   saveOrganizationMembers,
@@ -144,7 +142,9 @@ const SystemSettings: React.FC = () => {
   const location = useLocation();
   const isOrganizationPage = location.pathname === '/organization-permissions';
   const [session] = useState<SessionContext>(() => getSessionContext());
-  const [members, setMembers] = useState<OrganizationMember[]>(() => getOrganizationMembers());
+  const [members, setMembers] = useState<OrganizationMember[]>(() =>
+    getOrganizationMembers(),
+  );
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-health'],
     queryFn: getSystemHealth,
@@ -182,14 +182,18 @@ const SystemSettings: React.FC = () => {
     {
       title: '角色',
       dataIndex: 'role',
-      render: (_, record) => <Tag color="processing">{roleLabel(record.role)}</Tag>,
+      render: (_, record) => (
+        <Tag color="processing">{roleLabel(record.role)}</Tag>
+      ),
     },
     {
       title: '状态',
       dataIndex: 'status',
       width: 90,
       render: (_, record) => (
-        <Tag color={record.status === '启用' ? 'success' : 'default'}>{record.status}</Tag>
+        <Tag color={record.status === '启用' ? 'success' : 'default'}>
+          {record.status}
+        </Tag>
       ),
     },
     {
@@ -203,7 +207,10 @@ const SystemSettings: React.FC = () => {
             updateMembers(
               members.map((item) =>
                 item.key === record.key
-                  ? { ...item, status: item.status === '启用' ? '停用' : '启用' }
+                  ? {
+                      ...item,
+                      status: item.status === '启用' ? '停用' : '启用',
+                    }
                   : item,
               ),
             );
@@ -267,10 +274,12 @@ const SystemSettings: React.FC = () => {
                   tooltip="用于待办分配和审计追踪，业务页面优先显示成员名称。"
                   rules={[{ required: true, message: '请输入登录账号' }]}
                 />
-                <ProFormText
+                <ProFormSelect
                   name="department"
                   label="部门"
-                  rules={[{ required: true, message: '请输入部门' }]}
+                  options={organizationDepartmentSelectOptions()}
+                  fieldProps={{ showSearch: true, optionFilterProp: 'label' }}
+                  rules={[{ required: true, message: '请选择部门' }]}
                 />
                 <ProFormSelect
                   name="role"
@@ -316,13 +325,21 @@ const SystemSettings: React.FC = () => {
       title="系统设置"
       content="查看登录成员、依赖状态和系统策略。"
     >
-      <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
+      <ProCard
+        gutter={16}
+        wrap
+        loading={isLoading}
+        style={{ marginBottom: 16 }}
+      >
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
           <Statistic title="服务状态" value={data?.status || '-'} />
           <KoravoStatusTag status={data?.status} />
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
-          <Statistic title="构建状态" value={buildVersionLabel(data?.version)} />
+          <Statistic
+            title="构建状态"
+            value={buildVersionLabel(data?.version)}
+          />
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
           <Statistic title="系统时间" value={formatDateTime(data?.time)} />
@@ -339,7 +356,9 @@ const SystemSettings: React.FC = () => {
               待办、发起和运维操作会按登录成员加载权限范围。成员、部门和职责统一在组织权限中维护。
             </span>
             <Space wrap>
-              <Tag color="processing">登录成员：{organizationMemberName(session.userId)}</Tag>
+              <Tag color="processing">
+                登录成员：{organizationMemberName(session.userId)}
+              </Tag>
               <Tag color="blue">职责：{roleLabel(session.role)}</Tag>
               <Tag>组织：{tenantDisplayName(session.tenantId)}</Tag>
             </Space>
@@ -371,9 +390,21 @@ const SystemSettings: React.FC = () => {
             column={1}
             dataSource={session}
             columns={[
-              { title: '组织', dataIndex: 'tenantId', renderText: tenantDisplayName },
-              { title: '成员', dataIndex: 'userId', renderText: organizationMemberName },
-              { title: '职责', dataIndex: 'role', renderText: () => roleLabel(session.role) },
+              {
+                title: '组织',
+                dataIndex: 'tenantId',
+                renderText: tenantDisplayName,
+              },
+              {
+                title: '成员',
+                dataIndex: 'userId',
+                renderText: organizationMemberName,
+              },
+              {
+                title: '职责',
+                dataIndex: 'role',
+                renderText: () => roleLabel(session.role),
+              },
             ]}
           />
         </ProCard>
@@ -382,17 +413,31 @@ const SystemSettings: React.FC = () => {
             column={1}
             dataSource={data}
             columns={[
-            { title: '组织', dataIndex: 'tenantId', renderText: tenantDisplayName },
-            { title: '登录成员', dataIndex: 'userId', renderText: organizationMemberName },
-            { title: '职责', dataIndex: 'role', renderText: () => roleLabel(session.role) },
-              { title: '构建状态', dataIndex: 'version', renderText: buildVersionLabel },
+              {
+                title: '组织',
+                dataIndex: 'tenantId',
+                renderText: tenantDisplayName,
+              },
+              {
+                title: '登录成员',
+                dataIndex: 'userId',
+                renderText: organizationMemberName,
+              },
+              {
+                title: '职责',
+                dataIndex: 'role',
+                renderText: () => roleLabel(session.role),
+              },
+              {
+                title: '构建状态',
+                dataIndex: 'version',
+                renderText: buildVersionLabel,
+              },
               { title: '时间', dataIndex: 'time', renderText: formatDateTime },
             ]}
             extra={
               <Space wrap>
-                <Button onClick={() => refetch()}>
-                  刷新
-                </Button>
+                <Button onClick={() => refetch()}>刷新</Button>
                 <Button
                   disabled={!session.lastRequestId}
                   onClick={() =>

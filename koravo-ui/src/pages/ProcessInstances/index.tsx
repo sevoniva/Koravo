@@ -14,7 +14,19 @@ import {
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Badge, Button, Dropdown, Empty, Flex, Form, Space, Tag, Typography } from 'antd';
+import {
+  Alert,
+  App,
+  Badge,
+  Button,
+  Dropdown,
+  Empty,
+  Flex,
+  Form,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -47,6 +59,7 @@ import {
   formSchemaOptionLabel,
   processDefinitionLabel,
   processDisplayName,
+  productCopy,
   shortTraceLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
@@ -85,7 +98,13 @@ interface JsonSchemaProperty {
 const hiddenStartModelKeys = new Set(['httpConnectorDemo']);
 const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
 const START_FORM_TASK_KEY = '__START__';
-const taskDecisionFieldKeys = new Set(['accepted', 'approved', 'reviewComment', 'approvalComment', 'decision']);
+const taskDecisionFieldKeys = new Set([
+  'accepted',
+  'approved',
+  'reviewComment',
+  'approvalComment',
+  'decision',
+]);
 
 function nextBusinessKey(prefix = 'REQ') {
   const now = new Date();
@@ -116,7 +135,9 @@ function parseJsonObject(value?: string): JsonRecord {
   if (!value?.trim()) return {};
   try {
     const parsed = JSON.parse(value) as JsonRecord;
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed
+      : {};
   } catch {
     return {};
   }
@@ -125,26 +146,42 @@ function parseJsonObject(value?: string): JsonRecord {
 function schemaToStartFields(formSchema?: FormSchemaItem): StartFormField[] {
   const schema = parseJsonObject(formSchema?.schemaJson);
   const uiSchema = parseJsonObject(formSchema?.uiSchemaJson);
-  const properties = schema.properties as Record<string, JsonSchemaProperty> | undefined;
-  const required = Array.isArray(schema.required) ? schema.required.map(String) : [];
+  const properties = schema.properties as
+    | Record<string, JsonSchemaProperty>
+    | undefined;
+  const required = Array.isArray(schema.required)
+    ? schema.required.map(String)
+    : [];
 
-  return Object.entries(properties || {}).filter(([fieldKey]) => !taskDecisionFieldKeys.has(fieldKey)).map(([fieldKey, property]) => {
-    const uiField = uiSchema[fieldKey] as JsonRecord | undefined;
-    const widget = uiField?.['ui:widget'] || uiField?.widget || property['ui:widget'] || property.widget;
-    const placeholder = uiField?.['ui:placeholder'] || uiField?.placeholder || property['ui:placeholder'];
-    return {
-      fieldKey,
-      title: property.title || fieldKey,
-      type: property.type || 'string',
-      format: property.format,
-      widget: String(widget || ''),
-      placeholder: typeof placeholder === 'string' ? placeholder : undefined,
-      required: required.includes(fieldKey),
-      options: Array.isArray(property.enum)
-        ? property.enum.map((value) => ({ label: String(value), value: String(value) }))
-        : undefined,
-    };
-  });
+  return Object.entries(properties || {})
+    .filter(([fieldKey]) => !taskDecisionFieldKeys.has(fieldKey))
+    .map(([fieldKey, property]) => {
+      const uiField = uiSchema[fieldKey] as JsonRecord | undefined;
+      const widget =
+        uiField?.['ui:widget'] ||
+        uiField?.widget ||
+        property['ui:widget'] ||
+        property.widget;
+      const placeholder =
+        uiField?.['ui:placeholder'] ||
+        uiField?.placeholder ||
+        property['ui:placeholder'];
+      return {
+        fieldKey,
+        title: productCopy(property.title) || fieldKey,
+        type: property.type || 'string',
+        format: property.format,
+        widget: String(widget || ''),
+        placeholder: typeof placeholder === 'string' ? placeholder : undefined,
+        required: required.includes(fieldKey),
+        options: Array.isArray(property.enum)
+          ? property.enum.map((value) => ({
+              label: String(value),
+              value: String(value),
+            }))
+          : undefined,
+      };
+    });
 }
 
 function findStartBinding(
@@ -175,7 +212,9 @@ function findTaskBinding(
 
 function formSchemaLabel(schema?: FormSchemaItem, version?: number) {
   if (!schema) return version ? `表单版本 v${version}` : '已绑定表单';
-  return formSchemaOptionLabel(schema, version).replace('（', ' ').replace('）', '');
+  return formSchemaOptionLabel(schema, version)
+    .replace('（', ' ')
+    .replace('）', '');
 }
 
 function isBusinessStartModel(model: ProcessModelItem) {
@@ -188,24 +227,31 @@ function isBusinessStartModel(model: ProcessModelItem) {
 function useQueryProcessModelId() {
   const location = useLocation();
   return React.useMemo(() => {
-    return new URLSearchParams(location.search).get('processModelId') || undefined;
+    return (
+      new URLSearchParams(location.search).get('processModelId') || undefined
+    );
   }, [location.search]);
 }
 
 function normalizeStartVariables(values?: JsonRecord): JsonRecord {
-  return Object.entries(values || {}).reduce<JsonRecord>((result, [key, value]) => {
-    if (
-      value &&
-      typeof value === 'object' &&
-      'format' in value &&
-      typeof (value as { format?: unknown }).format === 'function'
-    ) {
-      result[key] = (value as { format: (template: string) => string }).format('YYYY-MM-DD');
+  return Object.entries(values || {}).reduce<JsonRecord>(
+    (result, [key, value]) => {
+      if (
+        value &&
+        typeof value === 'object' &&
+        'format' in value &&
+        typeof (value as { format?: unknown }).format === 'function'
+      ) {
+        result[key] = (
+          value as { format: (template: string) => string }
+        ).format('YYYY-MM-DD');
+        return result;
+      }
+      result[key] = value;
       return result;
-    }
-    result[key] = value;
-    return result;
-  }, {});
+    },
+    {},
+  );
 }
 
 const ProcessStartReadiness: React.FC<{
@@ -221,32 +267,45 @@ const ProcessStartReadiness: React.FC<{
 
   if (!model) return null;
 
-  const missingTasks = tasks.filter((task) => !findTaskBinding(model, task, bindings));
+  const missingTasks = tasks.filter(
+    (task) => !findTaskBinding(model, task, bindings),
+  );
   const startBinding = findStartBinding(model, bindings);
 
   return (
     <Alert
       showIcon
       type={!startBinding || missingTasks.length ? 'warning' : 'success'}
-      title={!startBinding || missingTasks.length ? '流程表单配置不完整' : '流程表单已就绪'}
+      title={
+        !startBinding || missingTasks.length
+          ? '流程表单配置不完整'
+          : '流程表单已就绪'
+      }
       description={
         <Flex vertical gap={8}>
           <Typography.Text type="secondary">
             发起表单和任务表单都会保存快照，实例详情可追踪完整提交记录。
           </Typography.Text>
           <Space size={[0, 6]} wrap>
-            <Tag color={startBinding ? 'success' : 'warning'} variant="outlined">
+            <Tag
+              color={startBinding ? 'success' : 'warning'}
+              variant="outlined"
+            >
               启动表单：
               {startBinding
                 ? formSchemaLabel(
-                    formSchemas.find((item) => item.id === startBinding.formSchemaId),
+                    formSchemas.find(
+                      (item) => item.id === startBinding.formSchemaId,
+                    ),
                     startBinding.formSchemaVersion,
                   )
                 : '未绑定'}
             </Tag>
             {tasks.map((task) => {
               const binding = findTaskBinding(model, task, bindings);
-              const schema = formSchemas.find((item) => item.id === binding?.formSchemaId);
+              const schema = formSchemas.find(
+                (item) => item.id === binding?.formSchemaId,
+              );
               return (
                 <Tag
                   key={task.taskDefinitionKey}
@@ -254,7 +313,9 @@ const ProcessStartReadiness: React.FC<{
                   variant="outlined"
                 >
                   {taskDefinitionLabel(task.taskDefinitionKey)}：
-                  {binding ? formSchemaLabel(schema, binding.formSchemaVersion) : '未绑定'}
+                  {binding
+                    ? formSchemaLabel(schema, binding.formSchemaVersion)
+                    : '未绑定'}
                 </Tag>
               );
             })}
@@ -265,7 +326,9 @@ const ProcessStartReadiness: React.FC<{
         !startBinding || missingTasks.length ? (
           <Button
             size="small"
-            onClick={() => history.push(`/form-bindings?processModelId=${model.id}`)}
+            onClick={() =>
+              history.push(`/form-bindings?processModelId=${model.id}`)
+            }
           >
             去绑定表单
           </Button>
@@ -301,111 +364,120 @@ function buildColumns(
   openTask: (task: TaskItem) => void,
 ): ProColumns<OpsProcessInstance>[] {
   return [
-  {
-    title: '业务对象',
-    dataIndex: 'businessKey',
-    width: 180,
-    render: (_, record) => (
-      <CopyableText
-        value={record.businessKey || record.instanceId}
-        displayValue={
-          record.businessKey
-            ? businessKeyLabel(record.businessKey)
-            : shortTraceLabel(record.instanceId)
-        }
-      />
-    ),
-  },
-  {
-    title: '流程',
-    dataIndex: 'processDefinitionId',
-    ellipsis: true,
-    renderText: (value) => processDefinitionLabel(value),
-  },
-  {
-    title: '实例追踪',
-    dataIndex: 'instanceId',
-    width: 140,
-    search: false,
-    render: (_, record) => (
-      <CopyableText
-        value={record.instanceId}
-        displayValue={shortTraceLabel(record.instanceId)}
-      />
-    ),
-  },
-  { title: '发起人', dataIndex: 'startUserId', width: 120, renderText: organizationMemberName },
-  {
-    title: '当前任务',
-    dataIndex: 'currentTasks',
-    width: 260,
-    search: false,
-    render: (_, record) => renderCurrentTasks(record),
-  },
-  {
-    title: '开始时间',
-    dataIndex: 'startTime',
-    width: 170,
-    search: false,
-    renderText: (value) => formatDateTime(value),
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    width: 110,
-    valueType: 'select',
-    valueEnum: {
-      RUNNING: { text: '运行中' },
-      COMPLETED: { text: '已完成' },
-      SUSPENDED: { text: '已挂起' },
-      TERMINATED: { text: '已终止' },
+    {
+      title: '业务对象',
+      dataIndex: 'businessKey',
+      width: 180,
+      render: (_, record) => (
+        <CopyableText
+          value={record.businessKey || record.instanceId}
+          displayValue={
+            record.businessKey
+              ? businessKeyLabel(record.businessKey)
+              : shortTraceLabel(record.instanceId)
+          }
+        />
+      ),
     },
-    render: (_, record) => <KoravoStatusTag status={record.status} />,
-  },
-  {
-    title: '操作',
-    valueType: 'option',
-    width: 180,
-    render: (_, record) => {
-      const tasks = record.currentTasks || [];
-      return (
-        <Space size={4}>
-          {tasks.length === 1 ? (
-            <Button type="link" onClick={() => openTask(tasks[0])}>
-              处理任务
-            </Button>
-          ) : null}
-          {tasks.length > 1 ? (
-            <Dropdown
-              trigger={['click']}
-              menu={{
-                items: tasks.map((task) => ({
-                  key: task.taskId,
-                  label: `${taskDefinitionLabel(task.taskDefinitionKey)}：${
-                    task.assignee ? organizationMemberName(task.assignee) : '未分配'
-                  }`,
-                })),
-                onClick: ({ key }) => {
-                  const task = tasks.find((item) => item.taskId === key);
-                  if (task) openTask(task);
-                },
-              }}
-            >
-              <Button type="link">
-                处理任务 <DownOutlined />
+    {
+      title: '流程',
+      dataIndex: 'processDefinitionId',
+      ellipsis: true,
+      renderText: (value) => processDefinitionLabel(value),
+    },
+    {
+      title: '实例追踪',
+      dataIndex: 'instanceId',
+      width: 140,
+      search: false,
+      render: (_, record) => (
+        <CopyableText
+          value={record.instanceId}
+          displayValue={shortTraceLabel(record.instanceId)}
+        />
+      ),
+    },
+    {
+      title: '发起人',
+      dataIndex: 'startUserId',
+      width: 120,
+      renderText: organizationMemberName,
+    },
+    {
+      title: '当前任务',
+      dataIndex: 'currentTasks',
+      width: 260,
+      search: false,
+      render: (_, record) => renderCurrentTasks(record),
+    },
+    {
+      title: '开始时间',
+      dataIndex: 'startTime',
+      width: 170,
+      search: false,
+      renderText: (value) => formatDateTime(value),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 110,
+      valueType: 'select',
+      valueEnum: {
+        RUNNING: { text: '运行中' },
+        COMPLETED: { text: '已完成' },
+        SUSPENDED: { text: '已挂起' },
+        TERMINATED: { text: '已终止' },
+      },
+      render: (_, record) => <KoravoStatusTag status={record.status} />,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 180,
+      render: (_, record) => {
+        const tasks = record.currentTasks || [];
+        return (
+          <Space size={4}>
+            {tasks.length === 1 ? (
+              <Button type="link" onClick={() => openTask(tasks[0])}>
+                处理任务
               </Button>
-            </Dropdown>
-          ) : null}
-          <Button
-            type="link"
-            onClick={() => history.push(`/process-instances/${record.instanceId}`)}
-          >
-            查看实例
-          </Button>
-        </Space>
-      );
+            ) : null}
+            {tasks.length > 1 ? (
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: tasks.map((task) => ({
+                    key: task.taskId,
+                    label: `${taskDefinitionLabel(task.taskDefinitionKey)}：${
+                      task.assignee
+                        ? organizationMemberName(task.assignee)
+                        : '未分配'
+                    }`,
+                  })),
+                  onClick: ({ key }) => {
+                    const task = tasks.find((item) => item.taskId === key);
+                    if (task) openTask(task);
+                  },
+                }}
+              >
+                <Button type="link">
+                  处理任务 <DownOutlined />
+                </Button>
+              </Dropdown>
+            ) : null}
+            <Button
+              type="link"
+              onClick={() =>
+                history.push(`/process-instances/${record.instanceId}`)
+              }
+            >
+              查看实例
+            </Button>
+          </Space>
+        );
+      },
     },
-  },
   ];
 }
 
@@ -443,10 +515,12 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
     (processDefinitionKey?: string, processModelId?: string) => {
       const model = deployedModels.find(
         (item) =>
-          item.modelKey === processDefinitionKey ||
-          item.id === processModelId,
+          item.modelKey === processDefinitionKey || item.id === processModelId,
       );
-      const startFormSchemaId = findStartBinding(model, formBindings)?.formSchemaId;
+      const startFormSchemaId = findStartBinding(
+        model,
+        formBindings,
+      )?.formSchemaId;
       form.setFieldsValue({
         processDefinitionKey: model?.modelKey || processDefinitionKey,
         businessKey: nextBusinessKey(businessKeyPrefix(model?.modelKey)),
@@ -461,7 +535,9 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
 
   React.useEffect(() => {
     if (initialProcessModelId && deployedModels.length) {
-      const model = deployedModels.find((item) => item.id === initialProcessModelId);
+      const model = deployedModels.find(
+        (item) => item.id === initialProcessModelId,
+      );
       if (model) {
         setProcessContext(model.modelKey, model.id);
         return;
@@ -482,7 +558,10 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
           title="还没有可发起的已部署流程"
           description="请先创建流程模型并部署，再回到这里发起业务实例。"
           action={
-            <Button size="small" onClick={() => history.push('/process-models')}>
+            <Button
+              size="small"
+              onClick={() => history.push('/process-models')}
+            >
               创建流程模型
             </Button>
           }
@@ -513,7 +592,9 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
       />
       <ProFormDependency name={['processModelId']}>
         {({ processModelId }) => {
-          const selectedModel = deployedModels.find((item) => item.id === processModelId);
+          const selectedModel = deployedModels.find(
+            (item) => item.id === processModelId,
+          );
           return (
             <ProcessStartReadiness
               model={selectedModel}
@@ -547,8 +628,13 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                 style={{ marginBottom: 16 }}
               />
               {(() => {
-                const selectedModel = deployedModels.find((item) => item.id === processModelId);
-                const startBinding = findStartBinding(selectedModel, formBindings);
+                const selectedModel = deployedModels.find(
+                  (item) => item.id === processModelId,
+                );
+                const startBinding = findStartBinding(
+                  selectedModel,
+                  formBindings,
+                );
                 return selectedModel && !startBinding ? (
                   <Alert
                     showIcon
@@ -559,7 +645,9 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                       <Button
                         size="small"
                         onClick={() =>
-                          history.push(`/form-bindings?processModelId=${selectedModel.id}`)
+                          history.push(
+                            `/form-bindings?processModelId=${selectedModel.id}`,
+                          )
                         }
                       >
                         去绑定表单
@@ -570,9 +658,16 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                 ) : null;
               })()}
               {(() => {
-                const selectedModel = deployedModels.find((item) => item.id === processModelId);
-                const startBinding = findStartBinding(selectedModel, formBindings);
-                const startSchema = formSchemas.find((item) => item.id === startBinding?.formSchemaId);
+                const selectedModel = deployedModels.find(
+                  (item) => item.id === processModelId,
+                );
+                const startBinding = findStartBinding(
+                  selectedModel,
+                  formBindings,
+                );
+                const startSchema = formSchemas.find(
+                  (item) => item.id === startBinding?.formSchemaId,
+                );
                 return startBinding ? (
                   <ProFormSelect
                     name="startFormSchemaId"
@@ -581,13 +676,15 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                     rules={[{ required: true, message: '请选择启动表单' }]}
                     options={
                       startSchema
-                        ? [{
-                            label: formSchemaOptionLabel(
-                              startSchema,
-                              startBinding.formSchemaVersion,
-                            ),
-                            value: startSchema.id,
-                          }]
+                        ? [
+                            {
+                              label: formSchemaOptionLabel(
+                                startSchema,
+                                startBinding.formSchemaVersion,
+                              ),
+                              value: startSchema.id,
+                            },
+                          ]
                         : []
                     }
                     fieldProps={{
@@ -614,7 +711,9 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
               ) : null}
               <ProFormDependency name={['startFormSchemaId']}>
                 {({ startFormSchemaId }) => {
-                  const formSchema = formSchemas.find((item) => item.id === startFormSchemaId);
+                  const formSchema = formSchemas.find(
+                    (item) => item.id === startFormSchemaId,
+                  );
                   const fields = schemaToStartFields(formSchema);
                   if (!fields.length) {
                     return (
@@ -629,7 +728,10 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                   return (
                     <Flex vertical gap={4}>
                       {fields.map((field) =>
-                        isOrganizationAssigneeField(field.fieldKey, field.title) ? (
+                        isOrganizationAssigneeField(
+                          field.fieldKey,
+                          field.title,
+                        ) ? (
                           <ProFormSelect
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
@@ -640,17 +742,31 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                               field.title,
                             )}
                             options={organizationMemberSelectOptions(
-                              organizationAssigneeRole(field.fieldKey, field.title),
+                              organizationAssigneeRole(
+                                field.fieldKey,
+                                field.title,
+                              ),
                             )}
                             placeholder="请选择组织成员"
-                            fieldProps={{ showSearch: true, optionFilterProp: 'label' }}
+                            fieldProps={{
+                              showSearch: true,
+                              optionFilterProp: 'label',
+                            }}
                             rules={
                               field.required
-                                ? [{ required: true, message: `请选择${field.title}` }]
+                                ? [
+                                    {
+                                      required: true,
+                                      message: `请选择${field.title}`,
+                                    },
+                                  ]
                                 : []
                             }
                           />
-                        ) : isOrganizationProfileField(field.fieldKey, field.title) ? (
+                        ) : isOrganizationProfileField(
+                            field.fieldKey,
+                            field.title,
+                          ) ? (
                           <ProFormText
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
@@ -662,10 +778,11 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                               field.title,
                             )}
                             tooltip="由登录成员和组织成员信息自动带出。"
-                            fieldProps={{ readOnly: true }}
+                            disabled
                             rules={profileFieldRules(field)}
                           />
-                        ) : field.type === 'number' || field.type === 'integer' ? (
+                        ) : field.type === 'number' ||
+                          field.type === 'integer' ? (
                           <ProFormDigit
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
@@ -673,7 +790,12 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             placeholder={field.placeholder}
                             rules={
                               field.required
-                                ? [{ required: true, message: `请输入${field.title}` }]
+                                ? [
+                                    {
+                                      required: true,
+                                      message: `请输入${field.title}`,
+                                    },
+                                  ]
                                 : []
                             }
                           />
@@ -686,7 +808,12 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             placeholder={field.placeholder}
                             rules={
                               field.required
-                                ? [{ required: true, message: `请选择${field.title}` }]
+                                ? [
+                                    {
+                                      required: true,
+                                      message: `请选择${field.title}`,
+                                    },
+                                  ]
                                 : []
                             }
                           />
@@ -699,7 +826,12 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             fieldProps={{ format: 'YYYY-MM-DD' }}
                             rules={
                               field.required
-                                ? [{ required: true, message: `请选择${field.title}` }]
+                                ? [
+                                    {
+                                      required: true,
+                                      message: `请选择${field.title}`,
+                                    },
+                                  ]
                                 : []
                             }
                           />
@@ -712,7 +844,12 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             fieldProps={{ rows: 3 }}
                             rules={
                               field.required
-                                ? [{ required: true, message: `请输入${field.title}` }]
+                                ? [
+                                    {
+                                      required: true,
+                                      message: `请输入${field.title}`,
+                                    },
+                                  ]
                                 : []
                             }
                           />
@@ -724,7 +861,12 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             placeholder={field.placeholder}
                             rules={
                               field.required
-                                ? [{ required: true, message: `请输入${field.title}` }]
+                                ? [
+                                    {
+                                      required: true,
+                                      message: `请输入${field.title}`,
+                                    },
+                                  ]
                                 : []
                             }
                           />
@@ -748,17 +890,11 @@ const ProcessInstances: React.FC = () => {
   const queryProcessModelId = useQueryProcessModelId();
   const isStartEntry = location.pathname === '/process-start';
 
-  const openTask = React.useCallback(
-    (task: TaskItem) => {
-      history.push(`/tasks/${task.taskId}`);
-    },
-    [],
-  );
+  const openTask = React.useCallback((task: TaskItem) => {
+    history.push(`/tasks/${task.taskId}`);
+  }, []);
 
-  const columns = React.useMemo(
-    () => buildColumns(openTask),
-    [openTask],
-  );
+  const columns = React.useMemo(() => buildColumns(openTask), [openTask]);
 
   if (isStartEntry || queryProcessModelId) {
     return (

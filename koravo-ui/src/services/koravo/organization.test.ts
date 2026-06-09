@@ -31,6 +31,9 @@ describe('organization display helpers', () => {
     const session = { userId: 'applicant', role: 'applicant' as const };
     expect(isOrganizationProfileField('applyUserName', '申请人')).toBe(true);
     expect(isOrganizationProfileField('applyDeptName', '申请部门')).toBe(true);
+    expect(isOrganizationProfileField('apply_user_name', '申请员工')).toBe(true);
+    expect(isOrganizationProfileField('requesterDept', '提交部门')).toBe(true);
+    expect(isOrganizationProfileField('submit_department', '经办部门')).toBe(true);
     expect(organizationProfileFieldValue('applyUserName', undefined, session, '申请人')).toBe(
       '发起人',
     );

@@ -24,7 +24,19 @@ import {
   updateFormSchema,
   type FormSchemaItem,
 } from '@/services/koravo/api';
-import { formSchemaKeyLabel, formSchemaNameLabel } from '@/utils/display';
+import {
+  isOrganizationAssigneeField,
+  isOrganizationProfileField,
+  organizationAssigneeFieldValue,
+  organizationAssigneeRole,
+  organizationMemberSelectOptions,
+  organizationProfileFieldValue,
+} from '@/services/koravo/organization';
+import {
+  formSchemaKeyLabel,
+  formSchemaNameLabel,
+  productCopy,
+} from '@/utils/display';
 import { history } from '@umijs/max';
 
 interface FormSchemaForm {
@@ -152,9 +164,7 @@ const normalizeOptions = (options?: unknown[]) => {
 };
 
 const normalizeOptionValues = (options?: string[]) => {
-  const normalized = (options || [])
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const normalized = (options || []).map((item) => item.trim()).filter(Boolean);
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };
 
@@ -185,7 +195,7 @@ const schemaToFields = (
     const options = normalizeOptions(property?.enum);
     return {
       fieldKey,
-      title: property?.title || fieldKey,
+      title: productCopy(property?.title) || fieldKey,
       type,
       widget: options?.length ? 'select' : normalizeWidget(widget, type),
       placeholder: typeof placeholder === 'string' ? placeholder : undefined,
@@ -291,8 +301,17 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
     title: '控件',
     dataIndex: 'widget',
     width: 120,
-    renderText: (value, record) =>
-      widgetText[normalizeWidget(value, record.type)],
+    render: (_, record) => {
+      if (isOrganizationProfileField(record.fieldKey, record.title)) {
+        return <Tag color="processing">系统带出</Tag>;
+      }
+      if (isOrganizationAssigneeField(record.fieldKey, record.title)) {
+        return <Tag color="blue">组织成员</Tag>;
+      }
+      return (
+        <Tag>{widgetText[normalizeWidget(record.widget, record.type)]}</Tag>
+      );
+    },
   },
   {
     title: '选项/格式',
@@ -318,6 +337,52 @@ const renderPreviewField = (field: FormFieldConfig) => {
     ? [{ required: true, message: `请填写${field.title}` }]
     : undefined;
   const name = field.fieldKey;
+  if (isOrganizationAssigneeField(field.fieldKey, field.title)) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={organizationAssigneeFieldValue(
+          field.fieldKey,
+          undefined,
+          field.title,
+        )}
+        options={organizationMemberSelectOptions(
+          organizationAssigneeRole(field.fieldKey, field.title),
+        )}
+        tooltip="办理人来自组织成员，不在业务表单中手工录入。"
+        disabled
+        rules={
+          field.required
+            ? [{ required: true, message: `${field.title}会自动带出` }]
+            : undefined
+        }
+      />
+    );
+  }
+  if (isOrganizationProfileField(field.fieldKey, field.title)) {
+    return (
+      <ProFormText
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={organizationProfileFieldValue(
+          field.fieldKey,
+          undefined,
+          undefined,
+          field.title,
+        )}
+        tooltip="由登录成员和组织成员信息自动带出。"
+        disabled
+        rules={
+          field.required
+            ? [{ required: true, message: `${field.title}会自动带出` }]
+            : undefined
+        }
+      />
+    );
+  }
   if (field.type === 'number') {
     return (
       <ProFormDigit
@@ -331,7 +396,9 @@ const renderPreviewField = (field: FormFieldConfig) => {
     );
   }
   if (field.type === 'boolean') {
-    return <ProFormSwitch key={field.fieldKey} name={name} label={field.title} />;
+    return (
+      <ProFormSwitch key={field.fieldKey} name={name} label={field.title} />
+    );
   }
   if (field.options?.length) {
     return (

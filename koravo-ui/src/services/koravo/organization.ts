@@ -90,11 +90,15 @@ function normalizeFieldText(value?: string | null) {
   return String(value || '').trim().toLowerCase();
 }
 
+function normalizeSemanticKey(value?: string | null) {
+  return normalizeFieldText(value).replace(/[^a-z0-9]/g, '');
+}
+
 function organizationProfileFieldKind(
   fieldKey?: string | null,
   fieldTitle?: string | null,
 ): OrganizationProfileFieldKind | undefined {
-  const key = normalizeFieldText(fieldKey);
+  const key = normalizeSemanticKey(fieldKey);
   const title = String(fieldTitle || '').trim();
   const combined = `${key} ${title}`;
   const assigneeLike =
@@ -102,18 +106,48 @@ function organizationProfileFieldKind(
     /审批人|处理人|办理人|复核人|负责人/.test(title);
 
   if (
-    ['applicant', 'requester', 'startuserid', 'startuser', 'applyuser', 'applyuserid'].includes(
-      key,
-    ) ||
-    /申请人|发起人|提交人|填报人/.test(title)
+    [
+      'applicant',
+      'applicantname',
+      'requester',
+      'requestername',
+      'startuserid',
+      'startuser',
+      'startusername',
+      'applyuser',
+      'applyuserid',
+      'applyusername',
+      'submitter',
+      'submittername',
+      'creator',
+      'createdby',
+      'initiator',
+      'initiatorname',
+    ].includes(key) ||
+    /申请人|申请员工|发起人|提交人|填报人|经办人|创建人/.test(title)
   ) {
     return 'applicant';
   }
 
   if (
     !assigneeLike &&
-    (['department', 'dept', 'applydept', 'applicantdepartment'].includes(key) ||
-      /申请部门|发起部门|所属部门|所在部门|部门$/.test(title) ||
+    ([
+      'department',
+      'departmentname',
+      'dept',
+      'deptname',
+      'applydept',
+      'applydeptname',
+      'applicantdepartment',
+      'applicantdept',
+      'requesterdepartment',
+      'requesterdept',
+      'startdepartment',
+      'startdept',
+      'submitdepartment',
+      'submitdept',
+    ].includes(key) ||
+      /申请部门|发起部门|提交部门|填报部门|所属部门|所在部门|经办部门|部门$/.test(title) ||
       /department|dept/.test(combined))
   ) {
     return 'department';
@@ -133,7 +167,7 @@ export function isOrganizationAssigneeField(
   fieldKey?: string | null,
   fieldTitle?: string | null,
 ) {
-  const key = normalizeFieldText(fieldKey);
+  const key = normalizeSemanticKey(fieldKey);
   const title = String(fieldTitle || '').trim();
   return (
     /approver|assignee|handler|processor|reviewer/.test(key) ||
@@ -153,7 +187,7 @@ export function organizationAssigneeRole(
   if (mapping[normalized]) return mapping[normalized];
   if (!isOrganizationAssigneeField(fieldKey, fieldTitle)) return undefined;
 
-  const key = normalizeFieldText(fieldKey);
+  const key = normalizeSemanticKey(fieldKey);
   const title = String(fieldTitle || '').trim();
   if (/finance|财务/.test(`${key} ${title}`)) return 'finance';
   if (/manager|business|department|业务|部门/.test(`${key} ${title}`)) return 'manager';
@@ -251,4 +285,8 @@ export function organizationGroupOptions() {
   return Array.from(new Set(getOrganizationMembers().map((item) => item.department)))
     .filter(Boolean)
     .map((department) => ({ label: department, value: department }));
+}
+
+export function organizationDepartmentSelectOptions() {
+  return organizationGroupOptions();
 }
