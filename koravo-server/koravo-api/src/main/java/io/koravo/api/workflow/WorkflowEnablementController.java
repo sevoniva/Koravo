@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @Tag(name = "流程配置检查", description = "检查并补齐 Koravo 基础流程配置")
 @RestController
 public class WorkflowEnablementController {
@@ -26,5 +28,11 @@ public class WorkflowEnablementController {
     @GetMapping("/api/v1/workflow-enablement/status")
     public ApiResponse<WorkflowEnablementStatusResponse> status() {
         return ApiResponse.success(workflowEnablementService.status());
+    }
+
+    @Operation(summary = "查询可发起流程", description = "返回已发布、已绑定启动表单、可由当前用户发起的流程。")
+    @GetMapping("/api/v1/workflow-enablement/startable-processes")
+    public ApiResponse<List<StartableWorkflowResponse>> startableProcesses() {
+        return ApiResponse.success(workflowEnablementService.startableProcesses());
     }
 }

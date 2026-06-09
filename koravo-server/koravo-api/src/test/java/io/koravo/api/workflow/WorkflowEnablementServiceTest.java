@@ -19,6 +19,7 @@ import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -224,27 +225,116 @@ class WorkflowEnablementServiceTest {
         verify(processFacade, never()).deploy(any());
     }
 
+    @Test
+    void startableProcessesOnlyReturnsDeployedModelsWithActiveStartForms() {
+        TenantContextHolder.setTenantId("default");
+        KoProcessModel model = deployedModel();
+        KoProcessModel demoModel = deployedModel("demo-model", "purchaseApproval", "采购申请流程");
+        KoFormSchema form = activeForm();
+        KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        KoFormBinding demoBinding = binding("demo-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        demoBinding.setProcessModelId("demo-model");
+        demoBinding.setProcessDefinitionId("purchaseApproval:1:demo");
+
+        when(processModelRepository.findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc("default", ProcessModelStatus.DEPLOYED))
+                .thenReturn(List.of(model, demoModel));
+        when(formBindingRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
+                .thenReturn(List.of(startBinding, demoBinding));
+        when(formSchemaRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
+                .thenReturn(List.of(form));
+
+        List<StartableWorkflowResponse> response = service.startableProcesses();
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).processDefinitionKey()).isEqualTo(WorkflowEnablementDefaults.PROCESS_KEY);
+        assertThat(response.get(0).startFormSchema().id()).isEqualTo("form-1");
+    }
+
+    @Test
+    void initArchivesDemoWorkflowAssetsWithoutDeletingCurrentDefaultAssets() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = deployedModel();
+        KoFormSchema form = activeForm();
+        KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        KoFormBinding businessBinding = binding("business-binding", "form-1", 2, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY);
+        KoFormBinding financeBinding = binding("finance-binding", "form-1", 2, WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY);
+        KoProcessModel demoModel = deployedModel("demo-model", "leaveApproval", "请假审批流程");
+        KoFormSchema demoForm = activeForm("demo-form", "leave-form", "请假申请表");
+
+        when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                WorkflowEnablementDefaults.PROCESS_KEY
+        )).thenReturn(Optional.of(model));
+        when(formSchemaRepository.findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                WorkflowEnablementDefaults.FORM_KEY
+        )).thenReturn(Optional.of(form));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.START_FORM_TASK_KEY
+        )).thenReturn(Optional.of(startBinding));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY
+        )).thenReturn(Optional.of(businessBinding));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
+        )).thenReturn(Optional.of(financeBinding));
+        when(processModelRepository.findByTenantIdAndModelKeyInAndDeletedFalseOrderByUpdatedAtDesc(eq("default"), any()))
+                .thenReturn(List.of(model, demoModel));
+        when(formSchemaRepository.findByTenantIdAndFormKeyInAndDeletedFalseOrderByUpdatedAtDesc(eq("default"), any()))
+                .thenReturn(List.of(form, demoForm));
+        when(processModelRepository.save(any(KoProcessModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(formSchemaRepository.save(any(KoFormSchema.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        WorkflowEnablementInitResponse response = service.init();
+
+        assertThat(model.getStatus()).isEqualTo(ProcessModelStatus.DEPLOYED);
+        assertThat(form.getStatus()).isEqualTo(FormStatus.ACTIVE);
+        assertThat(demoModel.getStatus()).isEqualTo(ProcessModelStatus.ARCHIVED);
+        assertThat(demoModel.getUpdatedBy()).isEqualTo("admin");
+        assertThat(demoForm.getStatus()).isEqualTo(FormStatus.DISABLED);
+        assertThat(demoForm.getUpdatedBy()).isEqualTo("admin");
+        assertThat(response.actions()).contains(
+                "归档历史演示流程：请假审批流程",
+                "停用历史演示表单：请假申请表"
+        );
+    }
+
     private KoProcessModel deployedModel() {
+        return deployedModel("model-1", WorkflowEnablementDefaults.PROCESS_KEY, WorkflowEnablementDefaults.PROCESS_NAME);
+    }
+
+    private KoProcessModel deployedModel(String id, String modelKey, String modelName) {
         KoProcessModel model = new KoProcessModel();
-        model.setId("model-1");
+        model.setId(id);
         model.setTenantId("default");
-        model.setModelKey(WorkflowEnablementDefaults.PROCESS_KEY);
-        model.setModelName(WorkflowEnablementDefaults.PROCESS_NAME);
+        model.setModelKey(modelKey);
+        model.setModelName(modelName);
         model.setModelType("BPMN");
         model.setVersion(1);
         model.setStatus(ProcessModelStatus.DEPLOYED);
         model.setFlowableDeploymentId("dep-1");
-        model.setFlowableDefinitionId("pd-1");
+        model.setFlowableDefinitionId(WorkflowEnablementDefaults.PROCESS_KEY.equals(modelKey) ? "pd-1" : modelKey + ":1:demo");
         model.setBpmnXml(WorkflowEnablementDefaults.businessRequestBpmn());
         return model;
     }
 
     private KoFormSchema activeForm() {
+        return activeForm("form-1", WorkflowEnablementDefaults.FORM_KEY, WorkflowEnablementDefaults.FORM_NAME);
+    }
+
+    private KoFormSchema activeForm(String id, String formKey, String formName) {
         KoFormSchema form = new KoFormSchema();
-        form.setId("form-1");
+        form.setId(id);
         form.setTenantId("default");
-        form.setFormKey(WorkflowEnablementDefaults.FORM_KEY);
-        form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
+        form.setFormKey(formKey);
+        form.setFormName(formName);
         form.setVersion(2);
         form.setSchemaJson(WorkflowEnablementDefaults.businessRequestFormSchema());
         form.setUiSchemaJson(WorkflowEnablementDefaults.businessRequestFormUiSchema());

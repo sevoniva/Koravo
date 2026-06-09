@@ -12,6 +12,11 @@ public interface ProcessModelRepository extends JpaRepository<KoProcessModel, St
 
     List<KoProcessModel> findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(String tenantId, ProcessModelStatus status);
 
+    List<KoProcessModel> findByTenantIdAndModelKeyInAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            List<String> modelKeys
+    );
+
     long countByTenantIdAndDeletedFalse(String tenantId);
 
     long countByTenantIdAndStatusAndDeletedFalse(String tenantId, ProcessModelStatus status);

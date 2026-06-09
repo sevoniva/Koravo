@@ -9,6 +9,11 @@ import java.util.Optional;
 public interface FormSchemaRepository extends JpaRepository<KoFormSchema, String> {
     List<KoFormSchema> findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(String tenantId);
 
+    List<KoFormSchema> findByTenantIdAndFormKeyInAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            List<String> formKeys
+    );
+
     Optional<KoFormSchema> findByIdAndTenantIdAndDeletedFalse(String id, String tenantId);
 
     long countByTenantIdAndDeletedFalse(String tenantId);

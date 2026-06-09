@@ -65,6 +65,16 @@ export interface WorkflowEnablementInitResult {
   actions: string[]
 }
 
+export interface StartableWorkflowItem {
+  processModelId: string
+  processDefinitionId: string
+  processDefinitionKey: string
+  processName: string
+  description?: string
+  startFormBindingId: string
+  startFormSchema: FormSchemaItem
+}
+
 export interface ProcessDeployment {
   platformModelId: string
   deploymentId: string
@@ -320,6 +330,10 @@ export function getWorkflowEnablementStatus() {
 
 export function initializeWorkflowAssets() {
   return apiData<WorkflowEnablementInitResult>(http.post('/workflow-enablement/init'))
+}
+
+export function listStartableWorkflows() {
+  return apiData<StartableWorkflowItem[]>(http.get('/workflow-enablement/startable-processes'))
 }
 
 export function deployProcessModel(modelName: string, file: File) {

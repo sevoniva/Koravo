@@ -9,6 +9,7 @@ import io.koravo.form.domain.KoFormBinding;
 import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.form.repo.FormSchemaRepository;
+import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
 import io.koravo.model.repo.ProcessModelRepository;
@@ -24,11 +25,25 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class WorkflowEnablementService {
     private static final List<String> LEGACY_PROCESS_KEYS = List.of("multiAcceptance", "purchaseApproval");
     private static final List<String> LEGACY_FORM_KEYS = List.of("acceptance-request-form", "purchase-request-form");
+    private static final List<String> DEMO_PROCESS_KEYS = List.of(
+            "multiAcceptance",
+            "purchaseApproval",
+            "leaveApproval",
+            "httpConnectorDemo",
+            "designerDeployCheck"
+    );
+    private static final List<String> DEMO_FORM_KEYS = List.of(
+            "acceptance-request-form",
+            "purchase-request-form",
+            "leave-form"
+    );
+    private static final Set<String> DEMO_PROCESS_KEY_SET = Set.copyOf(DEMO_PROCESS_KEYS);
 
     private final ProcessFacade processFacade;
     private final ProcessModelRepository processModelRepository;
@@ -159,6 +174,7 @@ public class WorkflowEnablementService {
         KoFormBinding startBinding = ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.START_FORM_TASK_KEY, "启动表单", actions);
         ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY, "业务审批", actions);
         ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY, "财务复核", actions);
+        archiveDemoWorkflowAssets(tenantId, userId, model, form, actions);
 
         auditLogService.record("WORKFLOW_ENABLEMENT_INIT", "WORKFLOW_ENABLEMENT", "collaborative-approval", Map.of(
                 "processModelId", model.getId(),
@@ -177,6 +193,27 @@ public class WorkflowEnablementService {
                 startBinding.getId(),
                 actions.isEmpty() ? List.of("流程配置已存在，未重复创建") : actions
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<StartableWorkflowResponse> startableProcesses() {
+        String tenantId = TenantContextHolder.getTenantId();
+        List<KoFormBinding> bindings = formBindingRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(tenantId);
+        List<KoFormSchema> schemas = formSchemaRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(tenantId);
+        Map<String, KoFormSchema> schemaMap = schemas.stream()
+                .filter(schema -> schema.getStatus() == FormStatus.ACTIVE)
+                .collect(java.util.stream.Collectors.toMap(
+                        KoFormSchema::getId,
+                        schema -> schema,
+                        (left, right) -> left
+                ));
+        return processModelRepository
+                .findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(tenantId, ProcessModelStatus.DEPLOYED)
+                .stream()
+                .filter(this::isUserStartableProcess)
+                .map(model -> startableProcess(model, bindings, schemaMap))
+                .filter(response -> response != null)
+                .toList();
     }
 
     private KoProcessModel findDefaultProcessModel(String tenantId) {
@@ -213,6 +250,48 @@ public class WorkflowEnablementService {
             }
         }
         return null;
+    }
+
+    private boolean isUserStartableProcess(KoProcessModel model) {
+        if (model == null || !StringUtils.hasText(model.getFlowableDefinitionId())) {
+            return false;
+        }
+        if (DEMO_PROCESS_KEY_SET.contains(model.getModelKey())) {
+            return false;
+        }
+        if (model.getStatus() != ProcessModelStatus.DEPLOYED) {
+            return false;
+        }
+        return true;
+    }
+
+    private StartableWorkflowResponse startableProcess(
+            KoProcessModel model,
+            List<KoFormBinding> bindings,
+            Map<String, KoFormSchema> schemaMap
+    ) {
+        KoFormBinding startBinding = bindings.stream()
+                .filter(binding -> WorkflowEnablementDefaults.START_FORM_TASK_KEY.equals(binding.getTaskDefinitionKey()))
+                .filter(binding -> model.getId().equals(binding.getProcessModelId())
+                        || model.getFlowableDefinitionId().equals(binding.getProcessDefinitionId()))
+                .findFirst()
+                .orElse(null);
+        if (startBinding == null) {
+            return null;
+        }
+        KoFormSchema schema = schemaMap.get(startBinding.getFormSchemaId());
+        if (schema == null) {
+            return null;
+        }
+        return new StartableWorkflowResponse(
+                model.getId(),
+                model.getFlowableDefinitionId(),
+                model.getModelKey(),
+                model.getModelName(),
+                model.getDescription(),
+                startBinding.getId(),
+                toFormSchemaResponse(schema)
+        );
     }
 
     private KoProcessModel createProcessModel(String tenantId, String userId, List<String> actions) {
@@ -444,6 +523,39 @@ public class WorkflowEnablementService {
                 : "更新审批任务表单绑定");
     }
 
+    private void archiveDemoWorkflowAssets(
+            String tenantId,
+            String userId,
+            KoProcessModel currentModel,
+            KoFormSchema currentForm,
+            List<String> actions
+    ) {
+        for (KoProcessModel model : processModelRepository.findByTenantIdAndModelKeyInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, DEMO_PROCESS_KEYS)) {
+            if (currentModel != null && currentModel.getId().equals(model.getId())) {
+                continue;
+            }
+            if (model.getStatus() == ProcessModelStatus.ARCHIVED) {
+                continue;
+            }
+            model.setStatus(ProcessModelStatus.ARCHIVED);
+            model.setUpdatedBy(userId);
+            processModelRepository.save(model);
+            actions.add("归档历史演示流程：" + model.getModelName());
+        }
+        for (KoFormSchema form : formSchemaRepository.findByTenantIdAndFormKeyInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, DEMO_FORM_KEYS)) {
+            if (currentForm != null && currentForm.getId().equals(form.getId())) {
+                continue;
+            }
+            if (form.getStatus() == FormStatus.DISABLED) {
+                continue;
+            }
+            form.setStatus(FormStatus.DISABLED);
+            form.setUpdatedBy(userId);
+            formSchemaRepository.save(form);
+            actions.add("停用历史演示表单：" + form.getFormName());
+        }
+    }
+
     private void ensureTaskBinding(
             String tenantId,
             String userId,
@@ -491,5 +603,17 @@ public class WorkflowEnablementService {
         variables.put("financeApprover", "finance");
         variables.put("remark", "");
         return variables;
+    }
+
+    private FormSchemaResponse toFormSchemaResponse(KoFormSchema schema) {
+        return new FormSchemaResponse(
+                schema.getId(),
+                schema.getFormKey(),
+                schema.getFormName(),
+                schema.getVersion(),
+                schema.getSchemaJson(),
+                schema.getUiSchemaJson(),
+                schema.getStatus().name()
+        );
     }
 }
