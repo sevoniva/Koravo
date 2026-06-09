@@ -1,5 +1,6 @@
 package io.koravo.form.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.koravo.common.model.AssetOrigin;
 import io.koravo.form.domain.FormStatus;
 import io.koravo.form.domain.KoFormSchema;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -24,7 +26,7 @@ import static org.mockito.Mockito.when;
 class FormSchemaServiceTest {
     private final FormSchemaRepository repository = mock(FormSchemaRepository.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
-    private final FormSchemaService service = new FormSchemaService(repository, auditLogService);
+    private final FormSchemaService service = new FormSchemaService(repository, auditLogService, new ObjectMapper());
 
     @AfterEach
     void tearDown() {
@@ -45,7 +47,7 @@ class FormSchemaServiceTest {
         var result = service.create(new FormSchemaRequest(
                 "leave",
                 "Leave",
-                "{\"type\":\"object\"}",
+                "{\"type\":\"object\",\"properties\":{\"days\":{\"type\":\"number\"}}}",
                 "{}"
         ));
 
@@ -92,7 +94,7 @@ class FormSchemaServiceTest {
         var result = service.update("form-1", new FormSchemaRequest(
                 "leave",
                 "Leave Approval",
-                "{\"type\":\"object\",\"required\":[\"days\"]}",
+                "{\"type\":\"object\",\"required\":[\"days\"],\"properties\":{\"days\":{\"type\":\"number\"}}}",
                 "{}"
         ));
 
@@ -105,6 +107,25 @@ class FormSchemaServiceTest {
         ));
     }
 
+    @Test
+    void createRejectsInvalidSchemaPayload() {
+        TenantContextHolder.setTenantId("default");
+
+        assertThatThrownBy(() -> service.create(new FormSchemaRequest(
+                "leave",
+                "Leave",
+                "{\"type\":\"object\"}",
+                "{}"
+        ))).hasMessage("表单结构配置必须包含字段清单");
+
+        assertThatThrownBy(() -> service.create(new FormSchemaRequest(
+                "leave",
+                "Leave",
+                "{\"type\":\"object\",\"properties\":{}}",
+                "{"
+        ))).hasMessage("表单展示配置不是有效 JSON");
+    }
+
     private KoFormSchema schema(String id, int version) {
         KoFormSchema schema = new KoFormSchema();
         schema.setId(id);
@@ -112,7 +133,7 @@ class FormSchemaServiceTest {
         schema.setFormKey("leave");
         schema.setFormName("Leave");
         schema.setVersion(version);
-        schema.setSchemaJson("{\"type\":\"object\"}");
+        schema.setSchemaJson("{\"type\":\"object\",\"properties\":{\"days\":{\"type\":\"number\"}}}");
         schema.setUiSchemaJson("{}");
         schema.setStatus(FormStatus.ACTIVE);
         return schema;

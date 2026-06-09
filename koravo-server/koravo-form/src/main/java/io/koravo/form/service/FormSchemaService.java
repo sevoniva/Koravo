@@ -1,5 +1,8 @@
 package io.koravo.form.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
 import io.koravo.common.model.AssetOrigin;
@@ -11,6 +14,7 @@ import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
+import org.springframework.util.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +30,17 @@ public class FormSchemaService {
 
     private final FormSchemaRepository repository;
     private final AuditLogService auditLogService;
+    private final ObjectMapper objectMapper;
 
-    public FormSchemaService(FormSchemaRepository repository, AuditLogService auditLogService) {
+    public FormSchemaService(FormSchemaRepository repository, AuditLogService auditLogService, ObjectMapper objectMapper) {
         this.repository = repository;
         this.auditLogService = auditLogService;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
     public FormSchemaResponse create(FormSchemaRequest request) {
+        validateSchemaPayload(request);
         KoFormSchema schema = new KoFormSchema();
         schema.setTenantId(TenantContextHolder.getTenantId());
         schema.setCreatedBy(UserContextHolder.getUserId());
@@ -77,6 +84,7 @@ public class FormSchemaService {
 
     @Transactional
     public FormSchemaResponse update(String id, FormSchemaRequest request) {
+        validateSchemaPayload(request);
         KoFormSchema schema = repository.findByIdAndTenantIdAndDeletedFalse(id, TenantContextHolder.getTenantId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema not found"));
         schema.setFormKey(request.formKey());
@@ -92,6 +100,28 @@ public class FormSchemaService {
                 "version", saved.getVersion()
         ));
         return toResponse(saved);
+    }
+
+    private void validateSchemaPayload(FormSchemaRequest request) {
+        JsonNode schema = readObjectNode(request.schemaJson(), "表单结构配置");
+        if (!schema.has("properties") || !schema.get("properties").isObject()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "表单结构配置必须包含字段清单");
+        }
+        if (StringUtils.hasText(request.uiSchemaJson())) {
+            readObjectNode(request.uiSchemaJson(), "表单展示配置");
+        }
+    }
+
+    private JsonNode readObjectNode(String json, String label) {
+        try {
+            JsonNode node = objectMapper.readTree(json);
+            if (node == null || !node.isObject()) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST, label + "必须是 JSON 对象");
+            }
+            return node;
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, label + "不是有效 JSON");
+        }
     }
 
     private FormSchemaResponse toResponse(KoFormSchema schema) {
