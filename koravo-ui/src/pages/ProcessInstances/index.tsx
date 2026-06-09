@@ -36,6 +36,7 @@ import {
 import {
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
+  isOrganizationAssigneeField,
   isOrganizationProfileField,
   organizationMemberSelectOptions,
   organizationMemberName,
@@ -628,28 +629,38 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                   return (
                     <Flex vertical gap={4}>
                       {fields.map((field) =>
-                        organizationAssigneeRole(field.fieldKey) ? (
+                        isOrganizationAssigneeField(field.fieldKey, field.title) ? (
                           <ProFormSelect
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
                             label={field.title}
-                            initialValue={organizationAssigneeFieldValue(field.fieldKey)}
+                            initialValue={organizationAssigneeFieldValue(
+                              field.fieldKey,
+                              undefined,
+                              field.title,
+                            )}
                             options={organizationMemberSelectOptions(
-                              organizationAssigneeRole(field.fieldKey),
+                              organizationAssigneeRole(field.fieldKey, field.title),
                             )}
                             placeholder="请选择组织成员"
+                            fieldProps={{ showSearch: true, optionFilterProp: 'label' }}
                             rules={
                               field.required
                                 ? [{ required: true, message: `请选择${field.title}` }]
                                 : []
                             }
                           />
-                        ) : isOrganizationProfileField(field.fieldKey) ? (
+                        ) : isOrganizationProfileField(field.fieldKey, field.title) ? (
                           <ProFormText
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
                             label={field.title}
-                            initialValue={organizationProfileFieldValue(field.fieldKey)}
+                            initialValue={organizationProfileFieldValue(
+                              field.fieldKey,
+                              undefined,
+                              undefined,
+                              field.title,
+                            )}
                             tooltip="由当前账号和组织成员信息自动带出。"
                             fieldProps={{ readOnly: true }}
                             rules={profileFieldRules(field)}

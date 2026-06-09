@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isOrganizationAssigneeField,
+  isOrganizationProfileField,
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
   organizationMemberName,
@@ -25,6 +27,18 @@ describe('organization display helpers', () => {
     expect(organizationProfileFieldValue('department', undefined, session)).toBe('业务部门');
   });
 
+  it('recognizes applicant and department fields by business titles', () => {
+    const session = { userId: 'applicant', role: 'applicant' as const };
+    expect(isOrganizationProfileField('applyUserName', '申请人')).toBe(true);
+    expect(isOrganizationProfileField('applyDeptName', '申请部门')).toBe(true);
+    expect(organizationProfileFieldValue('applyUserName', undefined, session, '申请人')).toBe(
+      '发起人',
+    );
+    expect(organizationProfileFieldValue('applyDeptName', undefined, session, '申请部门')).toBe(
+      '业务部门',
+    );
+  });
+
   it('keeps existing process applicant values readable during task handling', () => {
     const session = { userId: 'manager', role: 'manager' as const };
     expect(
@@ -37,5 +51,11 @@ describe('organization display helpers', () => {
     expect(organizationAssigneeRole('financeApprover')).toBe('finance');
     expect(organizationAssigneeFieldValue('managerApprover')).toBe('manager');
     expect(organizationAssigneeFieldValue('financeApprover')).toBe('finance');
+  });
+
+  it('recognizes approver fields without treating comments as assignees', () => {
+    expect(isOrganizationAssigneeField('businessUser', '业务审批人')).toBe(true);
+    expect(organizationAssigneeRole('businessUser', '业务审批人')).toBe('manager');
+    expect(isOrganizationAssigneeField('approvalComment', '审批意见')).toBe(false);
   });
 });

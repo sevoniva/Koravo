@@ -84,18 +84,80 @@ export function organizationMemberName(userId?: string | null) {
   return '未登记成员';
 }
 
-export function isOrganizationProfileField(fieldKey?: string | null) {
-  const normalized = String(fieldKey || '').trim().toLowerCase();
-  return ['applicant', 'requester', 'department'].includes(normalized);
+type OrganizationProfileFieldKind = 'applicant' | 'department';
+
+function normalizeFieldText(value?: string | null) {
+  return String(value || '').trim().toLowerCase();
 }
 
-export function organizationAssigneeRole(fieldKey?: string | null): SessionRole | undefined {
+function organizationProfileFieldKind(
+  fieldKey?: string | null,
+  fieldTitle?: string | null,
+): OrganizationProfileFieldKind | undefined {
+  const key = normalizeFieldText(fieldKey);
+  const title = String(fieldTitle || '').trim();
+  const combined = `${key} ${title}`;
+  const assigneeLike =
+    /approver|assignee|handler|processor|reviewer/.test(key) ||
+    /审批人|处理人|办理人|复核人|负责人/.test(title);
+
+  if (
+    ['applicant', 'requester', 'startuserid', 'startuser', 'applyuser', 'applyuserid'].includes(
+      key,
+    ) ||
+    /申请人|发起人|提交人|填报人/.test(title)
+  ) {
+    return 'applicant';
+  }
+
+  if (
+    !assigneeLike &&
+    (['department', 'dept', 'applydept', 'applicantdepartment'].includes(key) ||
+      /申请部门|发起部门|所属部门|所在部门|部门$/.test(title) ||
+      /department|dept/.test(combined))
+  ) {
+    return 'department';
+  }
+
+  return undefined;
+}
+
+export function isOrganizationProfileField(
+  fieldKey?: string | null,
+  fieldTitle?: string | null,
+) {
+  return Boolean(organizationProfileFieldKind(fieldKey, fieldTitle));
+}
+
+export function isOrganizationAssigneeField(
+  fieldKey?: string | null,
+  fieldTitle?: string | null,
+) {
+  const key = normalizeFieldText(fieldKey);
+  const title = String(fieldTitle || '').trim();
+  return (
+    /approver|assignee|handler|processor|reviewer/.test(key) ||
+    /审批人|处理人|办理人|复核人|负责人/.test(title)
+  );
+}
+
+export function organizationAssigneeRole(
+  fieldKey?: string | null,
+  fieldTitle?: string | null,
+): SessionRole | undefined {
   const normalized = String(fieldKey || '').trim();
   const mapping: Record<string, SessionRole> = {
     managerApprover: 'manager',
     financeApprover: 'finance',
   };
-  return mapping[normalized];
+  if (mapping[normalized]) return mapping[normalized];
+  if (!isOrganizationAssigneeField(fieldKey, fieldTitle)) return undefined;
+
+  const key = normalizeFieldText(fieldKey);
+  const title = String(fieldTitle || '').trim();
+  if (/finance|财务/.test(`${key} ${title}`)) return 'finance';
+  if (/manager|business|department|业务|部门/.test(`${key} ${title}`)) return 'manager';
+  return undefined;
 }
 
 function readableOrganizationValue(value: unknown) {
@@ -108,18 +170,19 @@ export function organizationProfileFieldValue(
   fieldKey?: string | null,
   values?: Record<string, unknown>,
   session: Pick<SessionContext, 'userId' | 'role'> = getSessionContext(),
+  fieldTitle?: string | null,
 ) {
-  const normalized = String(fieldKey || '').trim().toLowerCase();
+  const kind = organizationProfileFieldKind(fieldKey, fieldTitle);
   const existing = fieldKey ? readableOrganizationValue(values?.[fieldKey]) : undefined;
   if (existing) {
-    return normalized === 'applicant' || normalized === 'requester'
+    return kind === 'applicant'
       ? organizationMemberByUserId(existing)?.name || existing
       : existing;
   }
 
   const member = organizationMemberByUserId(session.userId);
-  if (normalized === 'department') return member?.department || '-';
-  if (normalized === 'applicant' || normalized === 'requester') {
+  if (kind === 'department') return member?.department || '-';
+  if (kind === 'applicant') {
     return member?.name || organizationMemberName(session.userId);
   }
   return undefined;
@@ -138,10 +201,11 @@ export function organizationMemberSelectOptions(role?: SessionRole) {
 export function organizationAssigneeFieldValue(
   fieldKey?: string | null,
   values?: Record<string, unknown>,
+  fieldTitle?: string | null,
 ) {
   const existing = fieldKey ? readableOrganizationValue(values?.[fieldKey]) : undefined;
   if (existing) return existing;
-  const role = organizationAssigneeRole(fieldKey);
+  const role = organizationAssigneeRole(fieldKey, fieldTitle);
   return getOrganizationMembers().find((member) => member.status === '启用' && member.role === role)?.userId;
 }
 

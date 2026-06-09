@@ -35,6 +35,7 @@ import {
 } from '@/services/koravo/api';
 import {
   getOrganizationMembers,
+  isOrganizationAssigneeField,
   isOrganizationProfileField,
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
@@ -498,14 +499,20 @@ const SchemaDrivenFields: React.FC<{
           ? [{ required: true, message: `请输入${field.title}` }]
           : undefined;
         const name = ['formValues', field.fieldKey];
-        if (organizationAssigneeRole(field.fieldKey)) {
+        if (isOrganizationAssigneeField(field.fieldKey, field.title)) {
           return (
             <ProFormSelect
               key={field.fieldKey}
               name={name}
               label={field.title}
-              initialValue={organizationAssigneeFieldValue(field.fieldKey, values)}
-              options={organizationMemberSelectOptions(organizationAssigneeRole(field.fieldKey))}
+              initialValue={organizationAssigneeFieldValue(
+                field.fieldKey,
+                values,
+                field.title,
+              )}
+              options={organizationMemberSelectOptions(
+                organizationAssigneeRole(field.fieldKey, field.title),
+              )}
               tooltip="由发起环节选择的组织成员带出。"
               disabled
               rules={
@@ -516,13 +523,18 @@ const SchemaDrivenFields: React.FC<{
             />
           );
         }
-        if (isOrganizationProfileField(field.fieldKey)) {
+        if (isOrganizationProfileField(field.fieldKey, field.title)) {
           return (
             <ProFormText
               key={field.fieldKey}
               name={name}
               label={field.title}
-              initialValue={organizationProfileFieldValue(field.fieldKey, values)}
+              initialValue={organizationProfileFieldValue(
+                field.fieldKey,
+                values,
+                undefined,
+                field.title,
+              )}
               tooltip="由流程发起信息或当前账号自动带出。"
               fieldProps={{ readOnly: true }}
               rules={
