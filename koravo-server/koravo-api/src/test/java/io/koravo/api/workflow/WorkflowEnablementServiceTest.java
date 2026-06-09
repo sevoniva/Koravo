@@ -87,7 +87,7 @@ class WorkflowEnablementServiceTest {
                 WorkflowEnablementDefaults.PROCESS_KEY,
                 WorkflowEnablementDefaults.PROCESS_NAME,
                 WorkflowEnablementDefaults.PROCESS_KEY + ".bpmn20.xml",
-                WorkflowEnablementDefaults.acceptanceBpmn()
+                WorkflowEnablementDefaults.businessRequestBpmn()
         ))).thenReturn(new ProcessDeploymentDTO(null, "dep-1", "pd-1", WorkflowEnablementDefaults.PROCESS_KEY, 1));
         when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
@@ -108,14 +108,14 @@ class WorkflowEnablementServiceTest {
         assertThat(response.formSchemaId()).isEqualTo("form-1");
         assertThat(response.formBindingId()).isEqualTo("binding-1");
         assertThat(response.actions()).contains(
-                "创建多人验收流程模型",
-                "部署多人验收流程",
-                "创建验收申请表",
+                "创建协同审批流程模型",
+                "部署协同审批流程",
+                "创建业务申请表",
                 "绑定启动表单",
-                "绑定验收申请表到业务验收",
-                "绑定验收申请表到财务验收"
+                "绑定业务申请表到业务审批",
+                "绑定业务申请表到财务复核"
         );
-        verify(auditLogService).record(eq("WORKFLOW_ENABLEMENT_INIT"), eq("WORKFLOW_ENABLEMENT"), eq("multi-acceptance"), any(Map.class));
+        verify(auditLogService).record(eq("WORKFLOW_ENABLEMENT_INIT"), eq("WORKFLOW_ENABLEMENT"), eq("collaborative-approval"), any(Map.class));
     }
 
     @Test
@@ -167,7 +167,7 @@ class WorkflowEnablementServiceTest {
         assertThat(oldBinding.getFormSchemaId()).isEqualTo("form-1");
         assertThat(oldBinding.getFormSchemaVersion()).isEqualTo(2);
         assertThat(oldBinding.getUpdatedBy()).isEqualTo("admin");
-        assertThat(response.actions()).contains("更新验收任务表单绑定");
+        assertThat(response.actions()).contains("更新审批任务表单绑定");
         verify(formBindingRepository).save(oldBinding);
     }
 
@@ -235,7 +235,7 @@ class WorkflowEnablementServiceTest {
         model.setStatus(ProcessModelStatus.DEPLOYED);
         model.setFlowableDeploymentId("dep-1");
         model.setFlowableDefinitionId("pd-1");
-        model.setBpmnXml(WorkflowEnablementDefaults.acceptanceBpmn());
+        model.setBpmnXml(WorkflowEnablementDefaults.businessRequestBpmn());
         return model;
     }
 
@@ -246,8 +246,8 @@ class WorkflowEnablementServiceTest {
         form.setFormKey(WorkflowEnablementDefaults.FORM_KEY);
         form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
         form.setVersion(2);
-        form.setSchemaJson(WorkflowEnablementDefaults.acceptanceFormSchema());
-        form.setUiSchemaJson(WorkflowEnablementDefaults.acceptanceFormUiSchema());
+        form.setSchemaJson(WorkflowEnablementDefaults.businessRequestFormSchema());
+        form.setUiSchemaJson(WorkflowEnablementDefaults.businessRequestFormUiSchema());
         form.setStatus(FormStatus.ACTIVE);
         return form;
     }

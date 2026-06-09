@@ -14,15 +14,15 @@ import {
 } from './display';
 
 describe('display helpers', () => {
-  it('hides legacy demo identifiers from visible process model labels', () => {
-    expect(processModelKeyLabel('httpConnectorDemo')).toBe('integrationHealthCheck');
+  it('uses product process identifiers for visible process model labels', () => {
+    expect(processModelKeyLabel('collaborativeApproval')).toBe('collaborativeApproval');
     expect(processModelKeyLabel('koravoProcessmq5amzdq')).toBe('businessProcess');
   });
 
-  it('normalizes historical process names and definitions', () => {
+  it('normalizes process names and definitions', () => {
     expect(processDisplayName('koravo Processmq5amzdq')).toBe('业务审批流程');
-    expect(processDisplayName('leaveApproval', 'leave Approval')).toBe('请假审批流程');
-    expect(processDefinitionLabel('httpConnectorDemo:1:5fed0551')).toBe('接口巡检流程 v1');
+    expect(processDisplayName('collaborativeApproval')).toBe('协同审批流程');
+    expect(processDefinitionLabel('collaborativeApproval:1:5fed0551')).toBe('协同审批流程 v1');
     expect(processNameLabel('koravo Processmq5amzdq')).toBe('业务审批流程');
   });
 
@@ -64,7 +64,7 @@ describe('display helpers', () => {
     expect(businessFieldLabel('handlerConfiguration')).toBe('处理器配置');
     expect(businessFieldLabel('executionId')).toBe('执行编号');
     expect(businessFieldLabel('delegateExpression')).toBe('执行表达式');
-    expect(businessFieldLabel('X-User-Role')).toBe('职责');
+    expect(businessFieldLabel('X-Koravo-User-Role')).toBe('职责');
   });
 
   it('filters non-business process models consistently', () => {
@@ -84,9 +84,9 @@ describe('display helpers', () => {
     ).toBe(false);
     expect(
       isBusinessProcessModel({
-        modelKey: 'multiAcceptance',
-        modelName: '多人验收流程',
-        description: '验收申请提交后并行处理。',
+        modelKey: 'collaborativeApproval',
+        modelName: '协同审批流程',
+        description: '业务申请提交后并行处理。',
       }),
     ).toBe(true);
   });

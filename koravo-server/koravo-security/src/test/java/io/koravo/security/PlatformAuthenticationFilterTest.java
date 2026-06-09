@@ -16,20 +16,51 @@ class PlatformAuthenticationFilterTest {
     }
 
     @Test
-    void usesConfiguredPlatformUserInsteadOfRequestHeaders() throws Exception {
-        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter("admin", "admin");
+    void usesTrustedPlatformHeadersForCurrentUser() throws Exception {
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter("");
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
-        request.addHeader("X-User-Id", "finance");
-        request.addHeader("X-User-Role", "finance");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ID, "finance");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ROLE, "finance");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, (servletRequest, servletResponse) -> {
-            assertThat(UserContextHolder.getUserId()).isEqualTo("admin");
-            assertThat(UserContextHolder.getRole()).isEqualTo("admin");
-            assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo("admin");
+            assertThat(UserContextHolder.getUserId()).isEqualTo("finance");
+            assertThat(UserContextHolder.getRole()).isEqualTo("finance");
+            assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo("finance");
         });
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         assertThat(UserContextHolder.getUserId()).isEqualTo(UserContextHolder.ANONYMOUS);
+    }
+
+    @Test
+    void leavesRequestUnauthenticatedWhenPlatformUserIsMissing() throws Exception {
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter("");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            assertThat(UserContextHolder.getUserId()).isEqualTo(UserContextHolder.ANONYMOUS);
+            assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        });
+
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void rejectsInvalidPlatformToken() throws Exception {
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter("trusted-token");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ID, "manager");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ROLE, "manager");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_PLATFORM_TOKEN, "wrong-token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            throw new AssertionError("invalid platform token must stop the request");
+        });
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 }

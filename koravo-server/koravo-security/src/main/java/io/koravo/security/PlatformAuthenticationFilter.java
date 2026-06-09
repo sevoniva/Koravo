@@ -18,33 +18,61 @@ import java.io.IOException;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 30)
 public class PlatformAuthenticationFilter extends OncePerRequestFilter {
-    private final String userId;
-    private final String role;
+    public static final String HEADER_USER_ID = "X-Koravo-User-Id";
+    public static final String HEADER_USER_ROLE = "X-Koravo-User-Role";
+    public static final String HEADER_PLATFORM_TOKEN = "X-Koravo-Platform-Token";
+
+    private final String trustedToken;
 
     public PlatformAuthenticationFilter(
-            @Value("${koravo.security.platform-user-id:admin}") String userId,
-            @Value("${koravo.security.platform-user-role:admin}") String role
+            @Value("${koravo.security.platform-token:}") String trustedToken
     ) {
-        this.userId = userId;
-        this.role = role;
+        this.trustedToken = trustedToken == null ? "" : trustedToken.trim();
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        UserContextHolder.setUser(userId, role);
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(
-                        UserContextHolder.getUserId(),
-                        "N/A",
-                        AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_" + UserContextHolder.getRole().toUpperCase())
-                )
-        );
         try {
+            String userId = request.getHeader(HEADER_USER_ID);
+            if (userId == null || userId.isBlank()) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+            if (!hasTrustedPlatformToken(request)) {
+                unauthorized(response);
+                return;
+            }
+
+            UserContextHolder.setUser(userId, request.getHeader(HEADER_USER_ROLE));
+            SecurityContextHolder.getContext().setAuthentication(
+                    new UsernamePasswordAuthenticationToken(
+                            UserContextHolder.getUserId(),
+                            "N/A",
+                            AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_" + UserContextHolder.getRole().toUpperCase())
+                    )
+            );
             filterChain.doFilter(request, response);
         } finally {
             UserContextHolder.clear();
             SecurityContextHolder.clearContext();
         }
+    }
+
+    private boolean hasTrustedPlatformToken(HttpServletRequest request) {
+        if (trustedToken.isBlank()) {
+            return true;
+        }
+        String requestToken = request.getHeader(HEADER_PLATFORM_TOKEN);
+        return trustedToken.equals(requestToken);
+    }
+
+    private void unauthorized(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("""
+                {"success":false,"code":"UNAUTHORIZED","message":"平台身份凭证无效"}
+                """);
     }
 }

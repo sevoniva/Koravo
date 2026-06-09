@@ -15,6 +15,8 @@ import java.io.IOException;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 20)
 public class TenantFilter extends OncePerRequestFilter {
+    public static final String HEADER_TENANT_ID = "X-Koravo-Tenant-Id";
+
     private final String tenantId;
 
     public TenantFilter(@Value("${koravo.tenant.platform-tenant-id:default}") String tenantId) {
@@ -24,7 +26,10 @@ public class TenantFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        TenantContextHolder.setTenantId(tenantId);
+        String platformTenantId = request.getHeader(HEADER_TENANT_ID);
+        TenantContextHolder.setTenantId(
+                platformTenantId == null || platformTenantId.isBlank() ? tenantId : platformTenantId
+        );
         try {
             filterChain.doFilter(request, response);
         } finally {

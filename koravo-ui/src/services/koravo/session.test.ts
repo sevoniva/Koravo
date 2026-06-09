@@ -49,7 +49,7 @@ describe('session context', () => {
     });
   });
 
-  it('does not send identity headers from the browser', () => {
+  it('sends the platform identity context with each request', () => {
     setRuntimeSessionContext({
       tenantId: 'finance-org',
       userId: 'finance',
@@ -58,11 +58,14 @@ describe('session context', () => {
     });
 
     expect(sessionRequestHeaders()).toEqual({
+      'X-Koravo-Tenant-Id': 'finance-org',
+      'X-Koravo-User-Id': 'finance',
+      'X-Koravo-User-Role': 'finance',
       'X-Request-Id': 'TRACE-20260609-002',
     });
   });
 
-  it('keeps anonymous health responses as unsynced platform identity', () => {
+  it('keeps anonymous responses as unsynced platform identity', () => {
     setRuntimeSessionContext({ userId: 'anonymous', role: undefined });
 
     expect(getSessionContext()).toMatchObject({

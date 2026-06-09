@@ -1,5 +1,5 @@
 import { ProCard, ProDescriptions } from '@ant-design/pro-components';
-import { Badge, Empty, Flex, Tag, Timeline, Typography } from 'antd';
+import { Alert, Badge, Empty, Flex, Tag, Timeline, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTrace, ProcessTraceNode, TaskItem } from '@/services/koravo/api';
@@ -115,6 +115,45 @@ function buildTimelineItems(timeline: ProcessTraceNode[]) {
   }));
 }
 
+function progressSummary(
+  trace: ProcessTrace | undefined,
+  pendingTasks: TaskItem[],
+  activeTask?: TaskItem,
+) {
+  if (!trace) {
+    return {
+      title: '流程上下文待加载',
+      description: '正在读取流程图、当前节点和办理记录。',
+      type: 'info' as const,
+    };
+  }
+  if (!pendingTasks.length) {
+    const isCompleted = String(trace.status || '').toUpperCase() === 'COMPLETED';
+    return {
+      title: '当前没有待处理节点',
+      description:
+        isCompleted
+          ? '流程已完成，可查看上方流程图和下方办理记录。'
+          : '当前实例没有可办理任务，请查看流程图确认是否处于系统处理或等待状态。',
+      type: isCompleted ? ('success' as const) : ('warning' as const),
+    };
+  }
+  const targetTask = activeTask || pendingTasks[0];
+  const node = taskDefinitionLabel(targetTask.taskDefinitionKey);
+  const handler = targetTask.assignee
+    ? organizationMemberName(targetTask.assignee)
+    : '待分配处理人';
+  const parallelText =
+    pendingTasks.length > 1
+      ? `当前还有 ${pendingTasks.length} 个并行待办，所有待办完成后流程才会继续。`
+      : '当前节点完成后流程会进入下一步流转。';
+  return {
+    title: `当前在 ${node}`,
+    description: `处理人：${handler}。需要核对业务数据、填写本节点意见并提交处理结果。${parallelText}`,
+    type: 'info' as const,
+  };
+}
+
 const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   trace,
   currentTasks = [],
@@ -136,6 +175,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
       .filter(Boolean)
       .join('、') ||
     '-';
+  const summary = progressSummary(trace, pendingTasks, activeTask);
 
   return (
     <ProCard
@@ -156,6 +196,12 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
           timeline={trace?.timeline}
         />
         <Flex vertical gap={16} className={styles.side}>
+          <Alert
+            showIcon
+            type={summary.type}
+            title={summary.title}
+            description={summary.description}
+          />
           <ProDescriptions
             size="small"
             column={1}

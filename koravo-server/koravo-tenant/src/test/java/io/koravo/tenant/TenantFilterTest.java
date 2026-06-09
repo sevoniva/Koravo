@@ -14,10 +14,23 @@ class TenantFilterTest {
     }
 
     @Test
-    void usesConfiguredTenantInsteadOfRequestHeader() throws Exception {
+    void usesPlatformTenantHeaderWhenPresent() throws Exception {
         TenantFilter filter = new TenantFilter("default");
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
-        request.addHeader("X-Tenant-Id", "other-org");
+        request.addHeader(TenantFilter.HEADER_TENANT_ID, "other-org");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) ->
+                assertThat(TenantContextHolder.getTenantId()).isEqualTo("other-org")
+        );
+
+        assertThat(TenantContextHolder.getTenantId()).isEqualTo(TenantContextHolder.DEFAULT_TENANT);
+    }
+
+    @Test
+    void fallsBackToConfiguredTenantWhenPlatformTenantIsMissing() throws Exception {
+        TenantFilter filter = new TenantFilter("default");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, (servletRequest, servletResponse) ->

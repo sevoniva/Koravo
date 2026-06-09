@@ -13,7 +13,7 @@ const LAST_REQUEST_STORAGE_KEY = 'koravo.lastRequestId';
 
 const defaultSession: SessionContext = {
   tenantId: 'default',
-  userId: 'anonymous',
+  userId: 'applicant',
   role: 'applicant',
   requestId: '',
 };
@@ -46,7 +46,12 @@ export function getSessionContext(): SessionContext {
 
 export function sessionRequestHeaders(headers?: Record<string, string>) {
   const session = getSessionContext();
+  const platformToken = process.env.UMI_APP_KORAVO_PLATFORM_TOKEN;
   return {
+    'X-Koravo-Tenant-Id': session.tenantId,
+    'X-Koravo-User-Id': session.userId,
+    'X-Koravo-User-Role': session.role,
+    ...(platformToken ? { 'X-Koravo-Platform-Token': platformToken } : {}),
     ...(session.requestId ? { 'X-Request-Id': session.requestId } : {}),
     ...headers,
   };

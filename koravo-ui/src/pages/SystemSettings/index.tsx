@@ -67,12 +67,12 @@ const roleOptions: RoleOption[] = [
   {
     label: '业务处理人',
     value: 'manager',
-    description: '处理业务验收、复核和协同待办。',
+    description: '处理业务审批、复核和协同待办。',
   },
   {
     label: '财务复核人',
     value: 'finance',
-    description: '处理财务验收和金额复核待办。',
+    description: '处理财务复核和金额确认待办。',
   },
 ];
 

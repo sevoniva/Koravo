@@ -7,7 +7,16 @@ export default function access(
     | undefined,
 ) {
   const { currentUser } = initialState ?? {};
+  const role = currentUser?.access;
+  const isAdmin = role === 'admin';
+  const isApprover = role === 'manager' || role === 'finance';
   return {
-    canAdmin: currentUser && currentUser.access === 'admin',
+    canAdmin: isAdmin,
+    canStartProcess: isAdmin || role === 'applicant',
+    canHandleTask: isAdmin || isApprover,
+    canConfigureWorkflow: isAdmin,
+    canManageOrganization: isAdmin,
+    canManageIntegration: isAdmin,
+    canOperateSystem: isAdmin,
   };
 }

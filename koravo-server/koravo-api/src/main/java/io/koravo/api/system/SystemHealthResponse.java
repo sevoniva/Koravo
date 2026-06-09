@@ -9,6 +9,7 @@ public record SystemHealthResponse(
         Instant time,
         String tenantId,
         String userId,
+        String role,
         List<SystemHealthItem> dependencies,
         WorkflowEnablementInfo workflowEnablement,
         UrlPolicyInfo urlPolicy

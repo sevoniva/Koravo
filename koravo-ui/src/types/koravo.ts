@@ -22,6 +22,7 @@ export interface SystemHealth {
   time: string
   tenantId: string
   userId: string
+  role: string
   dependencies: SystemHealthItem[]
   workflowEnablement: {
     enabled: boolean

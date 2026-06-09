@@ -19,18 +19,21 @@ export default [
         name: '我的待办',
         icon: 'checkCircle',
         component: './Tasks',
+        access: 'canHandleTask',
       },
       {
         path: '/task-claims',
         name: '待认领',
         icon: 'audit',
         component: './Tasks',
+        access: 'canHandleTask',
       },
       {
         path: '/done-tasks',
         name: '已办任务',
         icon: 'fileDone',
         component: './Tasks',
+        access: 'canHandleTask',
       },
       {
         path: '/started-instances',
@@ -56,6 +59,7 @@ export default [
         name: '发起流程',
         icon: 'playCircle',
         component: './ProcessInstances',
+        access: 'canStartProcess',
       },
       {
         path: '/process-instances',
@@ -75,6 +79,7 @@ export default [
     key: 'process-modeling',
     name: '流程配置',
     icon: 'partition',
+    access: 'canConfigureWorkflow',
     routes: [
       {
         path: '/process-models',
@@ -106,6 +111,7 @@ export default [
     key: 'organization',
     name: '组织权限',
     icon: 'team',
+    access: 'canManageOrganization',
     routes: [
       {
         path: '/organization-permissions',
@@ -119,6 +125,7 @@ export default [
     key: 'integration',
     name: '集成管理',
     icon: 'api',
+    access: 'canManageIntegration',
     routes: [
       {
         path: '/datasources',
@@ -128,7 +135,7 @@ export default [
       },
       {
         path: '/http-connector',
-        name: 'HTTP 连接器',
+        name: '集成动作',
         icon: 'cloudSync',
         component: './HttpConnector',
       },
@@ -138,6 +145,7 @@ export default [
     key: 'ops',
     name: '运维审计',
     icon: 'control',
+    access: 'canOperateSystem',
     routes: [
       {
         path: '/ops',

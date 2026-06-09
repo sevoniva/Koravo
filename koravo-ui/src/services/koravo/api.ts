@@ -25,6 +25,7 @@ export interface HealthInfo {
   time: string
   tenantId: string
   userId: string
+  role: string
 }
 
 export interface WorkflowEnablementStatus {
