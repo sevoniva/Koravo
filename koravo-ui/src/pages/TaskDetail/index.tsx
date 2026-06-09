@@ -2,6 +2,7 @@ import {
   ModalForm,
   PageContainer,
   ProCard,
+  type ProColumns,
   ProDescriptions,
   ProFormDatePicker,
   ProFormDigit,
@@ -10,10 +11,9 @@ import {
   ProFormText,
   ProFormTextArea,
   ProTable,
-  type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
+import { history, useParams } from '@umijs/max';
 import {
   Alert,
   App,
@@ -32,21 +32,23 @@ import React, { useState } from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
+  type AuditLogItem,
   completeTask,
+  type FormSchemaItem,
+  type FormSnapshotItem,
   getOpsInstance,
   getProcessTrace,
   getTaskDetail,
   handleTaskAction,
-  type AuditLogItem,
-  type FormSchemaItem,
-  type FormSnapshotItem,
   type JsonRecord,
   type TaskCommentItem,
   type TaskItem,
 } from '@/services/koravo/api';
 import {
+  applyOrganizationProfileValues,
   getOrganizationMembers,
   isOrganizationAssigneeField,
   isOrganizationProfileField,
@@ -61,8 +63,8 @@ import {
   auditResourceLabel,
   businessKeyLabel,
   formSchemaNameLabel,
-  productCopy,
   processDefinitionLabel,
+  productCopy,
   shortTraceLabel,
   taskDefinitionLabel,
   taskNameLabel,
@@ -494,8 +496,9 @@ function normalizeFormValues(values?: JsonRecord): JsonRecord {
 }
 
 function buildCompletePayload(
-  formSchemaId: string | undefined,
+  formSchema: FormSchemaItem | undefined,
   values: CompleteTaskForm,
+  processValues?: JsonRecord,
 ) {
   const decision = values.decision || 'APPROVED';
   const decisionText =
@@ -504,8 +507,14 @@ function buildCompletePayload(
       : decision === 'REJECTED'
         ? '不同意'
         : '退回补充';
+  const schemaFields = schemaToFields(formSchema);
+  const formValues = applyOrganizationProfileValues(
+    schemaFields,
+    normalizeFormValues(values.formValues),
+    processValues,
+  );
   const formData = {
-    ...normalizeFormValues(values.formValues),
+    ...formValues,
     decision,
     decisionText,
     approved: decision === 'APPROVED',
@@ -513,7 +522,7 @@ function buildCompletePayload(
   return {
     variables: formData,
     formData,
-    formSchemaId,
+    formSchemaId: formSchema?.id,
     comment: values.comment,
   };
 }
@@ -599,23 +608,18 @@ const SchemaDrivenFields: React.FC<{
         }
         if (isOrganizationProfileField(field.fieldKey, field.title)) {
           return (
-            <ProFormText
+            <OrganizationProfileFormItem
               key={field.fieldKey}
               name={name}
               label={field.title}
-              initialValue={organizationProfileFieldValue(
+              value={organizationProfileFieldValue(
                 field.fieldKey,
                 values,
                 undefined,
                 field.title,
               )}
-              tooltip="由流程发起信息或登录成员自动带出。"
-              disabled
-              rules={
-                field.required
-                  ? [{ required: true, message: `${field.title}会自动带出` }]
-                  : undefined
-              }
+              required={field.required}
+              sourceText="流程档案"
             />
           );
         }
@@ -817,7 +821,11 @@ const TaskDetail: React.FC = () => {
               onFinish={async (values) => {
                 await completeTask(
                   task.taskId,
-                  buildCompletePayload(data?.formSchema?.id, values),
+                  buildCompletePayload(
+                    data?.formSchema,
+                    values,
+                    data?.processVariables,
+                  ),
                 );
                 const instance = await getOpsInstance(task.processInstanceId);
                 const nextTask = nextPendingTask(

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   getOrganizationMembers,
+  applyOrganizationProfileValues,
   isOrganizationAssigneeField,
   isOrganizationProfileField,
   organizationAssigneeFieldValue,
@@ -57,6 +58,31 @@ describe('organization display helpers', () => {
     ).toBe('业务申请专员');
   });
 
+  it('overwrites applicant and department fields from the linked organization profile', () => {
+    const session = { userId: 'applicant', role: 'applicant' as const };
+
+    expect(
+      applyOrganizationProfileValues(
+        [
+          { fieldKey: 'requester', title: '发起人' },
+          { fieldKey: 'department', title: '所属部门' },
+          { fieldKey: 'subject', title: '事项名称' },
+        ],
+        {
+          requester: '手工输入',
+          department: '手工部门',
+          subject: '合同审批',
+        },
+        undefined,
+        session,
+      ),
+    ).toEqual({
+      requester: '业务申请专员',
+      department: '业务一部',
+      subject: '合同审批',
+    });
+  });
+
   it('migrates old default role names from browser storage', () => {
     window.localStorage.setItem(
       'koravo:organization-members',
@@ -72,7 +98,11 @@ describe('organization display helpers', () => {
       ]),
     );
 
-    expect(getOrganizationMembers()[0]).toMatchObject({
+    expect(organizationMemberName('manager')).toBe('业务审批主管');
+    expect(organizationMemberName('admin')).toBe('流程平台负责人');
+    expect(
+      getOrganizationMembers().find((item) => item.userId === 'manager'),
+    ).toMatchObject({
       name: '业务审批主管',
       department: '业务一部',
     });

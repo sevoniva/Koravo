@@ -62,7 +62,7 @@ const legacyDefaultMemberNames: Record<string, string> = {
 };
 
 function normalizeStoredOrganizationMembers(members: OrganizationMember[]) {
-  return members.map((member) => {
+  const normalized = members.map((member) => {
     const defaultMember = defaultOrganizationMembers.find(
       (item) => item.userId === member.userId,
     );
@@ -74,9 +74,20 @@ function normalizeStoredOrganizationMembers(members: OrganizationMember[]) {
       department:
         member.department === '业务部门'
           ? defaultMember.department
-          : member.department,
+      : member.department,
     };
   });
+  const memberByUserId = new Map(
+    normalized.map((member) => [member.userId, member]),
+  );
+  const mergedDefaults = defaultOrganizationMembers.map(
+    (member) => memberByUserId.get(member.userId) || member,
+  );
+  const extraMembers = normalized.filter(
+    (member) =>
+      !defaultOrganizationMembers.some((item) => item.userId === member.userId),
+  );
+  return [...mergedDefaults, ...extraMembers];
 }
 
 export function tenantDisplayName(tenantId?: string | null) {
@@ -112,6 +123,11 @@ export function organizationMemberName(userId?: string | null) {
 }
 
 type OrganizationProfileFieldKind = 'applicant' | 'department';
+
+interface OrganizationProfileFieldLike {
+  fieldKey: string;
+  title?: string;
+}
 
 function normalizeFieldText(value?: string | null) {
   return String(value || '').trim().toLowerCase();
@@ -247,6 +263,27 @@ export function organizationProfileFieldValue(
     return member?.name || organizationMemberName(session.userId);
   }
   return undefined;
+}
+
+export function applyOrganizationProfileValues(
+  fields: OrganizationProfileFieldLike[],
+  values?: Record<string, unknown>,
+  sourceValues?: Record<string, unknown>,
+  session: Pick<SessionContext, 'userId' | 'role'> = getSessionContext(),
+) {
+  return fields.reduce<Record<string, unknown>>(
+    (result, field) => {
+      if (!isOrganizationProfileField(field.fieldKey, field.title)) return result;
+      result[field.fieldKey] = organizationProfileFieldValue(
+        field.fieldKey,
+        sourceValues,
+        session,
+        field.title,
+      );
+      return result;
+    },
+    { ...(values || {}) },
+  );
 }
 
 export function organizationMemberSelectOptions(role?: SessionRole) {

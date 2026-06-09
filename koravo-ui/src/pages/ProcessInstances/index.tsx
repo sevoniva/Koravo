@@ -2,18 +2,18 @@ import { DownOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import {
   PageContainer,
   ProCard,
+  type ProColumns,
   ProForm,
-  ProFormDependency,
   ProFormDatePicker,
+  ProFormDependency,
   ProFormDigit,
   ProFormSelect,
   ProFormText,
   ProFormTextArea,
   ProTable,
-  type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
+import { history, useLocation } from '@umijs/max';
 import {
   Alert,
   App,
@@ -30,28 +30,30 @@ import {
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import {
-  listOpsInstances,
-  listFormBindings,
-  listFormSchemas,
-  listProcessModelTaskDefinitions,
-  listProcessModels,
-  startProcessInstance,
   type BpmnTaskDefinition,
   type FormBindingItem,
   type FormSchemaItem,
   type JsonRecord,
+  listFormBindings,
+  listFormSchemas,
+  listOpsInstances,
+  listProcessModels,
+  listProcessModelTaskDefinitions,
   type OpsProcessInstance,
   type ProcessModelItem,
+  startProcessInstance,
   type TaskItem,
 } from '@/services/koravo/api';
 import {
-  organizationAssigneeFieldValue,
-  organizationAssigneeRole,
+  applyOrganizationProfileValues,
   isOrganizationAssigneeField,
   isOrganizationProfileField,
-  organizationMemberSelectOptions,
+  organizationAssigneeFieldValue,
+  organizationAssigneeRole,
   organizationMemberName,
+  organizationMemberSelectOptions,
   organizationProfileFieldValue,
 } from '@/services/koravo/organization';
 import {
@@ -482,13 +484,9 @@ function buildColumns(
 }
 
 function buildStartVariables(values: StartInstanceForm): JsonRecord {
-  return normalizeStartVariables(values.formValues);
-}
-
-function profileFieldRules(field: StartFormField) {
-  return field.required
-    ? [{ required: true, message: `${field.title}会按登录成员自动带出` }]
-    : [];
+  const formValues = normalizeStartVariables(values.formValues);
+  const fields = Object.keys(formValues).map((fieldKey) => ({ fieldKey }));
+  return applyOrganizationProfileValues(fields, formValues) as JsonRecord;
 }
 
 const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
@@ -767,19 +765,17 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             field.fieldKey,
                             field.title,
                           ) ? (
-                          <ProFormText
+                          <OrganizationProfileFormItem
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
                             label={field.title}
-                            initialValue={organizationProfileFieldValue(
+                            value={organizationProfileFieldValue(
                               field.fieldKey,
                               undefined,
                               undefined,
                               field.title,
                             )}
-                            tooltip="由登录成员和组织成员信息自动带出。"
-                            disabled
-                            rules={profileFieldRules(field)}
+                            required={field.required}
                           />
                         ) : field.type === 'number' ||
                           field.type === 'integer' ? (

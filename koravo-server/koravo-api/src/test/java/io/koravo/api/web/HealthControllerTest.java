@@ -29,6 +29,7 @@ class HealthControllerTest {
         assertThat(response.data()).containsEntry("status", "UP");
         assertThat(response.data()).containsEntry("tenantId", "default");
         assertThat(response.data()).containsEntry("userId", "admin");
+        assertThat(response.data()).containsEntry("role", "admin");
         assertThat(response.requestId()).isEqualTo("req-health");
     }
 }

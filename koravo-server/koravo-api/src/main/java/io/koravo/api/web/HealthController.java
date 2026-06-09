@@ -22,7 +22,8 @@ public class HealthController {
                 "version", version,
                 "time", Instant.now().toString(),
                 "tenantId", TenantContextHolder.getTenantId(),
-                "userId", UserContextHolder.getUserId()
+                "userId", UserContextHolder.getUserId(),
+                "role", UserContextHolder.getRole()
         ));
     }
 }

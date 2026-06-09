@@ -18,15 +18,40 @@ const defaultSession: SessionContext = {
   requestId: '',
 };
 
+let runtimeSession: SessionContext = defaultSession;
+
 function canUseStorage() {
   return typeof window !== 'undefined' && Boolean(window.localStorage);
 }
 
+function normalizeRole(role?: string): SessionRole {
+  if (role === 'admin' || role === 'applicant' || role === 'manager' || role === 'finance') {
+    return role;
+  }
+  return defaultSession.role;
+}
+
+function normalizeUserId(userId?: string) {
+  const value = String(userId || '').trim();
+  if (!value || value === 'anonymous') return runtimeSession.userId;
+  return value;
+}
+
 export function getSessionContext(): SessionContext {
-  if (!canUseStorage()) return defaultSession;
+  if (!canUseStorage()) return runtimeSession;
   const lastRequestId =
     window.localStorage.getItem(LAST_REQUEST_STORAGE_KEY) || undefined;
-  return { ...defaultSession, lastRequestId };
+  return { ...runtimeSession, lastRequestId };
+}
+
+export function setRuntimeSessionContext(value: Partial<SessionContext>) {
+  runtimeSession = {
+    ...runtimeSession,
+    tenantId: value.tenantId || runtimeSession.tenantId,
+    userId: normalizeUserId(value.userId),
+    role: normalizeRole(value.role || runtimeSession.role),
+    requestId: value.requestId || runtimeSession.requestId,
+  };
 }
 
 function clearLegacySessionOverride() {

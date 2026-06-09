@@ -16,6 +16,7 @@ import {
   getSessionContext,
   type SessionContext,
   type SessionRole,
+  setRuntimeSessionContext,
 } from '@/services/koravo/session';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
@@ -29,12 +30,41 @@ export interface KoravoCurrentUser {
   tenantId: string;
 }
 
+interface HealthResponse {
+  success?: boolean;
+  data?: {
+    tenantId?: string;
+    userId?: string;
+    role?: SessionRole;
+    requestId?: string;
+  };
+  requestId?: string;
+}
+
+async function loadRuntimeSession() {
+  try {
+    const response = await fetch('/api/v1/health');
+    if (!response.ok) return getSessionContext();
+    const payload = (await response.json()) as HealthResponse;
+    if (payload.success === false || !payload.data) return getSessionContext();
+    setRuntimeSessionContext({
+      tenantId: payload.data.tenantId,
+      userId: payload.data.userId,
+      role: payload.data.role,
+      requestId: payload.requestId || payload.data.requestId,
+    });
+  } catch {
+    return getSessionContext();
+  }
+  return getSessionContext();
+}
+
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
   currentUser?: KoravoCurrentUser;
   session: SessionContext;
 }> {
-  const session = getSessionContext();
+  const session = await loadRuntimeSession();
   return {
     currentUser: {
       name: sessionActorLabel(session),

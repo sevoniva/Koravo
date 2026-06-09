@@ -1,7 +1,9 @@
 import { PlusOutlined } from '@ant-design/icons';
 import {
+  type ActionType,
   ModalForm,
   PageContainer,
+  type ProColumns,
   ProForm,
   ProFormDatePicker,
   ProFormDigit,
@@ -11,18 +13,18 @@ import {
   ProFormText,
   ProFormTextArea,
   ProTable,
-  type ActionType,
-  type ProColumns,
 } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import { Alert, App, Button, Drawer, Empty, Space, Tabs, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import {
   createFormSchema,
+  type FormSchemaItem,
   listFormSchemas,
   updateFormSchema,
-  type FormSchemaItem,
 } from '@/services/koravo/api';
 import {
   isOrganizationAssigneeField,
@@ -37,7 +39,6 @@ import {
   formSchemaNameLabel,
   productCopy,
 } from '@/utils/display';
-import { history } from '@umijs/max';
 
 interface FormSchemaForm {
   formKey: string;
@@ -363,23 +364,17 @@ const renderPreviewField = (field: FormFieldConfig) => {
   }
   if (isOrganizationProfileField(field.fieldKey, field.title)) {
     return (
-      <ProFormText
+      <OrganizationProfileFormItem
         key={field.fieldKey}
         name={name}
         label={field.title}
-        initialValue={organizationProfileFieldValue(
+        value={organizationProfileFieldValue(
           field.fieldKey,
           undefined,
           undefined,
           field.title,
         )}
-        tooltip="由登录成员和组织成员信息自动带出。"
-        disabled
-        rules={
-          field.required
-            ? [{ required: true, message: `${field.title}会自动带出` }]
-            : undefined
-        }
+        required={field.required}
       />
     );
   }
@@ -469,7 +464,7 @@ const renderFormFieldsEditor = () => (
     <Alert
       showIcon
       type="info"
-      title="按业务表单维护字段，保存后可绑定到流程任务节点。"
+      title="按业务表单维护字段，申请人、所属部门等组织档案字段会自动联动。"
       style={{ marginBottom: 16 }}
     />
     <ProFormList
