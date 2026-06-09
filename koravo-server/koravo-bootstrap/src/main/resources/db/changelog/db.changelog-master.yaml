@@ -291,3 +291,92 @@ databaseChangeLog:
                   );
                 end loop;
               end $$;
+  - changeSet:
+      id: 0008-create-organization-member
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: user_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: department, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: role, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - addUniqueConstraint:
+            tableName: ko_organization_member
+            columnNames: tenant_id,user_id
+            constraintName: uk_ko_org_member_tenant_user
+        - createIndex:
+            tableName: ko_organization_member
+            indexName: idx_ko_org_member_tenant_role
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: role }
+        - insert:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, value: default-admin }
+              - column: { name: tenant_id, value: default }
+              - column: { name: user_id, value: admin }
+              - column: { name: name, value: 流程平台负责人 }
+              - column: { name: department, value: 流程平台组 }
+              - column: { name: role, value: admin }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
+        - insert:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, value: default-applicant }
+              - column: { name: tenant_id, value: default }
+              - column: { name: user_id, value: applicant }
+              - column: { name: name, value: 业务申请专员 }
+              - column: { name: department, value: 业务一部 }
+              - column: { name: role, value: applicant }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
+        - insert:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, value: default-manager }
+              - column: { name: tenant_id, value: default }
+              - column: { name: user_id, value: manager }
+              - column: { name: name, value: 业务审批主管 }
+              - column: { name: department, value: 业务一部 }
+              - column: { name: role, value: manager }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
+        - insert:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, value: default-finance }
+              - column: { name: tenant_id, value: default }
+              - column: { name: user_id, value: finance }
+              - column: { name: name, value: 财务复核专员 }
+              - column: { name: department, value: 财务部门 }
+              - column: { name: role, value: finance }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
