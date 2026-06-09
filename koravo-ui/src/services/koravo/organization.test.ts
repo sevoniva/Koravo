@@ -21,6 +21,7 @@ describe('organization display helpers', () => {
 
   it('shows registered members by business name', () => {
     expect(organizationMemberName('manager')).toBe('业务审批主管');
+    expect(organizationMemberName('operator')).toBe('运行审计专员');
   });
 
   it('does not expose unknown account ids in business-facing copy', () => {

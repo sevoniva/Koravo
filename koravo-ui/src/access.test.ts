@@ -30,9 +30,26 @@ describe('access rules', () => {
 
     expect(rules.canAdmin).toBe(true);
     expect(rules.canViewDashboard).toBe(true);
+    expect(rules.canViewOwnWork).toBe(false);
+    expect(rules.canStartProcess).toBe(false);
+    expect(rules.canClaimTask).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(true);
     expect(rules.canManageOrganization).toBe(true);
     expect(rules.canManageIntegration).toBe(true);
+    expect(rules.canManageSystem).toBe(true);
+    expect(rules.canOperateSystem).toBe(false);
+  });
+
+  it('keeps operators focused on monitoring and audit', () => {
+    const rules = access({ currentUser: { access: 'operator' } });
+
+    expect(rules.canViewDashboard).toBe(true);
+    expect(rules.canViewOwnWork).toBe(false);
+    expect(rules.canStartProcess).toBe(false);
+    expect(rules.canClaimTask).toBe(false);
+    expect(rules.canConfigureWorkflow).toBe(false);
+    expect(rules.canManageOrganization).toBe(false);
+    expect(rules.canManageIntegration).toBe(false);
     expect(rules.canOperateSystem).toBe(true);
   });
 });

@@ -114,7 +114,7 @@ export default [
   },
   {
     key: 'organization',
-    name: '组织权限',
+    name: '组织与系统',
     icon: 'team',
     access: 'canManageOrganization',
     routes: [
@@ -123,6 +123,13 @@ export default [
         name: '组织权限',
         icon: 'team',
         component: './SystemSettings',
+      },
+      {
+        path: '/system-settings',
+        name: '系统设置',
+        icon: 'setting',
+        component: './SystemSettings',
+        access: 'canManageSystem',
       },
     ],
   },
@@ -163,12 +170,6 @@ export default [
         name: '审计日志',
         icon: 'fileSearch',
         component: './AuditLogs',
-      },
-      {
-        path: '/system-settings',
-        name: '系统状态',
-        icon: 'setting',
-        component: './SystemSettings',
       },
     ],
   },

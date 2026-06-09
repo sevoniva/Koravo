@@ -39,7 +39,7 @@ class PlatformAuthenticationFilterTest {
     }
 
     @Test
-    void leavesRequestUnauthenticatedWhenPlatformUserIsMissing() throws Exception {
+    void rejectsRequestWhenPlatformUserIsMissing() throws Exception {
         PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
                 "",
                 false,
@@ -50,9 +50,29 @@ class PlatformAuthenticationFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, (servletRequest, servletResponse) -> {
-            assertThat(UserContextHolder.getUserId()).isEqualTo(UserContextHolder.ANONYMOUS);
-            assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+            throw new AssertionError("missing platform identity must stop the request");
         });
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getContentAsString()).contains("平台身份缺失");
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void keepsApiDocsPublicWithoutPlatformIdentity() throws Exception {
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "",
+                false,
+                "default",
+                PlatformIdentityVerifier.allowAll()
+        );
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/v3/api-docs");
+        request.setRequestURI("/v3/api-docs");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) ->
+                assertThat(UserContextHolder.getUserId()).isEqualTo(UserContextHolder.ANONYMOUS)
+        );
 
         assertThat(response.getStatus()).isEqualTo(200);
     }

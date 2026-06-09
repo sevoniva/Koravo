@@ -39,8 +39,26 @@ class RolePermissionFilterTest {
         UserContextHolder.setUser("admin", UserContextHolder.ROLE_ADMIN);
 
         assertThat(allows("POST", "/api/v1/process-models")).isTrue();
+        assertThat(allows("POST", "/api/v1/process-instances/start")).isFalse();
+        assertThat(allows("GET", "/api/v1/tasks/my")).isFalse();
+        assertThat(allows("GET", "/api/v1/audit-logs")).isFalse();
+        assertThat(allows("GET", "/api/v1/connector-execution-logs")).isFalse();
+    }
+
+    @Test
+    void operatorCanUseOpsAndAuditButCannotChangeWorkflowConfiguration() throws Exception {
+        UserContextHolder.setUser("operator", UserContextHolder.ROLE_OPERATOR);
+
+        assertThat(allows("GET", "/api/v1/system/health")).isTrue();
         assertThat(allows("GET", "/api/v1/audit-logs")).isTrue();
         assertThat(allows("GET", "/api/v1/connector-execution-logs")).isTrue();
+        assertThat(allows("GET", "/api/v1/tasks/my")).isFalse();
+        assertThat(allows("POST", "/api/v1/process-models")).isFalse();
+    }
+
+    @Test
+    void anonymousRequestsAreDeniedByRoleMatrix() throws Exception {
+        assertThat(allows("GET", "/api/v1/health")).isFalse();
     }
 
     @Test

@@ -6,7 +6,7 @@ export interface SessionContext {
   lastRequestId?: string;
 }
 
-export type SessionRole = 'admin' | 'applicant' | 'manager' | 'finance';
+export type SessionRole = 'admin' | 'applicant' | 'manager' | 'finance' | 'operator';
 
 const LEGACY_SESSION_STORAGE_KEY = 'koravo.session';
 const LAST_REQUEST_STORAGE_KEY = 'koravo.lastRequestId';
@@ -25,7 +25,13 @@ function canUseStorage() {
 }
 
 function normalizeRole(role?: string): SessionRole {
-  if (role === 'admin' || role === 'applicant' || role === 'manager' || role === 'finance') {
+  if (
+    role === 'admin' ||
+    role === 'applicant' ||
+    role === 'manager' ||
+    role === 'finance' ||
+    role === 'operator'
+  ) {
     return role;
   }
   return defaultSession.role;

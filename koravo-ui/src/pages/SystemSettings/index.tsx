@@ -57,13 +57,14 @@ interface PermissionMatrixItem {
   applicant: string;
   manager: string;
   finance: string;
+  operator: string;
 }
 
 const roleOptions: RoleOption[] = [
   {
     label: '管理员',
     value: 'admin',
-    description: '维护流程、表单、连接器和异常任务。',
+    description: '维护流程、表单、组织权限、集成动作和系统策略。',
   },
   {
     label: '发起人',
@@ -80,6 +81,11 @@ const roleOptions: RoleOption[] = [
     value: 'finance',
     description: '处理财务复核和金额确认待办。',
   },
+  {
+    label: '运维审计人',
+    value: 'operator',
+    description: '查看运行监控、审计日志和异常追踪。',
+  },
 ];
 
 const permissionMatrix: PermissionMatrixItem[] = [
@@ -90,6 +96,7 @@ const permissionMatrix: PermissionMatrixItem[] = [
     applicant: '只读',
     manager: '只读',
     finance: '只读',
+    operator: '不可见',
   },
   {
     key: 'start',
@@ -98,6 +105,7 @@ const permissionMatrix: PermissionMatrixItem[] = [
     applicant: '允许',
     manager: '不可操作',
     finance: '不可操作',
+    operator: '不可操作',
   },
   {
     key: 'task',
@@ -106,14 +114,25 @@ const permissionMatrix: PermissionMatrixItem[] = [
     applicant: '不可操作',
     manager: '允许',
     finance: '允许',
+    operator: '不可操作',
   },
   {
     key: 'ops',
     scope: '运维处置',
-    admin: '允许',
-    applicant: '只读',
-    manager: '只读',
-    finance: '只读',
+    admin: '不可操作',
+    applicant: '不可见',
+    manager: '不可见',
+    finance: '不可见',
+    operator: '允许',
+  },
+  {
+    key: 'system',
+    scope: '组织、集成、系统设置',
+    admin: '维护',
+    applicant: '不可见',
+    manager: '不可见',
+    finance: '不可见',
+    operator: '只读健康状态',
   },
 ];
 
@@ -123,6 +142,7 @@ const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
   { title: '发起人', dataIndex: 'applicant', width: 96 },
   { title: '业务处理人', dataIndex: 'manager', width: 112 },
   { title: '财务复核人', dataIndex: 'finance', width: 112 },
+  { title: '运维审计人', dataIndex: 'operator', width: 112 },
 ];
 
 function roleLabel(role: SessionRole) {

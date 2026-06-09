@@ -10,16 +10,19 @@ export default function access(
   const role = currentUser?.access;
   const isAdmin = role === 'admin';
   const isApprover = role === 'manager' || role === 'finance';
+  const isWorkflowUser = role === 'applicant' || isApprover;
+  const isOperator = role === 'operator';
   return {
     canAdmin: isAdmin,
-    canViewDashboard: isAdmin,
-    canViewOwnWork: Boolean(role),
-    canStartProcess: isAdmin || role === 'applicant',
-    canClaimTask: isAdmin || isApprover,
-    canHandleTask: Boolean(role),
+    canViewDashboard: isAdmin || isOperator,
+    canViewOwnWork: isWorkflowUser,
+    canStartProcess: role === 'applicant',
+    canClaimTask: isApprover,
+    canHandleTask: isWorkflowUser,
     canConfigureWorkflow: isAdmin,
     canManageOrganization: isAdmin,
     canManageIntegration: isAdmin,
-    canOperateSystem: isAdmin,
+    canManageSystem: isAdmin,
+    canOperateSystem: isOperator,
   };
 }

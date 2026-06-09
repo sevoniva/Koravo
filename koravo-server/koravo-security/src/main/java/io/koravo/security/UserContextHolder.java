@@ -6,6 +6,7 @@ public final class UserContextHolder {
     public static final String ROLE_APPLICANT = "applicant";
     public static final String ROLE_MANAGER = "manager";
     public static final String ROLE_FINANCE = "finance";
+    public static final String ROLE_OPERATOR = "operator";
 
     private static final ThreadLocal<UserContext> CONTEXT = new ThreadLocal<>();
 
@@ -50,7 +51,7 @@ public final class UserContextHolder {
             return defaultRole(userId);
         }
         return switch (role.trim()) {
-            case ROLE_ADMIN, ROLE_APPLICANT, ROLE_MANAGER, ROLE_FINANCE -> role.trim();
+            case ROLE_ADMIN, ROLE_APPLICANT, ROLE_MANAGER, ROLE_FINANCE, ROLE_OPERATOR -> role.trim();
             default -> defaultRole(userId);
         };
     }
@@ -64,6 +65,9 @@ public final class UserContextHolder {
         }
         if (ROLE_FINANCE.equals(userId) || "financeApprover".equals(userId)) {
             return ROLE_FINANCE;
+        }
+        if (ROLE_OPERATOR.equals(userId)) {
+            return ROLE_OPERATOR;
         }
         return ROLE_APPLICANT;
     }

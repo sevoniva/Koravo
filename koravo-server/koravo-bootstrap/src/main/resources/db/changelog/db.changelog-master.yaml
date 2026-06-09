@@ -427,3 +427,21 @@ databaseChangeLog:
             columns:
               - column: { name: asset_origin, value: TEST_FIXTURE }
             where: model_key like 'koravoProcess%'
+  - changeSet:
+      id: 0010-add-default-operator-member
+      author: koravo
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              insert into ko_organization_member (
+                id, tenant_id, user_id, name, department, role, status,
+                created_by, created_at, updated_by, updated_at, deleted
+              )
+              select
+                'default-operator', 'default', 'operator', '运行审计专员', '运维审计组', 'operator', 'ACTIVE',
+                'system', timestamp '2026-01-01 00:00:00', 'system', timestamp '2026-01-01 00:00:00', false
+              where not exists (
+                select 1 from ko_organization_member
+                where tenant_id = 'default' and user_id = 'operator' and deleted = false
+              );

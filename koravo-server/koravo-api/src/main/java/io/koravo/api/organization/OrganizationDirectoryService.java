@@ -36,7 +36,8 @@ public class OrganizationDirectoryService {
                 member("admin", tenantId, "流程平台负责人", "流程平台组", UserContextHolder.ROLE_ADMIN),
                 member("applicant", tenantId, "业务申请专员", "业务一部", UserContextHolder.ROLE_APPLICANT),
                 member("manager", tenantId, "业务审批主管", "业务一部", UserContextHolder.ROLE_MANAGER),
-                member("finance", tenantId, "财务复核专员", "财务部门", UserContextHolder.ROLE_FINANCE)
+                member("finance", tenantId, "财务复核专员", "财务部门", UserContextHolder.ROLE_FINANCE),
+                member("operator", tenantId, "运行审计专员", "运维审计组", UserContextHolder.ROLE_OPERATOR)
         ));
     }
 

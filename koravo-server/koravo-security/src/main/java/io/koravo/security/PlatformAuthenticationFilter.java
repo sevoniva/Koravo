@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -63,7 +64,11 @@ public class PlatformAuthenticationFilter extends OncePerRequestFilter {
         try {
             String userId = request.getHeader(HEADER_USER_ID);
             if (userId == null || userId.isBlank()) {
-                filterChain.doFilter(request, response);
+                if (isPublicRequest(request)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                unauthorized(response, "平台身份缺失");
                 return;
             }
             if (!hasTrustedPlatformToken(request)) {
@@ -103,6 +108,16 @@ public class PlatformAuthenticationFilter extends OncePerRequestFilter {
         }
         String requestToken = request.getHeader(HEADER_PLATFORM_TOKEN);
         return trustedToken.equals(requestToken);
+    }
+
+    private boolean isPublicRequest(HttpServletRequest request) {
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            return true;
+        }
+        String path = request.getRequestURI();
+        return path.startsWith("/swagger-ui/")
+                || path.equals("/v3/api-docs")
+                || path.startsWith("/v3/api-docs/");
     }
 
     private void unauthorized(HttpServletResponse response) throws IOException {

@@ -46,6 +46,14 @@ export const defaultOrganizationMembers: OrganizationMember[] = [
     role: 'finance',
     status: '启用',
   },
+  {
+    key: 'operator',
+    name: '运行审计专员',
+    userId: 'operator',
+    department: '运维审计组',
+    role: 'operator',
+    status: '启用',
+  },
 ];
 
 let runtimeOrganizationMembers: OrganizationMember[] = defaultOrganizationMembers;
@@ -55,6 +63,7 @@ export const roleLabels: Record<SessionRole, string> = {
   applicant: '发起人',
   manager: '业务处理人',
   finance: '财务复核人',
+  operator: '运维审计人',
 };
 
 export function tenantDisplayName(tenantId?: string | null) {
@@ -63,7 +72,13 @@ export function tenantDisplayName(tenantId?: string | null) {
 }
 
 function normalizeRole(role?: string | null): SessionRole {
-  if (role === 'admin' || role === 'applicant' || role === 'manager' || role === 'finance') {
+  if (
+    role === 'admin' ||
+    role === 'applicant' ||
+    role === 'manager' ||
+    role === 'finance' ||
+    role === 'operator'
+  ) {
     return role;
   }
   return 'applicant';

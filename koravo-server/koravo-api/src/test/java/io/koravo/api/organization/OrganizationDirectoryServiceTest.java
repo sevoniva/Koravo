@@ -57,9 +57,10 @@ class OrganizationDirectoryServiceTest {
         assertThat(members).extracting(OrganizationMemberResponse::tenantId).containsOnly("tenant-b");
         verify(repository).saveAll(argThat(savedMembers -> {
             List<KoOrganizationMember> saved = (List<KoOrganizationMember>) savedMembers;
-            return saved.size() == 4
+            return saved.size() == 5
                     && saved.stream().allMatch(member -> "tenant-b".equals(member.getTenantId()))
-                    && saved.stream().anyMatch(member -> UserContextHolder.ROLE_MANAGER.equals(member.getRole()));
+                    && saved.stream().anyMatch(member -> UserContextHolder.ROLE_MANAGER.equals(member.getRole()))
+                    && saved.stream().anyMatch(member -> UserContextHolder.ROLE_OPERATOR.equals(member.getRole()));
         }));
     }
 

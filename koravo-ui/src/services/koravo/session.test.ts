@@ -37,15 +37,15 @@ describe('session context', () => {
 
   it('uses the server runtime context for the current user display', () => {
     setRuntimeSessionContext({
-      tenantId: 'finance-org',
-      userId: 'finance',
-      role: 'finance',
+      tenantId: 'ops-org',
+      userId: 'operator',
+      role: 'operator',
     });
 
     expect(getSessionContext()).toMatchObject({
-      tenantId: 'finance-org',
-      userId: 'finance',
-      role: 'finance',
+      tenantId: 'ops-org',
+      userId: 'operator',
+      role: 'operator',
     });
   });
 

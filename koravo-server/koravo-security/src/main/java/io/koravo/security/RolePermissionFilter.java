@@ -21,35 +21,43 @@ public class RolePermissionFilter extends OncePerRequestFilter {
             UserContextHolder.ROLE_ADMIN,
             UserContextHolder.ROLE_APPLICANT,
             UserContextHolder.ROLE_MANAGER,
+            UserContextHolder.ROLE_FINANCE,
+            UserContextHolder.ROLE_OPERATOR
+    );
+    private static final List<String> WORKFLOW_USER_ROLES = List.of(
+            UserContextHolder.ROLE_APPLICANT,
+            UserContextHolder.ROLE_MANAGER,
             UserContextHolder.ROLE_FINANCE
     );
     private static final List<String> APPROVAL_ROLES = List.of(UserContextHolder.ROLE_MANAGER, UserContextHolder.ROLE_FINANCE);
     private static final List<String> ADMIN_ROLES = List.of(UserContextHolder.ROLE_ADMIN);
+    private static final List<String> OPS_ROLES = List.of(UserContextHolder.ROLE_OPERATOR);
+    private static final List<String> SYSTEM_ROLES = List.of(UserContextHolder.ROLE_ADMIN, UserContextHolder.ROLE_OPERATOR);
     private static final Map<String, List<EndpointRule>> RULES = Map.of(
             "GET", List.of(
                     rule("/api/v1/health", ALL_BUSINESS_ROLES),
-                    rule("/api/v1/system/health", ADMIN_ROLES),
-                    rule("/api/v1/dashboard/summary", ALL_BUSINESS_ROLES),
+                    rule("/api/v1/system/health", SYSTEM_ROLES),
+                    rule("/api/v1/dashboard/summary", SYSTEM_ROLES),
                     rule("/api/v1/organization/members", ALL_BUSINESS_ROLES),
                     rule("/api/v1/workflow-enablement/status", ADMIN_ROLES),
-                    rule("/api/v1/workflow-enablement/startable-processes", ALL_BUSINESS_ROLES),
-                    rule("/api/v1/tasks/my", ALL_BUSINESS_ROLES),
+                    rule("/api/v1/workflow-enablement/startable-processes", List.of(UserContextHolder.ROLE_APPLICANT)),
+                    rule("/api/v1/tasks/my", WORKFLOW_USER_ROLES),
                     rule("/api/v1/tasks/candidates", APPROVAL_ROLES),
-                    rule("/api/v1/tasks/done", ALL_BUSINESS_ROLES),
-                    rule("/api/v1/tasks/started", ALL_BUSINESS_ROLES),
-                    rule("/api/v1/tasks/[^/]+", ALL_BUSINESS_ROLES),
-                    rule("/api/v1/process-instances/[^/]+", ALL_BUSINESS_ROLES),
-                    rule("/api/v1/forms/snapshots", ALL_BUSINESS_ROLES),
+                    rule("/api/v1/tasks/done", WORKFLOW_USER_ROLES),
+                    rule("/api/v1/tasks/started", WORKFLOW_USER_ROLES),
+                    rule("/api/v1/tasks/[^/]+", WORKFLOW_USER_ROLES),
+                    rule("/api/v1/process-instances/[^/]+", WORKFLOW_USER_ROLES),
+                    rule("/api/v1/forms/snapshots", WORKFLOW_USER_ROLES),
                     prefix("/api/v1/process-models", ADMIN_ROLES),
                     prefix("/api/v1/forms", ADMIN_ROLES),
                     prefix("/api/v1/form-bindings", ADMIN_ROLES),
                     prefix("/api/v1/datasources", ADMIN_ROLES),
-                    prefix("/api/v1/ops", ADMIN_ROLES),
-                    prefix("/api/v1/audit-logs", ADMIN_ROLES),
-                    prefix("/api/v1/connector-execution-logs", ADMIN_ROLES)
+                    prefix("/api/v1/ops", OPS_ROLES),
+                    prefix("/api/v1/audit-logs", OPS_ROLES),
+                    prefix("/api/v1/connector-execution-logs", OPS_ROLES)
             ),
             "POST", List.of(
-                    rule("/api/v1/process-instances/start", List.of(UserContextHolder.ROLE_ADMIN, UserContextHolder.ROLE_APPLICANT)),
+                    rule("/api/v1/process-instances/start", List.of(UserContextHolder.ROLE_APPLICANT)),
                     rule("/api/v1/tasks/[^/]+/complete", APPROVAL_ROLES),
                     rule("/api/v1/tasks/[^/]+/actions", APPROVAL_ROLES),
                     prefix("/api/v1/process-models", ADMIN_ROLES),
@@ -57,7 +65,7 @@ public class RolePermissionFilter extends OncePerRequestFilter {
                     prefix("/api/v1/form-bindings", ADMIN_ROLES),
                     prefix("/api/v1/datasources", ADMIN_ROLES),
                     prefix("/api/v1/workflow-enablement", ADMIN_ROLES),
-                    prefix("/api/v1/ops", ADMIN_ROLES)
+                    prefix("/api/v1/ops", OPS_ROLES)
             ),
             "PUT", List.of(
                     prefix("/api/v1/process-models", ADMIN_ROLES),
@@ -87,13 +95,12 @@ public class RolePermissionFilter extends OncePerRequestFilter {
     }
 
     private boolean isAllowed(HttpServletRequest request) {
-        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+        if (isPublicRequest(request)) {
             return true;
         }
         if (UserContextHolder.ANONYMOUS.equals(UserContextHolder.getUserId())) {
-            return true;
+            return false;
         }
-
         String method = request.getMethod();
         String path = request.getRequestURI();
         List<EndpointRule> methodRules = new java.util.ArrayList<>(RULES.getOrDefault(method, List.of()));
@@ -106,6 +113,16 @@ public class RolePermissionFilter extends OncePerRequestFilter {
             }
         }
         return false;
+    }
+
+    private boolean isPublicRequest(HttpServletRequest request) {
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            return true;
+        }
+        String path = request.getRequestURI();
+        return path.startsWith("/swagger-ui/")
+                || path.equals("/v3/api-docs")
+                || path.startsWith("/v3/api-docs/");
     }
 
     private static EndpointRule rule(String pattern, List<String> roles) {
