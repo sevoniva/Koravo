@@ -23,8 +23,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ProcessInstanceAppService {
@@ -33,6 +37,7 @@ public class ProcessInstanceAppService {
     private static final String DEPARTMENT_FIELD = "department";
     private static final String MANAGER_APPROVER_FIELD = "managerApprover";
     private static final String FINANCE_APPROVER_FIELD = "financeApprover";
+    private static final String APPROVAL_USERS_FIELD = "approvalUsers";
 
     private final ProcessFacade processFacade;
     private final AuditLogService auditLogService;
@@ -121,13 +126,11 @@ public class ProcessInstanceAppService {
                 .findByTenantIdAndUserIdAndDeletedFalse(tenantId, UserContextHolder.getUserId())
                 .filter(member -> ACTIVE.equals(member.getStatus()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "发起人未同步到当前租户组织"));
-        KoOrganizationMember manager = activeMemberByRole(tenantId, UserContextHolder.ROLE_MANAGER, "当前租户缺少启用的业务审批人");
-        KoOrganizationMember finance = activeMemberByRole(tenantId, UserContextHolder.ROLE_FINANCE, "当前租户缺少启用的财务复核人");
+        List<String> approvalUsers = trustedApprovalUsers(tenantId, submittedVariables);
         return new TrustedStartIdentity(
                 starter.getName(),
                 starter.getDepartment(),
-                manager.getUserId(),
-                finance.getUserId()
+                approvalUsers
         );
     }
 
@@ -144,13 +147,65 @@ public class ProcessInstanceAppService {
                         || data.containsKey(DEPARTMENT_FIELD)
                         || data.containsKey(MANAGER_APPROVER_FIELD)
                         || data.containsKey(FINANCE_APPROVER_FIELD)
+                        || data.containsKey(APPROVAL_USERS_FIELD)
         );
     }
 
-    private KoOrganizationMember activeMemberByRole(String tenantId, String role, String errorMessage) {
-        return organizationMemberRepository
-                .findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(tenantId, role, ACTIVE)
-                .orElseThrow(() -> new BusinessException(ErrorCode.BAD_REQUEST, errorMessage));
+    private List<String> trustedApprovalUsers(String tenantId, Map<String, Object> submittedVariables) {
+        List<String> requestedUsers = requestedApprovalUsers(submittedVariables);
+        if (requestedUsers.isEmpty()) {
+            requestedUsers = defaultApprovalUsers(tenantId);
+        }
+        List<KoOrganizationMember> activeMembers = organizationMemberRepository
+                .findByTenantIdAndUserIdInAndStatusAndDeletedFalse(tenantId, requestedUsers, ACTIVE);
+        Set<String> activeUserIds = activeMembers.stream()
+                .map(KoOrganizationMember::getUserId)
+                .collect(java.util.stream.Collectors.toSet());
+        List<String> rejectedUsers = requestedUsers.stream()
+                .filter(userId -> !activeUserIds.contains(userId))
+                .toList();
+        if (!rejectedUsers.isEmpty()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "审批人不属于当前租户或已停用");
+        }
+        return requestedUsers;
+    }
+
+    private List<String> requestedApprovalUsers(Map<String, Object> submittedVariables) {
+        if (submittedVariables == null) {
+            return List.of();
+        }
+        Set<String> users = new LinkedHashSet<>();
+        addApprovalUsers(users, submittedVariables.get(APPROVAL_USERS_FIELD));
+        addApprovalUsers(users, submittedVariables.get(MANAGER_APPROVER_FIELD));
+        addApprovalUsers(users, submittedVariables.get(FINANCE_APPROVER_FIELD));
+        return new ArrayList<>(users);
+    }
+
+    private void addApprovalUsers(Set<String> users, Object value) {
+        if (value instanceof Iterable<?> iterable) {
+            iterable.forEach(item -> addApprovalUsers(users, item));
+            return;
+        }
+        String userId = value == null ? "" : String.valueOf(value).trim();
+        if (!userId.isBlank()) {
+            users.add(userId);
+        }
+    }
+
+    private List<String> defaultApprovalUsers(String tenantId) {
+        Set<String> users = new LinkedHashSet<>();
+        organizationMemberRepository
+                .findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(tenantId, UserContextHolder.ROLE_MANAGER, ACTIVE)
+                .map(KoOrganizationMember::getUserId)
+                .ifPresent(users::add);
+        organizationMemberRepository
+                .findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(tenantId, UserContextHolder.ROLE_FINANCE, ACTIVE)
+                .map(KoOrganizationMember::getUserId)
+                .ifPresent(users::add);
+        if (users.isEmpty()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "当前租户缺少启用的审批人");
+        }
+        return new ArrayList<>(users);
     }
 
     private Map<String, Object> applyTrustedStartIdentity(Map<String, Object> source, TrustedStartIdentity identity) {
@@ -163,16 +218,16 @@ public class ProcessInstanceAppService {
         }
         result.put(APPLICANT_FIELD, identity.applicantName());
         result.put(DEPARTMENT_FIELD, identity.department());
-        result.put(MANAGER_APPROVER_FIELD, identity.managerUserId());
-        result.put(FINANCE_APPROVER_FIELD, identity.financeUserId());
+        result.put(APPROVAL_USERS_FIELD, identity.approvalUsers());
+        result.remove(MANAGER_APPROVER_FIELD);
+        result.remove(FINANCE_APPROVER_FIELD);
         return result;
     }
 
     private record TrustedStartIdentity(
             String applicantName,
             String department,
-            String managerUserId,
-            String financeUserId
+            List<String> approvalUsers
     ) {
     }
 }

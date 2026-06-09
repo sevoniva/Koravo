@@ -75,18 +75,15 @@ public class WorkflowEnablementService {
         KoProcessModel model = findDefaultProcessModel(tenantId);
         KoFormSchema form = findDefaultFormSchema(tenantId);
         KoFormBinding startBinding = findMatchingBinding(tenantId, model, form, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
-        KoFormBinding businessBinding = findMatchingBinding(tenantId, model, form, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY);
-        KoFormBinding financeBinding = findMatchingBinding(tenantId, model, form, WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY);
+        KoFormBinding approvalBinding = findMatchingBinding(tenantId, model, form, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY);
         int bindingCount = (startBinding == null ? 0 : 1)
-                + (businessBinding == null ? 0 : 1)
-                + (financeBinding == null ? 0 : 1);
+                + (approvalBinding == null ? 0 : 1);
         boolean initialized = model != null
                 && model.getStatus() == ProcessModelStatus.DEPLOYED
                 && StringUtils.hasText(model.getFlowableDefinitionId())
                 && form != null
                 && startBinding != null
-                && businessBinding != null
-                && financeBinding != null;
+                && approvalBinding != null;
         long todoCount = processFacade.queryMyTasks(new TaskQueryCommand(
                 tenantId,
                 UserContextHolder.getUserId(),
@@ -123,9 +120,9 @@ public class WorkflowEnablementService {
                         form == null ? 0 : 1
                 ),
                 new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
-                        bindingCount == 3,
-                        bindingCount == 3 ? "READY" : "MISSING",
-                        bindingCount == 3 ? "启动表单和并行审批任务已绑定" : "启动表单或审批任务未绑定",
+                        bindingCount == 2,
+                        bindingCount == 2 ? "READY" : "MISSING",
+                        bindingCount == 2 ? "启动表单和多人会签任务已绑定" : "启动表单或会签任务未绑定",
                         startBinding == null ? null : startBinding.getId(),
                         bindingCount
                 ),
@@ -173,8 +170,7 @@ public class WorkflowEnablementService {
         ensureFormSchema(form, userId, actions);
 
         KoFormBinding startBinding = ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.START_FORM_TASK_KEY, "启动表单", actions);
-        ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY, "业务审批", actions);
-        ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY, "财务复核", actions);
+        ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY, "多人会签", actions);
         archiveDemoWorkflowAssets(tenantId, userId, model, form, actions);
 
         auditLogService.record("WORKFLOW_ENABLEMENT_INIT", "WORKFLOW_ENABLEMENT", "collaborative-approval", Map.of(
@@ -626,10 +622,9 @@ public class WorkflowEnablementService {
         variables.put("department", "业务一部");
         variables.put("subject", "业务事项申请");
         variables.put("businessDescription", "说明本次申请的背景、内容和需要协同处理的事项");
-        variables.put("expectedResult", "业务审批和财务复核均通过后完成流程");
+        variables.put("expectedResult", "所有审批人完成会签后流程结束");
         variables.put("amount", 12000);
-        variables.put("managerApprover", "manager");
-        variables.put("financeApprover", "finance");
+        variables.put("approvalUsers", List.of("manager", "finance"));
         variables.put("remark", "");
         return variables;
     }

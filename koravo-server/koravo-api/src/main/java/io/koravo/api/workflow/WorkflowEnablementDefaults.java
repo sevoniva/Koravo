@@ -8,8 +8,8 @@ public final class WorkflowEnablementDefaults {
     public static final String FORM_KEY = "business-request-form";
     public static final String FORM_NAME = "业务申请表";
     public static final String START_FORM_TASK_KEY = "__START__";
-    public static final String BUSINESS_ACCEPTANCE_TASK_KEY = "businessReviewTask";
-    public static final String FINANCE_ACCEPTANCE_TASK_KEY = "financeReviewTask";
+    public static final String BUSINESS_ACCEPTANCE_TASK_KEY = "jointApprovalTask";
+    public static final String FINANCE_ACCEPTANCE_TASK_KEY = BUSINESS_ACCEPTANCE_TASK_KEY;
     public static final String PRIMARY_TASK_KEY = BUSINESS_ACCEPTANCE_TASK_KEY;
 
     private WorkflowEnablementDefaults() {
@@ -26,16 +26,11 @@ public final class WorkflowEnablementDefaults {
                              targetNamespace="https://koravo.io/workflow">
                   <process id="collaborativeApproval" name="协同审批流程" isExecutable="true">
                     <startEvent id="start" name="开始"/>
-                    <sequenceFlow id="flow_start_split" sourceRef="start" targetRef="parallelSplit"/>
-                    <parallelGateway id="parallelSplit" name="并行审批"/>
-                    <sequenceFlow id="flow_split_business" sourceRef="parallelSplit" targetRef="businessReviewTask"/>
-                    <sequenceFlow id="flow_split_finance" sourceRef="parallelSplit" targetRef="financeReviewTask"/>
-                    <userTask id="businessReviewTask" name="业务审批" flowable:assignee="${managerApprover}"/>
-                    <userTask id="financeReviewTask" name="财务复核" flowable:assignee="${financeApprover}"/>
-                    <sequenceFlow id="flow_business_join" sourceRef="businessReviewTask" targetRef="parallelJoin"/>
-                    <sequenceFlow id="flow_finance_join" sourceRef="financeReviewTask" targetRef="parallelJoin"/>
-                    <parallelGateway id="parallelJoin" name="审批汇总"/>
-                    <sequenceFlow id="flow_join_end" sourceRef="parallelJoin" targetRef="end"/>
+                    <sequenceFlow id="flow_start_approval" sourceRef="start" targetRef="jointApprovalTask"/>
+                    <userTask id="jointApprovalTask" name="多人会签" flowable:assignee="${approvalUser}">
+                      <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="approvalUsers" flowable:elementVariable="approvalUser"/>
+                    </userTask>
+                    <sequenceFlow id="flow_approval_end" sourceRef="jointApprovalTask" targetRef="end"/>
                     <endEvent id="end" name="完成"/>
                   </process>
                   <bpmndi:BPMNDiagram id="BPMNDiagram_collaborativeApproval">
@@ -43,48 +38,19 @@ public final class WorkflowEnablementDefaults {
                       <bpmndi:BPMNShape id="Shape_start" bpmnElement="start">
                         <omgdc:Bounds x="80" y="160" width="36" height="36"/>
                       </bpmndi:BPMNShape>
-                      <bpmndi:BPMNShape id="Shape_parallelSplit" bpmnElement="parallelSplit" isMarkerVisible="true">
-                        <omgdc:Bounds x="170" y="153" width="50" height="50"/>
-                      </bpmndi:BPMNShape>
-                      <bpmndi:BPMNShape id="Shape_businessReviewTask" bpmnElement="businessReviewTask">
-                        <omgdc:Bounds x="290" y="80" width="130" height="80"/>
-                      </bpmndi:BPMNShape>
-                      <bpmndi:BPMNShape id="Shape_financeReviewTask" bpmnElement="financeReviewTask">
-                        <omgdc:Bounds x="290" y="210" width="130" height="80"/>
-                      </bpmndi:BPMNShape>
-                      <bpmndi:BPMNShape id="Shape_parallelJoin" bpmnElement="parallelJoin" isMarkerVisible="true">
-                        <omgdc:Bounds x="500" y="153" width="50" height="50"/>
+                      <bpmndi:BPMNShape id="Shape_jointApprovalTask" bpmnElement="jointApprovalTask">
+                        <omgdc:Bounds x="210" y="138" width="150" height="80"/>
                       </bpmndi:BPMNShape>
                       <bpmndi:BPMNShape id="Shape_end" bpmnElement="end">
-                        <omgdc:Bounds x="630" y="160" width="36" height="36"/>
+                        <omgdc:Bounds x="470" y="160" width="36" height="36"/>
                       </bpmndi:BPMNShape>
-                      <bpmndi:BPMNEdge id="Edge_flow_start_split" bpmnElement="flow_start_split">
+                      <bpmndi:BPMNEdge id="Edge_flow_start_approval" bpmnElement="flow_start_approval">
                         <omgdi:waypoint x="116" y="178"/>
-                        <omgdi:waypoint x="170" y="178"/>
+                        <omgdi:waypoint x="210" y="178"/>
                       </bpmndi:BPMNEdge>
-                      <bpmndi:BPMNEdge id="Edge_flow_split_business" bpmnElement="flow_split_business">
-                        <omgdi:waypoint x="195" y="153"/>
-                        <omgdi:waypoint x="195" y="120"/>
-                        <omgdi:waypoint x="290" y="120"/>
-                      </bpmndi:BPMNEdge>
-                      <bpmndi:BPMNEdge id="Edge_flow_split_finance" bpmnElement="flow_split_finance">
-                        <omgdi:waypoint x="195" y="203"/>
-                        <omgdi:waypoint x="195" y="250"/>
-                        <omgdi:waypoint x="290" y="250"/>
-                      </bpmndi:BPMNEdge>
-                      <bpmndi:BPMNEdge id="Edge_flow_business_join" bpmnElement="flow_business_join">
-                        <omgdi:waypoint x="420" y="120"/>
-                        <omgdi:waypoint x="525" y="120"/>
-                        <omgdi:waypoint x="525" y="153"/>
-                      </bpmndi:BPMNEdge>
-                      <bpmndi:BPMNEdge id="Edge_flow_finance_join" bpmnElement="flow_finance_join">
-                        <omgdi:waypoint x="420" y="250"/>
-                        <omgdi:waypoint x="525" y="250"/>
-                        <omgdi:waypoint x="525" y="203"/>
-                      </bpmndi:BPMNEdge>
-                      <bpmndi:BPMNEdge id="Edge_flow_join_end" bpmnElement="flow_join_end">
-                        <omgdi:waypoint x="550" y="178"/>
-                        <omgdi:waypoint x="630" y="178"/>
+                      <bpmndi:BPMNEdge id="Edge_flow_approval_end" bpmnElement="flow_approval_end">
+                        <omgdi:waypoint x="360" y="178"/>
+                        <omgdi:waypoint x="470" y="178"/>
                       </bpmndi:BPMNEdge>
                     </bpmndi:BPMNPlane>
                   </bpmndi:BPMNDiagram>
@@ -96,7 +62,7 @@ public final class WorkflowEnablementDefaults {
         return """
                 {
                   "type": "object",
-                  "required": ["applicant", "department", "subject", "businessDescription", "managerApprover", "financeApprover"],
+                  "required": ["applicant", "department", "subject", "businessDescription", "approvalUsers"],
                   "properties": {
                     "applicant": {
                       "type": "string",
@@ -124,13 +90,12 @@ public final class WorkflowEnablementDefaults {
                       "type": "number",
                       "title": "关联金额"
                     },
-                    "managerApprover": {
-                      "type": "string",
-                      "title": "业务审批人"
-                    },
-                    "financeApprover": {
-                      "type": "string",
-                      "title": "财务复核人"
+                    "approvalUsers": {
+                      "type": "array",
+                      "title": "审批人",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "approved": {
                       "type": "boolean",
@@ -160,11 +125,8 @@ public final class WorkflowEnablementDefaults {
                   "department": {
                     "widget": "organizationProfile"
                   },
-                  "managerApprover": {
-                    "widget": "organizationMember"
-                  },
-                  "financeApprover": {
-                    "widget": "organizationMember"
+                  "approvalUsers": {
+                    "widget": "organizationMemberMulti"
                   },
                   "businessDescription": {
                     "widget": "textarea"

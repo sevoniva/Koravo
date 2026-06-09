@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -129,15 +130,13 @@ class ProcessInstanceAppServiceTest {
                 "applicant", "伪造申请人",
                 "department", "伪造部门",
                 "subject", "生产发布",
-                "managerApprover", "outside-manager",
-                "financeApprover", "outside-finance"
+                "approvalUsers", List.of("manager-1", "finance-1")
         );
         Map<String, Object> trusted = Map.of(
                 "applicant", "真实申请专员",
                 "department", "业务二部",
                 "subject", "生产发布",
-                "managerApprover", "manager-1",
-                "financeApprover", "finance-1"
+                "approvalUsers", List.of("manager-1", "finance-1")
         );
         StartProcessRequest request = new StartProcessRequest(
                 WorkflowEnablementDefaults.PROCESS_KEY,
@@ -163,16 +162,14 @@ class ProcessInstanceAppServiceTest {
         when(formSchemaService.get("form-1")).thenReturn(formSchema);
         when(organizationMemberRepository.findByTenantIdAndUserIdAndDeletedFalse("tenant-a", "starter"))
                 .thenReturn(Optional.of(member("starter", "真实申请专员", "业务二部", UserContextHolder.ROLE_APPLICANT)));
-        when(organizationMemberRepository.findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(
+        when(organizationMemberRepository.findByTenantIdAndUserIdInAndStatusAndDeletedFalse(
                 "tenant-a",
-                UserContextHolder.ROLE_MANAGER,
+                List.of("manager-1", "finance-1"),
                 "ACTIVE"
-        )).thenReturn(Optional.of(member("manager-1", "业务负责人", "业务二部", UserContextHolder.ROLE_MANAGER)));
-        when(organizationMemberRepository.findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(
-                "tenant-a",
-                UserContextHolder.ROLE_FINANCE,
-                "ACTIVE"
-        )).thenReturn(Optional.of(member("finance-1", "财务负责人", "财务部", UserContextHolder.ROLE_FINANCE)));
+        )).thenReturn(List.of(
+                member("manager-1", "业务负责人", "业务二部", UserContextHolder.ROLE_MANAGER),
+                member("finance-1", "财务负责人", "财务部", UserContextHolder.ROLE_FINANCE)
+        ));
         when(processFacade.start(new StartProcessCommand(
                 "tenant-a",
                 "starter",
@@ -186,6 +183,35 @@ class ProcessInstanceAppServiceTest {
 
         assertThat(result).isEqualTo(instance);
         verify(formSnapshotService).saveSnapshot("pi-1", null, "form-1", formSchema, trusted);
+    }
+
+    @Test
+    void startRejectsApprovalUsersOutsideCurrentTenantDirectory() {
+        Map<String, Object> submitted = Map.of(
+                "applicant", "伪造申请人",
+                "department", "伪造部门",
+                "subject", "生产发布",
+                "approvalUsers", List.of("manager-1", "outsider")
+        );
+        StartProcessRequest request = new StartProcessRequest(
+                WorkflowEnablementDefaults.PROCESS_KEY,
+                "REQ-001",
+                submitted,
+                null,
+                null
+        );
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUser("starter", UserContextHolder.ROLE_APPLICANT);
+        when(organizationMemberRepository.findByTenantIdAndUserIdAndDeletedFalse("tenant-a", "starter"))
+                .thenReturn(Optional.of(member("starter", "真实申请专员", "业务二部", UserContextHolder.ROLE_APPLICANT)));
+        when(organizationMemberRepository.findByTenantIdAndUserIdInAndStatusAndDeletedFalse(
+                "tenant-a",
+                List.of("manager-1", "outsider"),
+                "ACTIVE"
+        )).thenReturn(List.of(member("manager-1", "业务负责人", "业务二部", UserContextHolder.ROLE_MANAGER)));
+
+        assertThatThrownBy(() -> service.start(request))
+                .hasMessageContaining("审批人不属于当前租户或已停用");
     }
 
     @Test

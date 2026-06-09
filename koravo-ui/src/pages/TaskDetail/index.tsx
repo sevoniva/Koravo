@@ -87,7 +87,7 @@ interface TaskActionForm {
 interface SchemaField {
   fieldKey: string;
   title: string;
-  type: 'string' | 'number' | 'boolean';
+  type: 'string' | 'number' | 'boolean' | 'array';
   format?: string;
   widget?: string;
   placeholder?: string;
@@ -428,6 +428,7 @@ function renderParallelTasks(
 }
 
 function normalizeSchemaType(type?: string): SchemaField['type'] {
+  if (type === 'array') return 'array';
   if (type === 'number' || type === 'integer') return 'number';
   if (type === 'boolean') return 'boolean';
   return 'string';
@@ -485,6 +486,13 @@ function isTaskAssigneeField(field: SchemaField) {
   return (
     field.widget === 'organizationMember' ||
     isOrganizationAssigneeField(field.fieldKey, field.title)
+  );
+}
+
+function isTaskAssigneeMultiField(field: SchemaField) {
+  return (
+    field.widget === 'organizationMemberMulti' ||
+    (field.type === 'array' && isOrganizationAssigneeField(field.fieldKey, field.title))
   );
 }
 
@@ -596,6 +604,26 @@ const SchemaDrivenFields: React.FC<{
           ? [{ required: true, message: `请输入${field.title}` }]
           : undefined;
         const name = ['formValues', field.fieldKey];
+        if (isTaskAssigneeMultiField(field)) {
+          const value = values?.[field.fieldKey];
+          return (
+            <ProFormSelect
+              key={field.fieldKey}
+              name={name}
+              label={field.title}
+              initialValue={Array.isArray(value) ? value.map(String) : []}
+              options={organizationMemberSelectOptions()}
+              tooltip="由发起环节选择的组织成员带出。"
+              disabled
+              fieldProps={{ mode: 'multiple', maxTagCount: 'responsive' }}
+              rules={
+                field.required
+                  ? [{ required: true, message: `${field.title}会自动带出` }]
+                  : undefined
+              }
+            />
+          );
+        }
         if (isTaskAssigneeField(field)) {
           return (
             <ProFormSelect

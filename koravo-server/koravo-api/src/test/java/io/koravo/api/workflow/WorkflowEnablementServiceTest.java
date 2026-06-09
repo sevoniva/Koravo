@@ -92,17 +92,6 @@ class WorkflowEnablementServiceTest {
                 WorkflowEnablementDefaults.PROCESS_KEY + ".bpmn20.xml",
                 WorkflowEnablementDefaults.businessRequestBpmn()
         ))).thenReturn(new ProcessDeploymentDTO(null, "dep-1", "pd-1", WorkflowEnablementDefaults.PROCESS_KEY, 1));
-        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
-                "default",
-                "pd-1",
-                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
-        )).thenReturn(Optional.empty());
-        when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
-                "default",
-                "model-1",
-                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
-        )).thenReturn(Optional.empty());
-
         WorkflowEnablementInitResponse response = service.init();
 
         assertThat(response.initialized()).isTrue();
@@ -115,8 +104,7 @@ class WorkflowEnablementServiceTest {
                 "部署协同审批流程",
                 "创建业务申请表",
                 "绑定启动表单",
-                "绑定业务申请表到业务审批",
-                "绑定业务申请表到财务复核"
+                "绑定业务申请表到多人会签"
         );
         ArgumentCaptor<KoProcessModel> modelCaptor = ArgumentCaptor.forClass(KoProcessModel.class);
         ArgumentCaptor<KoFormSchema> formCaptor = ArgumentCaptor.forClass(KoFormSchema.class);
@@ -158,16 +146,6 @@ class WorkflowEnablementServiceTest {
                 "model-1",
                 WorkflowEnablementDefaults.PRIMARY_TASK_KEY
         )).thenReturn(Optional.empty());
-        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
-                "default",
-                "pd-1",
-                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
-        )).thenReturn(Optional.empty());
-        when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
-                "default",
-                "model-1",
-                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
-        )).thenReturn(Optional.empty());
         when(formBindingRepository.save(any(KoFormBinding.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         WorkflowEnablementInitResponse response = service.init();
@@ -188,7 +166,6 @@ class WorkflowEnablementServiceTest {
         KoFormSchema form = activeForm();
         KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
         KoFormBinding businessBinding = binding("business-binding", "form-1", 2, WorkflowEnablementDefaults.PRIMARY_TASK_KEY);
-        KoFormBinding financeBinding = binding("finance-binding", "form-1", 2, WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY);
         when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 WorkflowEnablementDefaults.PROCESS_KEY
@@ -207,11 +184,6 @@ class WorkflowEnablementServiceTest {
                 "pd-1",
                 WorkflowEnablementDefaults.PRIMARY_TASK_KEY
         )).thenReturn(Optional.of(businessBinding));
-        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
-                "default",
-                "pd-1",
-                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
-        )).thenReturn(Optional.of(financeBinding));
         when(processFacade.queryMyTasks(any())).thenReturn(PageResult.of(java.util.List.of(), 0, 1, 1));
         when(auditLogQueryService.query(null, null, null, null, null, null, null, 1, 1))
                 .thenReturn(PageResult.of(java.util.List.of(), 3, 1, 1));
@@ -228,8 +200,7 @@ class WorkflowEnablementServiceTest {
         assertThat(response.audit().count()).isEqualTo(3);
         assertThat(response.defaultStartVariables()).containsEntry("applicant", "业务申请专员");
         assertThat(response.defaultStartVariables()).containsEntry("department", "业务一部");
-        assertThat(response.defaultStartVariables()).containsEntry("managerApprover", "manager");
-        assertThat(response.defaultStartVariables()).containsEntry("financeApprover", "finance");
+        assertThat(response.defaultStartVariables()).containsEntry("approvalUsers", List.of("manager", "finance"));
         verify(processFacade, never()).deploy(any());
     }
 

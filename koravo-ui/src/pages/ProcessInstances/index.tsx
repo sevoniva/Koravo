@@ -192,6 +192,22 @@ function isStartAssigneeField(field: StartFormField) {
   );
 }
 
+function isStartAssigneeMultiField(field: StartFormField) {
+  return (
+    field.widget === 'organizationMemberMulti' ||
+    (field.type === 'array' && isOrganizationAssigneeField(field.fieldKey, field.title))
+  );
+}
+
+function defaultApprovalUsers(field: StartFormField) {
+  if (!isStartAssigneeMultiField(field)) return undefined;
+  const values = [
+    organizationAssigneeFieldValue('managerApprover', undefined, '业务审批人'),
+    organizationAssigneeFieldValue('financeApprover', undefined, '财务复核人'),
+  ].filter(Boolean);
+  return Array.from(new Set(values));
+}
+
 function formSchemaLabel(schema?: FormSchemaItem, version?: number) {
   if (!schema) return version ? `表单版本 v${version}` : '已绑定表单';
   return formSchemaOptionLabel(schema, version)
@@ -580,7 +596,32 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                   return (
                     <Flex vertical gap={4}>
                       {fields.map((field) =>
-                        isStartAssigneeField(field) ? (
+                        isStartAssigneeMultiField(field) ? (
+                          <ProFormSelect
+                            key={field.fieldKey}
+                            name={['formValues', field.fieldKey]}
+                            label={field.title}
+                            initialValue={defaultApprovalUsers(field)}
+                            options={organizationMemberSelectOptions()}
+                            placeholder="请选择一个或多个审批人"
+                            fieldProps={{
+                              mode: 'multiple',
+                              maxTagCount: 'responsive',
+                              showSearch: true,
+                              optionFilterProp: 'label',
+                            }}
+                            rules={
+                              field.required
+                                ? [
+                                    {
+                                      required: true,
+                                      message: `请选择${field.title}`,
+                                    },
+                                  ]
+                                : []
+                            }
+                          />
+                        ) : isStartAssigneeField(field) ? (
                           <ProFormSelect
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}

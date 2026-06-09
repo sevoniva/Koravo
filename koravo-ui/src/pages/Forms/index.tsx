@@ -53,7 +53,7 @@ interface FormSchemaForm {
 interface FormFieldConfig {
   fieldKey: string;
   title: string;
-  type: 'string' | 'number' | 'boolean';
+  type: 'string' | 'number' | 'boolean' | 'array';
   widget?:
     | 'input'
     | 'textarea'
@@ -61,7 +61,8 @@ interface FormFieldConfig {
     | 'switch'
     | 'select'
     | 'organizationProfile'
-    | 'organizationMember';
+    | 'organizationMember'
+    | 'organizationMemberMulti';
   placeholder?: string;
   options?: string[];
   format?: string;
@@ -113,6 +114,7 @@ const fieldTypeOptions = [
   { label: '文本', value: 'string' },
   { label: '数字', value: 'number' },
   { label: '开关', value: 'boolean' },
+  { label: '多选', value: 'array' },
 ];
 
 const widgetOptions = [
@@ -129,6 +131,7 @@ const fieldTypeText: Record<FormFieldConfig['type'], string> = {
   string: '文本',
   number: '数字',
   boolean: '开关',
+  array: '多选',
 };
 
 const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
@@ -139,6 +142,7 @@ const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
   switch: '开关',
   organizationProfile: '系统带出',
   organizationMember: '组织成员',
+  organizationMemberMulti: '组织成员多选',
 };
 
 const systemFieldTooltip =
@@ -157,6 +161,7 @@ const parseJsonObject = (value?: string) => {
 const normalizeFieldType = (type?: string): FormFieldConfig['type'] => {
   if (type === 'number' || type === 'integer') return 'number';
   if (type === 'boolean') return 'boolean';
+  if (type === 'array') return 'array';
   return 'string';
 };
 
@@ -166,6 +171,8 @@ const normalizeWidget = (
 ): NonNullable<FormFieldConfig['widget']> => {
   if (widget === 'organizationProfile') return 'organizationProfile';
   if (widget === 'organizationMember') return 'organizationMember';
+  if (widget === 'organizationMemberMulti') return 'organizationMemberMulti';
+  if (type === 'array') return 'select';
   if (type === 'boolean') return 'switch';
   if (type === 'number') return 'number';
   if (widget === 'textarea') return 'textarea';
@@ -187,7 +194,17 @@ const usesOrganizationAssignee = (field: {
   widget?: string;
 }) =>
   field.widget === 'organizationMember' ||
+  field.widget === 'organizationMemberMulti' ||
   isOrganizationAssigneeField(field.fieldKey, field.title);
+
+const usesOrganizationAssigneeMulti = (field: {
+  fieldKey?: string;
+  title?: string;
+  type?: string;
+  widget?: string;
+}) =>
+  field.widget === 'organizationMemberMulti' ||
+  (field.type === 'array' && isOrganizationAssigneeField(field.fieldKey, field.title));
 
 const normalizeOptions = (options?: unknown[]) => {
   if (!Array.isArray(options)) return undefined;
@@ -229,7 +246,14 @@ const schemaToFields = (
       isOrganizationProfileField(fieldKey, property?.title);
     const isAssigneeField =
       normalizedWidget === 'organizationMember' ||
+      normalizedWidget === 'organizationMemberMulti' ||
       isOrganizationAssigneeField(fieldKey, property?.title);
+    const isAssigneeMultiField = usesOrganizationAssigneeMulti({
+      fieldKey,
+      title: property?.title,
+      type,
+      widget: String(normalizedWidget),
+    });
     const placeholder =
       uiField?.['ui:placeholder'] ||
       uiField?.placeholder ||
@@ -238,10 +262,12 @@ const schemaToFields = (
     return {
       fieldKey,
       title: productCopy(property?.title) || fieldKey,
-      type: isProfileField || isAssigneeField ? 'string' : type,
+      type: isAssigneeMultiField ? 'array' : isProfileField || isAssigneeField ? 'string' : type,
       widget: isProfileField
         ? 'organizationProfile'
-        : isAssigneeField
+        : isAssigneeMultiField
+          ? 'organizationMemberMulti'
+          : isAssigneeField
           ? 'organizationMember'
           : options?.length
             ? 'select'
@@ -263,14 +289,17 @@ const buildPayload = (values: FormSchemaForm) => {
   const fields = (values.fields || []).map((field) => {
     const isProfileField = usesOrganizationProfile(field);
     const isAssigneeField = usesOrganizationAssignee(field);
-    const type = isProfileField || isAssigneeField ? 'string' : field.type;
+    const isAssigneeMultiField = usesOrganizationAssigneeMulti(field);
+    const type = isAssigneeMultiField ? 'array' : isProfileField || isAssigneeField ? 'string' : field.type;
     const options =
       isProfileField || isAssigneeField
         ? undefined
         : normalizeOptionValues(field.options);
     const widget = isProfileField
       ? 'organizationProfile'
-      : isAssigneeField
+      : isAssigneeMultiField
+        ? 'organizationMemberMulti'
+        : isAssigneeField
         ? 'organizationMember'
         : field.type === 'string' && options?.length
           ? 'select'
@@ -294,6 +323,7 @@ const buildPayload = (values: FormSchemaForm) => {
       {
         title: string;
         type: string;
+        items?: { type: string };
         enum?: string[];
         format?: string;
         'ui:placeholder'?: string;
@@ -305,6 +335,7 @@ const buildPayload = (values: FormSchemaForm) => {
     result[field.fieldKey] = {
       title: field.title,
       type: field.type,
+      ...(field.type === 'array' ? { items: { type: 'string' } } : {}),
       ...(options ? { enum: options } : {}),
       ...(field.format?.trim() ? { format: field.format.trim() } : {}),
       ...(field.placeholder?.trim()
@@ -372,7 +403,11 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
         return <Tag color="processing">系统带出</Tag>;
       }
       if (usesOrganizationAssignee(record)) {
-        return <Tag color="blue">组织成员</Tag>;
+        return (
+          <Tag color="blue">
+            {usesOrganizationAssigneeMulti(record) ? '组织成员多选' : '组织成员'}
+          </Tag>
+        );
       }
       return (
         <Tag>{widgetText[normalizeWidget(record.widget, record.type)]}</Tag>
@@ -404,21 +439,26 @@ const renderPreviewField = (field: FormFieldConfig) => {
     : undefined;
   const name = field.fieldKey;
   if (usesOrganizationAssignee(field)) {
+    const isMulti = usesOrganizationAssigneeMulti(field);
     return (
       <ProFormSelect
         key={field.fieldKey}
         name={name}
         label={field.title}
-        initialValue={organizationAssigneeFieldValue(
-          field.fieldKey,
-          undefined,
-          field.title,
-        )}
+        initialValue={
+          isMulti
+            ? [
+                organizationAssigneeFieldValue('managerApprover', undefined, '业务审批人'),
+                organizationAssigneeFieldValue('financeApprover', undefined, '财务复核人'),
+              ].filter(Boolean)
+            : organizationAssigneeFieldValue(field.fieldKey, undefined, field.title)
+        }
         options={organizationMemberSelectOptions(
-          organizationAssigneeRole(field.fieldKey, field.title),
+          isMulti ? undefined : organizationAssigneeRole(field.fieldKey, field.title),
         )}
         tooltip="办理人由组织成员带出。"
         disabled
+        fieldProps={isMulti ? { mode: 'multiple', maxTagCount: 'responsive' } : undefined}
         rules={
           field.required
             ? [{ required: true, message: `${field.title}会自动带出` }]
@@ -609,7 +649,16 @@ const renderFormFieldsEditor = () => (
                     isProfileField
                       ? [{ label: '系统带出', value: 'organizationProfile' }]
                       : isAssigneeField
-                        ? [{ label: '组织成员', value: 'organizationMember' }]
+                        ? [
+                            {
+                              label: usesOrganizationAssigneeMulti({ fieldKey, title, widget })
+                                ? '组织成员多选'
+                                : '组织成员',
+                              value: usesOrganizationAssigneeMulti({ fieldKey, title, widget })
+                                ? 'organizationMemberMulti'
+                                : 'organizationMember',
+                            },
+                          ]
                         : widgetOptions
                   }
                   rules={[{ required: true, message: '请选择控件' }]}

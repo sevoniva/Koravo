@@ -104,6 +104,7 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   expectedResult: '期望结果',
   description: '事项说明',
   remark: '备注',
+  approvalUsers: '审批人',
   managerApprover: '业务处理人',
   financeApprover: '财务复核人',
   accepted: '审批通过',
