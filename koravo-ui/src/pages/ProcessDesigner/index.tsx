@@ -49,6 +49,10 @@ import {
   type ProcessModelItem,
 } from '@/services/koravo/api';
 import {
+  organizationGroupOptions,
+  organizationHandlerOptions,
+} from '@/services/koravo/organization';
+import {
   processDisplayName,
   processModelKeyLabel,
   processStatusLabel,
@@ -71,23 +75,6 @@ type ModelViewMode = 'business' | 'all';
 
 const hiddenBusinessModelKeys = new Set(['httpConnectorDemo']);
 const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
-const flowableExpression = (name: string) => `$${`{${name}}`}`;
-
-const handlerOptions = [
-  { label: '发起人', value: flowableExpression('startUserId') },
-  { label: '业务处理人', value: flowableExpression('managerApprover') },
-  { label: '财务复核人', value: flowableExpression('financeApprover') },
-  { label: '管理员', value: 'admin' },
-  { label: '固定用户 applicant', value: 'applicant' },
-  { label: '固定用户 manager', value: 'manager' },
-  { label: '固定用户 finance', value: 'finance' },
-];
-
-const candidateGroupOptions = [
-  { label: '业务部门', value: 'business' },
-  { label: '财务部门', value: 'finance' },
-  { label: '流程平台组', value: 'admin' },
-];
 
 const useStyles = createStyles(({ css, token }) => ({
   workbench: css`
@@ -259,6 +246,8 @@ const ProcessDesigner: React.FC = () => {
   const activeModel = selectedId ? selected : undefined;
   const visibleModels =
     modelViewMode === 'business' ? (models || []).filter(isBusinessModel) : models || [];
+  const handlerOptions = organizationHandlerOptions();
+  const candidateGroupOptions = organizationGroupOptions();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

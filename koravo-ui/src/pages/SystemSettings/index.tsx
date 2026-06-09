@@ -1,8 +1,10 @@
 import {
+  ModalForm,
   PageContainer,
   ProCard,
   ProDescriptions,
   ProForm,
+  ProFormSelect,
   ProFormText,
   ProTable,
   type ProColumns,
@@ -23,6 +25,12 @@ import {
   type SessionContext,
   type SessionRole,
 } from '@/services/koravo/session';
+import {
+  getOrganizationMembers,
+  roleLabels,
+  saveOrganizationMembers,
+  type OrganizationMember,
+} from '@/services/koravo/organization';
 import { productCopy } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
@@ -43,15 +51,6 @@ interface RoleOption {
   userId: string;
   department: string;
   description: string;
-}
-
-interface OrganizationMember {
-  key: string;
-  name: string;
-  userId: string;
-  department: string;
-  role: SessionRole;
-  status: string;
 }
 
 interface PermissionMatrixItem {
@@ -94,15 +93,6 @@ const roleOptions: RoleOption[] = [
   },
 ];
 
-const organizationMembers: OrganizationMember[] = roleOptions.map((item) => ({
-  key: item.value,
-  name: item.label,
-  userId: item.userId,
-  department: item.department,
-  role: item.value,
-  status: '启用',
-}));
-
 const permissionMatrix: PermissionMatrixItem[] = [
   {
     key: 'configuration',
@@ -138,23 +128,6 @@ const permissionMatrix: PermissionMatrixItem[] = [
   },
 ];
 
-const memberColumns: ProColumns<OrganizationMember>[] = [
-  { title: '成员', dataIndex: 'name' },
-  { title: '用户', dataIndex: 'userId', copyable: true },
-  { title: '部门', dataIndex: 'department' },
-  {
-    title: '角色',
-    dataIndex: 'role',
-    render: (_, record) => <Tag color="processing">{roleLabel(record.role)}</Tag>,
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    width: 90,
-    render: (_, record) => <Tag color="success">{record.status}</Tag>,
-  },
-];
-
 const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
   { title: '权限域', dataIndex: 'scope', width: 200 },
   { title: '管理员', dataIndex: 'admin' },
@@ -164,7 +137,7 @@ const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
 ];
 
 function roleLabel(role: SessionRole) {
-  return roleOptions.find((item) => item.value === role)?.label || role;
+  return roleLabels[role] || role;
 }
 
 const SystemSettings: React.FC = () => {
@@ -172,6 +145,7 @@ const SystemSettings: React.FC = () => {
   const location = useLocation();
   const isOrganizationPage = location.pathname === '/organization-permissions';
   const [session, setSession] = useState<SessionContext>(() => getSessionContext());
+  const [members, setMembers] = useState<OrganizationMember[]>(() => getOrganizationMembers());
   const { setInitialState } = useModel('@@initialState');
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-health'],
@@ -197,6 +171,51 @@ const SystemSettings: React.FC = () => {
   );
 
   const currentRole = roleOptions.find((item) => item.value === session.role);
+
+  const updateMembers = (nextMembers: OrganizationMember[]) => {
+    setMembers(nextMembers);
+    saveOrganizationMembers(nextMembers);
+  };
+
+  const memberColumns: ProColumns<OrganizationMember>[] = [
+    { title: '成员', dataIndex: 'name' },
+    { title: '用户', dataIndex: 'userId', copyable: true },
+    { title: '部门', dataIndex: 'department' },
+    {
+      title: '角色',
+      dataIndex: 'role',
+      render: (_, record) => <Tag color="processing">{roleLabel(record.role)}</Tag>,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 90,
+      render: (_, record) => (
+        <Tag color={record.status === '启用' ? 'success' : 'default'}>{record.status}</Tag>
+      ),
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 96,
+      render: (_, record) => (
+        <Button
+          type="link"
+          onClick={() => {
+            updateMembers(
+              members.map((item) =>
+                item.key === record.key
+                  ? { ...item, status: item.status === '启用' ? '停用' : '启用' }
+                  : item,
+              ),
+            );
+          }}
+        >
+          {record.status === '启用' ? '停用' : '启用'}
+        </Button>
+      ),
+    },
+  ];
 
   const applySession = (values: Partial<SessionContext>, successText: string) => {
     const next = {
@@ -377,11 +396,59 @@ const SystemSettings: React.FC = () => {
           <ProTable<OrganizationMember>
             rowKey="key"
             columns={memberColumns}
-            dataSource={organizationMembers}
+            dataSource={members}
             search={false}
             pagination={false}
             options={false}
             size="small"
+            toolBarRender={() => [
+              <ModalForm<OrganizationMember>
+                key="create-member"
+                title="新增成员"
+                trigger={<Button type="primary">新增成员</Button>}
+                modalProps={{ destroyOnHidden: true }}
+                onFinish={async (values) => {
+                  const userId = values.userId.trim();
+                  const next = {
+                    ...values,
+                    key: userId,
+                    userId,
+                    status: '启用',
+                  };
+                  updateMembers([
+                    ...members.filter((item) => item.userId !== userId),
+                    next,
+                  ]);
+                  message.success('成员已保存');
+                  return true;
+                }}
+              >
+                <ProFormText
+                  name="name"
+                  label="成员名称"
+                  rules={[{ required: true, message: '请输入成员名称' }]}
+                />
+                <ProFormText
+                  name="userId"
+                  label="用户"
+                  rules={[{ required: true, message: '请输入用户' }]}
+                />
+                <ProFormText
+                  name="department"
+                  label="部门"
+                  rules={[{ required: true, message: '请输入部门' }]}
+                />
+                <ProFormSelect
+                  name="role"
+                  label="角色"
+                  options={roleOptions.map((item) => ({
+                    label: item.label,
+                    value: item.value,
+                  }))}
+                  rules={[{ required: true, message: '请选择角色' }]}
+                />
+              </ModalForm>,
+            ]}
           />
         </ProCard>
         <ProCard title="权限矩阵" colSpan={{ xs: 24, xl: 14 }}>
