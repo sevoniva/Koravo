@@ -3,7 +3,11 @@ import { Badge, Empty, Flex, Tag, Timeline, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTrace, ProcessTraceNode, TaskItem } from '@/services/koravo/api';
-import { processDefinitionLabel, taskDefinitionLabel } from '@/utils/display';
+import {
+  processDefinitionLabel,
+  processStatusLabel,
+  taskDefinitionLabel,
+} from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 import ProcessDiagramViewer from './ProcessDiagramViewer';
 
@@ -80,6 +84,15 @@ function timelineColor(status?: string) {
   return 'gray';
 }
 
+function badgeStatus(status?: string) {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'COMPLETED') return 'success' as const;
+  if (normalized === 'ACTIVE' || normalized === 'RUNNING') return 'processing' as const;
+  if (normalized === 'FAILED' || normalized === 'TERMINATED') return 'error' as const;
+  if (normalized === 'SUSPENDED') return 'warning' as const;
+  return 'default' as const;
+}
+
 function buildTimelineItems(timeline: ProcessTraceNode[]) {
   return visibleTimelineNodes(timeline).map((node, index) => ({
     key: `${node.activityId}-${node.startTime || index}`,
@@ -89,7 +102,7 @@ function buildTimelineItems(timeline: ProcessTraceNode[]) {
         <Flex align="center" gap={8} wrap>
           <Typography.Text strong>{nodeLabel(node)}</Typography.Text>
           <Tag>{activityTypeLabel(node.activityType)}</Tag>
-          <Badge status={timelineColor(node.status) === 'green' ? 'success' : 'processing'} text={node.status} />
+          <Badge status={badgeStatus(node.status)} text={processStatusLabel(node.status)} />
         </Flex>
         <Typography.Text type="secondary">
           {formatDateTime(node.startTime)}
@@ -144,7 +157,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             dataSource={{
               processDefinitionId: trace?.processDefinitionId,
               businessKey: trace?.businessKey,
-              status: trace?.status,
+              status: processStatusLabel(trace?.status),
               currentNodeText,
               currentHandlerText,
               latestDone: nodeLabel(latestDone),

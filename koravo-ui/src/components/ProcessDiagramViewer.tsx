@@ -7,7 +7,7 @@ import { Alert, Empty, Flex, Spin, Steps, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTraceNode } from '@/services/koravo/api';
-import { taskDefinitionLabel } from '@/utils/display';
+import { processStatusLabel, taskDefinitionLabel } from '@/utils/display';
 
 type ViewerConstructor = new (options: Record<string, unknown>) => BpmnViewer;
 
@@ -191,6 +191,10 @@ function activityTypeLabel(activityType?: string) {
   return mapping[activityType || ''] || activityType || '-';
 }
 
+function stepDescription(node: ProcessTraceNode) {
+  return `${activityTypeLabel(node.activityType)} · ${processStatusLabel(node.status)}`;
+}
+
 const GeneratedFlow: React.FC<{
   timeline: ProcessTraceNode[];
   currentActivityIds: string[];
@@ -225,7 +229,7 @@ const GeneratedFlow: React.FC<{
           responsive
           items={nodes.map((node) => ({
             title: nodeTitle(node),
-            description: activityTypeLabel(node.activityType),
+            description: stepDescription(node),
             status: generatedStepStatus(node, currentActivityIds),
           }))}
         />

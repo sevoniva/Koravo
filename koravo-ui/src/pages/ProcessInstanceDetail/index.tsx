@@ -37,6 +37,7 @@ import {
   auditActionLabel,
   auditResourceLabel,
   processDefinitionLabel,
+  processStatusLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
@@ -192,8 +193,13 @@ function activityTypeLabel(activityType?: string) {
 }
 
 const traceColumns: ProColumns<ProcessTraceNode>[] = [
-  { title: '节点编号', dataIndex: 'activityId', width: 180 },
-  { title: '节点名称', dataIndex: 'activityName' },
+  {
+    title: '节点',
+    dataIndex: 'activityId',
+    width: 180,
+    renderText: (value, record) => record.activityName || taskDefinitionLabel(value),
+  },
+  { title: '节点编号', dataIndex: 'activityId', width: 180, copyable: true },
   { title: '类型', dataIndex: 'activityType', width: 150, renderText: activityTypeLabel },
   {
     title: '开始时间',
@@ -211,7 +217,9 @@ const traceColumns: ProColumns<ProcessTraceNode>[] = [
     title: '状态',
     dataIndex: 'status',
     width: 110,
-    render: (_, record) => <KoravoStatusTag status={record.status} />,
+    render: (_, record) => (
+      <KoravoStatusTag status={record.status} text={processStatusLabel(record.status)} />
+    ),
   },
 ];
 
