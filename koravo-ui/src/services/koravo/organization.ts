@@ -75,7 +75,7 @@ export function organizationHandlerOptions() {
   const userOptions = getOrganizationMembers()
     .filter((item) => item.status === '启用')
     .map((item) => ({
-      label: `${item.name} ${item.userId}`,
+      label: `${item.name}（${item.department}）`,
       value: item.userId,
     }));
   return [

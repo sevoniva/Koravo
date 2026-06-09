@@ -38,6 +38,7 @@ import {
   roleForUserId,
   setSessionContext,
 } from '@/services/koravo/session';
+import { getOrganizationMembers } from '@/services/koravo/organization';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -434,12 +435,14 @@ const CompleteTaskFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
   </>
 );
 
-const taskActionTargetOptions = [
-  { label: '发起人', value: 'applicant' },
-  { label: '业务负责人', value: 'manager' },
-  { label: '财务复核人', value: 'finance' },
-  { label: '系统管理员', value: 'admin' },
-];
+function taskActionTargetOptions() {
+  return getOrganizationMembers()
+    .filter((member) => member.status === '启用')
+    .map((member) => ({
+      label: `${member.name}（${member.department}）`,
+      value: member.userId,
+    }));
+}
 
 const TaskActionModal: React.FC<{
   task: TaskItem;
@@ -449,6 +452,7 @@ const TaskActionModal: React.FC<{
 }> = ({ task, action, label, refetch }) => {
   const { message } = App.useApp();
   const needsTarget = action !== 'CLAIM';
+  const targetOptions = React.useMemo(() => taskActionTargetOptions(), []);
 
   return (
     <ModalForm<TaskActionForm>
@@ -470,7 +474,7 @@ const TaskActionModal: React.FC<{
         <ProFormSelect
           name="targetUserId"
           label="目标处理人"
-          options={taskActionTargetOptions}
+          options={targetOptions}
           rules={[{ required: true, message: '请选择目标处理人' }]}
         />
       ) : null}

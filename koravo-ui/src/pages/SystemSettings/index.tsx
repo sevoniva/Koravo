@@ -245,7 +245,7 @@ const SystemSettings: React.FC = () => {
       content={
         isOrganizationPage
           ? '维护用户、部门、角色和流程办理权限。'
-          : '维护运行上下文、依赖状态和系统策略。'
+          : '维护办理身份、依赖状态和系统策略。'
       }
     >
       <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
@@ -264,11 +264,11 @@ const SystemSettings: React.FC = () => {
       <Alert
         showIcon
         type="info"
-        title="当前身份影响待办"
+        title="当前办理身份"
         description={
           <Flex vertical gap={8}>
             <span>
-              当前身份会写入请求头并参与后端权限校验。发起、办理、运维分别使用不同角色，便于走通真实职责边界。
+              待办、发起和运维操作会按当前身份加载权限范围。发起、办理、复核分别对应不同职责边界。
             </span>
             <Space wrap>
               <Tag color="processing">当前用户：{session.userId}</Tag>
@@ -290,7 +290,7 @@ const SystemSettings: React.FC = () => {
       />
 
       <ProCard split="vertical" gutter={16} wrap>
-        <ProCard title="运行上下文" colSpan={{ xs: 24, xl: 10 }}>
+        <ProCard title="办理身份" colSpan={{ xs: 24, xl: 10 }}>
           <Segmented
             block
             value={session.role}
@@ -305,7 +305,7 @@ const SystemSettings: React.FC = () => {
                   role: String(value) as SessionRole,
                   userId: role?.userId || String(value),
                 },
-                role ? `已应用${role.label}上下文` : '已应用处理上下文',
+                role ? `已切换为${role.label}` : '已切换办理身份',
               );
             }}
             style={{ marginBottom: 16 }}
@@ -328,7 +328,7 @@ const SystemSettings: React.FC = () => {
             onFinish={async (values) => {
               applySession(
                 { ...values, role: roleForUserId(values.userId) },
-                '已保存运行上下文',
+                '已保存办理身份',
               );
               return true;
             }}
