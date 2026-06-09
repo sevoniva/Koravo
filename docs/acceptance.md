@@ -28,6 +28,15 @@ cd koravo-server
 mvn -Pintegration-test -pl koravo-engine -am test
 ```
 
+Large approval workflow check:
+
+```bash
+cd koravo-server
+mvn -pl koravo-engine test -Dtest=FlowableProcessFacadeIntegrationTest
+```
+
+This verification deploys and starts an enterprise approval process with 34 approval tasks, 10 departments, 20 approval roles, 4 embedded subprocess sections, and pooled approval nodes where one claimant can approve for the node. It then completes every task through the Koravo facade, checks the instance is completed, checks the trace contains every completed user task and subprocess, and checks there are no failed or dead-letter jobs.
+
 ## Console Workflow Check
 
 The console workflow check is:
