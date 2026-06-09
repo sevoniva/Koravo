@@ -147,6 +147,7 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   body: '请求体',
   'X-Tenant-Id': '组织',
   'X-User-Id': '成员',
+  'X-User-Role': '职责',
   request: '请求',
   response: '响应',
   delegateExpression: '执行表达式',

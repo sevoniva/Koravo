@@ -30,7 +30,7 @@ Controllers never use Flowable native services directly. `ProcessFacade` is the 
 - MinIO
 - Liquibase
 - Spring Data JPA
-- Spring Security with development header authentication
+- Spring Security with platform session context
 - Springdoc OpenAPI
 - JUnit 5
 - TypeScript
@@ -48,8 +48,8 @@ Spring Boot 4.x and Flowable 8.x are not used in this baseline because compatibl
 ## Modules
 
 - `koravo-common`: response contract, errors, exceptions, pagination, base entity, IDs, JSON/time helpers.
-- `koravo-tenant`: `X-Tenant-Id` based tenant context with `default` fallback.
-- `koravo-security`: development authentication from `X-User-Id` with `anonymous` fallback.
+- `koravo-tenant`: platform tenant context with `default` fallback.
+- `koravo-security`: platform user context for the active deployment session.
 - `koravo-engine`: Flowable adapter and `ProcessFacade`.
 - `koravo-model`: platform process model drafts, validation, lifecycle, BPMN import/export, and Flowable deployment API.
 - `koravo-task`: pending/done/started task queries, runtime and historic task detail, completion, comments, form snapshots, and task audit views.
@@ -129,7 +129,7 @@ http://localhost:8080/swagger-ui.html
 Health:
 
 ```bash
-curl -H 'X-Tenant-Id: default' -H 'X-User-Id: admin' \
+curl -H 'X-Tenant-Id: default' -H 'X-User-Id: admin' -H 'X-User-Role: admin' \
   http://localhost:8080/api/v1/health
 ```
 
@@ -197,6 +197,7 @@ Deploy BPMN:
 curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Multi%20Acceptance' \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: admin' \
+  -H 'X-User-Role: admin' \
   -F 'file=@examples/bpmn/multi-acceptance.bpmn20.xml'
 ```
 
@@ -206,8 +207,9 @@ Start process:
 curl -X POST http://localhost:8080/api/v1/process-instances/start \
   -H 'Content-Type: application/json' \
   -H 'X-Tenant-Id: default' \
-  -H 'X-User-Id: admin' \
-  -d '{"processDefinitionKey":"multiAcceptance","businessKey":"ACC-001","variables":{"applicant":"zhangsan","department":"业务部门","subject":"交付成果验收","acceptanceScope":"确认交付内容、数量、质量和资料齐备情况","expectedResult":"业务验收和财务验收均通过后完成流程","amount":12800,"managerApprover":"manager","financeApprover":"finance"}}'
+  -H 'X-User-Id: applicant' \
+  -H 'X-User-Role: applicant' \
+  -d '{"processDefinitionKey":"multiAcceptance","businessKey":"ACC-001","variables":{"applicant":"业务申请专员","department":"业务一部","subject":"交付成果验收","acceptanceScope":"确认交付内容、数量、质量和资料齐备情况","expectedResult":"业务验收和财务验收均通过后完成流程","amount":12800,"managerApprover":"manager","financeApprover":"finance"}}'
 ```
 
 Complete a task:
@@ -275,9 +277,8 @@ Default `mvn test` remains fast and does not require Docker-backed integration i
 
 - Passwords are encrypted before storage and never returned by datasource APIs.
 - Flowable tables are not modified by Koravo migrations.
-- `X-Tenant-Id` defaults to `default` in development.
-- `X-User-Id` defaults to `anonymous`; the console sends `admin`.
-- The console header lets you switch Tenant, User, and optional Request ID; values persist in browser local storage and are sent as API headers.
+- The web console sends the current tenant, member, role, and request trace context on API calls.
+- Organization members and responsibilities are maintained from Organization Permissions, not by switching identity in page headers.
 - The first frontend bundle is large because Ant Design Pro, ProComponents, antd, and bpmn-js are all used by the console.
 
 ## License

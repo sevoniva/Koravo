@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getSessionContext, setLastRequestId, setRuntimeSessionContext } from './session';
+import {
+  getSessionContext,
+  sessionRequestHeaders,
+  setLastRequestId,
+  setRuntimeSessionContext,
+} from './session';
 
 describe('session context', () => {
   beforeEach(() => {
@@ -41,6 +46,22 @@ describe('session context', () => {
       tenantId: 'finance-org',
       userId: 'finance',
       role: 'finance',
+    });
+  });
+
+  it('sends the current session as request context headers', () => {
+    setRuntimeSessionContext({
+      tenantId: 'finance-org',
+      userId: 'finance',
+      role: 'finance',
+      requestId: 'TRACE-20260609-002',
+    });
+
+    expect(sessionRequestHeaders()).toMatchObject({
+      'X-Tenant-Id': 'finance-org',
+      'X-User-Id': 'finance',
+      'X-User-Role': 'finance',
+      'X-Request-Id': 'TRACE-20260609-002',
     });
   });
 

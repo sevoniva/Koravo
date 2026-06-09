@@ -42,6 +42,7 @@ describe('display helpers', () => {
     expect(businessFieldLabel('handlerConfiguration')).toBe('处理器配置');
     expect(businessFieldLabel('executionId')).toBe('执行编号');
     expect(businessFieldLabel('delegateExpression')).toBe('执行表达式');
+    expect(businessFieldLabel('X-User-Role')).toBe('职责');
   });
 
   it('filters non-business process models consistently', () => {

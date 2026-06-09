@@ -44,6 +44,17 @@ export function getSessionContext(): SessionContext {
   return { ...runtimeSession, lastRequestId };
 }
 
+export function sessionRequestHeaders(headers?: Record<string, string>) {
+  const session = getSessionContext();
+  return {
+    'X-Tenant-Id': session.tenantId,
+    'X-User-Id': session.userId,
+    'X-User-Role': session.role,
+    ...(session.requestId ? { 'X-Request-Id': session.requestId } : {}),
+    ...headers,
+  };
+}
+
 export function setRuntimeSessionContext(value: Partial<SessionContext>) {
   runtimeSession = {
     ...runtimeSession,

@@ -29,7 +29,7 @@ java -jar koravo-bootstrap/target/koravo-bootstrap-0.1.0-SNAPSHOT.jar
 健康检查：
 
 ```bash
-curl -H 'X-Tenant-Id: default' -H 'X-User-Id: admin' \
+curl -H 'X-Tenant-Id: default' -H 'X-User-Id: admin' -H 'X-User-Role: admin' \
   http://localhost:8080/api/v1/health
 ```
 

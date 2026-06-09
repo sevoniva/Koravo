@@ -93,8 +93,9 @@ Error:
 
 ## Headers
 
-- `X-Tenant-Id`: defaults to `default` in development.
-- `X-User-Id`: defaults to `anonymous`; console uses `admin`.
-- `X-Request-Id`: optional; generated if absent.
+- `X-Tenant-Id`: current organization context.
+- `X-User-Id`: current member context.
+- `X-User-Role`: current responsibility context.
+- `X-Request-Id`: optional trace context; generated if absent.
 
-The web console exposes Tenant, User, and optional Request fields in the header. Values are stored in browser local storage and sent on every API request.
+The web console reads the active platform session and sends the same context on every API request.

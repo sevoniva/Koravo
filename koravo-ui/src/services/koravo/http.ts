@@ -1,5 +1,5 @@
 import { request } from '@umijs/max';
-import { getSessionContext, setLastRequestId } from './session';
+import { sessionRequestHeaders, setLastRequestId } from './session';
 
 declare module '@umijs/max' {
   interface RequestOptionsInit {
@@ -22,11 +22,7 @@ interface KoravoRequestOptions {
 }
 
 function requestHeaders(headers?: Record<string, string>) {
-  const session = getSessionContext();
-  return {
-    ...(session.requestId ? { 'X-Request-Id': session.requestId } : {}),
-    ...headers,
-  };
+  return sessionRequestHeaders(headers);
 }
 
 async function koravoJsonRequest<T>(

@@ -16,6 +16,7 @@ import {
   getSessionContext,
   type SessionContext,
   type SessionRole,
+  sessionRequestHeaders,
   setRuntimeSessionContext,
 } from '@/services/koravo/session';
 import defaultSettings from '../config/defaultSettings';
@@ -43,7 +44,9 @@ interface HealthResponse {
 
 async function loadRuntimeSession() {
   try {
-    const response = await fetch('/api/v1/health');
+    const response = await fetch('/api/v1/health', {
+      headers: sessionRequestHeaders(),
+    });
     if (!response.ok) return getSessionContext();
     const payload = (await response.json()) as HealthResponse;
     if (payload.success === false || !payload.data) return getSessionContext();

@@ -6,11 +6,11 @@ Defines `ApiResponse`, `PageResult`, `ErrorCode`, exception classes, `BaseEntity
 
 ## tenant
 
-Reads `X-Tenant-Id` into `TenantContextHolder`. Missing tenant headers use `default` for development.
+Loads the active platform tenant into `TenantContextHolder`; the web console also sends `X-Tenant-Id` so gateway-integrated deployments can keep the same request contract.
 
 ## security
 
-Reads `X-User-Id` into `UserContextHolder` and Spring Security context. Missing user headers use `anonymous`.
+Loads the active platform member and responsibility into `UserContextHolder` and Spring Security context. The web console sends `X-User-Id` and `X-User-Role` as request context, but users do not switch identity from page headers.
 
 ## engine
 
