@@ -1,16 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  getOrganizationMembers,
   isOrganizationAssigneeField,
   isOrganizationProfileField,
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
+  organizationHandlerOptions,
   organizationMemberName,
   organizationProfileFieldValue,
 } from './organization';
 
 describe('organization display helpers', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('shows registered members by business name', () => {
-    expect(organizationMemberName('manager')).toBe('业务处理人');
+    expect(organizationMemberName('manager')).toBe('业务审批主管');
   });
 
   it('does not expose unknown account ids in business-facing copy', () => {
@@ -23,8 +29,10 @@ describe('organization display helpers', () => {
 
   it('fills applicant and department from the current organization member', () => {
     const session = { userId: 'applicant', role: 'applicant' as const };
-    expect(organizationProfileFieldValue('applicant', undefined, session)).toBe('发起人');
-    expect(organizationProfileFieldValue('department', undefined, session)).toBe('业务部门');
+    expect(organizationProfileFieldValue('applicant', undefined, session)).toBe(
+      '业务申请专员',
+    );
+    expect(organizationProfileFieldValue('department', undefined, session)).toBe('业务一部');
   });
 
   it('recognizes applicant and department fields by business titles', () => {
@@ -35,10 +43,10 @@ describe('organization display helpers', () => {
     expect(isOrganizationProfileField('requesterDept', '提交部门')).toBe(true);
     expect(isOrganizationProfileField('submit_department', '经办部门')).toBe(true);
     expect(organizationProfileFieldValue('applyUserName', undefined, session, '申请人')).toBe(
-      '发起人',
+      '业务申请专员',
     );
     expect(organizationProfileFieldValue('applyDeptName', undefined, session, '申请部门')).toBe(
-      '业务部门',
+      '业务一部',
     );
   });
 
@@ -46,7 +54,34 @@ describe('organization display helpers', () => {
     const session = { userId: 'manager', role: 'manager' as const };
     expect(
       organizationProfileFieldValue('applicant', { applicant: 'applicant' }, session),
-    ).toBe('发起人');
+    ).toBe('业务申请专员');
+  });
+
+  it('migrates old default role names from browser storage', () => {
+    window.localStorage.setItem(
+      'koravo:organization-members',
+      JSON.stringify([
+        {
+          key: 'manager',
+          name: '业务处理人',
+          userId: 'manager',
+          department: '业务部门',
+          role: 'manager',
+          status: '启用',
+        },
+      ]),
+    );
+
+    expect(getOrganizationMembers()[0]).toMatchObject({
+      name: '业务审批主管',
+      department: '业务一部',
+    });
+  });
+
+  it('keeps handler options business-facing', () => {
+    const labels = organizationHandlerOptions().map((item) => item.label);
+    expect(labels).toContain('流程发起人');
+    expect(labels).not.toContain('发起人变量');
   });
 
   it('defaults approval assignee fields from organization roles', () => {

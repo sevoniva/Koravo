@@ -15,7 +15,7 @@ const expression = (name: string) => '$' + `{${name}}`;
 export const defaultOrganizationMembers: OrganizationMember[] = [
   {
     key: 'admin',
-    name: '管理员',
+    name: '流程平台负责人',
     userId: 'admin',
     department: '流程平台组',
     role: 'admin',
@@ -23,23 +23,23 @@ export const defaultOrganizationMembers: OrganizationMember[] = [
   },
   {
     key: 'applicant',
-    name: '发起人',
+    name: '业务申请专员',
     userId: 'applicant',
-    department: '业务部门',
+    department: '业务一部',
     role: 'applicant',
     status: '启用',
   },
   {
     key: 'manager',
-    name: '业务处理人',
+    name: '业务审批主管',
     userId: 'manager',
-    department: '业务部门',
+    department: '业务一部',
     role: 'manager',
     status: '启用',
   },
   {
     key: 'finance',
-    name: '财务复核人',
+    name: '财务复核专员',
     userId: 'finance',
     department: '财务部门',
     role: 'finance',
@@ -54,6 +54,31 @@ export const roleLabels: Record<SessionRole, string> = {
   finance: '财务复核人',
 };
 
+const legacyDefaultMemberNames: Record<string, string> = {
+  admin: '管理员',
+  applicant: '发起人',
+  manager: '业务处理人',
+  finance: '财务复核人',
+};
+
+function normalizeStoredOrganizationMembers(members: OrganizationMember[]) {
+  return members.map((member) => {
+    const defaultMember = defaultOrganizationMembers.find(
+      (item) => item.userId === member.userId,
+    );
+    if (!defaultMember) return member;
+    const legacyName = legacyDefaultMemberNames[member.userId];
+    return {
+      ...member,
+      name: member.name === legacyName ? defaultMember.name : member.name,
+      department:
+        member.department === '业务部门'
+          ? defaultMember.department
+          : member.department,
+    };
+  });
+}
+
 export function tenantDisplayName(tenantId?: string | null) {
   if (!tenantId) return '-';
   return tenantId === 'default' ? '当前组织' : tenantId;
@@ -65,7 +90,9 @@ export function getOrganizationMembers() {
   if (!raw) return defaultOrganizationMembers;
   try {
     const members = JSON.parse(raw) as OrganizationMember[];
-    return Array.isArray(members) && members.length ? members : defaultOrganizationMembers;
+    return Array.isArray(members) && members.length
+      ? normalizeStoredOrganizationMembers(members)
+      : defaultOrganizationMembers;
   } catch {
     return defaultOrganizationMembers;
   }
@@ -274,9 +301,9 @@ export function organizationHandlerOptions() {
       value: item.userId,
     }));
   return [
-    { label: '发起人变量', value: expression('startUserId') },
-    { label: '业务处理人变量', value: expression('managerApprover') },
-    { label: '财务复核人变量', value: expression('financeApprover') },
+    { label: '流程发起人', value: expression('startUserId') },
+    { label: '业务审批主管', value: expression('managerApprover') },
+    { label: '财务复核专员', value: expression('financeApprover') },
     ...userOptions,
   ];
 }

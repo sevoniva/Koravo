@@ -45,8 +45,6 @@ const dependencyColumns: ProColumns<SystemHealthItem>[] = [
 interface RoleOption {
   label: string;
   value: SessionRole;
-  userId: string;
-  department: string;
   description: string;
 }
 
@@ -63,29 +61,21 @@ const roleOptions: RoleOption[] = [
   {
     label: '管理员',
     value: 'admin',
-    userId: 'admin',
-    department: '流程平台组',
     description: '维护流程、表单、连接器和异常任务。',
   },
   {
     label: '发起人',
     value: 'applicant',
-    userId: 'applicant',
-    department: '业务部门',
     description: '发起业务流程并跟踪实例进度。',
   },
   {
     label: '业务处理人',
     value: 'manager',
-    userId: 'manager',
-    department: '业务部门',
     description: '处理业务验收、复核和协同待办。',
   },
   {
     label: '财务复核人',
     value: 'finance',
-    userId: 'finance',
-    department: '财务部门',
     description: '处理财务验收和金额复核待办。',
   },
 ];
