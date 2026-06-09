@@ -3,18 +3,19 @@ package io.koravo.api.workflow;
 public final class WorkflowEnablementDefaults {
     public static final String TENANT_ID = "default";
     public static final String USER_ID = "admin";
-    public static final String PROCESS_KEY = "purchaseApproval";
-    public static final String PROCESS_NAME = "采购申请流程";
-    public static final String FORM_KEY = "purchase-request-form";
-    public static final String FORM_NAME = "采购申请单";
-    public static final String MANAGER_APPROVE_TASK_KEY = "managerApprovalTask";
-    public static final String FINANCE_APPROVE_TASK_KEY = "financeApprovalTask";
-    public static final String APPROVE_TASK_KEY = MANAGER_APPROVE_TASK_KEY;
+    public static final String PROCESS_KEY = "multiAcceptance";
+    public static final String PROCESS_NAME = "多人验收流程";
+    public static final String FORM_KEY = "acceptance-request-form";
+    public static final String FORM_NAME = "验收申请表";
+    public static final String START_FORM_TASK_KEY = "__START__";
+    public static final String BUSINESS_ACCEPTANCE_TASK_KEY = "businessAcceptanceTask";
+    public static final String FINANCE_ACCEPTANCE_TASK_KEY = "financeAcceptanceTask";
+    public static final String PRIMARY_TASK_KEY = BUSINESS_ACCEPTANCE_TASK_KEY;
 
     private WorkflowEnablementDefaults() {
     }
 
-    public static String purchaseApprovalBpmn() {
+    public static String acceptanceBpmn() {
         return """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
@@ -23,32 +24,32 @@ public final class WorkflowEnablementDefaults {
                              xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
                              xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
                              targetNamespace="https://koravo.io/workflow">
-                  <process id="purchaseApproval" name="采购申请流程" isExecutable="true">
+                  <process id="multiAcceptance" name="多人验收流程" isExecutable="true">
                     <startEvent id="start" name="开始"/>
                     <sequenceFlow id="flow_start_split" sourceRef="start" targetRef="parallelSplit"/>
-                    <parallelGateway id="parallelSplit" name="并行审批"/>
-                    <sequenceFlow id="flow_split_manager" sourceRef="parallelSplit" targetRef="managerApprovalTask"/>
-                    <sequenceFlow id="flow_split_finance" sourceRef="parallelSplit" targetRef="financeApprovalTask"/>
-                    <userTask id="managerApprovalTask" name="部门审批" flowable:assignee="${managerApprover}"/>
-                    <userTask id="financeApprovalTask" name="财务审批" flowable:assignee="${financeApprover}"/>
-                    <sequenceFlow id="flow_manager_join" sourceRef="managerApprovalTask" targetRef="parallelJoin"/>
-                    <sequenceFlow id="flow_finance_join" sourceRef="financeApprovalTask" targetRef="parallelJoin"/>
-                    <parallelGateway id="parallelJoin" name="审批汇总"/>
+                    <parallelGateway id="parallelSplit" name="并行验收"/>
+                    <sequenceFlow id="flow_split_business" sourceRef="parallelSplit" targetRef="businessAcceptanceTask"/>
+                    <sequenceFlow id="flow_split_finance" sourceRef="parallelSplit" targetRef="financeAcceptanceTask"/>
+                    <userTask id="businessAcceptanceTask" name="业务验收" flowable:assignee="${managerApprover}"/>
+                    <userTask id="financeAcceptanceTask" name="财务验收" flowable:assignee="${financeApprover}"/>
+                    <sequenceFlow id="flow_business_join" sourceRef="businessAcceptanceTask" targetRef="parallelJoin"/>
+                    <sequenceFlow id="flow_finance_join" sourceRef="financeAcceptanceTask" targetRef="parallelJoin"/>
+                    <parallelGateway id="parallelJoin" name="验收汇总"/>
                     <sequenceFlow id="flow_join_end" sourceRef="parallelJoin" targetRef="end"/>
                     <endEvent id="end" name="完成"/>
                   </process>
-                  <bpmndi:BPMNDiagram id="BPMNDiagram_purchaseApproval">
-                    <bpmndi:BPMNPlane id="BPMNPlane_purchaseApproval" bpmnElement="purchaseApproval">
+                  <bpmndi:BPMNDiagram id="BPMNDiagram_multiAcceptance">
+                    <bpmndi:BPMNPlane id="BPMNPlane_multiAcceptance" bpmnElement="multiAcceptance">
                       <bpmndi:BPMNShape id="Shape_start" bpmnElement="start">
                         <omgdc:Bounds x="80" y="160" width="36" height="36"/>
                       </bpmndi:BPMNShape>
                       <bpmndi:BPMNShape id="Shape_parallelSplit" bpmnElement="parallelSplit" isMarkerVisible="true">
                         <omgdc:Bounds x="170" y="153" width="50" height="50"/>
                       </bpmndi:BPMNShape>
-                      <bpmndi:BPMNShape id="Shape_managerApprovalTask" bpmnElement="managerApprovalTask">
+                      <bpmndi:BPMNShape id="Shape_businessAcceptanceTask" bpmnElement="businessAcceptanceTask">
                         <omgdc:Bounds x="290" y="80" width="130" height="80"/>
                       </bpmndi:BPMNShape>
-                      <bpmndi:BPMNShape id="Shape_financeApprovalTask" bpmnElement="financeApprovalTask">
+                      <bpmndi:BPMNShape id="Shape_financeAcceptanceTask" bpmnElement="financeAcceptanceTask">
                         <omgdc:Bounds x="290" y="210" width="130" height="80"/>
                       </bpmndi:BPMNShape>
                       <bpmndi:BPMNShape id="Shape_parallelJoin" bpmnElement="parallelJoin" isMarkerVisible="true">
@@ -61,7 +62,7 @@ public final class WorkflowEnablementDefaults {
                         <omgdi:waypoint x="116" y="178"/>
                         <omgdi:waypoint x="170" y="178"/>
                       </bpmndi:BPMNEdge>
-                      <bpmndi:BPMNEdge id="Edge_flow_split_manager" bpmnElement="flow_split_manager">
+                      <bpmndi:BPMNEdge id="Edge_flow_split_business" bpmnElement="flow_split_business">
                         <omgdi:waypoint x="195" y="153"/>
                         <omgdi:waypoint x="195" y="120"/>
                         <omgdi:waypoint x="290" y="120"/>
@@ -71,7 +72,7 @@ public final class WorkflowEnablementDefaults {
                         <omgdi:waypoint x="195" y="250"/>
                         <omgdi:waypoint x="290" y="250"/>
                       </bpmndi:BPMNEdge>
-                      <bpmndi:BPMNEdge id="Edge_flow_manager_join" bpmnElement="flow_manager_join">
+                      <bpmndi:BPMNEdge id="Edge_flow_business_join" bpmnElement="flow_business_join">
                         <omgdi:waypoint x="420" y="120"/>
                         <omgdi:waypoint x="525" y="120"/>
                         <omgdi:waypoint x="525" y="153"/>
@@ -91,11 +92,11 @@ public final class WorkflowEnablementDefaults {
                 """;
     }
 
-    public static String purchaseFormSchema() {
+    public static String acceptanceFormSchema() {
         return """
                 {
                   "type": "object",
-                  "required": ["applicant", "department", "itemName", "amount", "reason", "managerApprover", "financeApprover"],
+                  "required": ["applicant", "department", "subject", "acceptanceScope", "managerApprover", "financeApprover"],
                   "properties": {
                     "applicant": {
                       "type": "string",
@@ -105,26 +106,40 @@ public final class WorkflowEnablementDefaults {
                       "type": "string",
                       "title": "申请部门"
                     },
-                    "itemName": {
+                    "subject": {
                       "type": "string",
-                      "title": "采购内容"
+                      "title": "申请主题"
+                    },
+                    "acceptanceScope": {
+                      "type": "string",
+                      "title": "验收事项",
+                      "ui:widget": "textarea"
+                    },
+                    "expectedResult": {
+                      "type": "string",
+                      "title": "验收标准",
+                      "ui:widget": "textarea"
                     },
                     "amount": {
                       "type": "number",
-                      "title": "预算金额"
-                    },
-                    "reason": {
-                      "type": "string",
-                      "title": "采购原因",
-                      "ui:widget": "textarea"
+                      "title": "关联金额"
                     },
                     "managerApprover": {
                       "type": "string",
-                      "title": "部门审批人"
+                      "title": "业务验收人"
                     },
                     "financeApprover": {
                       "type": "string",
-                      "title": "财务审批人"
+                      "title": "财务验收人"
+                    },
+                    "accepted": {
+                      "type": "boolean",
+                      "title": "验收通过"
+                    },
+                    "reviewComment": {
+                      "type": "string",
+                      "title": "验收意见",
+                      "ui:widget": "textarea"
                     },
                     "remark": {
                       "type": "string",
@@ -136,10 +151,16 @@ public final class WorkflowEnablementDefaults {
                 """;
     }
 
-    public static String purchaseFormUiSchema() {
+    public static String acceptanceFormUiSchema() {
         return """
                 {
-                  "reason": {
+                  "acceptanceScope": {
+                    "widget": "textarea"
+                  },
+                  "expectedResult": {
+                    "widget": "textarea"
+                  },
+                  "reviewComment": {
                     "widget": "textarea"
                   },
                   "remark": {

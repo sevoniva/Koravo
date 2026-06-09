@@ -87,17 +87,17 @@ class WorkflowEnablementServiceTest {
                 WorkflowEnablementDefaults.PROCESS_KEY,
                 WorkflowEnablementDefaults.PROCESS_NAME,
                 WorkflowEnablementDefaults.PROCESS_KEY + ".bpmn20.xml",
-                WorkflowEnablementDefaults.purchaseApprovalBpmn()
+                WorkflowEnablementDefaults.acceptanceBpmn()
         ))).thenReturn(new ProcessDeploymentDTO(null, "dep-1", "pd-1", WorkflowEnablementDefaults.PROCESS_KEY, 1));
         when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "pd-1",
-                WorkflowEnablementDefaults.FINANCE_APPROVE_TASK_KEY
+                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
         )).thenReturn(Optional.empty());
         when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "model-1",
-                WorkflowEnablementDefaults.FINANCE_APPROVE_TASK_KEY
+                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
         )).thenReturn(Optional.empty());
 
         WorkflowEnablementInitResponse response = service.init();
@@ -108,13 +108,14 @@ class WorkflowEnablementServiceTest {
         assertThat(response.formSchemaId()).isEqualTo("form-1");
         assertThat(response.formBindingId()).isEqualTo("binding-1");
         assertThat(response.actions()).contains(
-                "创建采购申请流程模型",
-                "部署采购申请流程",
-                "创建采购申请单",
-                "绑定采购申请单到部门审批",
-                "绑定采购申请单到财务审批"
+                "创建多人验收流程模型",
+                "部署多人验收流程",
+                "创建验收申请表",
+                "绑定启动表单",
+                "绑定验收申请表到业务验收",
+                "绑定验收申请表到财务验收"
         );
-        verify(auditLogService).record(eq("WORKFLOW_ENABLEMENT_INIT"), eq("WORKFLOW_ENABLEMENT"), eq("purchase-approval"), any(Map.class));
+        verify(auditLogService).record(eq("WORKFLOW_ENABLEMENT_INIT"), eq("WORKFLOW_ENABLEMENT"), eq("multi-acceptance"), any(Map.class));
     }
 
     @Test
@@ -123,7 +124,8 @@ class WorkflowEnablementServiceTest {
         UserContextHolder.setUserId("admin");
         KoProcessModel model = deployedModel();
         KoFormSchema form = activeForm();
-        KoFormBinding oldBinding = binding("binding-1", "old-form", 1);
+        KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        KoFormBinding oldBinding = binding("binding-1", "old-form", 1, WorkflowEnablementDefaults.PRIMARY_TASK_KEY);
         when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 WorkflowEnablementDefaults.PROCESS_KEY
@@ -135,32 +137,37 @@ class WorkflowEnablementServiceTest {
         when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "pd-1",
-                WorkflowEnablementDefaults.APPROVE_TASK_KEY
+                WorkflowEnablementDefaults.START_FORM_TASK_KEY
+        )).thenReturn(Optional.of(startBinding));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.PRIMARY_TASK_KEY
         )).thenReturn(Optional.of(oldBinding));
         when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "model-1",
-                WorkflowEnablementDefaults.APPROVE_TASK_KEY
+                WorkflowEnablementDefaults.PRIMARY_TASK_KEY
         )).thenReturn(Optional.empty());
         when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "pd-1",
-                WorkflowEnablementDefaults.FINANCE_APPROVE_TASK_KEY
+                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
         )).thenReturn(Optional.empty());
         when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "model-1",
-                WorkflowEnablementDefaults.FINANCE_APPROVE_TASK_KEY
+                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
         )).thenReturn(Optional.empty());
         when(formBindingRepository.save(any(KoFormBinding.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         WorkflowEnablementInitResponse response = service.init();
 
-        assertThat(response.formBindingId()).isEqualTo("binding-1");
+        assertThat(response.formBindingId()).isEqualTo("start-binding");
         assertThat(oldBinding.getFormSchemaId()).isEqualTo("form-1");
         assertThat(oldBinding.getFormSchemaVersion()).isEqualTo(2);
         assertThat(oldBinding.getUpdatedBy()).isEqualTo("admin");
-        assertThat(response.actions()).contains("更新审批任务表单绑定");
+        assertThat(response.actions()).contains("更新验收任务表单绑定");
         verify(formBindingRepository).save(oldBinding);
     }
 
@@ -170,7 +177,9 @@ class WorkflowEnablementServiceTest {
         UserContextHolder.setUserId("admin");
         KoProcessModel model = deployedModel();
         KoFormSchema form = activeForm();
-        KoFormBinding binding = binding("binding-1", "form-1", 2);
+        KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        KoFormBinding businessBinding = binding("business-binding", "form-1", 2, WorkflowEnablementDefaults.PRIMARY_TASK_KEY);
+        KoFormBinding financeBinding = binding("finance-binding", "form-1", 2, WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY);
         when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 WorkflowEnablementDefaults.PROCESS_KEY
@@ -182,8 +191,18 @@ class WorkflowEnablementServiceTest {
         when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "pd-1",
-                WorkflowEnablementDefaults.APPROVE_TASK_KEY
-        )).thenReturn(Optional.of(binding));
+                WorkflowEnablementDefaults.START_FORM_TASK_KEY
+        )).thenReturn(Optional.of(startBinding));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.PRIMARY_TASK_KEY
+        )).thenReturn(Optional.of(businessBinding));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
+        )).thenReturn(Optional.of(financeBinding));
         when(processFacade.queryMyTasks(any())).thenReturn(PageResult.of(java.util.List.of(), 0, 1, 1));
         when(auditLogQueryService.query(null, null, null, null, null, null, null, 1, 1))
                 .thenReturn(PageResult.of(java.util.List.of(), 3, 1, 1));
@@ -198,8 +217,8 @@ class WorkflowEnablementServiceTest {
         assertThat(response.form().ready()).isTrue();
         assertThat(response.binding().ready()).isTrue();
         assertThat(response.audit().count()).isEqualTo(3);
-        assertThat(response.defaultStartVariables()).containsEntry("managerApprover", "admin");
-        assertThat(response.defaultStartVariables()).containsEntry("financeApprover", "admin");
+        assertThat(response.defaultStartVariables()).containsEntry("managerApprover", "manager");
+        assertThat(response.defaultStartVariables()).containsEntry("financeApprover", "finance");
         verify(processFacade, never()).deploy(any());
     }
 
@@ -214,7 +233,7 @@ class WorkflowEnablementServiceTest {
         model.setStatus(ProcessModelStatus.DEPLOYED);
         model.setFlowableDeploymentId("dep-1");
         model.setFlowableDefinitionId("pd-1");
-        model.setBpmnXml(WorkflowEnablementDefaults.purchaseApprovalBpmn());
+        model.setBpmnXml(WorkflowEnablementDefaults.acceptanceBpmn());
         return model;
     }
 
@@ -225,19 +244,23 @@ class WorkflowEnablementServiceTest {
         form.setFormKey(WorkflowEnablementDefaults.FORM_KEY);
         form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
         form.setVersion(2);
-        form.setSchemaJson(WorkflowEnablementDefaults.purchaseFormSchema());
-        form.setUiSchemaJson(WorkflowEnablementDefaults.purchaseFormUiSchema());
+        form.setSchemaJson(WorkflowEnablementDefaults.acceptanceFormSchema());
+        form.setUiSchemaJson(WorkflowEnablementDefaults.acceptanceFormUiSchema());
         form.setStatus(FormStatus.ACTIVE);
         return form;
     }
 
     private KoFormBinding binding(String id, String formSchemaId, int version) {
+        return binding(id, formSchemaId, version, WorkflowEnablementDefaults.PRIMARY_TASK_KEY);
+    }
+
+    private KoFormBinding binding(String id, String formSchemaId, int version, String taskDefinitionKey) {
         KoFormBinding binding = new KoFormBinding();
         binding.setId(id);
         binding.setTenantId("default");
         binding.setProcessModelId("model-1");
         binding.setProcessDefinitionId("pd-1");
-        binding.setTaskDefinitionKey(WorkflowEnablementDefaults.APPROVE_TASK_KEY);
+        binding.setTaskDefinitionKey(taskDefinitionKey);
         binding.setFormSchemaId(formSchemaId);
         binding.setFormSchemaVersion(version);
         return binding;

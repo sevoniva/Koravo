@@ -3,10 +3,10 @@ import { createDefaultBpmnXml, resolveDesignerXml } from './modelerXml';
 
 describe('ProcessDesigner BPMN XML helpers', () => {
   it('creates an executable BPMN process with a start task and end event', () => {
-    const xml = createDefaultBpmnXml('purchaseApproval', '采购申请流程');
+    const xml = createDefaultBpmnXml('multiAcceptance', '多人验收流程');
 
-    expect(xml).toContain('id="purchaseApproval"');
-    expect(xml).toContain('name="采购申请流程"');
+    expect(xml).toContain('id="multiAcceptance"');
+    expect(xml).toContain('name="多人验收流程"');
     expect(xml).toContain('isExecutable="true"');
     expect(xml).toContain('<bpmn:startEvent id="StartEvent_1" name="Start"');
     expect(xml).toContain(

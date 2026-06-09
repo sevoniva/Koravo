@@ -59,12 +59,19 @@ public class WorkflowEnablementService {
         KoFormSchema form = formSchemaRepository
                 .findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(tenantId, WorkflowEnablementDefaults.FORM_KEY)
                 .orElse(null);
-        KoFormBinding binding = findMatchingBinding(tenantId, model, form);
+        KoFormBinding startBinding = findMatchingBinding(tenantId, model, form, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        KoFormBinding businessBinding = findMatchingBinding(tenantId, model, form, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY);
+        KoFormBinding financeBinding = findMatchingBinding(tenantId, model, form, WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY);
+        int bindingCount = (startBinding == null ? 0 : 1)
+                + (businessBinding == null ? 0 : 1)
+                + (financeBinding == null ? 0 : 1);
         boolean initialized = model != null
                 && model.getStatus() == ProcessModelStatus.DEPLOYED
                 && StringUtils.hasText(model.getFlowableDefinitionId())
                 && form != null
-                && binding != null;
+                && startBinding != null
+                && businessBinding != null
+                && financeBinding != null;
         long todoCount = processFacade.queryMyTasks(new TaskQueryCommand(
                 tenantId,
                 UserContextHolder.getUserId(),
@@ -84,33 +91,33 @@ public class WorkflowEnablementService {
                 model == null ? null : model.getFlowableDefinitionId(),
                 model == null ? WorkflowEnablementDefaults.PROCESS_KEY : model.getModelKey(),
                 form == null ? null : form.getId(),
-                binding == null ? null : binding.getId(),
+                startBinding == null ? null : startBinding.getId(),
                 initialized ? "流程配置已就绪" : "流程配置未初始化",
                 new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         model != null && model.getStatus() == ProcessModelStatus.DEPLOYED && StringUtils.hasText(model.getFlowableDefinitionId()),
                         model == null ? "MISSING" : model.getStatus().name(),
-                        model == null ? "未创建采购申请流程" : "采购申请流程已部署",
+                        model == null ? "未创建多人验收流程" : "多人验收流程已部署",
                         model == null ? null : model.getId(),
                         model == null ? 0 : 1
                 ),
                 new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         form != null,
                         form == null ? "MISSING" : form.getStatus().name(),
-                        form == null ? "未创建采购申请单" : "采购申请单可用",
+                        form == null ? "未创建验收申请表" : "验收申请表可用",
                         form == null ? null : form.getId(),
                         form == null ? 0 : 1
                 ),
                 new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
-                        binding != null,
-                        binding == null ? "MISSING" : "READY",
-                        binding == null ? "审批任务未绑定表单" : "并行审批任务已绑定表单",
-                        binding == null ? null : binding.getId(),
-                        binding == null ? 0 : 1
+                        bindingCount == 3,
+                        bindingCount == 3 ? "READY" : "MISSING",
+                        bindingCount == 3 ? "启动表单和并行验收任务已绑定" : "启动表单或验收任务未绑定",
+                        startBinding == null ? null : startBinding.getId(),
+                        bindingCount
                 ),
                 new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         todoCount > 0,
                         todoCount > 0 ? "READY" : "EMPTY",
-                        todoCount > 0 ? "当前用户有待办任务" : "暂无待办，请先发起采购申请",
+                        todoCount > 0 ? "当前用户有待办任务" : "暂无待办，请先发起验收申请",
                         null,
                         todoCount
                 ),
@@ -148,22 +155,15 @@ public class WorkflowEnablementService {
                 .orElseGet(() -> createFormSchema(tenantId, userId, actions));
         ensureFormSchema(form, userId, actions);
 
-        KoFormBinding binding = findMatchingBinding(tenantId, model, form);
-        if (binding == null) {
-            binding = findReusableBinding(tenantId, model);
-            if (binding == null) {
-                binding = createBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.MANAGER_APPROVE_TASK_KEY, "部门审批", actions);
-            } else {
-                updateBinding(binding, userId, model, form, WorkflowEnablementDefaults.MANAGER_APPROVE_TASK_KEY, actions);
-            }
-        }
-        ensureTaskBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.FINANCE_APPROVE_TASK_KEY, "财务审批", actions);
+        KoFormBinding startBinding = ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.START_FORM_TASK_KEY, "启动表单", actions);
+        ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY, "业务验收", actions);
+        ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY, "财务验收", actions);
 
-        auditLogService.record("WORKFLOW_ENABLEMENT_INIT", "WORKFLOW_ENABLEMENT", "purchase-approval", Map.of(
+        auditLogService.record("WORKFLOW_ENABLEMENT_INIT", "WORKFLOW_ENABLEMENT", "multi-acceptance", Map.of(
                 "processModelId", model.getId(),
                 "processDefinitionId", model.getFlowableDefinitionId() == null ? "" : model.getFlowableDefinitionId(),
                 "formSchemaId", form.getId(),
-                "formBindingId", binding.getId(),
+                "formBindingId", startBinding.getId(),
                 "actions", actions
         ));
 
@@ -173,7 +173,7 @@ public class WorkflowEnablementService {
                 model.getFlowableDefinitionId(),
                 model.getModelKey(),
                 form.getId(),
-                binding.getId(),
+                startBinding.getId(),
                 actions.isEmpty() ? List.of("流程配置已存在，未重复创建") : actions
         );
     }
@@ -188,16 +188,16 @@ public class WorkflowEnablementService {
         model.setModelType("BPMN");
         model.setVersion(1);
         model.setStatus(ProcessModelStatus.DRAFT);
-        model.setDescription("采购申请提交后，部门审批和财务审批并行处理。");
-        model.setBpmnXml(WorkflowEnablementDefaults.purchaseApprovalBpmn());
-        actions.add("创建采购申请流程模型");
+        model.setDescription("验收申请提交后，部门验收和财务验收并行处理。");
+        model.setBpmnXml(WorkflowEnablementDefaults.acceptanceBpmn());
+        actions.add("创建多人验收流程模型");
         return processModelRepository.save(model);
     }
 
     private void ensureProcessModel(KoProcessModel model, String userId, List<String> actions) {
         boolean changed = false;
         if (!StringUtils.hasText(model.getBpmnXml())) {
-            model.setBpmnXml(WorkflowEnablementDefaults.purchaseApprovalBpmn());
+            model.setBpmnXml(WorkflowEnablementDefaults.acceptanceBpmn());
             changed = true;
         }
         if (!WorkflowEnablementDefaults.PROCESS_NAME.equals(model.getModelName())) {
@@ -218,7 +218,7 @@ public class WorkflowEnablementService {
             model.setModelKey(deployment.processDefinitionKey());
             model.setVersion(deployment.version());
             model.setStatus(ProcessModelStatus.DEPLOYED);
-            actions.add("部署采购申请流程");
+            actions.add("部署多人验收流程");
             changed = true;
         }
         if (changed) {
@@ -235,10 +235,10 @@ public class WorkflowEnablementService {
         form.setFormKey(WorkflowEnablementDefaults.FORM_KEY);
         form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
         form.setVersion(1);
-        form.setSchemaJson(WorkflowEnablementDefaults.purchaseFormSchema());
-        form.setUiSchemaJson(WorkflowEnablementDefaults.purchaseFormUiSchema());
+        form.setSchemaJson(WorkflowEnablementDefaults.acceptanceFormSchema());
+        form.setUiSchemaJson(WorkflowEnablementDefaults.acceptanceFormUiSchema());
         form.setStatus(FormStatus.ACTIVE);
-        actions.add("创建采购申请单");
+        actions.add("创建验收申请表");
         return formSchemaRepository.save(form);
     }
 
@@ -248,11 +248,11 @@ public class WorkflowEnablementService {
             form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
             changed = true;
         }
-        if (!StringUtils.hasText(form.getSchemaJson()) || !form.getSchemaJson().contains("采购原因")) {
-            form.setSchemaJson(WorkflowEnablementDefaults.purchaseFormSchema());
-            form.setUiSchemaJson(WorkflowEnablementDefaults.purchaseFormUiSchema());
+        if (!StringUtils.hasText(form.getSchemaJson()) || !form.getSchemaJson().contains("验收事项")) {
+            form.setSchemaJson(WorkflowEnablementDefaults.acceptanceFormSchema());
+            form.setUiSchemaJson(WorkflowEnablementDefaults.acceptanceFormUiSchema());
             form.setVersion(Math.max(1, form.getVersion() + 1));
-            actions.add("更新采购申请单");
+            actions.add("更新验收申请表");
             changed = true;
         }
         if (form.getStatus() != FormStatus.ACTIVE) {
@@ -265,7 +265,28 @@ public class WorkflowEnablementService {
         }
     }
 
-    private KoFormBinding findMatchingBinding(String tenantId, KoProcessModel model, KoFormSchema form) {
+    private KoFormBinding ensureBinding(
+            String tenantId,
+            String userId,
+            KoProcessModel model,
+            KoFormSchema form,
+            String taskDefinitionKey,
+            String taskName,
+            List<String> actions
+    ) {
+        KoFormBinding binding = findMatchingBinding(tenantId, model, form, taskDefinitionKey);
+        if (binding != null) {
+            return binding;
+        }
+        binding = findReusableBinding(tenantId, model, taskDefinitionKey);
+        if (binding == null) {
+            return createBinding(tenantId, userId, model, form, taskDefinitionKey, taskName, actions);
+        }
+        updateBinding(binding, userId, model, form, taskDefinitionKey, actions);
+        return binding;
+    }
+
+    private KoFormBinding findMatchingBinding(String tenantId, KoProcessModel model, KoFormSchema form, String taskDefinitionKey) {
         if (model == null || form == null) {
             return null;
         }
@@ -274,7 +295,7 @@ public class WorkflowEnablementService {
                     .findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                             tenantId,
                             model.getFlowableDefinitionId(),
-                            WorkflowEnablementDefaults.APPROVE_TASK_KEY
+                            taskDefinitionKey
                     )
                     .orElse(null);
             if (binding != null && form.getId().equals(binding.getFormSchemaId())) {
@@ -285,13 +306,13 @@ public class WorkflowEnablementService {
                 .findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                         tenantId,
                         model.getId(),
-                        WorkflowEnablementDefaults.APPROVE_TASK_KEY
+                        taskDefinitionKey
                 )
                 .filter(binding -> form.getId().equals(binding.getFormSchemaId()))
                 .orElse(null);
     }
 
-    private KoFormBinding findReusableBinding(String tenantId, KoProcessModel model) {
+    private KoFormBinding findReusableBinding(String tenantId, KoProcessModel model, String taskDefinitionKey) {
         if (model == null) {
             return null;
         }
@@ -300,7 +321,7 @@ public class WorkflowEnablementService {
                     .findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                             tenantId,
                             model.getFlowableDefinitionId(),
-                            WorkflowEnablementDefaults.APPROVE_TASK_KEY
+                            taskDefinitionKey
                     )
                     .orElse(null);
             if (binding != null) {
@@ -311,7 +332,7 @@ public class WorkflowEnablementService {
                 .findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                         tenantId,
                         model.getId(),
-                        WorkflowEnablementDefaults.APPROVE_TASK_KEY
+                        taskDefinitionKey
                 )
                 .orElse(null);
     }
@@ -334,7 +355,9 @@ public class WorkflowEnablementService {
         binding.setTaskDefinitionKey(taskDefinitionKey);
         binding.setFormSchemaId(form.getId());
         binding.setFormSchemaVersion(form.getVersion());
-        actions.add("绑定采购申请单到" + taskName);
+        actions.add(WorkflowEnablementDefaults.START_FORM_TASK_KEY.equals(taskDefinitionKey)
+                ? "绑定启动表单"
+                : "绑定验收申请表到" + taskName);
         return formBindingRepository.save(binding);
     }
 
@@ -353,7 +376,9 @@ public class WorkflowEnablementService {
         binding.setFormSchemaId(form.getId());
         binding.setFormSchemaVersion(form.getVersion());
         formBindingRepository.save(binding);
-        actions.add("更新审批任务表单绑定");
+        actions.add(WorkflowEnablementDefaults.START_FORM_TASK_KEY.equals(taskDefinitionKey)
+                ? "更新启动表单绑定"
+                : "更新验收任务表单绑定");
     }
 
     private void ensureTaskBinding(
@@ -394,12 +419,13 @@ public class WorkflowEnablementService {
     public Map<String, Object> defaultStartVariables() {
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("applicant", "张三");
-        variables.put("department", "研发部");
-        variables.put("itemName", "测试环境服务器");
+        variables.put("department", "业务部门");
+        variables.put("subject", "交付成果验收");
+        variables.put("acceptanceScope", "确认交付内容、数量、质量和资料齐备情况");
+        variables.put("expectedResult", "业务验收和财务验收均通过后完成流程");
         variables.put("amount", 12000);
-        variables.put("reason", "用于流程集成测试和性能验证");
-        variables.put("managerApprover", WorkflowEnablementDefaults.USER_ID);
-        variables.put("financeApprover", WorkflowEnablementDefaults.USER_ID);
+        variables.put("managerApprover", "manager");
+        variables.put("financeApprover", "finance");
         variables.put("remark", "");
         return variables;
     }

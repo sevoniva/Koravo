@@ -16,13 +16,13 @@ public class WorkflowEnablementController {
         this.workflowEnablementService = workflowEnablementService;
     }
 
-    @Operation(summary = "补齐基础流程配置", description = "幂等创建并部署采购申请流程、采购申请单和任务表单绑定。")
+    @Operation(summary = "补齐基础流程配置", description = "幂等创建并部署多人验收流程、验收申请表和任务表单绑定。")
     @PostMapping("/api/v1/workflow-enablement/init")
     public ApiResponse<WorkflowEnablementInitResponse> init() {
         return ApiResponse.success(workflowEnablementService.init());
     }
 
-    @Operation(summary = "查询流程配置状态", description = "返回采购申请流程、表单和绑定是否已就绪。")
+    @Operation(summary = "查询流程配置状态", description = "返回多人验收流程、表单和绑定是否已就绪。")
     @GetMapping("/api/v1/workflow-enablement/status")
     public ApiResponse<WorkflowEnablementStatusResponse> status() {
         return ApiResponse.success(workflowEnablementService.status());
