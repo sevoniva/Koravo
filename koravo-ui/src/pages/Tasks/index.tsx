@@ -1,3 +1,4 @@
+import { DeploymentUnitOutlined } from '@ant-design/icons';
 import {
   PageContainer,
   ProTable,
@@ -5,11 +6,14 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
-import { Alert, App, Badge, Button, Empty, Flex, Space, Tabs, Tag } from 'antd';
+import { Alert, App, Badge, Button, Drawer, Empty, Flex, Space, Tabs, Tag } from 'antd';
+import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
+  getProcessTrace,
   handleTaskAction,
   listCandidateTasks,
   listDoneTasks,
@@ -27,6 +31,13 @@ import { processDefinitionLabel, taskDefinitionLabel } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
 type TaskTabKey = 'todo' | 'candidate' | 'done' | 'started';
+
+type ProcessPreviewTarget = {
+  instanceId: string;
+  title: string;
+  activeTask?: TaskItem;
+  currentTasks?: TaskItem[];
+};
 
 const taskTabRoutes: Record<TaskTabKey, string> = {
   todo: '/tasks',
@@ -66,7 +77,10 @@ function taskNodeBadge(taskDefinitionKey?: string) {
   return <Badge status="processing" text={taskDefinitionLabel(taskDefinitionKey)} />;
 }
 
-const taskColumns: ProColumns<TaskItem>[] = [
+function buildTaskColumns(
+  onPreview: (task: TaskItem) => void,
+): ProColumns<TaskItem>[] {
+  return [
   { title: '任务名称', dataIndex: 'name' },
   {
     title: '业务编号',
@@ -110,11 +124,18 @@ const taskColumns: ProColumns<TaskItem>[] = [
   {
     title: '操作',
     valueType: 'option',
-    width: 160,
+    width: 210,
     render: (_, record) => (
       <Space size={4}>
         <Button type="link" onClick={() => history.push(`/tasks/${record.taskId}`)}>
           {record.status === 'COMPLETED' ? '查看任务' : '处理'}
+        </Button>
+        <Button
+          type="link"
+          icon={<DeploymentUnitOutlined />}
+          onClick={() => onPreview(record)}
+        >
+          流程
         </Button>
         <Button
           type="link"
@@ -127,9 +148,13 @@ const taskColumns: ProColumns<TaskItem>[] = [
       </Space>
     ),
   },
-];
+  ];
+}
 
-const instanceColumns: ProColumns<OpsProcessInstance>[] = [
+function buildInstanceColumns(
+  onPreview: (instance: OpsProcessInstance) => void,
+): ProColumns<OpsProcessInstance>[] {
+  return [
   {
     title: '实例编号',
     dataIndex: 'instanceId',
@@ -165,17 +190,27 @@ const instanceColumns: ProColumns<OpsProcessInstance>[] = [
   {
     title: '操作',
     valueType: 'option',
-    width: 96,
+    width: 160,
     render: (_, record) => (
-      <Button
-        type="link"
-        onClick={() => history.push(`/process-instances/${record.instanceId}`)}
-      >
-        查看
-      </Button>
+      <Space size={4}>
+        <Button
+          type="link"
+          icon={<DeploymentUnitOutlined />}
+          onClick={() => onPreview(record)}
+        >
+          流程
+        </Button>
+        <Button
+          type="link"
+          onClick={() => history.push(`/process-instances/${record.instanceId}`)}
+        >
+          查看
+        </Button>
+      </Space>
     ),
   },
-];
+  ];
+}
 
 function taskParams(params: Record<string, unknown>): TaskListParams {
   return {
@@ -204,8 +239,14 @@ const Tasks: React.FC = () => {
   const doneRef = React.useRef<ActionType>(null);
   const startedRef = React.useRef<ActionType>(null);
   const [session, setSession] = React.useState<SessionContext>(() => getSessionContext());
+  const [previewTarget, setPreviewTarget] = React.useState<ProcessPreviewTarget>();
   const activeTab = tabFromPath(location.pathname);
   const pageMeta = taskTabMeta[activeTab];
+  const previewTrace = useQuery({
+    queryKey: ['task-list-process-trace', previewTarget?.instanceId],
+    queryFn: () => getProcessTrace(previewTarget?.instanceId || ''),
+    enabled: Boolean(previewTarget?.instanceId),
+  });
 
   const reloadTables = React.useCallback(() => {
     setSession(getSessionContext());
@@ -214,6 +255,25 @@ const Tasks: React.FC = () => {
     doneRef.current?.reload();
     startedRef.current?.reload();
   }, []);
+
+  const openTaskPreview = React.useCallback((task: TaskItem) => {
+    setPreviewTarget({
+      instanceId: task.processInstanceId,
+      title: `${taskDefinitionLabel(task.taskDefinitionKey)} · ${task.businessKey || task.processInstanceId}`,
+      activeTask: task,
+      currentTasks: [task],
+    });
+  }, []);
+
+  const openInstancePreview = React.useCallback((instance: OpsProcessInstance) => {
+    setPreviewTarget({
+      instanceId: instance.instanceId,
+      title: `${processDefinitionLabel(instance.processDefinitionId)} · ${instance.businessKey || instance.instanceId}`,
+      currentTasks: instance.currentTasks,
+    });
+  }, []);
+
+  const taskColumns = React.useMemo(() => buildTaskColumns(openTaskPreview), [openTaskPreview]);
 
   const claimTask = React.useCallback(
     async (task: TaskItem) => {
@@ -243,6 +303,13 @@ const Tasks: React.FC = () => {
               </Button>
               <Button
                 type="link"
+                icon={<DeploymentUnitOutlined />}
+                onClick={() => openTaskPreview(record)}
+              >
+                流程
+              </Button>
+              <Button
+                type="link"
                 onClick={() =>
                   history.push(`/process-instances/${record.processInstanceId}`)
                 }
@@ -253,7 +320,12 @@ const Tasks: React.FC = () => {
           ),
         };
       }),
-    [claimTask],
+    [claimTask, openTaskPreview, taskColumns],
+  );
+
+  const instanceColumns = React.useMemo(
+    () => buildInstanceColumns(openInstancePreview),
+    [openInstancePreview],
   );
 
   const switchTab = React.useCallback(
@@ -434,6 +506,24 @@ const Tasks: React.FC = () => {
           },
         ]}
       />
+      <Drawer
+        title={previewTarget?.title || '流程预览'}
+        size="980px"
+        open={Boolean(previewTarget)}
+        destroyOnHidden
+        onClose={() => setPreviewTarget(undefined)}
+      >
+        <ProcessProgressCard
+          loading={previewTrace.isFetching}
+          trace={previewTrace.data}
+          activeTask={previewTarget?.activeTask}
+          currentTasks={
+            previewTrace.data?.currentTasks?.length
+              ? previewTrace.data.currentTasks
+              : previewTarget?.currentTasks
+          }
+        />
+      </Drawer>
     </PageContainer>
   );
 };
