@@ -92,6 +92,14 @@ function taskBusinessObject(task: Pick<TaskItem, 'businessKey' | 'processInstanc
     : shortTraceLabel(task.processInstanceId);
 }
 
+const workflowCandidateGroupOptions = Array.from({ length: 20 }, (_, index) => {
+  const roleNumber = String(index + 1).padStart(2, '0');
+  return {
+    label: `流程角色 ${roleNumber}`,
+    value: `role-${roleNumber}`,
+  };
+});
+
 function instanceBusinessObject(
   instance: Pick<OpsProcessInstance, 'businessKey' | 'instanceId'>,
 ) {
@@ -248,6 +256,7 @@ function taskParams(params: Record<string, unknown>): TaskListParams {
   return {
     page: Number(params.current || 1),
     pageSize: Number(params.pageSize || 10),
+    candidateGroup: String(params.candidateGroup || '').trim() || undefined,
     keyword: String(params.keyword || '').trim() || undefined,
   };
 }
@@ -326,13 +335,13 @@ const Tasks: React.FC = () => {
   );
 
   const candidateColumns = React.useMemo<ProColumns<TaskItem>[]>(
-    () =>
-      taskColumns.map((column) => {
+    () => {
+      const columns = taskColumns.map((column) => {
         if (column.valueType !== 'option') return column;
         return {
           ...column,
           width: 180,
-          render: (_, record) => (
+          render: (_: unknown, record: TaskItem) => (
             <Space size={4}>
               <Button type="link" onClick={() => claimTask(record)}>
                 认领
@@ -355,7 +364,24 @@ const Tasks: React.FC = () => {
             </Space>
           ),
         };
-      }),
+      });
+      return [
+        {
+          title: '流程候选组',
+          dataIndex: 'candidateGroup',
+          hideInTable: true,
+          valueType: 'select',
+          fieldProps: {
+            allowClear: true,
+            showSearch: true,
+            placeholder: '默认按当前岗位职责',
+            optionFilterProp: 'label',
+            options: workflowCandidateGroupOptions,
+          },
+        },
+        ...columns,
+      ];
+    },
     [claimTask, openTaskPreview, taskColumns],
   );
 
