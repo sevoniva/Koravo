@@ -10,6 +10,10 @@ import org.flowable.engine.ProcessEngineConfiguration;
 import org.flowable.engine.impl.cfg.StandaloneInMemProcessEngineConfiguration;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -147,6 +151,22 @@ class FlowableProcessFacadeIntegrationTest {
                 .orElseThrow(() -> new AssertionError("Missing active task " + step.taskId()));
     }
 
+    private static String readEnterpriseApprovalBpmn() {
+        Path directory = Path.of(System.getProperty("user.dir")).toAbsolutePath();
+        while (directory != null) {
+            Path candidate = directory.resolve("examples/bpmn/enterprise-approval-30-node.bpmn20.xml");
+            if (Files.exists(candidate)) {
+                try {
+                    return Files.readString(candidate);
+                } catch (IOException e) {
+                    throw new UncheckedIOException("Failed to read enterprise approval BPMN example", e);
+                }
+            }
+            directory = directory.getParent();
+        }
+        throw new IllegalStateException("examples/bpmn/enterprise-approval-30-node.bpmn20.xml not found");
+    }
+
     private record EnterpriseApprovalDefinition(
             String bpmnXml,
             List<ApprovalStep> steps,
@@ -191,7 +211,7 @@ class FlowableProcessFacadeIntegrationTest {
             variables.put("roleCount", roles.size());
             variables.put("approvalNodeCount", steps.size());
             return new EnterpriseApprovalDefinition(
-                    FlowableProcessFacadeIntegrationTest.bpmnXml(steps, departments),
+                    readEnterpriseApprovalBpmn(),
                     List.copyOf(steps),
                     List.copyOf(departments),
                     List.copyOf(roles),
@@ -218,98 +238,8 @@ class FlowableProcessFacadeIntegrationTest {
         }
     }
 
-    private static String bpmnXml(List<ApprovalStep> steps, List<String> departments) {
-        StringBuilder xml = new StringBuilder();
-        xml.append("""
-                <?xml version="1.0" encoding="UTF-8"?>
-                <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                             xmlns:flowable="http://flowable.org/bpmn"
-                             targetNamespace="https://koravo.io/workflow/enterprise">
-                  <process id="enterpriseApproval30" name="企业级多部门审批" isExecutable="true">
-                    <startEvent id="start" name="提交申请"/>
-                """);
-
-        String previousMainNode = "start";
-        for (String department : departments) {
-            List<ApprovalStep> departmentSteps = steps.stream()
-                    .filter(step -> step.department().equals(department))
-                    .toList();
-            if (departmentSteps.getFirst().inSubProcess()) {
-                String subProcessId = department.replace("-", "_") + "_sub_process";
-                appendSequenceFlow(xml, previousMainNode, subProcessId);
-                appendSubProcess(xml, subProcessId, departmentSteps);
-                previousMainNode = subProcessId;
-            } else {
-                for (ApprovalStep step : departmentSteps) {
-                    appendSequenceFlow(xml, previousMainNode, step.taskId());
-                    appendUserTask(xml, step);
-                    previousMainNode = step.taskId();
-                }
-            }
-        }
-        appendSequenceFlow(xml, previousMainNode, "end");
-        xml.append("""
-                    <endEvent id="end" name="审批完成"/>
-                  </process>
-                </definitions>
-                """);
-        return xml.toString();
-    }
-
-    private static void appendSubProcess(StringBuilder xml, String subProcessId, List<ApprovalStep> steps) {
-        String start = subProcessId + "_start";
-        String end = subProcessId + "_end";
-        xml.append("    <subProcess id=\"").append(subProcessId).append("\" name=\"")
-                .append(steps.getFirst().department()).append("子流程\">\n");
-        xml.append("      <startEvent id=\"").append(start).append("\" name=\"进入子流程\"/>\n");
-        String previous = start;
-        for (ApprovalStep step : steps) {
-            appendSequenceFlow(xml, previous, step.taskId(), "      ");
-            appendUserTask(xml, step, "      ");
-            previous = step.taskId();
-        }
-        appendSequenceFlow(xml, previous, end, "      ");
-        xml.append("      <endEvent id=\"").append(end).append("\" name=\"子流程完成\"/>\n");
-        xml.append("    </subProcess>\n");
-    }
-
-    private static void appendUserTask(StringBuilder xml, ApprovalStep step) {
-        appendUserTask(xml, step, "    ");
-    }
-
-    private static void appendUserTask(StringBuilder xml, ApprovalStep step, String indent) {
-        xml.append(indent).append("<userTask id=\"").append(step.taskId()).append("\" name=\"").append(step.name()).append("\" ");
-        if (step.pooled()) {
-            xml.append("flowable:candidateGroups=\"").append(String.join(",", step.candidateRoles())).append("\"");
-        } else {
-            xml.append("flowable:assignee=\"${").append(roleVariable(roleIndex(step.role()))).append("}\"");
-        }
-        xml.append("/>\n");
-    }
-
-    private static void appendSequenceFlow(StringBuilder xml, String source, String target) {
-        appendSequenceFlow(xml, source, target, "    ");
-    }
-
-    private static void appendSequenceFlow(StringBuilder xml, String source, String target, String indent) {
-        xml.append(indent)
-                .append("<sequenceFlow id=\"flow_")
-                .append(source)
-                .append("_to_")
-                .append(target)
-                .append("\" sourceRef=\"")
-                .append(source)
-                .append("\" targetRef=\"")
-                .append(target)
-                .append("\"/>\n");
-    }
-
     private static String roleName(int roleIndex) {
         return "role-%02d".formatted(roleIndex);
-    }
-
-    private static int roleIndex(String roleName) {
-        return Integer.parseInt(roleName.substring(roleName.length() - 2));
     }
 
     private static String roleVariable(int roleIndex) {

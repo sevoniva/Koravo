@@ -37,6 +37,8 @@ mvn -pl koravo-engine test -Dtest=FlowableProcessFacadeIntegrationTest
 
 This verification deploys and starts an enterprise approval process with 34 approval tasks, 10 departments, 20 approval roles, 4 embedded subprocess sections, and pooled approval nodes where one claimant can approve for the node. It then completes every task through the Koravo facade, checks the instance is completed, checks the trace contains every completed user task and subprocess, and checks there are no failed or dead-letter jobs.
 
+The same BPMN file is available for manual console upload at `examples/bpmn/enterprise-approval-30-node.bpmn20.xml`. The model service test uploads that file through the user-facing deploy path and verifies platform validation, deployment metadata, model persistence, and audit recording.
+
 ## Console Workflow Check
 
 The console workflow check is:

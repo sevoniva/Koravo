@@ -19,6 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -128,6 +132,63 @@ class ProcessModelServiceTest {
                 "deploymentId", "dep-1",
                 "processDefinitionId", "pd-1",
                 "processDefinitionKey", "leaveApproval"
+        ));
+    }
+
+    @Test
+    void directDeployAcceptsEnterpriseApprovalExampleFromUserUpload() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        String bpmnXml = readEnterpriseApprovalBpmn();
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "enterprise-approval-30-node.bpmn20.xml",
+                "text/xml",
+                bpmnXml.getBytes()
+        );
+        ProcessModelService realValidationService = new ProcessModelService(
+                processFacade,
+                repository,
+                auditLogService,
+                new BpmnValidationService()
+        );
+        when(processFacade.deploy(any(DeployProcessCommand.class))).thenReturn(new ProcessDeploymentDTO(
+                null,
+                "dep-enterprise",
+                "enterpriseApproval30:1:pd",
+                "enterpriseApproval30",
+                1
+        ));
+        when(repository.save(any(KoProcessModel.class))).thenAnswer(invocation -> {
+            KoProcessModel saved = invocation.getArgument(0);
+            saved.setId("enterprise-model-1");
+            return saved;
+        });
+
+        var response = realValidationService.deploy("企业级多部门审批", file);
+
+        assertThat(response.platformModelId()).isEqualTo("enterprise-model-1");
+        assertThat(response.processDefinitionKey()).isEqualTo("enterpriseApproval30");
+        assertThat(bpmnXml.split("<userTask ", -1).length - 1).isEqualTo(34);
+        assertThat(bpmnXml.split("<subProcess ", -1).length - 1).isEqualTo(4);
+        assertThat(bpmnXml.split("candidateGroups=", -1).length - 1).isEqualTo(14);
+
+        ArgumentCaptor<DeployProcessCommand> deployCaptor = ArgumentCaptor.forClass(DeployProcessCommand.class);
+        verify(processFacade).deploy(deployCaptor.capture());
+        assertThat(deployCaptor.getValue().modelKey()).isEqualTo("enterprise_approval_30_node");
+        assertThat(deployCaptor.getValue().modelName()).isEqualTo("企业级多部门审批");
+        assertThat(deployCaptor.getValue().fileName()).isEqualTo("enterprise-approval-30-node.bpmn20.xml");
+        assertThat(deployCaptor.getValue().bpmnXml()).isEqualTo(bpmnXml);
+
+        ArgumentCaptor<KoProcessModel> modelCaptor = ArgumentCaptor.forClass(KoProcessModel.class);
+        verify(repository).save(modelCaptor.capture());
+        assertThat(modelCaptor.getValue().getModelKey()).isEqualTo("enterpriseApproval30");
+        assertThat(modelCaptor.getValue().getStatus()).isEqualTo(ProcessModelStatus.DEPLOYED);
+        assertThat(modelCaptor.getValue().getAssetOrigin()).isEqualTo(AssetOrigin.USER_FLOW);
+        verify(auditLogService).record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "enterprise-model-1", Map.of(
+                "deploymentId", "dep-enterprise",
+                "processDefinitionId", "enterpriseApproval30:1:pd",
+                "processDefinitionKey", "enterpriseApproval30"
         ));
     }
 
@@ -298,5 +359,21 @@ class ProcessModelServiceTest {
         model.setStatus(status);
         model.setBpmnXml("<definitions />");
         return model;
+    }
+
+    private static String readEnterpriseApprovalBpmn() {
+        Path directory = Path.of(System.getProperty("user.dir")).toAbsolutePath();
+        while (directory != null) {
+            Path candidate = directory.resolve("examples/bpmn/enterprise-approval-30-node.bpmn20.xml");
+            if (Files.exists(candidate)) {
+                try {
+                    return Files.readString(candidate);
+                } catch (IOException e) {
+                    throw new UncheckedIOException("Failed to read enterprise approval BPMN example", e);
+                }
+            }
+            directory = directory.getParent();
+        }
+        throw new IllegalStateException("examples/bpmn/enterprise-approval-30-node.bpmn20.xml not found");
     }
 }

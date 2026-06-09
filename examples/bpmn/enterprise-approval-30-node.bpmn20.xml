@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="https://koravo.io/workflow/enterprise">
+  <process id="enterpriseApproval30" name="企业级多部门审批" isExecutable="true">
+    <startEvent id="start" name="提交申请"/>
+    <sequenceFlow id="flow_start_to_dept01_approval_01" sourceRef="start" targetRef="dept01_approval_01"/>
+    <userTask id="dept01_approval_01" name="部门01审批节点01" flowable:assignee="${role01User}"/>
+    <sequenceFlow id="flow_dept01_approval_01_to_dept01_approval_02" sourceRef="dept01_approval_01" targetRef="dept01_approval_02"/>
+    <userTask id="dept01_approval_02" name="部门01审批节点02" flowable:candidateGroups="role-01,role-02"/>
+    <sequenceFlow id="flow_dept01_approval_02_to_dept01_approval_03" sourceRef="dept01_approval_02" targetRef="dept01_approval_03"/>
+    <userTask id="dept01_approval_03" name="部门01审批节点03" flowable:assignee="${role01User}"/>
+    <sequenceFlow id="flow_dept01_approval_03_to_dept02_approval_01" sourceRef="dept01_approval_03" targetRef="dept02_approval_01"/>
+    <userTask id="dept02_approval_01" name="部门02审批节点01" flowable:assignee="${role03User}"/>
+    <sequenceFlow id="flow_dept02_approval_01_to_dept02_approval_02" sourceRef="dept02_approval_01" targetRef="dept02_approval_02"/>
+    <userTask id="dept02_approval_02" name="部门02审批节点02" flowable:candidateGroups="role-03,role-04"/>
+    <sequenceFlow id="flow_dept02_approval_02_to_dept02_approval_03" sourceRef="dept02_approval_02" targetRef="dept02_approval_03"/>
+    <userTask id="dept02_approval_03" name="部门02审批节点03" flowable:assignee="${role03User}"/>
+    <sequenceFlow id="flow_dept02_approval_03_to_dept_03_sub_process" sourceRef="dept02_approval_03" targetRef="dept_03_sub_process"/>
+    <subProcess id="dept_03_sub_process" name="dept-03子流程">
+      <startEvent id="dept_03_sub_process_start" name="进入子流程"/>
+      <sequenceFlow id="flow_dept_03_sub_process_start_to_dept03_approval_01" sourceRef="dept_03_sub_process_start" targetRef="dept03_approval_01"/>
+      <userTask id="dept03_approval_01" name="部门03审批节点01" flowable:assignee="${role05User}"/>
+      <sequenceFlow id="flow_dept03_approval_01_to_dept03_approval_02" sourceRef="dept03_approval_01" targetRef="dept03_approval_02"/>
+      <userTask id="dept03_approval_02" name="部门03审批节点02" flowable:candidateGroups="role-05,role-06"/>
+      <sequenceFlow id="flow_dept03_approval_02_to_dept03_approval_03" sourceRef="dept03_approval_02" targetRef="dept03_approval_03"/>
+      <userTask id="dept03_approval_03" name="部门03审批节点03" flowable:assignee="${role05User}"/>
+      <sequenceFlow id="flow_dept03_approval_03_to_dept03_approval_04" sourceRef="dept03_approval_03" targetRef="dept03_approval_04"/>
+      <userTask id="dept03_approval_04" name="部门03审批节点04" flowable:candidateGroups="role-05,role-06"/>
+      <sequenceFlow id="flow_dept03_approval_04_to_dept_03_sub_process_end" sourceRef="dept03_approval_04" targetRef="dept_03_sub_process_end"/>
+      <endEvent id="dept_03_sub_process_end" name="子流程完成"/>
+    </subProcess>
+    <sequenceFlow id="flow_dept_03_sub_process_to_dept04_approval_01" sourceRef="dept_03_sub_process" targetRef="dept04_approval_01"/>
+    <userTask id="dept04_approval_01" name="部门04审批节点01" flowable:assignee="${role07User}"/>
+    <sequenceFlow id="flow_dept04_approval_01_to_dept04_approval_02" sourceRef="dept04_approval_01" targetRef="dept04_approval_02"/>
+    <userTask id="dept04_approval_02" name="部门04审批节点02" flowable:candidateGroups="role-07,role-08"/>
+    <sequenceFlow id="flow_dept04_approval_02_to_dept04_approval_03" sourceRef="dept04_approval_02" targetRef="dept04_approval_03"/>
+    <userTask id="dept04_approval_03" name="部门04审批节点03" flowable:assignee="${role07User}"/>
+    <sequenceFlow id="flow_dept04_approval_03_to_dept_05_sub_process" sourceRef="dept04_approval_03" targetRef="dept_05_sub_process"/>
+    <subProcess id="dept_05_sub_process" name="dept-05子流程">
+      <startEvent id="dept_05_sub_process_start" name="进入子流程"/>
+      <sequenceFlow id="flow_dept_05_sub_process_start_to_dept05_approval_01" sourceRef="dept_05_sub_process_start" targetRef="dept05_approval_01"/>
+      <userTask id="dept05_approval_01" name="部门05审批节点01" flowable:assignee="${role09User}"/>
+      <sequenceFlow id="flow_dept05_approval_01_to_dept05_approval_02" sourceRef="dept05_approval_01" targetRef="dept05_approval_02"/>
+      <userTask id="dept05_approval_02" name="部门05审批节点02" flowable:candidateGroups="role-09,role-10"/>
+      <sequenceFlow id="flow_dept05_approval_02_to_dept05_approval_03" sourceRef="dept05_approval_02" targetRef="dept05_approval_03"/>
+      <userTask id="dept05_approval_03" name="部门05审批节点03" flowable:assignee="${role09User}"/>
+      <sequenceFlow id="flow_dept05_approval_03_to_dept05_approval_04" sourceRef="dept05_approval_03" targetRef="dept05_approval_04"/>
+      <userTask id="dept05_approval_04" name="部门05审批节点04" flowable:candidateGroups="role-09,role-10"/>
+      <sequenceFlow id="flow_dept05_approval_04_to_dept_05_sub_process_end" sourceRef="dept05_approval_04" targetRef="dept_05_sub_process_end"/>
+      <endEvent id="dept_05_sub_process_end" name="子流程完成"/>
+    </subProcess>
+    <sequenceFlow id="flow_dept_05_sub_process_to_dept06_approval_01" sourceRef="dept_05_sub_process" targetRef="dept06_approval_01"/>
+    <userTask id="dept06_approval_01" name="部门06审批节点01" flowable:assignee="${role11User}"/>
+    <sequenceFlow id="flow_dept06_approval_01_to_dept06_approval_02" sourceRef="dept06_approval_01" targetRef="dept06_approval_02"/>
+    <userTask id="dept06_approval_02" name="部门06审批节点02" flowable:candidateGroups="role-11,role-12"/>
+    <sequenceFlow id="flow_dept06_approval_02_to_dept06_approval_03" sourceRef="dept06_approval_02" targetRef="dept06_approval_03"/>
+    <userTask id="dept06_approval_03" name="部门06审批节点03" flowable:assignee="${role11User}"/>
+    <sequenceFlow id="flow_dept06_approval_03_to_dept_07_sub_process" sourceRef="dept06_approval_03" targetRef="dept_07_sub_process"/>
+    <subProcess id="dept_07_sub_process" name="dept-07子流程">
+      <startEvent id="dept_07_sub_process_start" name="进入子流程"/>
+      <sequenceFlow id="flow_dept_07_sub_process_start_to_dept07_approval_01" sourceRef="dept_07_sub_process_start" targetRef="dept07_approval_01"/>
+      <userTask id="dept07_approval_01" name="部门07审批节点01" flowable:assignee="${role13User}"/>
+      <sequenceFlow id="flow_dept07_approval_01_to_dept07_approval_02" sourceRef="dept07_approval_01" targetRef="dept07_approval_02"/>
+      <userTask id="dept07_approval_02" name="部门07审批节点02" flowable:candidateGroups="role-13,role-14"/>
+      <sequenceFlow id="flow_dept07_approval_02_to_dept07_approval_03" sourceRef="dept07_approval_02" targetRef="dept07_approval_03"/>
+      <userTask id="dept07_approval_03" name="部门07审批节点03" flowable:assignee="${role13User}"/>
+      <sequenceFlow id="flow_dept07_approval_03_to_dept07_approval_04" sourceRef="dept07_approval_03" targetRef="dept07_approval_04"/>
+      <userTask id="dept07_approval_04" name="部门07审批节点04" flowable:candidateGroups="role-13,role-14"/>
+      <sequenceFlow id="flow_dept07_approval_04_to_dept_07_sub_process_end" sourceRef="dept07_approval_04" targetRef="dept_07_sub_process_end"/>
+      <endEvent id="dept_07_sub_process_end" name="子流程完成"/>
+    </subProcess>
+    <sequenceFlow id="flow_dept_07_sub_process_to_dept08_approval_01" sourceRef="dept_07_sub_process" targetRef="dept08_approval_01"/>
+    <userTask id="dept08_approval_01" name="部门08审批节点01" flowable:assignee="${role15User}"/>
+    <sequenceFlow id="flow_dept08_approval_01_to_dept08_approval_02" sourceRef="dept08_approval_01" targetRef="dept08_approval_02"/>
+    <userTask id="dept08_approval_02" name="部门08审批节点02" flowable:candidateGroups="role-15,role-16"/>
+    <sequenceFlow id="flow_dept08_approval_02_to_dept08_approval_03" sourceRef="dept08_approval_02" targetRef="dept08_approval_03"/>
+    <userTask id="dept08_approval_03" name="部门08审批节点03" flowable:assignee="${role15User}"/>
+    <sequenceFlow id="flow_dept08_approval_03_to_dept_09_sub_process" sourceRef="dept08_approval_03" targetRef="dept_09_sub_process"/>
+    <subProcess id="dept_09_sub_process" name="dept-09子流程">
+      <startEvent id="dept_09_sub_process_start" name="进入子流程"/>
+      <sequenceFlow id="flow_dept_09_sub_process_start_to_dept09_approval_01" sourceRef="dept_09_sub_process_start" targetRef="dept09_approval_01"/>
+      <userTask id="dept09_approval_01" name="部门09审批节点01" flowable:assignee="${role17User}"/>
+      <sequenceFlow id="flow_dept09_approval_01_to_dept09_approval_02" sourceRef="dept09_approval_01" targetRef="dept09_approval_02"/>
+      <userTask id="dept09_approval_02" name="部门09审批节点02" flowable:candidateGroups="role-17,role-18"/>
+      <sequenceFlow id="flow_dept09_approval_02_to_dept09_approval_03" sourceRef="dept09_approval_02" targetRef="dept09_approval_03"/>
+      <userTask id="dept09_approval_03" name="部门09审批节点03" flowable:assignee="${role17User}"/>
+      <sequenceFlow id="flow_dept09_approval_03_to_dept09_approval_04" sourceRef="dept09_approval_03" targetRef="dept09_approval_04"/>
+      <userTask id="dept09_approval_04" name="部门09审批节点04" flowable:candidateGroups="role-17,role-18"/>
+      <sequenceFlow id="flow_dept09_approval_04_to_dept_09_sub_process_end" sourceRef="dept09_approval_04" targetRef="dept_09_sub_process_end"/>
+      <endEvent id="dept_09_sub_process_end" name="子流程完成"/>
+    </subProcess>
+    <sequenceFlow id="flow_dept_09_sub_process_to_dept10_approval_01" sourceRef="dept_09_sub_process" targetRef="dept10_approval_01"/>
+    <userTask id="dept10_approval_01" name="部门10审批节点01" flowable:assignee="${role19User}"/>
+    <sequenceFlow id="flow_dept10_approval_01_to_dept10_approval_02" sourceRef="dept10_approval_01" targetRef="dept10_approval_02"/>
+    <userTask id="dept10_approval_02" name="部门10审批节点02" flowable:candidateGroups="role-19,role-20"/>
+    <sequenceFlow id="flow_dept10_approval_02_to_dept10_approval_03" sourceRef="dept10_approval_02" targetRef="dept10_approval_03"/>
+    <userTask id="dept10_approval_03" name="部门10审批节点03" flowable:assignee="${role19User}"/>
+    <sequenceFlow id="flow_dept10_approval_03_to_end" sourceRef="dept10_approval_03" targetRef="end"/>
+    <endEvent id="end" name="审批完成"/>
+  </process>
+</definitions>
