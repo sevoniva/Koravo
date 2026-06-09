@@ -15,6 +15,7 @@ import { setFeedbackApis } from '@/services/koravo/feedback';
 import {
   getSessionContext,
   type SessionContext,
+  type SessionRole,
 } from '@/services/koravo/session';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
@@ -24,7 +25,7 @@ dayjs.extend(relativeTime);
 export interface KoravoCurrentUser {
   name: string;
   userid: string;
-  access: 'admin';
+  access: SessionRole;
   tenantId: string;
 }
 
@@ -38,7 +39,7 @@ export async function getInitialState(): Promise<{
     currentUser: {
       name: session.userId,
       userid: session.userId,
-      access: 'admin',
+      access: session.role,
       tenantId: session.tenantId,
     },
     session,
@@ -78,7 +79,7 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
     ],
     avatarProps: {
       icon: <UserOutlined />,
-      title: `${session.tenantId} / ${session.userId}`,
+      title: `${session.tenantId} / ${session.userId} / ${session.role}`,
     },
     footerRender: () => <Footer />,
     ErrorBoundary,

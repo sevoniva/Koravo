@@ -19,6 +19,7 @@ import {
 } from '@/services/koravo/api';
 import {
   getSessionContext,
+  roleForUserId,
   setSessionContext,
   type SessionContext,
 } from '@/services/koravo/session';
@@ -184,7 +185,7 @@ const Tasks: React.FC = () => {
 
   const switchUser = React.useCallback(
     (userId: string) => {
-      const next = { ...getSessionContext(), userId };
+      const next = { ...getSessionContext(), userId, role: roleForUserId(userId) };
       setSessionContext(next);
       setSession(next);
       setInitialState((state) => ({
@@ -193,7 +194,7 @@ const Tasks: React.FC = () => {
         currentUser: {
           name: next.userId,
           userid: next.userId,
-          access: 'admin',
+          access: next.role,
           tenantId: next.tenantId,
         },
       }));

@@ -19,15 +19,21 @@ import java.io.IOException;
 @Order(Ordered.HIGHEST_PRECEDENCE + 30)
 public class DevAuthFilter extends OncePerRequestFilter {
     public static final String USER_HEADER = "X-User-Id";
+    public static final String ROLE_HEADER = "X-User-Role";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String headerUserId = request.getHeader(USER_HEADER);
         String userId = StringUtils.hasText(headerUserId) ? headerUserId : UserContextHolder.ANONYMOUS;
-        UserContextHolder.setUserId(userId);
+        String role = request.getHeader(ROLE_HEADER);
+        UserContextHolder.setUser(userId, role);
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(userId, "N/A", AuthorityUtils.createAuthorityList("ROLE_USER"))
+                new UsernamePasswordAuthenticationToken(
+                        userId,
+                        "N/A",
+                        AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_" + UserContextHolder.getRole().toUpperCase())
+                )
         );
         try {
             filterChain.doFilter(request, response);

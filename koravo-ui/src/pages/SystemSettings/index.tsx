@@ -18,8 +18,10 @@ import {
 } from '@/services/koravo/api';
 import {
   getSessionContext,
+  roleForUserId,
   setSessionContext,
   type SessionContext,
+  type SessionRole,
 } from '@/services/koravo/session';
 import { productCopy } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
@@ -35,28 +37,135 @@ const dependencyColumns: ProColumns<SystemHealthItem>[] = [
   { title: '说明', dataIndex: 'message', renderText: productCopy },
 ];
 
-const roleOptions = [
+interface RoleOption {
+  label: string;
+  value: SessionRole;
+  userId: string;
+  department: string;
+  description: string;
+}
+
+interface OrganizationMember {
+  key: string;
+  name: string;
+  userId: string;
+  department: string;
+  role: SessionRole;
+  status: string;
+}
+
+interface PermissionMatrixItem {
+  key: string;
+  scope: string;
+  admin: string;
+  applicant: string;
+  manager: string;
+  finance: string;
+}
+
+const roleOptions: RoleOption[] = [
   {
     label: '管理员',
     value: 'admin',
+    userId: 'admin',
+    department: '流程平台组',
     description: '维护流程、表单、连接器和异常任务。',
   },
   {
     label: '发起人',
     value: 'applicant',
+    userId: 'applicant',
+    department: '业务部门',
     description: '发起业务流程并跟踪实例进度。',
   },
   {
     label: '一级处理人',
     value: 'manager',
-    description: '处理分配给 manager 的待办任务。',
+    userId: 'manager',
+    department: '业务部门',
+    description: '处理部门负责人名下的待办任务。',
   },
   {
     label: '二级处理人',
     value: 'finance',
-    description: '处理分配给 finance 的待办任务。',
+    userId: 'finance',
+    department: '财务部门',
+    description: '处理财务复核名下的待办任务。',
   },
 ];
+
+const organizationMembers: OrganizationMember[] = roleOptions.map((item) => ({
+  key: item.value,
+  name: item.label,
+  userId: item.userId,
+  department: item.department,
+  role: item.value,
+  status: '启用',
+}));
+
+const permissionMatrix: PermissionMatrixItem[] = [
+  {
+    key: 'configuration',
+    scope: '流程、表单、绑定配置',
+    admin: '维护',
+    applicant: '只读',
+    manager: '只读',
+    finance: '只读',
+  },
+  {
+    key: 'start',
+    scope: '发起流程实例',
+    admin: '允许',
+    applicant: '允许',
+    manager: '不可操作',
+    finance: '不可操作',
+  },
+  {
+    key: 'task',
+    scope: '办理待办任务',
+    admin: '允许',
+    applicant: '不可操作',
+    manager: '允许',
+    finance: '允许',
+  },
+  {
+    key: 'ops',
+    scope: '运维处置',
+    admin: '允许',
+    applicant: '只读',
+    manager: '只读',
+    finance: '只读',
+  },
+];
+
+const memberColumns: ProColumns<OrganizationMember>[] = [
+  { title: '成员', dataIndex: 'name' },
+  { title: '用户', dataIndex: 'userId', copyable: true },
+  { title: '部门', dataIndex: 'department' },
+  {
+    title: '角色',
+    dataIndex: 'role',
+    render: (_, record) => <Tag color="processing">{roleLabel(record.role)}</Tag>,
+  },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    width: 90,
+    render: (_, record) => <Tag color="success">{record.status}</Tag>,
+  },
+];
+
+const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
+  { title: '权限域', dataIndex: 'scope', width: 200 },
+  { title: '管理员', dataIndex: 'admin' },
+  { title: '发起人', dataIndex: 'applicant' },
+  { title: '一级处理人', dataIndex: 'manager' },
+  { title: '二级处理人', dataIndex: 'finance' },
+];
+
+function roleLabel(role: SessionRole) {
+  return roleOptions.find((item) => item.value === role)?.label || role;
+}
 
 const SystemSettings: React.FC = () => {
   const { message } = App.useApp();
@@ -85,10 +194,14 @@ const SystemSettings: React.FC = () => {
     [data],
   );
 
-  const currentRole = roleOptions.find((item) => item.value === session.userId);
+  const currentRole = roleOptions.find((item) => item.value === session.role);
 
   const applySession = (values: Partial<SessionContext>, successText: string) => {
-    const next = { ...getSessionContext(), ...values };
+    const next = {
+      ...getSessionContext(),
+      ...values,
+      role: values.role || roleForUserId(values.userId || session.userId),
+    };
     setSessionContext(next);
     setSession(next);
     setInitialState((state) => ({
@@ -97,7 +210,7 @@ const SystemSettings: React.FC = () => {
       currentUser: {
         name: next.userId,
         userid: next.userId,
-        access: 'admin',
+        access: next.role,
         tenantId: next.tenantId,
       },
     }));
@@ -106,7 +219,7 @@ const SystemSettings: React.FC = () => {
   };
 
   return (
-    <PageContainer title="系统设置" content="查看系统运行状态，切换当前租户和处理人。">
+    <PageContainer title="系统设置" content="维护运行上下文、组织成员和权限边界。">
       <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
           <Statistic title="服务状态" value={data?.status || '-'} />
@@ -127,10 +240,11 @@ const SystemSettings: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              流程任务按当前用户查询。发起实例后切换到对应处理人，即可在任务中心查看名下待办。
+              当前身份会写入请求头并参与后端权限校验。发起、办理、运维分别使用不同角色，便于走通真实职责边界。
             </span>
             <Space wrap>
               <Tag color="processing">当前用户：{session.userId}</Tag>
+              <Tag color="blue">角色：{roleLabel(session.role)}</Tag>
               <Tag>租户：{session.tenantId}</Tag>
               {session.lastRequestId ? <Tag>最近追踪号：{session.lastRequestId}</Tag> : null}
             </Space>
@@ -151,7 +265,7 @@ const SystemSettings: React.FC = () => {
         <ProCard title="运行上下文" colSpan={{ xs: 24, xl: 10 }}>
           <Segmented
             block
-            value={session.userId}
+            value={session.role}
             options={roleOptions.map((item) => ({
               label: item.label,
               value: item.value,
@@ -159,7 +273,10 @@ const SystemSettings: React.FC = () => {
             onChange={(value) => {
               const role = roleOptions.find((item) => item.value === value);
               applySession(
-                { userId: String(value) },
+                {
+                  role: String(value) as SessionRole,
+                  userId: role?.userId || String(value),
+                },
                 role ? `已切换为${role.label}` : '已切换处理人',
               );
             }}
@@ -175,13 +292,16 @@ const SystemSettings: React.FC = () => {
             />
           ) : null}
           <ProForm<SessionContext>
-            key={`${session.tenantId}-${session.userId}-${session.requestId}-${session.lastRequestId || ''}`}
+            key={`${session.tenantId}-${session.userId}-${session.role}-${session.requestId}-${session.lastRequestId || ''}`}
             initialValues={session}
             submitter={{
               render: (_, dom) => dom,
             }}
             onFinish={async (values) => {
-              applySession(values, '已保存运行上下文');
+              applySession(
+                { ...values, role: roleForUserId(values.userId) },
+                '已保存运行上下文',
+              );
               return true;
             }}
           >
@@ -194,6 +314,10 @@ const SystemSettings: React.FC = () => {
               name="userId"
               label="当前用户"
               rules={[{ required: true, message: '请输入用户' }]}
+            />
+            <ProFormText
+              label="当前角色"
+              fieldProps={{ readOnly: true, value: roleLabel(session.role) }}
             />
             <ProFormText
               name="requestId"
@@ -214,6 +338,7 @@ const SystemSettings: React.FC = () => {
             columns={[
               { title: '租户', dataIndex: 'tenantId' },
               { title: '用户', dataIndex: 'userId' },
+              { title: '角色', dataIndex: 'role', renderText: () => roleLabel(session.role) },
               { title: '版本', dataIndex: 'version' },
               { title: '时间', dataIndex: 'time', renderText: formatDateTime },
             ]}
@@ -234,6 +359,31 @@ const SystemSettings: React.FC = () => {
                 </Button>
               </Space>
             }
+          />
+        </ProCard>
+      </ProCard>
+
+      <ProCard title="组织权限" split="vertical" gutter={16} wrap style={{ marginTop: 16 }}>
+        <ProCard title="成员清单" colSpan={{ xs: 24, xl: 10 }}>
+          <ProTable<OrganizationMember>
+            rowKey="key"
+            columns={memberColumns}
+            dataSource={organizationMembers}
+            search={false}
+            pagination={false}
+            options={false}
+            size="small"
+          />
+        </ProCard>
+        <ProCard title="权限矩阵" colSpan={{ xs: 24, xl: 14 }}>
+          <ProTable<PermissionMatrixItem>
+            rowKey="key"
+            columns={permissionColumns}
+            dataSource={permissionMatrix}
+            search={false}
+            pagination={false}
+            options={false}
+            size="small"
           />
         </ProCard>
       </ProCard>

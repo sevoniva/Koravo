@@ -26,6 +26,7 @@ function requestHeaders(headers?: Record<string, string>) {
   return {
     'X-Tenant-Id': session.tenantId,
     'X-User-Id': session.userId,
+    'X-User-Role': session.role,
     ...(session.requestId ? { 'X-Request-Id': session.requestId } : {}),
     ...headers,
   };

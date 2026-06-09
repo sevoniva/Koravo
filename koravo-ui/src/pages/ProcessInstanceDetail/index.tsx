@@ -27,6 +27,7 @@ import {
 } from '@/services/koravo/api';
 import {
   getSessionContext,
+  roleForUserId,
   setSessionContext,
 } from '@/services/koravo/session';
 import {
@@ -184,7 +185,7 @@ const ProcessInstanceDetail: React.FC = () => {
     (task: TaskItem) => {
       const userId = task.assignee?.trim();
       if (userId) {
-        const next = { ...getSessionContext(), userId };
+        const next = { ...getSessionContext(), userId, role: roleForUserId(userId) };
         setSessionContext(next);
         setInitialState((state) => ({
           ...state,
@@ -192,7 +193,7 @@ const ProcessInstanceDetail: React.FC = () => {
           currentUser: {
             name: next.userId,
             userid: next.userId,
-            access: 'admin',
+            access: next.role,
             tenantId: next.tenantId,
           },
         }));
