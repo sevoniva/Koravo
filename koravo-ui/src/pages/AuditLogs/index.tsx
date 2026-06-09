@@ -22,6 +22,7 @@ import {
   auditActionLabel,
   auditResourceLabel,
   businessKeyLabel,
+  processNameLabel,
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
@@ -94,6 +95,15 @@ function auditProcessModelId(log?: AuditLogItem) {
   if (typeof detail.processModelId === 'string') return detail.processModelId;
   if (log?.resourceType === 'PROCESS_MODEL') return log.resourceId;
   return undefined;
+}
+
+function auditResourceName(value: unknown) {
+  if (typeof value !== 'string') return '';
+  const text = processNameLabel(businessKeyLabel(value));
+  if (/^[a-f0-9]{16,}$/i.test(text) || /^[0-9a-f-]{24,}$/i.test(text)) {
+    return '';
+  }
+  return text;
 }
 
 function auditRelatedButtons(log?: AuditLogItem) {
@@ -196,13 +206,13 @@ function auditResourceText(log?: AuditLogItem) {
       : undefined,
     detail.taskName,
   ]
-    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .map(auditResourceName)
     .filter(Boolean);
   const resourceName = nameCandidates[0];
   const prefix = auditResourceLabel(resourceType);
   return resourceName
     ? `${prefix}：${resourceName}`
-    : `${prefix}：${shortTraceLabel(log.resourceId)}`;
+    : `${prefix}：${auditResourceName(log.resourceId) || shortTraceLabel(log.resourceId)}`;
 }
 
 const AuditRelatedActions: React.FC<{ log?: AuditLogItem }> = ({ log }) => {

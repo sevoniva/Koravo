@@ -2,16 +2,38 @@ import { describe, expect, it } from 'vitest';
 import {
   buildVersionLabel,
   businessFieldLabel,
+  businessKeyLabel,
   connectionAddressLabel,
   isBusinessProcessModel,
+  processDefinitionLabel,
+  processDisplayName,
   processModelKeyLabel,
+  processNameLabel,
   productCopy,
   shortTraceLabel,
 } from './display';
 
 describe('display helpers', () => {
   it('hides legacy demo identifiers from visible process model labels', () => {
-    expect(processModelKeyLabel('httpConnectorDemo')).toBe('httpHealthCheck');
+    expect(processModelKeyLabel('httpConnectorDemo')).toBe('integrationHealthCheck');
+    expect(processModelKeyLabel('koravoProcessmq5amzdq')).toBe('businessProcess');
+  });
+
+  it('normalizes historical process names and definitions', () => {
+    expect(processDisplayName('koravo Processmq5amzdq')).toBe('业务审批流程');
+    expect(processDisplayName('leaveApproval', 'leave Approval')).toBe('请假审批流程');
+    expect(processDefinitionLabel('httpConnectorDemo:1:5fed0551')).toBe('接口巡检流程 v1');
+    expect(processNameLabel('koravo Processmq5amzdq')).toBe('业务审批流程');
+  });
+
+  it('normalizes historical business object prefixes everywhere in the value', () => {
+    expect(businessKeyLabel('PO-CONTINUE-20260609-0437')).toBe(
+      'ACC-CONTINUE-20260609-0437',
+    );
+    expect(businessKeyLabel('任务：PO-CONTINUE-20260609-0437')).toBe(
+      '任务：ACC-CONTINUE-20260609-0437',
+    );
+    expect(businessKeyLabel('HTTP-1780845610965')).toBe('INT-1780845610965');
   });
 
   it('hides legacy demo markers from visible trace labels', () => {

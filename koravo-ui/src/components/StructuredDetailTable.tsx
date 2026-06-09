@@ -5,11 +5,14 @@ import {
   auditActionLabel,
   auditResourceLabel,
   businessFieldLabel,
+  businessKeyLabel,
   dataSourceTypeLabel,
   processDefinitionLabel,
+  processNameLabel,
   processModelKeyLabel,
   processStatusLabel,
   productCopy,
+  shortTraceLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
 import { maskSecret } from '@/utils/format';
@@ -101,10 +104,18 @@ function domainText(rowKey: string, value: unknown) {
   const field = rowKey.split('.').pop();
   if (field === 'action') return auditActionLabel(value);
   if (field === 'resourceType') return auditResourceLabel(value);
+  if (field === 'businessKey') return businessKeyLabel(value);
+  if (field === 'resourceId') {
+    const label = businessKeyLabel(value);
+    return /^[a-f0-9]{16,}$/i.test(label) || /^[0-9a-f-]{24,}$/i.test(label)
+      ? shortTraceLabel(label)
+      : label;
+  }
   if (field === 'processDefinitionId') return processDefinitionLabel(value);
   if (field === 'processDefinitionKey' || field === 'modelKey') {
     return processModelKeyLabel(value);
   }
+  if (field === 'modelName' || field === 'processName') return processNameLabel(value);
   if (field === 'taskDefinitionKey' || field === 'elementId') {
     return taskDefinitionLabel(value);
   }

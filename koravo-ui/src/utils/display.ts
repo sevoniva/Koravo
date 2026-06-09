@@ -172,21 +172,24 @@ function readableIdentifier(value?: string | null) {
 export function processDisplayName(modelKey?: string, fallback?: string) {
   const mapping: Record<string, string> = {
     designerDeployCheck: '流程发布检查',
-    httpConnectorDemo: 'HTTP 健康检查',
-    httpHealthCheck: 'HTTP 健康检查',
+    httpConnectorDemo: '接口巡检流程',
+    httpHealthCheck: '接口巡检流程',
     purchaseApproval: '多人验收流程',
     multiAcceptance: '多人验收流程',
   };
-  return mapping[modelKey || ''] || fallback || readableIdentifier(modelKey);
+  return processNameLabel(mapping[modelKey || ''] || fallback || readableIdentifier(modelKey));
 }
 
 export function processModelKeyLabel(modelKey?: string | null) {
   const mapping: Record<string, string> = {
-    httpConnectorDemo: 'httpHealthCheck',
+    httpConnectorDemo: 'integrationHealthCheck',
+    httpHealthCheck: 'integrationHealthCheck',
     purchaseApproval: 'multiAcceptance',
   };
   if (!modelKey) return '-';
-  return mapping[modelKey] || modelKey;
+  const mapped = mapping[modelKey] || modelKey;
+  if (/^koravo\s*process[a-z0-9]*$/i.test(mapped)) return 'businessProcess';
+  return mapped;
 }
 
 const hiddenProcessModelKeys = new Set(['httpConnectorDemo']);
@@ -245,6 +248,15 @@ export function productCopy(value?: string | null) {
     .trim();
 }
 
+export function processNameLabel(value?: string | null) {
+  const text = productCopy(value);
+  if (!text) return '';
+  if (/^koravo\s*process[a-z0-9]*$/i.test(text)) return '业务审批流程';
+  if (/^leave[-_\s]*approval$/i.test(text)) return '请假审批流程';
+  if (/^http\s*健康检查$/i.test(text)) return '接口巡检流程';
+  return text;
+}
+
 export function buildVersionLabel(value?: string | null) {
   if (!value) return '-';
   const text = String(value).trim();
@@ -254,7 +266,9 @@ export function buildVersionLabel(value?: string | null) {
 
 export function businessKeyLabel(value?: string | null) {
   if (!value) return '-';
-  return productCopy(value).replace(/^PO-/, 'ACC-');
+  return productCopy(value)
+    .replace(/\bPO-/g, 'ACC-')
+    .replace(/\bHTTP-/g, 'INT-');
 }
 
 export function formSchemaNameLabel(formName?: string | null) {
@@ -283,8 +297,8 @@ export function formSchemaOptionLabel(
 
 export function processKindLabel(modelKey?: string) {
   const mapping: Record<string, string> = {
-    httpConnectorDemo: 'HTTP 连接器调用流程',
-    httpHealthCheck: 'HTTP 连接器调用流程',
+    httpConnectorDemo: '接口巡检流程',
+    httpHealthCheck: '接口巡检流程',
     purchaseApproval: '多人验收流程',
     multiAcceptance: '多人验收流程',
   };
