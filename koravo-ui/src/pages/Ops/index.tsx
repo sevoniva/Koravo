@@ -9,7 +9,19 @@ import {
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Button, Drawer, Empty, Modal, Space, Statistic, Tabs, Typography } from 'antd';
+import {
+  Alert,
+  App,
+  Button,
+  Collapse,
+  Drawer,
+  Empty,
+  Modal,
+  Space,
+  Statistic,
+  Tabs,
+  Typography,
+} from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -32,7 +44,11 @@ import {
   type OpsProcessInstance,
 } from '@/services/koravo/api';
 import { organizationMemberName } from '@/services/koravo/organization';
-import { businessKeyLabel, processDefinitionLabel } from '@/utils/display';
+import {
+  businessKeyLabel,
+  processDefinitionLabel,
+  shortTraceLabel,
+} from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
 type JobKind = 'failed' | 'dead-letter';
@@ -48,30 +64,50 @@ interface ProcessPreviewTarget {
   currentTasks?: OpsProcessInstance['currentTasks'];
 }
 
+function businessObjectLabel(
+  instance: Pick<OpsProcessInstance, 'businessKey' | 'instanceId'>,
+) {
+  return instance.businessKey
+    ? businessKeyLabel(instance.businessKey)
+    : shortTraceLabel(instance.instanceId);
+}
+
+function jobTypeLabel(type?: string) {
+  if (type === 'DEAD_LETTER') return '死信任务';
+  if (type === 'FAILED') return '失败任务';
+  return type || '-';
+}
+
 function buildInstanceColumns(
   openPreview: (instance: OpsProcessInstance) => void,
 ): ProColumns<OpsProcessInstance>[] {
   return [
     {
-      title: '实例编号',
-      dataIndex: 'instanceId',
-      width: 220,
-      render: (_, record) => <CopyableText value={record.instanceId} />,
+      title: '业务对象',
+      dataIndex: 'businessKey',
+      width: 190,
+      render: (_, record) => (
+        <CopyableText
+          value={record.businessKey || record.instanceId}
+          displayValue={businessObjectLabel(record)}
+        />
+      ),
     },
     {
-      title: '流程定义',
+      title: '流程',
       dataIndex: 'processDefinitionId',
       ellipsis: true,
       renderText: processDefinitionLabel,
     },
     {
-      title: '业务编号',
-      dataIndex: 'businessKey',
-      width: 180,
+      title: '实例追踪',
+      dataIndex: 'instanceId',
+      width: 140,
+      search: false,
       render: (_, record) => (
         <CopyableText
-          value={record.businessKey}
-          displayValue={businessKeyLabel(record.businessKey)}
+          value={record.instanceId}
+          displayValue={shortTraceLabel(record.instanceId)}
         />
       ),
     },
@@ -138,20 +174,30 @@ function jobColumns(
 ): ProColumns<OpsJobItem>[] {
   return [
     {
-      title: '任务编号',
+      title: '异常任务',
       dataIndex: 'id',
-      width: 220,
-      render: (_, record) => <CopyableText value={record.id} />,
+      width: 140,
+      render: (_, record) => (
+        <CopyableText value={record.id} displayValue={shortTraceLabel(record.id)} />
+      ),
     },
-    { title: '类型', dataIndex: 'type', width: 120 },
     {
-      title: '流程实例',
+      title: '异常类型',
+      dataIndex: 'type',
+      width: 120,
+      renderText: (value) => jobTypeLabel(value),
+    },
+    {
+      title: '关联流程',
       dataIndex: 'processInstanceId',
-      width: 220,
+      width: 190,
       render: (_, record) =>
         record.processInstanceId ? (
           <Space wrap>
-            <CopyableText value={record.processInstanceId} />
+            <CopyableText
+              value={record.processInstanceId}
+              displayValue={shortTraceLabel(record.processInstanceId)}
+            />
             <Button
               type="link"
               onClick={() => history.push(`/process-instances/${record.processInstanceId}`)}
@@ -163,8 +209,13 @@ function jobColumns(
           '-'
         ),
     },
-    { title: '节点', dataIndex: 'elementName', width: 160 },
-    { title: '重试次数', dataIndex: 'retries', width: 100 },
+    {
+      title: '异常节点',
+      dataIndex: 'elementName',
+      width: 160,
+      renderText: (value, record) => value || record.elementId || '-',
+    },
+    { title: '剩余重试', dataIndex: 'retries', width: 100 },
     {
       title: '到期时间',
       dataIndex: 'dueDate',
@@ -172,7 +223,7 @@ function jobColumns(
       renderText: formatDateTime,
     },
     {
-      title: '异常信息',
+      title: '异常摘要',
       dataIndex: 'exceptionMessage',
       ellipsis: true,
     },
@@ -486,15 +537,27 @@ const Ops: React.FC = () => {
               column={1}
               dataSource={jobDetail}
               columns={[
-                { title: '任务编号', dataIndex: 'id', copyable: true },
-                { title: '类型', dataIndex: 'type' },
                 {
-                  title: '流程实例',
+                  title: '异常任务',
+                  dataIndex: 'id',
+                  render: (_, record) => (
+                    <CopyableText
+                      value={record.id}
+                      displayValue={shortTraceLabel(record.id)}
+                    />
+                  ),
+                },
+                { title: '异常类型', dataIndex: 'type', renderText: jobTypeLabel },
+                {
+                  title: '关联流程',
                   dataIndex: 'processInstanceId',
                   render: (_, record) =>
                     record.processInstanceId ? (
                       <Space wrap>
-                        <CopyableText value={record.processInstanceId} />
+                        <CopyableText
+                          value={record.processInstanceId}
+                          displayValue={shortTraceLabel(record.processInstanceId)}
+                        />
                         <Button
                           type="link"
                           onClick={() =>
@@ -509,15 +572,16 @@ const Ops: React.FC = () => {
                     ),
                 },
                 {
-                  title: '流程定义',
+                  title: '流程',
                   dataIndex: 'processDefinitionId',
                   renderText: processDefinitionLabel,
                 },
-                { title: '执行编号', dataIndex: 'executionId', copyable: true },
-                { title: '节点编号', dataIndex: 'elementId' },
-                { title: '节点名称', dataIndex: 'elementName' },
-                { title: '处理器', dataIndex: 'handlerType' },
-                { title: '重试次数', dataIndex: 'retries' },
+                {
+                  title: '异常节点',
+                  dataIndex: 'elementName',
+                  renderText: (value, record) => value || record.elementId || '-',
+                },
+                { title: '剩余重试', dataIndex: 'retries' },
                 { title: '创建时间', dataIndex: 'createTime', renderText: formatDateTime },
                 { title: '到期时间', dataIndex: 'dueDate', renderText: formatDateTime },
               ]}
@@ -529,23 +593,58 @@ const Ops: React.FC = () => {
                 currentTasks={jobTrace.data?.currentTasks}
               />
             ) : null}
-            <Typography.Title level={5}>异常堆栈</Typography.Title>
-            {jobDetail.exceptionStacktrace ? (
-              <Typography.Paragraph
-                copyable
-                style={{
-                  marginBottom: 0,
-                  maxHeight: 360,
-                  overflow: 'auto',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {jobDetail.exceptionStacktrace}
-              </Typography.Paragraph>
-            ) : (
-              <Empty description="暂无异常堆栈" />
-            )}
+            <Collapse
+              size="small"
+              items={[
+                {
+                  key: 'diagnostics',
+                  label: '技术诊断信息',
+                  children: (
+                    <Space vertical size={16} style={{ width: '100%' }}>
+                      <ProDescriptions<OpsJobItem>
+                        column={1}
+                        dataSource={jobDetail}
+                        columns={[
+                          {
+                            title: '执行编号',
+                            dataIndex: 'executionId',
+                            render: (_, record) => (
+                              <CopyableText value={record.executionId} />
+                            ),
+                          },
+                          {
+                            title: '节点编号',
+                            dataIndex: 'elementId',
+                            render: (_, record) => (
+                              <CopyableText value={record.elementId} />
+                            ),
+                          },
+                          { title: '处理器', dataIndex: 'handlerType' },
+                          { title: '处理器配置', dataIndex: 'handlerConfiguration' },
+                        ]}
+                      />
+                      <Typography.Title level={5}>异常堆栈</Typography.Title>
+                      {jobDetail.exceptionStacktrace ? (
+                        <Typography.Paragraph
+                          copyable
+                          style={{
+                            marginBottom: 0,
+                            maxHeight: 360,
+                            overflow: 'auto',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {jobDetail.exceptionStacktrace}
+                        </Typography.Paragraph>
+                      ) : (
+                        <Empty description="暂无异常堆栈" />
+                      )}
+                    </Space>
+                  ),
+                },
+              ]}
+            />
           </Space>
         ) : (
           <Empty description="暂无任务详情" />
