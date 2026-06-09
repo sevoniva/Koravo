@@ -40,6 +40,7 @@ import {
   formSchemaKeyLabel,
   formSchemaNameLabel,
   formSchemaOptionLabel,
+  isBusinessProcessModel,
   processDisplayName,
   processModelKeyLabel,
   taskDefinitionLabel,
@@ -60,16 +61,6 @@ type BindingTableItem = FormBindingItem & {
 };
 
 const START_FORM_TASK_KEY = '__START__';
-const hiddenBindingModelKeys = new Set(['httpConnectorDemo']);
-const nonBusinessModelPattern = /示例|演示|验证|调试|测试|检查|新\d|demo|test/i;
-
-function isBusinessBindingModel(model?: ProcessModelItem) {
-  if (!model) return true;
-  if (hiddenBindingModelKeys.has(model.modelKey)) return false;
-  return ![model.modelName, model.description, model.modelKey].some((value) =>
-    nonBusinessModelPattern.test(String(value || '')),
-  );
-}
 
 function bindingPayload(values: BindingForm) {
   const taskDefinitionKey =
@@ -213,7 +204,7 @@ const BindingFormItems: React.FC<{
         request={async () =>
           (await listProcessModels())
             .filter((item) => item.status !== 'ARCHIVED')
-            .filter(isBusinessBindingModel)
+            .filter(isBusinessProcessModel)
             .map((item) => ({
               label: processDisplayName(item.modelKey, item.modelName),
               value: item.id,
@@ -348,6 +339,7 @@ const FormBindings: React.FC = () => {
   const columns: ProColumns<BindingTableItem>[] = [
     {
       title: '绑定范围',
+      key: 'bindingType',
       dataIndex: 'taskDefinitionKey',
       width: 120,
       valueType: 'select',
@@ -359,12 +351,15 @@ const FormBindings: React.FC = () => {
     },
     {
       title: '流程模型',
+      key: 'processModel',
       dataIndex: 'processModelId',
+      width: 260,
       ellipsis: true,
       render: (_, record) => modelBindingLabel(record),
     },
     {
       title: '绑定位置',
+      key: 'bindingTarget',
       dataIndex: 'taskDefinitionKey',
       width: 180,
       render: (_, record) => bindingTargetLabel(record),
@@ -493,7 +488,7 @@ const FormBindings: React.FC = () => {
             formSchema: schemaMap.get(item.formSchemaId),
           }));
           const businessData = data.filter((item) =>
-            isBusinessBindingModel(item.processModel),
+            isBusinessProcessModel(item.processModel),
           );
           const scopedData = queryFormSchemaId
             ? businessData.filter(

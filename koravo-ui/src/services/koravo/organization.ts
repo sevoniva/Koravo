@@ -152,22 +152,43 @@ function organizationProfileFieldKind(
     [
       'applicant',
       'applicantname',
+      'applicantuser',
+      'applicantuserid',
+      'applicantusername',
+      'applicantperson',
+      'applicantpersonname',
       'requester',
       'requestername',
+      'requesteruser',
+      'requesteruserid',
+      'requesterusername',
+      'requesterperson',
+      'requesterpersonname',
       'startuserid',
       'startuser',
       'startusername',
+      'startperson',
+      'startpersonname',
       'applyuser',
       'applyuserid',
       'applyusername',
+      'applyperson',
+      'applypersonname',
+      'applyemployee',
+      'applyemployeename',
       'submitter',
       'submittername',
+      'submituserid',
+      'submitusername',
+      'submitperson',
+      'submitpersonname',
       'creator',
       'createdby',
+      'creatorname',
       'initiator',
       'initiatorname',
     ].includes(key) ||
-    /申请人|申请员工|发起人|提交人|填报人|经办人|创建人/.test(title)
+    /申请人|申请员工|申请人员|申请者|发起人|提交人|填报人|经办人|创建人|申请账号|发起账号/.test(title)
   ) {
     return 'applicant';
   }
@@ -179,18 +200,32 @@ function organizationProfileFieldKind(
       'departmentname',
       'dept',
       'deptname',
+      'orgdepartment',
+      'orgdept',
       'applydept',
       'applydeptname',
+      'applydepartment',
+      'applydepartmentname',
       'applicantdepartment',
       'applicantdept',
+      'applicantdepartmentname',
+      'applicantdeptname',
       'requesterdepartment',
       'requesterdept',
+      'requesterdepartmentname',
+      'requesterdeptname',
       'startdepartment',
+      'startdepartmentname',
       'startdept',
+      'startdeptname',
       'submitdepartment',
+      'submitdepartmentname',
       'submitdept',
+      'submitdeptname',
+      'createdepartment',
+      'createdept',
     ].includes(key) ||
-      /申请部门|发起部门|提交部门|填报部门|所属部门|所在部门|经办部门|部门$/.test(title) ||
+      /申请部门|发起部门|提交部门|填报部门|所属部门|所在部门|经办部门|创建部门|部门名称|部门$/.test(title) ||
       /department|dept/.test(combined))
   ) {
     return 'department';

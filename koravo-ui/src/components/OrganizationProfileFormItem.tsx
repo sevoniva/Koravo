@@ -1,5 +1,6 @@
 import { Form, Input, Space, Tag, Typography } from 'antd';
 import type React from 'react';
+import { useEffect, useMemo } from 'react';
 
 interface OrganizationProfileFormItemProps {
   name: string | Array<string | number>;
@@ -12,11 +13,18 @@ interface OrganizationProfileFormItemProps {
 const OrganizationProfileFormItem: React.FC<
   OrganizationProfileFormItemProps
 > = ({ name, label, value, required, sourceText = '组织档案' }) => {
+  const form = Form.useFormInstance();
   const displayValue = value || '-';
+  const namePathKey = Array.isArray(name) ? name.join('.') : name;
+  const namePath = useMemo(() => name, [namePathKey]);
+
+  useEffect(() => {
+    form.setFieldValue(namePath, displayValue);
+  }, [displayValue, form, namePath]);
 
   return (
     <>
-      <Form.Item name={name} initialValue={displayValue} hidden>
+      <Form.Item name={namePath} initialValue={displayValue} hidden>
         <Input type="hidden" />
       </Form.Item>
       <Form.Item label={label} required={required}>

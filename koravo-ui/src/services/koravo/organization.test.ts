@@ -43,6 +43,9 @@ describe('organization display helpers', () => {
     expect(isOrganizationProfileField('apply_user_name', '申请员工')).toBe(true);
     expect(isOrganizationProfileField('requesterDept', '提交部门')).toBe(true);
     expect(isOrganizationProfileField('submit_department', '经办部门')).toBe(true);
+    expect(isOrganizationProfileField('applicantUserName', '申请人员')).toBe(true);
+    expect(isOrganizationProfileField('applyPersonName', '申请者')).toBe(true);
+    expect(isOrganizationProfileField('requesterDepartmentName', '部门名称')).toBe(true);
     expect(organizationProfileFieldValue('applyUserName', undefined, session, '申请人')).toBe(
       '业务申请专员',
     );

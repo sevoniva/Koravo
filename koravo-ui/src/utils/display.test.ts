@@ -3,6 +3,7 @@ import {
   buildVersionLabel,
   businessFieldLabel,
   connectionAddressLabel,
+  isBusinessProcessModel,
   processModelKeyLabel,
   productCopy,
   shortTraceLabel,
@@ -41,5 +42,29 @@ describe('display helpers', () => {
     expect(businessFieldLabel('handlerConfiguration')).toBe('处理器配置');
     expect(businessFieldLabel('executionId')).toBe('执行编号');
     expect(businessFieldLabel('delegateExpression')).toBe('执行表达式');
+  });
+
+  it('filters non-business process models consistently', () => {
+    expect(
+      isBusinessProcessModel({
+        modelKey: 'designerDeployCheck',
+        modelName: '流程发布检查',
+        description: '验证设计器部署入口',
+      }),
+    ).toBe(false);
+    expect(
+      isBusinessProcessModel({
+        modelKey: 'koravoProcessmq5amzdq',
+        modelName: '新12313流程123',
+        description: '',
+      }),
+    ).toBe(false);
+    expect(
+      isBusinessProcessModel({
+        modelKey: 'multiAcceptance',
+        modelName: '多人验收流程',
+        description: '验收申请提交后并行处理。',
+      }),
+    ).toBe(true);
   });
 });

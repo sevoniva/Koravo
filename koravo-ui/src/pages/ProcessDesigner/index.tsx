@@ -54,6 +54,7 @@ import {
   organizationHandlerOptions,
 } from '@/services/koravo/organization';
 import {
+  isBusinessProcessModel,
   processDisplayName,
   processModelKeyLabel,
   processStatusLabel,
@@ -73,9 +74,6 @@ interface ModelFormValues {
 }
 
 type ModelViewMode = 'business' | 'all';
-
-const hiddenBusinessModelKeys = new Set(['httpConnectorDemo']);
-const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
 
 const useStyles = createStyles(({ css, token }) => ({
   workbench: css`
@@ -204,13 +202,6 @@ function isServiceTask(element?: BpmnSelectedElement) {
   return element?.elementType === 'bpmn:ServiceTask';
 }
 
-function isBusinessModel(record: ProcessModelItem) {
-  if (hiddenBusinessModelKeys.has(record.modelKey)) return false;
-  return ![record.modelName, record.description, record.modelKey].some(
-    (value) => nonBusinessModelPattern.test(String(value || '')),
-  );
-}
-
 const ProcessDesigner: React.FC = () => {
   const location = useLocation();
   const { message, modal } = App.useApp();
@@ -247,7 +238,7 @@ const ProcessDesigner: React.FC = () => {
   const activeModel = selectedId ? selected : undefined;
   const visibleModels =
     modelViewMode === 'business'
-      ? (models || []).filter(isBusinessModel)
+      ? (models || []).filter(isBusinessProcessModel)
       : models || [];
   const handlerOptions = organizationHandlerOptions();
   const candidateGroupOptions = organizationGroupOptions();

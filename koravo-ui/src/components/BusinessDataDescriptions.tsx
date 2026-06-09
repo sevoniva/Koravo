@@ -4,6 +4,10 @@ import {
 } from '@ant-design/pro-components';
 import { Empty, Tag, Typography } from 'antd';
 import React from 'react';
+import {
+  isOrganizationProfileField,
+  organizationProfileFieldValue,
+} from '@/services/koravo/organization';
 import { businessFieldLabel, productCopy } from '@/utils/display';
 import { maskSecret } from '@/utils/format';
 
@@ -76,6 +80,20 @@ function valueText(value: unknown): string {
   return productCopy(String(value)) || String(value);
 }
 
+function fieldValueText(field: BusinessField, value: unknown): string {
+  if (isOrganizationProfileField(field.key, field.title)) {
+    return (
+      organizationProfileFieldValue(
+        field.key,
+        { [field.key]: value },
+        undefined,
+        field.title,
+      ) || '-'
+    );
+  }
+  return valueText(value);
+}
+
 function renderValue(field: BusinessField, value: unknown) {
   if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'boolean') {
@@ -94,20 +112,20 @@ function renderValue(field: BusinessField, value: unknown) {
         }}
         style={{ marginBottom: 0 }}
       >
-        {valueText(value)}
+        {fieldValueText(field, value)}
       </Typography.Paragraph>
     );
   }
   return (
-    <Typography.Text ellipsis={{ tooltip: valueText(value) }}>
-      {valueText(value)}
+    <Typography.Text ellipsis={{ tooltip: fieldValueText(field, value) }}>
+      {fieldValueText(field, value)}
     </Typography.Text>
   );
 }
 
 function isLongField(field: BusinessField, value: unknown) {
   if (field.widget === 'textarea') return true;
-  const text = valueText(value);
+  const text = fieldValueText(field, value);
   return (
     text.length > 32 || field.type === 'array' || typeof value === 'object'
   );

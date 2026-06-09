@@ -5,14 +5,14 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import {
+  type ActionType,
   ModalForm,
   PageContainer,
+  type ProColumns,
   ProFormText,
   ProFormTextArea,
   ProFormUploadButton,
   ProTable,
-  type ActionType,
-  type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import {
@@ -33,23 +33,24 @@ import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   archiveProcessModel,
+  type BpmnTaskDefinition,
+  type BpmnValidationResult,
   createProcessModel,
   deployProcessModel,
   deployProcessModelDraft,
   disableProcessModel,
   exportProcessModel,
-  listFormBindings,
-  listProcessModelTaskDefinitions,
-  listProcessModels,
-  validateProcessModel,
-  type BpmnTaskDefinition,
-  type BpmnValidationResult,
   type FormBindingItem,
+  listFormBindings,
+  listProcessModels,
+  listProcessModelTaskDefinitions,
   type ProcessModelItem,
+  validateProcessModel,
 } from '@/services/koravo/api';
 import {
-  processDescriptionLabel,
+  isBusinessProcessModel,
   processDefinitionLabel,
+  processDescriptionLabel,
   processDisplayName,
   processModelKeyLabel,
   processStatusLabel,
@@ -87,8 +88,6 @@ type ProcessModelTableItem = ProcessModelItem & {
 
 const START_FORM_TASK_KEY = '__START__';
 const assigneeRequiredCode = 'BPMN_USER_TASK_ASSIGNEE_REQUIRED';
-const hiddenBusinessModelKeys = new Set(['httpConnectorDemo']);
-const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
 
 function downloadModelFile(record: ProcessModelItem, blob: Blob) {
   const url = URL.createObjectURL(blob);
@@ -101,13 +100,6 @@ function downloadModelFile(record: ProcessModelItem, blob: Blob) {
 
 function deployedDefinitionText(record: ProcessModelItem) {
   return processDefinitionLabel(record.flowableDefinitionId || record.modelKey);
-}
-
-function isBusinessModel(record: ProcessModelItem) {
-  if (hiddenBusinessModelKeys.has(record.modelKey)) return false;
-  return ![record.modelName, record.description, record.modelKey].some((value) =>
-    nonBusinessModelPattern.test(String(value || '')),
-  );
 }
 
 function getModelBindings(
@@ -266,8 +258,7 @@ const ProcessModels: React.FC = () => {
       content: (
         <Flex vertical gap={12}>
           <span>
-            {processDisplayName(record.modelKey, record.modelName)} 已部署为
-            {' '}
+            {processDisplayName(record.modelKey, record.modelName)} 已部署为{' '}
             {deployedDefinitionText(record)}
           </span>
           <Space wrap>
@@ -354,7 +345,8 @@ const ProcessModels: React.FC = () => {
         )}
         {validation.warnings.length > 0 && (
           <Typography.Text type="secondary">
-            流程文件提醒：{validation.warnings.map((item) => item.message).join('；')}
+            流程文件提醒：
+            {validation.warnings.map((item) => item.message).join('；')}
           </Typography.Text>
         )}
       </Flex>
@@ -378,8 +370,13 @@ const ProcessModels: React.FC = () => {
     {
       title: '模型名称',
       dataIndex: 'modelName',
-      render: (_, record) =>
-        processDisplayName(record.modelKey, record.modelName),
+      width: 220,
+      ellipsis: true,
+      render: (_, record) => (
+        <Typography.Text ellipsis={{ tooltip: true }}>
+          {processDisplayName(record.modelKey, record.modelName)}
+        </Typography.Text>
+      ),
     },
     {
       title: '流程标识',
@@ -581,7 +578,9 @@ const ProcessModels: React.FC = () => {
             listFormBindings(),
           ]);
           const visibleModels =
-            viewMode === 'business' ? models.filter(isBusinessModel) : models;
+            viewMode === 'business'
+              ? models.filter(isBusinessProcessModel)
+              : models;
           const keyword = String(
             params.modelName || params.modelKey || '',
           ).trim();

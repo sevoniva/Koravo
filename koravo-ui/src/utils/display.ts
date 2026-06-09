@@ -188,6 +188,23 @@ export function processModelKeyLabel(modelKey?: string | null) {
   return mapping[modelKey] || modelKey;
 }
 
+const hiddenProcessModelKeys = new Set(['httpConnectorDemo']);
+const nonBusinessProcessModelPattern =
+  /示例|演示|验证|调试|测试|检查|新\d|demo|test|sample/i;
+
+export function isBusinessProcessModel(
+  model?: Pick<
+    ProcessModelItem,
+    'modelKey' | 'modelName' | 'description'
+  > | null,
+) {
+  if (!model) return true;
+  if (hiddenProcessModelKeys.has(model.modelKey)) return false;
+  return ![model.modelName, model.description, model.modelKey].some((value) =>
+    nonBusinessProcessModelPattern.test(String(value || '')),
+  );
+}
+
 export function processDescriptionLabel(
   model?: Pick<ProcessModelItem, 'modelKey' | 'description'> | null,
 ) {

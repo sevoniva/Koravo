@@ -59,6 +59,7 @@ import {
 import {
   businessKeyLabel,
   formSchemaOptionLabel,
+  isBusinessProcessModel,
   processDefinitionLabel,
   processDisplayName,
   productCopy,
@@ -97,8 +98,6 @@ interface JsonSchemaProperty {
   'ui:widget'?: string;
 }
 
-const hiddenStartModelKeys = new Set(['httpConnectorDemo']);
-const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
 const START_FORM_TASK_KEY = '__START__';
 const taskDecisionFieldKeys = new Set([
   'accepted',
@@ -217,13 +216,6 @@ function formSchemaLabel(schema?: FormSchemaItem, version?: number) {
   return formSchemaOptionLabel(schema, version)
     .replace('（', ' ')
     .replace('）', '');
-}
-
-function isBusinessStartModel(model: ProcessModelItem) {
-  if (hiddenStartModelKeys.has(model.modelKey)) return false;
-  return ![model.modelName, model.description, model.modelKey].some((value) =>
-    nonBusinessModelPattern.test(String(value || '')),
-  );
 }
 
 function useQueryProcessModelId() {
@@ -497,7 +489,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
     queryKey: ['start-process-models'],
     queryFn: async () => {
       const models = await listProcessModels('DEPLOYED');
-      return models.filter(isBusinessStartModel);
+      return models.filter(isBusinessProcessModel);
     },
   });
   const { data: formSchemas = [] } = useQuery({
