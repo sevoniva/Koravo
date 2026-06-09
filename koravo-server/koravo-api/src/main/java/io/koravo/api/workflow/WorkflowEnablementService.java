@@ -255,6 +255,12 @@ public class WorkflowEnablementService {
             actions.add("更新验收申请表");
             changed = true;
         }
+        if (!StringUtils.hasText(form.getUiSchemaJson()) || !form.getUiSchemaJson().contains("organizationProfile")) {
+            form.setUiSchemaJson(WorkflowEnablementDefaults.acceptanceFormUiSchema());
+            form.setVersion(Math.max(1, form.getVersion() + 1));
+            actions.add("更新验收申请表组织字段");
+            changed = true;
+        }
         if (form.getStatus() != FormStatus.ACTIVE) {
             form.setStatus(FormStatus.ACTIVE);
             changed = true;

@@ -474,6 +474,20 @@ function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
   });
 }
 
+function isTaskProfileField(field: SchemaField) {
+  return (
+    field.widget === 'organizationProfile' ||
+    isOrganizationProfileField(field.fieldKey, field.title)
+  );
+}
+
+function isTaskAssigneeField(field: SchemaField) {
+  return (
+    field.widget === 'organizationMember' ||
+    isOrganizationAssigneeField(field.fieldKey, field.title)
+  );
+}
+
 function normalizeFormValues(values?: JsonRecord): JsonRecord {
   return Object.entries(values || {}).reduce<JsonRecord>(
     (result, [key, value]) => {
@@ -582,7 +596,7 @@ const SchemaDrivenFields: React.FC<{
           ? [{ required: true, message: `请输入${field.title}` }]
           : undefined;
         const name = ['formValues', field.fieldKey];
-        if (isOrganizationAssigneeField(field.fieldKey, field.title)) {
+        if (isTaskAssigneeField(field)) {
           return (
             <ProFormSelect
               key={field.fieldKey}
@@ -606,7 +620,7 @@ const SchemaDrivenFields: React.FC<{
             />
           );
         }
-        if (isOrganizationProfileField(field.fieldKey, field.title)) {
+        if (isTaskProfileField(field)) {
           return (
             <OrganizationProfileFormItem
               key={field.fieldKey}

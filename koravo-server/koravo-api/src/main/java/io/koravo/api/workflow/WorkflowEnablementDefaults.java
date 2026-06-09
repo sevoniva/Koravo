@@ -154,6 +154,18 @@ public final class WorkflowEnablementDefaults {
     public static String acceptanceFormUiSchema() {
         return """
                 {
+                  "applicant": {
+                    "widget": "organizationProfile"
+                  },
+                  "department": {
+                    "widget": "organizationProfile"
+                  },
+                  "managerApprover": {
+                    "widget": "organizationMember"
+                  },
+                  "financeApprover": {
+                    "widget": "organizationMember"
+                  },
                   "acceptanceScope": {
                     "widget": "textarea"
                   },

@@ -138,6 +138,9 @@ const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
   organizationMember: '组织成员',
 };
 
+const systemFieldTooltip =
+  '系统字段由组织档案联动，保存时自动按系统带出处理。';
+
 const parseJsonObject = (value?: string) => {
   if (!value) return {};
   try {
@@ -166,6 +169,22 @@ const normalizeWidget = (
   if (widget === 'select') return 'select';
   return 'input';
 };
+
+const usesOrganizationProfile = (field: {
+  fieldKey?: string;
+  title?: string;
+  widget?: string;
+}) =>
+  field.widget === 'organizationProfile' ||
+  isOrganizationProfileField(field.fieldKey, field.title);
+
+const usesOrganizationAssignee = (field: {
+  fieldKey?: string;
+  title?: string;
+  widget?: string;
+}) =>
+  field.widget === 'organizationMember' ||
+  isOrganizationAssigneeField(field.fieldKey, field.title);
 
 const normalizeOptions = (options?: unknown[]) => {
   if (!Array.isArray(options)) return undefined;
@@ -199,10 +218,15 @@ const schemaToFields = (
   return Object.entries(properties).map(([fieldKey, property]) => {
     const type = normalizeFieldType(property?.type);
     const uiField = uiSchema[fieldKey] as Record<string, unknown> | undefined;
-    const isProfileField = isOrganizationProfileField(fieldKey, property?.title);
-    const isAssigneeField = isOrganizationAssigneeField(fieldKey, property?.title);
     const widget =
       uiField?.['ui:widget'] || uiField?.widget || property?.['ui:widget'];
+    const normalizedWidget = normalizeWidget(widget, type);
+    const isProfileField =
+      normalizedWidget === 'organizationProfile' ||
+      isOrganizationProfileField(fieldKey, property?.title);
+    const isAssigneeField =
+      normalizedWidget === 'organizationMember' ||
+      isOrganizationAssigneeField(fieldKey, property?.title);
     const placeholder =
       uiField?.['ui:placeholder'] ||
       uiField?.placeholder ||
@@ -218,7 +242,7 @@ const schemaToFields = (
           ? 'organizationMember'
           : options?.length
             ? 'select'
-            : normalizeWidget(widget, type),
+            : normalizedWidget,
       placeholder:
         isProfileField || isAssigneeField
           ? undefined
@@ -234,14 +258,8 @@ const schemaToFields = (
 
 const buildPayload = (values: FormSchemaForm) => {
   const fields = (values.fields || []).map((field) => {
-    const isProfileField = isOrganizationProfileField(
-      field.fieldKey,
-      field.title,
-    );
-    const isAssigneeField = isOrganizationAssigneeField(
-      field.fieldKey,
-      field.title,
-    );
+    const isProfileField = usesOrganizationProfile(field);
+    const isAssigneeField = usesOrganizationAssignee(field);
     const type = isProfileField || isAssigneeField ? 'string' : field.type;
     const options =
       isProfileField || isAssigneeField
@@ -347,10 +365,10 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
     dataIndex: 'widget',
     width: 120,
     render: (_, record) => {
-      if (isOrganizationProfileField(record.fieldKey, record.title)) {
+      if (usesOrganizationProfile(record)) {
         return <Tag color="processing">系统带出</Tag>;
       }
-      if (isOrganizationAssigneeField(record.fieldKey, record.title)) {
+      if (usesOrganizationAssignee(record)) {
         return <Tag color="blue">组织成员</Tag>;
       }
       return (
@@ -382,7 +400,7 @@ const renderPreviewField = (field: FormFieldConfig) => {
     ? [{ required: true, message: `请填写${field.title}` }]
     : undefined;
   const name = field.fieldKey;
-  if (isOrganizationAssigneeField(field.fieldKey, field.title)) {
+  if (usesOrganizationAssignee(field)) {
     return (
       <ProFormSelect
         key={field.fieldKey}
@@ -406,7 +424,7 @@ const renderPreviewField = (field: FormFieldConfig) => {
       />
     );
   }
-  if (isOrganizationProfileField(field.fieldKey, field.title)) {
+  if (usesOrganizationProfile(field)) {
     return (
       <OrganizationProfileFormItem
         key={field.fieldKey}
@@ -519,35 +537,55 @@ const renderFormFieldsEditor = () => (
       min={1}
     >
       <Space align="start" wrap>
-        <ProFormText
-          name="fieldKey"
-          label="业务字段"
-          width="sm"
-          tooltip="用于流程变量和表单绑定，建议使用稳定英文名。"
-          rules={[
-            { required: true, message: '请输入业务字段' },
-            {
-              pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
-              message: '仅支持字母、数字、下划线，且不能以数字开头',
-            },
-          ]}
-        />
-        <ProFormText
-          name="title"
-          label="字段名称"
-          width="sm"
-          rules={[{ required: true, message: '请输入字段名称' }]}
-        />
-        <ProFormDependency name={['fieldKey', 'title']}>
-          {({ fieldKey, title }) => {
-            const isProfileField = isOrganizationProfileField(
+        <ProFormDependency name={['fieldKey', 'title', 'widget']}>
+          {({ fieldKey, title, widget }) => {
+            const isSystemField =
+              usesOrganizationProfile({ fieldKey, title, widget }) ||
+              usesOrganizationAssignee({ fieldKey, title, widget });
+            return (
+              <>
+                <ProFormText
+                  name="fieldKey"
+                  label="业务字段"
+                  width="sm"
+                  disabled={isSystemField}
+                  tooltip={
+                    isSystemField
+                      ? systemFieldTooltip
+                      : '用于流程变量和表单绑定，建议使用稳定英文名。'
+                  }
+                  rules={[
+                    { required: true, message: '请输入业务字段' },
+                    {
+                      pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
+                      message: '仅支持字母、数字、下划线，且不能以数字开头',
+                    },
+                  ]}
+                />
+                <ProFormText
+                  name="title"
+                  label="字段名称"
+                  width="sm"
+                  disabled={isSystemField}
+                  tooltip={isSystemField ? systemFieldTooltip : undefined}
+                  rules={[{ required: true, message: '请输入字段名称' }]}
+                />
+              </>
+            );
+          }}
+        </ProFormDependency>
+        <ProFormDependency name={['fieldKey', 'title', 'widget']}>
+          {({ fieldKey, title, widget }) => {
+            const isProfileField = usesOrganizationProfile({
               fieldKey,
               title,
-            );
-            const isAssigneeField = isOrganizationAssigneeField(
+              widget,
+            });
+            const isAssigneeField = usesOrganizationAssignee({
               fieldKey,
               title,
-            );
+              widget,
+            });
             const isSystemField = isProfileField || isAssigneeField;
             return (
               <>

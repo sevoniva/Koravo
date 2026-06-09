@@ -179,15 +179,29 @@ function organizationProfileFieldKind(
       'submitdepartmentname',
       'submitdept',
       'submitdeptname',
+      'applyunit',
+      'applyunitname',
+      'applicantunit',
+      'applicantunitname',
+      'requesterunit',
+      'requesterunitname',
+      'startunit',
+      'startunitname',
+      'submitunit',
+      'submitunitname',
       'createdepartment',
       'createdept',
+      'createunit',
+      'createunitname',
       'operatordepartment',
       'operatordept',
+      'operatorunit',
+      'operatorunitname',
     ].includes(key) ||
-      /申请部门|发起部门|提交部门|填报部门|所属部门|所在部门|经办部门|创建部门|报送部门|组织部门|部门名称|所属组织|申请单位|发起单位|提交单位|所在单位|部门$/.test(
+      /申请部门|发起部门|提交部门|填报部门|所属部门|所在部门|经办部门|创建部门|报送部门|组织部门|部门名称|所属组织|申请单位|发起单位|提交单位|填报单位|经办单位|创建单位|报送单位|所在单位|所属单位|申请科室|发起科室|提交科室|所属科室|所在科室|部门$|单位$|科室$/.test(
         title,
       ) ||
-      /department|dept/.test(combined))
+      /department|dept|unit/.test(combined))
   ) {
     return 'department';
   }

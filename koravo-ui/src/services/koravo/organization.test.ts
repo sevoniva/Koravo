@@ -48,6 +48,8 @@ describe('organization display helpers', () => {
     expect(isOrganizationProfileField('requesterDepartmentName', '部门名称')).toBe(true);
     expect(isOrganizationProfileField('operatorName', '报送人')).toBe(true);
     expect(isOrganizationProfileField('operatorDepartment', '所在单位')).toBe(true);
+    expect(isOrganizationProfileField('applyUnitName', '申请单位')).toBe(true);
+    expect(isOrganizationProfileField('requesterUnitName', '所属科室')).toBe(true);
     expect(organizationProfileFieldValue('applyUserName', undefined, session, '申请人')).toBe(
       '业务申请专员',
     );

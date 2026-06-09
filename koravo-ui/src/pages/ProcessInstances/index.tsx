@@ -185,6 +185,20 @@ function schemaToStartFields(formSchema?: FormSchemaItem): StartFormField[] {
     });
 }
 
+function isStartProfileField(field: StartFormField) {
+  return (
+    field.widget === 'organizationProfile' ||
+    isOrganizationProfileField(field.fieldKey, field.title)
+  );
+}
+
+function isStartAssigneeField(field: StartFormField) {
+  return (
+    field.widget === 'organizationMember' ||
+    isOrganizationAssigneeField(field.fieldKey, field.title)
+  );
+}
+
 function findStartBinding(
   model: ProcessModelItem | undefined,
   bindings: FormBindingItem[],
@@ -745,10 +759,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                   return (
                     <Flex vertical gap={4}>
                       {fields.map((field) =>
-                        isOrganizationAssigneeField(
-                          field.fieldKey,
-                          field.title,
-                        ) ? (
+                        isStartAssigneeField(field) ? (
                           <ProFormSelect
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
@@ -780,10 +791,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                                 : []
                             }
                           />
-                        ) : isOrganizationProfileField(
-                            field.fieldKey,
-                            field.title,
-                          ) ? (
+                        ) : isStartProfileField(field) ? (
                           <OrganizationProfileFormItem
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
