@@ -1,13 +1,14 @@
 import { UserOutlined } from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
-import { Link } from '@umijs/max';
+import { history, Link } from '@umijs/max';
 import { App as AntdApp } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import React from 'react';
 import { ErrorBoundary, Footer, OfflineBanner } from '@/components';
 import type { OrganizationMemberItem } from '@/services/koravo/api';
+import { logout } from '@/services/koravo/api';
 import { setFeedbackApis } from '@/services/koravo/feedback';
 import {
   sessionActorLabel,
@@ -15,7 +16,10 @@ import {
   setOrganizationMembers,
 } from '@/services/koravo/organization';
 import {
+  clearAuthSession,
+  defaultRouteForRole,
   getSessionContext,
+  hasAuthSession,
   type SessionContext,
   type SessionRole,
   sessionRequestHeaders,
@@ -50,11 +54,15 @@ interface OrganizationMembersResponse {
 }
 
 async function loadRuntimeSession() {
+  if (!hasAuthSession()) return getSessionContext();
   try {
     const response = await fetch('/api/v1/health', {
       headers: sessionRequestHeaders(),
     });
-    if (!response.ok) return getSessionContext();
+    if (!response.ok) {
+      if (response.status === 401) clearAuthSession();
+      return getSessionContext();
+    }
     const payload = (await response.json()) as HealthResponse;
     if (payload.success === false || !payload.data) return getSessionContext();
     setRuntimeSessionContext({
@@ -70,6 +78,7 @@ async function loadRuntimeSession() {
 }
 
 async function loadOrganizationDirectory() {
+  if (!hasAuthSession()) return;
   try {
     const response = await fetch('/api/v1/organization/members', {
       headers: sessionRequestHeaders(),
@@ -91,12 +100,14 @@ export async function getInitialState(): Promise<{
   const session = await loadRuntimeSession();
   await loadOrganizationDirectory();
   return {
-    currentUser: {
-      name: sessionActorLabel(session),
-      userid: session.userId,
-      access: session.role,
-      tenantId: session.tenantId,
-    },
+    currentUser: session.token
+      ? {
+          name: sessionActorLabel(session),
+          userid: session.userId,
+          access: session.role,
+          tenantId: session.tenantId,
+        }
+      : undefined,
     session,
     settings: defaultSettings as Partial<LayoutSettings>,
   };
@@ -106,6 +117,15 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
   const session = initialState?.session ?? getSessionContext();
 
   return {
+    onPageChange: () => {
+      const { location } = history;
+      if (!initialState?.currentUser && location.pathname !== '/login') {
+        history.replace('/login');
+      }
+      if (initialState?.currentUser && location.pathname === '/login') {
+        history.replace(defaultRouteForRole(initialState.currentUser.access));
+      }
+    },
     menuItemRender: (item, dom) => {
       if (item.path) {
         return (
@@ -119,6 +139,20 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
     avatarProps: {
       icon: <UserOutlined />,
       title: sessionScopeLabel(session),
+      menu: {
+        items: [{ key: 'logout', label: '退出登录' }],
+        onClick: async ({ key }: { key: string }) => {
+          if (key !== 'logout') return;
+          try {
+            await logout();
+          } catch {
+            // Session cleanup must happen even when the server has already expired it.
+          }
+          clearAuthSession();
+          history.replace('/login');
+          window.location.reload();
+        },
+      },
     },
     footerRender: () => <Footer />,
     ErrorBoundary,

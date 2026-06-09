@@ -1,5 +1,10 @@
 export default [
   {
+    path: '/login',
+    layout: false,
+    component: './Login',
+  },
+  {
     path: '/',
     redirect: '/tasks',
   },

@@ -1,19 +1,27 @@
 import {
+  ModalForm,
   PageContainer,
   ProCard,
   type ProColumns,
   ProDescriptions,
+  ProFormSelect,
+  ProFormText,
   ProTable,
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { history, useLocation } from '@umijs/max';
-import { Alert, Button, Flex, Space, Statistic, Tag, Typography } from 'antd';
+import { Alert, App, Button, Flex, Popconfirm, Space, Statistic, Tag, Typography } from 'antd';
 import React, { useMemo } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
+  createOrganizationMember,
+  disableOrganizationMember,
+  enableOrganizationMember,
   getSystemHealth,
   listOrganizationMembers,
+  resetOrganizationMemberPassword,
   type SystemHealthItem,
+  updateOrganizationMember,
 } from '@/services/koravo/api';
 import {
   getOrganizationMembers,
@@ -58,6 +66,19 @@ interface PermissionMatrixItem {
   manager: string;
   finance: string;
   operator: string;
+}
+
+interface OrganizationMemberFormValues {
+  userId: string;
+  name: string;
+  department: string;
+  role: SessionRole;
+  status?: 'ACTIVE' | 'DISABLED';
+  password?: string;
+}
+
+interface ResetPasswordFormValues {
+  password: string;
 }
 
 const roleOptions: RoleOption[] = [
@@ -149,7 +170,64 @@ function roleLabel(role: SessionRole) {
   return organizationRoleLabel(role);
 }
 
+const MemberFormFields: React.FC<{ passwordRequired?: boolean }> = ({
+  passwordRequired,
+}) => (
+  <>
+    <ProFormText
+      name="userId"
+      label="成员账号"
+      rules={[{ required: true, message: '请输入成员账号' }]}
+      fieldProps={{ maxLength: 64 }}
+    />
+    <ProFormText
+      name="name"
+      label="成员姓名"
+      rules={[{ required: true, message: '请输入成员姓名' }]}
+      fieldProps={{ maxLength: 80 }}
+    />
+    <ProFormText
+      name="department"
+      label="所属部门"
+      rules={[{ required: true, message: '请输入所属部门' }]}
+      fieldProps={{ maxLength: 80 }}
+    />
+    <ProFormSelect
+      name="role"
+      label="岗位职责"
+      options={roleOptions.map((item) => ({
+        label: item.label,
+        value: item.value,
+      }))}
+      rules={[{ required: true, message: '请选择岗位职责' }]}
+    />
+    <ProFormSelect
+      name="status"
+      label="状态"
+      options={[
+        { label: '启用', value: 'ACTIVE' },
+        { label: '停用', value: 'DISABLED' },
+      ]}
+      rules={[{ required: true, message: '请选择成员状态' }]}
+    />
+    <ProFormText.Password
+      name="password"
+      label={passwordRequired ? '初始密码' : '新密码'}
+      fieldProps={{ autoComplete: 'new-password' }}
+      rules={
+        passwordRequired
+          ? [
+              { required: true, message: '请输入初始密码' },
+              { min: 8, message: '密码至少 8 位' },
+            ]
+          : [{ min: 8, message: '密码至少 8 位' }]
+      }
+    />
+  </>
+);
+
 const SystemSettings: React.FC = () => {
+  const { message } = App.useApp();
   const location = useLocation();
   const isOrganizationPage = location.pathname === '/organization-permissions';
   const session = getSessionContext();
@@ -158,7 +236,7 @@ const SystemSettings: React.FC = () => {
     queryFn: getSystemHealth,
     enabled: !isOrganizationPage,
   });
-  const { data: organizationMembers } = useQuery({
+  const { data: organizationMembers, refetch: refetchOrganizationMembers } = useQuery({
     queryKey: ['organization-members'],
     queryFn: listOrganizationMembers,
     enabled: isOrganizationPage,
@@ -240,6 +318,96 @@ const SystemSettings: React.FC = () => {
         </Tag>
       ),
     },
+    {
+      title: '最近登录',
+      dataIndex: 'lastLoginAt',
+      width: 170,
+      renderText: formatDateTime,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 260,
+      render: (_, record) => (
+        <Space size={4} wrap>
+          <ModalForm<OrganizationMemberFormValues>
+            title="编辑成员"
+            trigger={<Button type="link">编辑</Button>}
+            initialValues={{
+              userId: record.userId,
+              name: record.name,
+              department: record.department,
+              role: record.role,
+              status: record.status === '启用' ? 'ACTIVE' : 'DISABLED',
+            }}
+            modalProps={{ destroyOnHidden: true }}
+            submitter={{
+              searchConfig: { submitText: '保存', resetText: '取消' },
+            }}
+            onFinish={async (values) => {
+              await updateOrganizationMember(record.key, values);
+              message.success('成员已更新');
+              await refetchOrganizationMembers();
+              return true;
+            }}
+          >
+            <MemberFormFields />
+          </ModalForm>
+          <ModalForm<ResetPasswordFormValues>
+            title="重置密码"
+            trigger={<Button type="link">重置密码</Button>}
+            modalProps={{ destroyOnHidden: true }}
+            submitter={{
+              searchConfig: { submitText: '确认重置', resetText: '取消' },
+            }}
+            onFinish={async (values) => {
+              await resetOrganizationMemberPassword(record.key, values.password);
+              message.success('密码已重置');
+              await refetchOrganizationMembers();
+              return true;
+            }}
+          >
+            <ProFormText.Password
+              name="password"
+              label="新密码"
+              fieldProps={{ autoComplete: 'new-password' }}
+              rules={[
+                { required: true, message: '请输入新密码' },
+                { min: 8, message: '密码至少 8 位' },
+              ]}
+            />
+          </ModalForm>
+          {record.status === '启用' ? (
+            <Popconfirm
+              title="停用成员"
+              description="停用后该成员不能登录，也不能继续处理待办。"
+              okText="停用"
+              cancelText="取消"
+              onConfirm={async () => {
+                await disableOrganizationMember(record.key);
+                message.success('成员已停用');
+                await refetchOrganizationMembers();
+              }}
+            >
+              <Button type="link" danger>
+                停用
+              </Button>
+            </Popconfirm>
+          ) : (
+            <Button
+              type="link"
+              onClick={async () => {
+                await enableOrganizationMember(record.key);
+                message.success('成员已启用');
+                await refetchOrganizationMembers();
+              }}
+            >
+              启用
+            </Button>
+          )}
+        </Space>
+      ),
+    },
   ];
 
   const organizationPermissionsContent = (
@@ -247,12 +415,34 @@ const SystemSettings: React.FC = () => {
       <Alert
         showIcon
         type="info"
-        title="组织档案由平台身份源同步"
-        description="成员、部门和职责会影响待办分配。发起表单、审批人选择、待办列表和审计记录都会按成员名称展示。"
+        title="组织成员是审批身份源"
+        description="成员、部门和岗位职责会影响登录权限、待办分配、审批人选择和审计记录。"
         style={{ marginBottom: 16 }}
       />
       <ProCard title="组织权限" split="vertical" gutter={16} wrap>
-        <ProCard title="成员清单" colSpan={{ xs: 24, xl: 12 }}>
+        <ProCard
+          title="成员清单"
+          colSpan={{ xs: 24, xl: 14 }}
+          extra={
+            <ModalForm<OrganizationMemberFormValues>
+              title="新增成员"
+              trigger={<Button type="primary">新增成员</Button>}
+              initialValues={{ status: 'ACTIVE', role: 'applicant' }}
+              modalProps={{ destroyOnHidden: true }}
+              submitter={{
+                searchConfig: { submitText: '创建', resetText: '取消' },
+              }}
+              onFinish={async (values) => {
+                await createOrganizationMember(values);
+                message.success('成员已创建');
+                await refetchOrganizationMembers();
+                return true;
+              }}
+            >
+              <MemberFormFields passwordRequired />
+            </ModalForm>
+          }
+        >
           <ProTable<OrganizationMember>
             rowKey="key"
             columns={memberColumns}
@@ -260,11 +450,11 @@ const SystemSettings: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
-            scroll={{ x: 592 }}
+            scroll={{ x: 1040 }}
             size="small"
           />
         </ProCard>
-        <ProCard title="权限矩阵" colSpan={{ xs: 24, xl: 12 }}>
+        <ProCard title="权限矩阵" colSpan={{ xs: 24, xl: 10 }}>
           <ProTable<PermissionMatrixItem>
             rowKey="key"
             columns={permissionColumns}

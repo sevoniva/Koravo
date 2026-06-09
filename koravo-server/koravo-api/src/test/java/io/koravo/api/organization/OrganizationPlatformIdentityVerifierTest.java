@@ -1,5 +1,6 @@
 package io.koravo.api.organization;
 
+import io.koravo.api.auth.LoginSessionRepository;
 import io.koravo.security.PlatformIdentityRequest;
 import io.koravo.security.UserContextHolder;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,11 @@ import static org.mockito.Mockito.when;
 
 class OrganizationPlatformIdentityVerifierTest {
     private final OrganizationMemberRepository repository = mock(OrganizationMemberRepository.class);
-    private final OrganizationPlatformIdentityVerifier verifier = new OrganizationPlatformIdentityVerifier(repository);
+    private final LoginSessionRepository loginSessionRepository = mock(LoginSessionRepository.class);
+    private final OrganizationPlatformIdentityVerifier verifier = new OrganizationPlatformIdentityVerifier(
+            repository,
+            loginSessionRepository
+    );
 
     @Test
     void verifiesActiveMemberFromCurrentTenantDirectory() {
@@ -23,6 +28,7 @@ class OrganizationPlatformIdentityVerifierTest {
         var identity = verifier.verify(new PlatformIdentityRequest("tenant-a", "manager", "admin"));
 
         assertThat(identity).isPresent();
+        assertThat(identity.get().tenantId()).isEqualTo("tenant-a");
         assertThat(identity.get().userId()).isEqualTo("manager");
         assertThat(identity.get().role()).isEqualTo(UserContextHolder.ROLE_MANAGER);
     }

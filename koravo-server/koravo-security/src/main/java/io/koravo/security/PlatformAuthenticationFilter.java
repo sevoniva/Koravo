@@ -25,6 +25,7 @@ public class PlatformAuthenticationFilter extends OncePerRequestFilter {
     public static final String HEADER_USER_ID = "X-Koravo-User-Id";
     public static final String HEADER_USER_ROLE = "X-Koravo-User-Role";
     public static final String HEADER_PLATFORM_TOKEN = "X-Koravo-Platform-Token";
+    public static final String HEADER_AUTHORIZATION = "Authorization";
 
     private final String trustedToken;
     private final boolean allowUnsignedPlatformHeaders;
@@ -62,6 +63,23 @@ public class PlatformAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
+            String bearerToken = bearerToken(request);
+            if (!bearerToken.isBlank()) {
+                Optional<VerifiedPlatformIdentity> verifiedIdentity = identityVerifier.verifyToken(bearerToken);
+                if (verifiedIdentity.isEmpty()) {
+                    unauthorized(response, "登录会话已失效");
+                    return;
+                }
+                VerifiedPlatformIdentity identity = verifiedIdentity.get();
+                if (!tenantId(request).equals(identity.tenantId())) {
+                    unauthorized(response, "登录会话不属于当前组织");
+                    return;
+                }
+                authenticate(identity);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             String userId = request.getHeader(HEADER_USER_ID);
             if (userId == null || userId.isBlank()) {
                 if (isPublicRequest(request)) {
@@ -87,19 +105,32 @@ public class PlatformAuthenticationFilter extends OncePerRequestFilter {
             }
 
             VerifiedPlatformIdentity identity = verifiedIdentity.get();
-            UserContextHolder.setUser(identity.userId(), identity.role());
-            SecurityContextHolder.getContext().setAuthentication(
-                    new UsernamePasswordAuthenticationToken(
-                            UserContextHolder.getUserId(),
-                            "N/A",
-                            AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_" + UserContextHolder.getRole().toUpperCase())
-                    )
-            );
+            authenticate(identity);
             filterChain.doFilter(request, response);
         } finally {
             UserContextHolder.clear();
             SecurityContextHolder.clearContext();
         }
+    }
+
+    private void authenticate(VerifiedPlatformIdentity identity) {
+        UserContextHolder.setUser(identity.userId(), identity.role());
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        UserContextHolder.getUserId(),
+                        "N/A",
+                        AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_" + UserContextHolder.getRole().toUpperCase())
+                )
+        );
+    }
+
+    private String bearerToken(HttpServletRequest request) {
+        String authorization = request.getHeader(HEADER_AUTHORIZATION);
+        if (authorization == null || authorization.isBlank()) {
+            return "";
+        }
+        String prefix = "Bearer ";
+        return authorization.startsWith(prefix) ? authorization.substring(prefix.length()).trim() : "";
     }
 
     private boolean hasTrustedPlatformToken(HttpServletRequest request) {
@@ -117,7 +148,8 @@ public class PlatformAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         return path.startsWith("/swagger-ui/")
                 || path.equals("/v3/api-docs")
-                || path.startsWith("/v3/api-docs/");
+                || path.startsWith("/v3/api-docs/")
+                || path.equals("/api/v1/auth/login");
     }
 
     private void unauthorized(HttpServletResponse response) throws IOException {

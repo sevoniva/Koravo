@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   getSessionContext,
+  defaultRouteForRole,
+  setAuthSession,
   sessionRequestHeaders,
+  clearAuthSession,
   setLastRequestId,
   setRuntimeSessionContext,
 } from './session';
@@ -9,6 +12,7 @@ import {
 describe('session context', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    clearAuthSession();
     setRuntimeSessionContext({ tenantId: 'default', userId: 'admin', role: 'admin' });
   });
 
@@ -49,18 +53,18 @@ describe('session context', () => {
     });
   });
 
-  it('sends the platform identity context with each request', () => {
-    setRuntimeSessionContext({
+  it('sends bearer session credentials after login', () => {
+    setAuthSession({
       tenantId: 'finance-org',
       userId: 'finance',
       role: 'finance',
+      token: 'session-token',
       requestId: 'TRACE-20260609-002',
     });
 
     expect(sessionRequestHeaders()).toEqual({
       'X-Koravo-Tenant-Id': 'finance-org',
-      'X-Koravo-User-Id': 'finance',
-      'X-Koravo-User-Role': 'finance',
+      Authorization: 'Bearer session-token',
       'X-Request-Id': 'TRACE-20260609-002',
     });
   });
@@ -72,5 +76,13 @@ describe('session context', () => {
       userId: 'anonymous',
       role: 'applicant',
     });
+  });
+
+  it('routes users to a role-appropriate landing page after login', () => {
+    expect(defaultRouteForRole('admin')).toBe('/dashboard');
+    expect(defaultRouteForRole('operator')).toBe('/ops');
+    expect(defaultRouteForRole('applicant')).toBe('/tasks');
+    expect(defaultRouteForRole('manager')).toBe('/tasks');
+    expect(defaultRouteForRole('finance')).toBe('/tasks');
   });
 });

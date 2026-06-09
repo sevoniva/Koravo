@@ -4,7 +4,8 @@ import {
   showErrorMessage,
   showErrorNotification,
 } from './services/koravo/feedback';
-import { getSessionContext, setLastRequestId } from './services/koravo/session';
+import { history } from '@umijs/max';
+import { clearAuthSession, getSessionContext, setLastRequestId } from './services/koravo/session';
 
 interface KoravoResponse {
   success?: boolean;
@@ -37,6 +38,10 @@ export const errorConfig: RequestConfig = {
       if (error.response) {
         const requestId =
           error.response?.data?.requestId || error.response?.headers?.['x-request-id'];
+        if (error.response.status === 401 && history.location.pathname !== '/login') {
+          clearAuthSession();
+          history.replace('/login');
+        }
         const suffix = requestId ? `（追踪号 ${requestId}）` : '';
         showErrorNotification({
           message: `HTTP ${error.response.status}`,

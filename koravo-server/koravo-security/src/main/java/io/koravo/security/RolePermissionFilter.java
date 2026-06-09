@@ -57,6 +57,12 @@ public class RolePermissionFilter extends OncePerRequestFilter {
                     prefix("/api/v1/connector-execution-logs", OPS_ROLES)
             ),
             "POST", List.of(
+                    rule("/api/v1/auth/login", ALL_BUSINESS_ROLES),
+                    rule("/api/v1/auth/logout", ALL_BUSINESS_ROLES),
+                    rule("/api/v1/organization/members", ADMIN_ROLES),
+                    rule("/api/v1/organization/members/[^/]+/enable", ADMIN_ROLES),
+                    rule("/api/v1/organization/members/[^/]+/disable", ADMIN_ROLES),
+                    rule("/api/v1/organization/members/[^/]+/reset-password", ADMIN_ROLES),
                     rule("/api/v1/process-instances/start", List.of(UserContextHolder.ROLE_APPLICANT)),
                     rule("/api/v1/tasks/[^/]+/complete", APPROVAL_ROLES),
                     rule("/api/v1/tasks/[^/]+/actions", APPROVAL_ROLES),
@@ -68,6 +74,7 @@ public class RolePermissionFilter extends OncePerRequestFilter {
                     prefix("/api/v1/ops", OPS_ROLES)
             ),
             "PUT", List.of(
+                    rule("/api/v1/organization/members/[^/]+", ADMIN_ROLES),
                     prefix("/api/v1/process-models", ADMIN_ROLES),
                     prefix("/api/v1/forms", ADMIN_ROLES),
                     prefix("/api/v1/form-bindings", ADMIN_ROLES),
@@ -122,7 +129,8 @@ public class RolePermissionFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         return path.startsWith("/swagger-ui/")
                 || path.equals("/v3/api-docs")
-                || path.startsWith("/v3/api-docs/");
+                || path.startsWith("/v3/api-docs/")
+                || path.equals("/api/v1/auth/login");
     }
 
     private static EndpointRule rule(String pattern, List<String> roles) {

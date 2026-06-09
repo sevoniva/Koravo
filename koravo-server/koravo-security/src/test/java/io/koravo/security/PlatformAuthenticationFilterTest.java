@@ -6,6 +6,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PlatformAuthenticationFilterTest {
@@ -75,6 +77,90 @@ class PlatformAuthenticationFilterTest {
         );
 
         assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void keepsLoginPublicWithoutPlatformIdentity() throws Exception {
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "",
+                false,
+                "default",
+                PlatformIdentityVerifier.allowAll()
+        );
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/auth/login");
+        request.setRequestURI("/api/v1/auth/login");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) ->
+                assertThat(UserContextHolder.getUserId()).isEqualTo(UserContextHolder.ANONYMOUS)
+        );
+
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void usesBearerSessionTokenBeforePlatformHeaders() throws Exception {
+        PlatformIdentityVerifier verifier = new PlatformIdentityVerifier() {
+            @Override
+            public Optional<VerifiedPlatformIdentity> verify(PlatformIdentityRequest request) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<VerifiedPlatformIdentity> verifyToken(String token) {
+                return "session-token".equals(token)
+                        ? Optional.of(new VerifiedPlatformIdentity("default", "manager", UserContextHolder.ROLE_MANAGER))
+                        : Optional.empty();
+            }
+        };
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "",
+                false,
+                "default",
+                verifier
+        );
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_AUTHORIZATION, "Bearer session-token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            assertThat(UserContextHolder.getUserId()).isEqualTo("manager");
+            assertThat(UserContextHolder.getRole()).isEqualTo(UserContextHolder.ROLE_MANAGER);
+        });
+
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void rejectsBearerSessionFromAnotherTenant() throws Exception {
+        PlatformIdentityVerifier verifier = new PlatformIdentityVerifier() {
+            @Override
+            public Optional<VerifiedPlatformIdentity> verify(PlatformIdentityRequest request) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<VerifiedPlatformIdentity> verifyToken(String token) {
+                return Optional.of(new VerifiedPlatformIdentity("tenant-b", "manager", UserContextHolder.ROLE_MANAGER));
+            }
+        };
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "",
+                false,
+                "default",
+                verifier
+        );
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
+        request.addHeader(PlatformAuthenticationFilter.HEADER_AUTHORIZATION, "Bearer session-token");
+        request.addHeader("X-Koravo-Tenant-Id", "tenant-a");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            throw new AssertionError("cross-tenant session must stop the request");
+        });
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getContentAsString()).contains("登录会话不属于当前组织");
     }
 
     @Test

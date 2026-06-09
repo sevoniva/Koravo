@@ -1,21 +1,30 @@
 package io.koravo.api.organization;
 
+import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class OrganizationDirectoryServiceTest {
     private final OrganizationMemberRepository repository = mock(OrganizationMemberRepository.class);
-    private final OrganizationDirectoryService service = new OrganizationDirectoryService(repository);
+    private final AuditLogService auditLogService = mock(AuditLogService.class);
+    private final OrganizationDirectoryService service = new OrganizationDirectoryService(
+            repository,
+            new BCryptPasswordEncoder(),
+            auditLogService,
+            "Koravo@2026"
+    );
 
     @AfterEach
     void tearDown() {
@@ -41,8 +50,9 @@ class OrganizationDirectoryServiceTest {
             assertThat(member.department()).isEqualTo("业务一部");
             assertThat(member.role()).isEqualTo(UserContextHolder.ROLE_MANAGER);
             assertThat(member.status()).isEqualTo("ACTIVE");
+            assertThat(member.passwordConfigured()).isTrue();
         });
-        verify(repository).findByTenantIdAndDeletedFalseOrderByDepartmentAscNameAsc("tenant-a");
+        verify(repository, times(2)).findByTenantIdAndDeletedFalseOrderByDepartmentAscNameAsc("tenant-a");
     }
 
     @Test
@@ -73,6 +83,7 @@ class OrganizationDirectoryServiceTest {
         member.setDepartment(department);
         member.setRole(role);
         member.setStatus("ACTIVE");
+        member.setPasswordHash("{noop}test");
         return member;
     }
 }

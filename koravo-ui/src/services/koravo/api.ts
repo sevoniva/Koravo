@@ -303,6 +303,18 @@ export interface OrganizationMemberItem {
   department: string
   role: string
   status: string
+  passwordConfigured?: boolean
+  lastLoginAt?: string
+}
+
+export interface LoginResult {
+  token: string
+  tenantId: string
+  userId: string
+  name: string
+  department: string
+  role: string
+  expiresAt: string
 }
 
 export interface TaskListParams {
@@ -436,6 +448,54 @@ export function listDoneTasks(params?: TaskListParams) {
 
 export function listOrganizationMembers() {
   return apiData<OrganizationMemberItem[]>(http.get('/organization/members'))
+}
+
+export function login(payload: {
+  tenantId?: string
+  userId: string
+  password: string
+}) {
+  return apiData<LoginResult>(http.post('/auth/login', payload))
+}
+
+export function logout() {
+  return apiData<void>(http.post('/auth/logout'))
+}
+
+export function createOrganizationMember(payload: {
+  userId: string
+  name: string
+  department: string
+  role: string
+  status?: string
+  password?: string
+}) {
+  return apiData<OrganizationMemberItem>(http.post('/organization/members', payload))
+}
+
+export function updateOrganizationMember(memberId: string, payload: {
+  userId: string
+  name: string
+  department: string
+  role: string
+  status?: string
+  password?: string
+}) {
+  return apiData<OrganizationMemberItem>(http.put(`/organization/members/${memberId}`, payload))
+}
+
+export function enableOrganizationMember(memberId: string) {
+  return apiData<OrganizationMemberItem>(http.post(`/organization/members/${memberId}/enable`))
+}
+
+export function disableOrganizationMember(memberId: string) {
+  return apiData<OrganizationMemberItem>(http.post(`/organization/members/${memberId}/disable`))
+}
+
+export function resetOrganizationMemberPassword(memberId: string, password: string) {
+  return apiData<OrganizationMemberItem>(
+    http.post(`/organization/members/${memberId}/reset-password`, { password }),
+  )
 }
 
 export function listStartedInstances(params?: TaskListParams) {

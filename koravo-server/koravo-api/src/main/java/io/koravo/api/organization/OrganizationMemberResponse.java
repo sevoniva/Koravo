@@ -7,6 +7,8 @@ public record OrganizationMemberResponse(
         String name,
         String department,
         String role,
-        String status
+        String status,
+        boolean passwordConfigured,
+        java.time.Instant lastLoginAt
 ) {
 }

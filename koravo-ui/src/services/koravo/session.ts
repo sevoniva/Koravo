@@ -3,17 +3,19 @@ export interface SessionContext {
   userId: string;
   role: SessionRole;
   requestId: string;
+  token?: string;
   lastRequestId?: string;
 }
 
 export type SessionRole = 'admin' | 'applicant' | 'manager' | 'finance' | 'operator';
 
 const LEGACY_SESSION_STORAGE_KEY = 'koravo.session';
+const AUTH_SESSION_STORAGE_KEY = 'koravo.auth';
 const LAST_REQUEST_STORAGE_KEY = 'koravo.lastRequestId';
 
 const defaultSession: SessionContext = {
   tenantId: 'default',
-  userId: 'applicant',
+  userId: 'anonymous',
   role: 'applicant',
   requestId: '',
 };
@@ -44,6 +46,10 @@ function normalizeUserId(userId?: string) {
 }
 
 export function getSessionContext(): SessionContext {
+  const authSession = readStoredAuthSession();
+  if (authSession) {
+    runtimeSession = { ...runtimeSession, ...authSession };
+  }
   if (!canUseStorage()) return runtimeSession;
   const lastRequestId =
     window.localStorage.getItem(LAST_REQUEST_STORAGE_KEY) || undefined;
@@ -55,9 +61,14 @@ export function sessionRequestHeaders(headers?: Record<string, string>) {
   const platformToken = process.env.UMI_APP_KORAVO_PLATFORM_TOKEN;
   return {
     'X-Koravo-Tenant-Id': session.tenantId,
-    'X-Koravo-User-Id': session.userId,
-    'X-Koravo-User-Role': session.role,
-    ...(platformToken ? { 'X-Koravo-Platform-Token': platformToken } : {}),
+    ...(session.token ? { Authorization: `Bearer ${session.token}` } : {}),
+    ...(!session.token && platformToken && session.userId !== 'anonymous'
+      ? {
+          'X-Koravo-User-Id': session.userId,
+          'X-Koravo-User-Role': session.role,
+          'X-Koravo-Platform-Token': platformToken,
+        }
+      : {}),
     ...(session.requestId ? { 'X-Request-Id': session.requestId } : {}),
     ...headers,
   };
@@ -76,6 +87,7 @@ export function setRuntimeSessionContext(value: Partial<SessionContext>) {
     userId: nextUserId,
     role: nextRole,
     requestId: value.requestId || runtimeSession.requestId,
+    token: value.token ?? runtimeSession.token,
   };
 }
 
@@ -96,4 +108,64 @@ export function setLastRequestId(requestId?: string) {
   } catch {
     // Ignore storage failures; the request itself has already completed.
   }
+}
+
+function readStoredAuthSession() {
+  if (!canUseStorage()) return undefined;
+  try {
+    const value = window.localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+    if (!value) return undefined;
+    const parsed = JSON.parse(value) as Partial<SessionContext>;
+    if (!parsed.token || !parsed.userId) return undefined;
+    return {
+      tenantId: parsed.tenantId || defaultSession.tenantId,
+      userId: normalizeUserId(parsed.userId),
+      role: normalizeRole(parsed.role),
+      requestId: parsed.requestId || '',
+      token: parsed.token,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+export function hasAuthSession() {
+  return Boolean(getSessionContext().token);
+}
+
+export function setAuthSession(value: Partial<SessionContext> & { token: string }) {
+  setRuntimeSessionContext(value);
+  if (!canUseStorage()) return;
+  try {
+    window.localStorage.setItem(
+      AUTH_SESSION_STORAGE_KEY,
+      JSON.stringify({
+        tenantId: runtimeSession.tenantId,
+        userId: runtimeSession.userId,
+        role: runtimeSession.role,
+        requestId: runtimeSession.requestId,
+        token: runtimeSession.token,
+      }),
+    );
+  } catch {
+    // Runtime state is enough for the current tab.
+  }
+}
+
+export function clearAuthSession() {
+  runtimeSession = defaultSession;
+  if (!canUseStorage()) return;
+  try {
+    window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+    window.localStorage.removeItem(LAST_REQUEST_STORAGE_KEY);
+    clearLegacySessionOverride();
+  } catch {
+    // Ignore storage cleanup failures; the next request will still be unauthenticated.
+  }
+}
+
+export function defaultRouteForRole(role?: SessionRole) {
+  if (role === 'admin') return '/dashboard';
+  if (role === 'operator') return '/ops';
+  return '/tasks';
 }

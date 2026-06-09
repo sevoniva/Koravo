@@ -5,6 +5,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "ko_organization_member")
 public class KoOrganizationMember extends BaseEntity {
@@ -22,6 +24,12 @@ public class KoOrganizationMember extends BaseEntity {
 
     @Column(name = "status", nullable = false, length = 64)
     private String status;
+
+    @Column(name = "password_hash", length = 128)
+    private String passwordHash;
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
 
     public String getUserId() {
         return userId;
@@ -61,5 +69,21 @@ public class KoOrganizationMember extends BaseEntity {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(Instant lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 }

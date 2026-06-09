@@ -9,6 +9,8 @@ export interface OrganizationMember {
   department: string;
   role: SessionRole;
   status: string;
+  passwordConfigured?: boolean;
+  lastLoginAt?: string;
 }
 
 const expression = (name: string) => '$' + `{${name}}`;
@@ -100,6 +102,8 @@ export function normalizeOrganizationMember(member: OrganizationMemberItem | Org
     department: member.department,
     role: normalizeRole(member.role),
     status: normalizeMemberStatus(member.status),
+    passwordConfigured: 'passwordConfigured' in member ? member.passwordConfigured : undefined,
+    lastLoginAt: 'lastLoginAt' in member ? member.lastLoginAt : undefined,
   };
 }
 
