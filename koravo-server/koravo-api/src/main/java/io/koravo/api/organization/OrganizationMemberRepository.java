@@ -11,4 +11,10 @@ public interface OrganizationMemberRepository extends JpaRepository<KoOrganizati
     long countByTenantIdAndDeletedFalse(String tenantId);
 
     Optional<KoOrganizationMember> findByTenantIdAndUserIdAndDeletedFalse(String tenantId, String userId);
+
+    Optional<KoOrganizationMember> findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(
+            String tenantId,
+            String role,
+            String status
+    );
 }

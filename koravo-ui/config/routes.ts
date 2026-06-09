@@ -1,13 +1,14 @@
 export default [
   {
     path: '/',
-    redirect: '/dashboard',
+    redirect: '/tasks',
   },
   {
     path: '/dashboard',
     name: '总览',
     icon: 'dashboard',
     component: './Dashboard',
+    access: 'canViewDashboard',
   },
   {
     key: 'workbench',
@@ -26,7 +27,7 @@ export default [
         name: '待认领',
         icon: 'audit',
         component: './Tasks',
-        access: 'canHandleTask',
+        access: 'canClaimTask',
       },
       {
         path: '/done-tasks',
@@ -40,12 +41,14 @@ export default [
         name: '我发起的',
         icon: 'profile',
         component: './Tasks',
+        access: 'canViewOwnWork',
       },
       {
         path: '/tasks/:taskId',
         name: '任务详情',
         hideInMenu: true,
         component: './TaskDetail',
+        access: 'canViewOwnWork',
       },
     ],
   },
@@ -66,12 +69,14 @@ export default [
         name: '流程实例',
         icon: 'profile',
         component: './ProcessInstances',
+        access: 'canOperateSystem',
       },
       {
         path: '/process-instances/:instanceId',
         name: '实例详情',
         hideInMenu: true,
         component: './ProcessInstanceDetail',
+        access: 'canViewOwnWork',
       },
     ],
   },

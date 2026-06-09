@@ -1,6 +1,9 @@
 package io.koravo.api.service;
 
+import io.koravo.api.organization.KoOrganizationMember;
+import io.koravo.api.organization.OrganizationMemberRepository;
 import io.koravo.api.web.StartProcessRequest;
+import io.koravo.api.workflow.WorkflowEnablementDefaults;
 import io.koravo.common.web.RequestContextHolder;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.StartProcessCommand;
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -33,12 +37,14 @@ class ProcessInstanceAppServiceTest {
     private final AuditLogQueryService auditLogQueryService = mock(AuditLogQueryService.class);
     private final FormSnapshotService formSnapshotService = mock(FormSnapshotService.class);
     private final FormSchemaService formSchemaService = mock(FormSchemaService.class);
+    private final OrganizationMemberRepository organizationMemberRepository = mock(OrganizationMemberRepository.class);
     private final ProcessInstanceAppService service = new ProcessInstanceAppService(
             processFacade,
             auditLogService,
             auditLogQueryService,
             formSnapshotService,
-            formSchemaService
+            formSchemaService,
+            organizationMemberRepository
     );
 
     @AfterEach
@@ -50,8 +56,8 @@ class ProcessInstanceAppServiceTest {
 
     @Test
     void startPassesRuntimeContextAndWritesInstanceAudit() {
-        Map<String, Object> variables = Map.of("managerApprover", "manager", "financeApprover", "finance");
-        StartProcessRequest request = new StartProcessRequest("purchaseApproval", "PO-001", variables, null, null);
+        Map<String, Object> variables = Map.of("subject", "合同审批");
+        StartProcessRequest request = new StartProcessRequest("generalApproval", "PO-001", variables, null, null);
         ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-1", "pd-1", "PO-001", "RUNNING");
         RequestContextHolder.set("req-1", "127.0.0.1");
         TenantContextHolder.setTenantId("tenant-a");
@@ -60,7 +66,7 @@ class ProcessInstanceAppServiceTest {
                 "tenant-a",
                 "starter",
                 "req-1",
-                "purchaseApproval",
+                "generalApproval",
                 "PO-001",
                 variables
         ))).thenReturn(instance);
@@ -69,7 +75,7 @@ class ProcessInstanceAppServiceTest {
 
         assertThat(result).isEqualTo(instance);
         verify(auditLogService).record(eq("PROCESS_INSTANCE_START"), eq("PROCESS_INSTANCE"), eq("pi-1"), eq(Map.of(
-                "processDefinitionKey", "purchaseApproval",
+                "processDefinitionKey", "generalApproval",
                 "processDefinitionId", "pd-1",
                 "status", "RUNNING",
                 "businessKey", "PO-001"
@@ -117,6 +123,70 @@ class ProcessInstanceAppServiceTest {
     }
 
     @Test
+    void startOverridesProtectedIdentityFieldsFromTenantOrganizationDirectory() {
+        Map<String, Object> submitted = Map.of(
+                "applicant", "伪造申请人",
+                "department", "伪造部门",
+                "subject", "生产发布",
+                "managerApprover", "outside-manager",
+                "financeApprover", "outside-finance"
+        );
+        Map<String, Object> trusted = Map.of(
+                "applicant", "真实申请专员",
+                "department", "业务二部",
+                "subject", "生产发布",
+                "managerApprover", "manager-1",
+                "financeApprover", "finance-1"
+        );
+        StartProcessRequest request = new StartProcessRequest(
+                WorkflowEnablementDefaults.PROCESS_KEY,
+                "REQ-001",
+                submitted,
+                "form-1",
+                submitted
+        );
+        ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-1", "pd-1", "REQ-001", "RUNNING");
+        FormSchemaResponse formSchema = new FormSchemaResponse(
+                "form-1",
+                WorkflowEnablementDefaults.FORM_KEY,
+                WorkflowEnablementDefaults.FORM_NAME,
+                2,
+                "{\"type\":\"object\"}",
+                "{}",
+                "ACTIVE"
+        );
+        RequestContextHolder.set("req-1", "127.0.0.1");
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUser("starter", UserContextHolder.ROLE_APPLICANT);
+        when(formSchemaService.get("form-1")).thenReturn(formSchema);
+        when(organizationMemberRepository.findByTenantIdAndUserIdAndDeletedFalse("tenant-a", "starter"))
+                .thenReturn(Optional.of(member("starter", "真实申请专员", "业务二部", UserContextHolder.ROLE_APPLICANT)));
+        when(organizationMemberRepository.findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(
+                "tenant-a",
+                UserContextHolder.ROLE_MANAGER,
+                "ACTIVE"
+        )).thenReturn(Optional.of(member("manager-1", "业务负责人", "业务二部", UserContextHolder.ROLE_MANAGER)));
+        when(organizationMemberRepository.findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(
+                "tenant-a",
+                UserContextHolder.ROLE_FINANCE,
+                "ACTIVE"
+        )).thenReturn(Optional.of(member("finance-1", "财务负责人", "财务部", UserContextHolder.ROLE_FINANCE)));
+        when(processFacade.start(new StartProcessCommand(
+                "tenant-a",
+                "starter",
+                "req-1",
+                WorkflowEnablementDefaults.PROCESS_KEY,
+                "REQ-001",
+                trusted
+        ))).thenReturn(instance);
+
+        ProcessInstanceDTO result = service.start(request);
+
+        assertThat(result).isEqualTo(instance);
+        verify(formSnapshotService).saveSnapshot("pi-1", null, "form-1", formSchema, trusted);
+    }
+
+    @Test
     void getReturnsInstanceDetailWithAuditLogs() {
         TenantContextHolder.setTenantId("tenant-a");
         ProcessInstanceDetailDTO instance = new ProcessInstanceDetailDTO(
@@ -148,5 +218,16 @@ class ProcessInstanceAppServiceTest {
 
         assertThat(detail.instanceId()).isEqualTo("pi-1");
         assertThat(detail.auditLogs()).containsExactly(auditLog);
+    }
+
+    private KoOrganizationMember member(String userId, String name, String department, String role) {
+        KoOrganizationMember member = new KoOrganizationMember();
+        member.setTenantId("tenant-a");
+        member.setUserId(userId);
+        member.setName(name);
+        member.setDepartment(department);
+        member.setRole(role);
+        member.setStatus("ACTIVE");
+        return member;
     }
 }

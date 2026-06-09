@@ -12,8 +12,11 @@ export default function access(
   const isApprover = role === 'manager' || role === 'finance';
   return {
     canAdmin: isAdmin,
+    canViewDashboard: isAdmin,
+    canViewOwnWork: Boolean(role),
     canStartProcess: isAdmin || role === 'applicant',
-    canHandleTask: isAdmin || isApprover,
+    canClaimTask: isAdmin || isApprover,
+    canHandleTask: Boolean(role),
     canConfigureWorkflow: isAdmin,
     canManageOrganization: isAdmin,
     canManageIntegration: isAdmin,
