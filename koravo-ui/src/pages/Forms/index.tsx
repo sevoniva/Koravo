@@ -276,7 +276,7 @@ const hasDuplicatedFieldKey = (fields: FormFieldConfig[]) => {
 const fieldColumns: ProColumns<FormFieldConfig>[] = [
   { title: '字段名称', dataIndex: 'title', width: 180 },
   {
-    title: '字段编码',
+    title: '业务字段',
     dataIndex: 'fieldKey',
     width: 180,
     render: (_, record) => <CopyableText value={record.fieldKey} />,
@@ -415,10 +415,11 @@ const renderFormFieldsEditor = () => (
       <Space align="start" wrap>
         <ProFormText
           name="fieldKey"
-          label="字段编码"
+          label="业务字段"
           width="sm"
+          tooltip="用于流程变量和表单绑定，建议使用稳定英文名。"
           rules={[
-            { required: true, message: '请输入字段编码' },
+            { required: true, message: '请输入业务字段' },
             {
               pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
               message: '仅支持字母、数字、下划线，且不能以数字开头',
@@ -492,7 +493,7 @@ const Forms: React.FC = () => {
       return false;
     }
     if (hasDuplicatedFieldKey(values.fields)) {
-      message.error('字段编码不能重复');
+      message.error('业务字段不能重复');
       return false;
     }
     const payload = buildPayload(values);
@@ -515,7 +516,7 @@ const Forms: React.FC = () => {
       renderText: (value) => formSchemaNameLabel(value),
     },
     {
-      title: '表单编码',
+      title: '表单标识',
       dataIndex: 'formKey',
       width: 180,
       render: (_, record) => (
@@ -608,9 +609,9 @@ const Forms: React.FC = () => {
           >
             <ProFormText
               name="formKey"
-              label="表单编码"
+              label="表单标识"
               tooltip="用于系统保存和表单绑定，建议使用英文、数字和下划线。"
-              rules={[{ required: true, message: '请输入表单编码' }]}
+              rules={[{ required: true, message: '请输入表单标识' }]}
             />
             <ProFormText
               name="formName"
@@ -654,9 +655,9 @@ const Forms: React.FC = () => {
       >
         <ProFormText
           name="formKey"
-          label="表单编码"
+          label="表单标识"
           tooltip="用于系统保存和表单绑定，建议使用英文、数字和下划线。"
-          rules={[{ required: true, message: '请输入表单编码' }]}
+          rules={[{ required: true, message: '请输入表单标识' }]}
         />
         <ProFormText
           name="formName"

@@ -1,5 +1,5 @@
 export default {
-  'pages.403.subTitle': '当前身份无权访问该页面。',
+  'pages.403.subTitle': '当前账号无权访问该页面。',
   'pages.403.buttonText': '返回总览',
   'pages.404.subTitle': '页面不存在或已被移除。',
   'pages.404.buttonText': '返回总览',

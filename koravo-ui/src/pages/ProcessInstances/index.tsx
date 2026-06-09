@@ -502,7 +502,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
           },
         }}
         options={deployedModels.map((item) => ({
-          label: `${processDisplayName(item.modelKey, item.modelName)}（${item.modelKey}）`,
+          label: processDisplayName(item.modelKey, item.modelName),
           value: item.modelKey,
         }))}
       />

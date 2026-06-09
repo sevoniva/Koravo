@@ -247,7 +247,7 @@ const ProcessModels: React.FC = () => {
   const importModel = async (values: ImportProcessModelForm) => {
     const file = values.file?.[0]?.originFileObj;
     if (!file) {
-      message.error('请选择 BPMN 文件');
+      message.error('请选择流程文件');
       return false;
     }
     const deployment = await deployProcessModel(values.modelName, file);
@@ -313,7 +313,7 @@ const ProcessModels: React.FC = () => {
           }
         />
         {renderCheckItem(
-          'BPMN 校验',
+          '流程结构',
           validation.valid ? 'success' : 'error',
           validation.valid
             ? '流程结构可解析'
@@ -354,7 +354,7 @@ const ProcessModels: React.FC = () => {
         )}
         {validation.warnings.length > 0 && (
           <Typography.Text type="secondary">
-            BPMN 提醒：{validation.warnings.map((item) => item.message).join('；')}
+            流程文件提醒：{validation.warnings.map((item) => item.message).join('；')}
           </Typography.Text>
         )}
       </Flex>
@@ -382,7 +382,7 @@ const ProcessModels: React.FC = () => {
         processDisplayName(record.modelKey, record.modelName),
     },
     {
-      title: '模型标识',
+      title: '流程标识',
       dataIndex: 'modelKey',
       width: 180,
       render: (_, record) => (
@@ -425,7 +425,7 @@ const ProcessModels: React.FC = () => {
       render: (_, record) => renderConfigurationStatus(record),
     },
     {
-      title: '流程定义',
+      title: '运行版本',
       dataIndex: 'flowableDefinitionId',
       width: 220,
       search: false,
@@ -638,7 +638,7 @@ const ProcessModels: React.FC = () => {
                   icon={<CloudUploadOutlined />}
                   onClick={() => setImportOpen(true)}
                 >
-                  导入 BPMN
+                  导入流程文件
                 </Button>
               </Space>
             </Empty>
@@ -674,7 +674,7 @@ const ProcessModels: React.FC = () => {
             icon={<CloudUploadOutlined />}
             onClick={() => setImportOpen(true)}
           >
-            导入 BPMN
+            导入流程文件
           </Button>,
         ]}
       />
@@ -691,9 +691,9 @@ const ProcessModels: React.FC = () => {
       >
         <ProFormText
           name="modelKey"
-          label="模型标识"
+          label="流程标识"
           rules={[
-            { required: true, message: '请输入模型标识' },
+            { required: true, message: '请输入流程标识' },
             {
               pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
               message: '仅支持字母、数字、下划线，且不能以数字开头',
@@ -709,7 +709,7 @@ const ProcessModels: React.FC = () => {
       </ModalForm>
 
       <ModalForm<ImportProcessModelForm>
-        title="导入 BPMN"
+        title="导入流程文件"
         open={importOpen}
         modalProps={{
           destroyOnHidden: true,
@@ -722,7 +722,7 @@ const ProcessModels: React.FC = () => {
           showIcon
           type="info"
           title="导入后会立即部署为可运行流程"
-          description="请确认 BPMN 内的流程标识稳定，后续表单绑定和实例发起都会使用该标识。"
+          description="请确认流程文件内的流程标识稳定，后续表单绑定和实例发起都会使用该标识。"
           style={{ marginBottom: 16 }}
         />
         <ProFormText
@@ -732,7 +732,7 @@ const ProcessModels: React.FC = () => {
         />
         <ProFormUploadButton
           name="file"
-          label="BPMN 文件"
+          label="流程文件"
           title="选择文件"
           max={1}
           fieldProps={{
@@ -740,7 +740,7 @@ const ProcessModels: React.FC = () => {
             beforeUpload: () => false,
             maxCount: 1,
           }}
-          rules={[{ required: true, message: '请选择 BPMN 文件' }]}
+          rules={[{ required: true, message: '请选择流程文件' }]}
         />
       </ModalForm>
     </PageContainer>

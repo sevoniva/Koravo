@@ -113,16 +113,16 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   createdAt: '创建时间',
   updatedAt: '更新时间',
   time: '时间',
-  modelKey: '流程编码',
+  modelKey: '流程标识',
   modelName: '流程名称',
-  processDefinitionKey: '流程定义编码',
-  processDefinitionId: '流程定义编号',
+  processDefinitionKey: '流程标识',
+  processDefinitionId: '运行版本',
   processInstanceId: '流程实例编号',
   taskId: '任务编号',
   taskDefinitionKey: '任务节点',
   taskName: '任务名称',
   formSchemaId: '表单',
-  formKey: '表单编码',
+  formKey: '表单标识',
   formName: '表单名称',
   version: '版本',
   status: '状态',
@@ -230,7 +230,7 @@ export function formSchemaOptionLabel(schema: {
   version?: number | null;
 }, version?: number | null) {
   const schemaVersion = version || schema.version || 1;
-  return `${formSchemaNameLabel(schema.formName)}（${formSchemaKeyLabel(schema.formKey)} v${schemaVersion}）`;
+  return `${formSchemaNameLabel(schema.formName)} v${schemaVersion}`;
 }
 
 export function processKindLabel(modelKey?: string) {

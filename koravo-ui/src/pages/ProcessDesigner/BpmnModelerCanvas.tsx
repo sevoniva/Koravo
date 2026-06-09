@@ -293,10 +293,10 @@ export const BpmnModelerCanvas = forwardRef<
       onSelectionChangeRef.current?.(undefined);
       zoomToFit();
       if (result.warnings?.length) {
-        message.warning('BPMN 已加载，存在需要关注的警告');
+        message.warning('流程图已加载，存在需要关注的警告');
       }
     } catch (error) {
-      setImportError(error instanceof Error ? error.message : 'BPMN XML 加载失败');
+      setImportError(error instanceof Error ? error.message : '流程文件加载失败');
     } finally {
       setLoading(false);
     }
@@ -395,8 +395,8 @@ export const BpmnModelerCanvas = forwardRef<
         <div className={styles.error}>
           <Result
             status="warning"
-            title="BPMN 图形无法加载"
-            subTitle="当前模型的 XML 不能渲染为流程图。可以切换模型、查看 XML，或修正后重新加载。"
+            title="流程图无法加载"
+            subTitle="当前流程文件不能渲染为流程图。可以切换模型、查看源文件，或修正后重新加载。"
             extra={
               <Button type="primary" onClick={retryImport}>
                 重新加载

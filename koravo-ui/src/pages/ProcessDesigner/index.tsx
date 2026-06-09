@@ -502,7 +502,7 @@ const ProcessDesigner: React.FC = () => {
           column={1}
           dataSource={selectedElement}
           columns={[
-            { title: '节点标识', dataIndex: 'elementId', copyable: true },
+            { title: '节点 ID', dataIndex: 'elementId', copyable: true },
             { title: '节点类型', dataIndex: 'elementType' },
           ]}
           className={styles.meta}
@@ -528,7 +528,7 @@ const ProcessDesigner: React.FC = () => {
               options={candidateGroupOptions}
               fieldProps={{ allowClear: true, showSearch: true }}
             />
-            <ProFormText name="formKey" label="表单编码" />
+            <ProFormText name="formKey" label="表单标识" />
           </>
         )}
         {isServiceTask(selectedElement) && (
@@ -547,8 +547,8 @@ const ProcessDesigner: React.FC = () => {
     items: [
       { key: 'new', icon: <FileAddOutlined />, label: '新建模型' },
       { type: 'divider' },
-      { key: 'export', icon: <DownloadOutlined />, label: '导出 BPMN' },
-      { key: 'xml', icon: <CodeOutlined />, label: '查看 XML' },
+      { key: 'export', icon: <DownloadOutlined />, label: '导出流程文件' },
+      { key: 'xml', icon: <CodeOutlined />, label: '查看源文件' },
     ],
     onClick: ({ key }) => {
       if (key === 'new') handleNewModel();
@@ -734,7 +734,7 @@ const ProcessDesigner: React.FC = () => {
               dataSource={activeModel}
               columns={[
                 {
-                  title: '模型标识',
+                  title: '流程标识',
                   dataIndex: 'modelKey',
                   render: (_, record) => (
                     <CopyableText
@@ -759,7 +759,7 @@ const ProcessDesigner: React.FC = () => {
                   ),
                 },
                 {
-                  title: '流程定义',
+                  title: '运行版本',
                   dataIndex: 'flowableDefinitionId',
                   copyable: true,
                 },
@@ -778,7 +778,7 @@ const ProcessDesigner: React.FC = () => {
       </Drawer>
 
       <Drawer
-        title="BPMN XML"
+        title="流程源文件"
         open={xmlDrawerOpen}
         size={720}
         resizable

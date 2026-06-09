@@ -934,7 +934,7 @@ const TaskDetail: React.FC = () => {
                 dataIndex: 'formName',
                 renderText: (value) => formSchemaNameLabel(value),
               },
-              { title: '表单编码', dataIndex: 'formKey' },
+              { title: '表单标识', dataIndex: 'formKey' },
               { title: '版本', dataIndex: 'version', renderText: (value) => `v${value || 1}` },
               { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
             ]}

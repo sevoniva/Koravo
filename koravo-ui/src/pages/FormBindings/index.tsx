@@ -95,7 +95,7 @@ function modelBindingLabel(record: BindingTableItem) {
       </Typography.Text>
       <CopyableText
         value={record.processModelId}
-        displayValue={record.processModel.modelKey}
+        displayValue={`流程标识：${record.processModel.modelKey}`}
       />
     </Flex>
   );
@@ -111,7 +111,7 @@ function formBindingLabel(record: BindingTableItem) {
       <Typography.Text>{formSchemaNameLabel(record.formSchema.formName)}</Typography.Text>
       <CopyableText
         value={record.formSchemaId}
-        displayValue={`${record.formSchema.formKey} v${record.formSchema.version}`}
+        displayValue={`表单标识：${record.formSchema.formKey} · v${record.formSchema.version}`}
       />
     </Flex>
   );
@@ -186,7 +186,7 @@ const BindingFormItems: React.FC<{
           (await listProcessModels())
             .filter((item) => item.status !== 'ARCHIVED')
             .map((item) => ({
-              label: `${processDisplayName(item.modelKey, item.modelName)}（${item.modelKey}）`,
+              label: processDisplayName(item.modelKey, item.modelName),
               value: item.id,
             }))
         }
@@ -229,7 +229,7 @@ const BindingFormItems: React.FC<{
                 if (!processModelId) return [];
                 return (await listProcessModelTaskDefinitions(processModelId)).map(
                   (task) => ({
-                    label: `${taskDefinitionLabel(task.taskDefinitionKey, task)}（${task.taskDefinitionKey}）`,
+                    label: taskDefinitionLabel(task.taskDefinitionKey, task),
                     value: task.taskDefinitionKey,
                   }),
                 );

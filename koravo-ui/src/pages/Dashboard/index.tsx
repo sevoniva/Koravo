@@ -52,7 +52,7 @@ interface WorkflowStep {
 const workflowSteps: WorkflowStep[] = [
   {
     title: '创建流程模型',
-    description: '新建模型、导入 BPMN、设计审批节点',
+    description: '新建流程、导入流程文件、设计审批节点',
     path: '/process-designer',
     icon: <EditOutlined />,
   },
