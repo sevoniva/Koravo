@@ -281,7 +281,7 @@ const ProcessModels: React.FC = () => {
             </Button>
             <Button
               onClick={() =>
-                history.push(`/process-instances?processModelId=${record.id}`)
+                history.push(`/process-start?processModelId=${record.id}`)
               }
             >
               发起实例
@@ -504,7 +504,7 @@ const ProcessModels: React.FC = () => {
             type="link"
             disabled={!record.readiness.canStart}
             onClick={() =>
-              history.push(`/process-instances?processModelId=${record.id}`)
+              history.push(`/process-start?processModelId=${record.id}`)
             }
           >
             发起实例

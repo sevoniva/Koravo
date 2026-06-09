@@ -37,6 +37,7 @@ import {
   businessKeyLabel,
   processDefinitionLabel,
   processStatusLabel,
+  shortTraceLabel,
   taskDefinitionLabel,
   taskNameLabel,
 } from '@/utils/display';
@@ -354,10 +355,15 @@ const ProcessInstanceDetail: React.FC = () => {
   );
   const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     {
-      title: '表单编号',
+      title: '表单',
       dataIndex: 'formSchemaId',
       width: 220,
-      render: (_, record) => <CopyableText value={record.formSchemaId} />,
+      render: (_, record) => (
+        <CopyableText
+          value={record.formSchemaId}
+          displayValue={shortTraceLabel(record.formSchemaId)}
+        />
+      ),
     },
     {
       title: '版本',

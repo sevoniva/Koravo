@@ -9,7 +9,7 @@ import { Alert, Button, Drawer, Empty, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
-import { organizationMemberName } from '@/services/koravo/organization';
+import { organizationMemberName, tenantDisplayName } from '@/services/koravo/organization';
 import {
   listAuditLogs,
   type AuditLogItem,
@@ -178,6 +178,26 @@ function auditRelatedButtons(log?: AuditLogItem) {
   return actions;
 }
 
+function auditResourceText(log?: AuditLogItem) {
+  if (!log?.resourceId) return '-';
+  const detail = auditDetailRecord(log);
+  const resourceType = String(log.resourceType || '');
+  const nameCandidates = [
+    detail.modelName,
+    detail.formName,
+    detail.name,
+    detail.businessKey,
+    detail.taskName,
+  ]
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean);
+  const resourceName = nameCandidates[0];
+  const prefix = auditResourceLabel(resourceType);
+  return resourceName
+    ? `${prefix}：${resourceName}`
+    : `${prefix}：${shortTraceLabel(log.resourceId)}`;
+}
+
 const AuditRelatedActions: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
   const actions = auditRelatedButtons(log);
 
@@ -198,7 +218,7 @@ const AuditLogs: React.FC = () => {
   }, [location.search]);
   const contextFilterDescription = query.requestId
     ? `请求追踪号：${query.requestId}`
-    : `对象编号：${query.resourceId}，包含该对象及关联任务记录`;
+    : `业务对象：${query.resourceId}，包含该对象及关联任务记录`;
 
   const columns: ProColumns<AuditLogItem>[] = [
     {
@@ -231,12 +251,15 @@ const AuditLogs: React.FC = () => {
       renderText: (value) => auditResourceLabel(value),
     },
     {
-      title: '对象编号',
+      title: '业务对象',
       dataIndex: 'resourceId',
       ellipsis: true,
       render: (_, record) => (
         <Space wrap>
-          <CopyableText value={record.resourceId} />
+          <CopyableText
+            value={record.resourceId}
+            displayValue={auditResourceText(record)}
+          />
           <AuditRelatedActions log={record} />
         </Space>
       ),
@@ -320,12 +343,30 @@ const AuditLogs: React.FC = () => {
           column={1}
           dataSource={detail}
           columns={[
-            { title: '租户', dataIndex: 'tenantId' },
+            { title: '组织', dataIndex: 'tenantId', renderText: tenantDisplayName },
             { title: '操作人', dataIndex: 'userId', renderText: organizationMemberName },
             { title: '操作类型', dataIndex: 'action', renderText: auditActionLabel },
             { title: '对象类型', dataIndex: 'resourceType', renderText: auditResourceLabel },
-            { title: '对象编号', dataIndex: 'resourceId', copyable: true },
-            { title: '追踪号', dataIndex: 'requestId', copyable: true },
+            {
+              title: '业务对象',
+              dataIndex: 'resourceId',
+              render: (_, record) => (
+                <CopyableText
+                  value={record.resourceId}
+                  displayValue={auditResourceText(record)}
+                />
+              ),
+            },
+            {
+              title: '追踪号',
+              dataIndex: 'requestId',
+              render: (_, record) => (
+                <CopyableText
+                  value={record.requestId}
+                  displayValue={shortTraceLabel(record.requestId)}
+                />
+              ),
+            },
             { title: '客户端 IP', dataIndex: 'clientIp' },
             { title: '时间', dataIndex: 'createdAt', renderText: formatDateTime },
           ]}

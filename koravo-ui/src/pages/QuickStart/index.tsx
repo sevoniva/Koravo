@@ -125,8 +125,8 @@ const QuickStart: React.FC = () => {
           onClick={() =>
             history.push(
               data?.processModelId
-                ? `/process-instances?processModelId=${data.processModelId}`
-                : '/process-instances',
+                ? `/process-start?processModelId=${data.processModelId}`
+                : '/process-start',
             )
           }
         >

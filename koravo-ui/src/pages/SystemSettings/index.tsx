@@ -177,7 +177,11 @@ const SystemSettings: React.FC = () => {
 
   const memberColumns: ProColumns<OrganizationMember>[] = [
     { title: '成员', dataIndex: 'name' },
-    { title: '用户', dataIndex: 'userId', copyable: true },
+    {
+      title: '账号',
+      dataIndex: 'userId',
+      render: (_, record) => organizationMemberName(record.userId),
+    },
     { title: '部门', dataIndex: 'department' },
     {
       title: '角色',
@@ -247,7 +251,7 @@ const SystemSettings: React.FC = () => {
               待办、发起和运维操作会按当前登录账号加载权限范围。账号和职责由组织权限维护，不在业务页面临时切换。
             </span>
             <Space wrap>
-              <Tag color="processing">办理人：{organizationMemberName(session.userId)}</Tag>
+              <Tag color="processing">当前账号：{organizationMemberName(session.userId)}</Tag>
               <Tag color="blue">职责：{roleLabel(session.role)}</Tag>
               <Tag>组织：{tenantDisplayName(session.tenantId)}</Tag>
               {session.lastRequestId ? <Tag>最近追踪号：{session.lastRequestId}</Tag> : null}
@@ -358,8 +362,9 @@ const SystemSettings: React.FC = () => {
                 />
                 <ProFormText
                   name="userId"
-                  label="用户"
-                  rules={[{ required: true, message: '请输入用户' }]}
+                  label="账号"
+                  tooltip="账号用于待办分配和审计追踪，保存后业务页面显示成员名称。"
+                  rules={[{ required: true, message: '请输入账号' }]}
                 />
                 <ProFormText
                   name="department"

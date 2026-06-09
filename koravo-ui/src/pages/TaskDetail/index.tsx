@@ -48,6 +48,7 @@ import {
   businessKeyLabel,
   formSchemaNameLabel,
   processDefinitionLabel,
+  shortTraceLabel,
   taskDefinitionLabel,
   taskNameLabel,
 } from '@/utils/display';
@@ -78,7 +79,7 @@ interface SchemaField {
 }
 
 const commentColumns: ProColumns<TaskCommentItem>[] = [
-  { title: '用户', dataIndex: 'userId', width: 140, renderText: organizationMemberName },
+  { title: '处理人', dataIndex: 'userId', width: 140, renderText: organizationMemberName },
   { title: '意见', dataIndex: 'message' },
   { title: '时间', dataIndex: 'time', width: 170, renderText: formatDateTime },
 ];
@@ -91,10 +92,15 @@ const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     render: (_, record) => <CopyableText value={record.id} />,
   },
   {
-    title: '表单编号',
+    title: '表单',
     dataIndex: 'formSchemaId',
     width: 220,
-    render: (_, record) => <CopyableText value={record.formSchemaId} />,
+    render: (_, record) => (
+      <CopyableText
+        value={record.formSchemaId}
+        displayValue={shortTraceLabel(record.formSchemaId)}
+      />
+    ),
   },
   {
     title: '版本',
