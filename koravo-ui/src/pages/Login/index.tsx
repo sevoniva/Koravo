@@ -82,7 +82,6 @@ const Login: React.FC = () => {
         <Form<LoginFormValues>
           layout="vertical"
           requiredMark={false}
-          initialValues={{ tenantId: 'default' }}
           onFinish={handleFinish}
         >
           <Form.Item
@@ -90,7 +89,7 @@ const Login: React.FC = () => {
             name="tenantId"
             rules={[{ required: true, message: '请输入组织标识' }]}
           >
-            <Input allowClear placeholder="default" />
+            <Input allowClear placeholder="请输入组织标识" autoComplete="organization" />
           </Form.Item>
           <Form.Item
             label="成员账号"

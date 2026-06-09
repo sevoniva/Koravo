@@ -40,7 +40,9 @@ export const errorConfig: RequestConfig = {
           error.response?.data?.requestId || error.response?.headers?.['x-request-id'];
         if (error.response.status === 401 && history.location.pathname !== '/login') {
           clearAuthSession();
+          showErrorMessage('登录状态已过期，请重新登录');
           history.replace('/login');
+          return;
         }
         const suffix = requestId ? `（追踪号 ${requestId}）` : '';
         showErrorNotification({
