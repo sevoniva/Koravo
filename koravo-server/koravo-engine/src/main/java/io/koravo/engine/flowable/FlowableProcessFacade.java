@@ -135,6 +135,47 @@ public class FlowableProcessFacade implements ProcessFacade {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResult<TaskDTO> queryCandidateTasks(TaskQueryCommand command) {
+        List<TaskDTO> tasks = new java.util.ArrayList<>();
+        taskService.createTaskQuery()
+                .taskTenantId(command.tenantId())
+                .taskCandidateUser(command.userId())
+                .orderByTaskCreateTime()
+                .desc()
+                .list()
+                .stream()
+                .map(this::toTaskDTO)
+                .forEach(tasks::add);
+
+        if (command.hasCandidateGroup()) {
+            taskService.createTaskQuery()
+                    .taskTenantId(command.tenantId())
+                    .taskCandidateGroup(command.candidateGroup())
+                    .orderByTaskCreateTime()
+                    .desc()
+                    .list()
+                    .stream()
+                    .map(this::toTaskDTO)
+                    .forEach(tasks::add);
+        }
+
+        List<TaskDTO> candidateTasks = tasks.stream()
+                .filter(task -> task.assignee() == null || task.assignee().isBlank())
+                .collect(java.util.stream.Collectors.toMap(
+                        TaskDTO::taskId,
+                        task -> task,
+                        (left, right) -> left,
+                        java.util.LinkedHashMap::new
+                ))
+                .values()
+                .stream()
+                .filter(task -> matchesTaskQuery(task, command))
+                .toList();
+        return page(candidateTasks, command);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PageResult<TaskDTO> queryDoneTasks(TaskQueryCommand command) {
         List<TaskDTO> tasks = historyService.createHistoricTaskInstanceQuery()
                 .taskTenantId(command.tenantId())

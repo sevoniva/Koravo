@@ -109,6 +109,30 @@ class TaskAppServiceTest {
     }
 
     @Test
+    void queryCandidateTasksUsesCurrentTenantUserAndRole() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUser("manager", "manager");
+        TaskQueryCommand command = new TaskQueryCommand(
+                "default",
+                "manager",
+                "manager",
+                1,
+                20,
+                "验收",
+                "RUNNING",
+                null,
+                null
+        );
+        when(processFacade.queryCandidateTasks(command))
+                .thenReturn(PageResult.of(List.of(), 0, 1, 20));
+
+        var result = service.queryCandidateTasks(1, 20, "验收", "RUNNING", null, null);
+
+        assertThat(result.items()).isEmpty();
+        verify(processFacade).queryCandidateTasks(command);
+    }
+
+    @Test
     void queryStartedInstancesUsesCurrentTenantAndUser() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");

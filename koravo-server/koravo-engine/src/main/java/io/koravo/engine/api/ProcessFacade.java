@@ -24,6 +24,8 @@ public interface ProcessFacade {
 
     PageResult<TaskDTO> queryMyTasks(TaskQueryCommand command);
 
+    PageResult<TaskDTO> queryCandidateTasks(TaskQueryCommand command);
+
     PageResult<TaskDTO> queryDoneTasks(TaskQueryCommand command);
 
     PageResult<ProcessInstanceDetailDTO> queryStartedInstances(TaskQueryCommand command);

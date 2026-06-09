@@ -13,6 +13,7 @@ import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.history.HistoricProcessInstanceQuery;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.engine.runtime.ProcessInstanceQuery;
+import org.flowable.task.api.Task;
 import org.flowable.task.api.TaskQuery;
 import org.flowable.task.api.history.HistoricTaskInstance;
 import org.flowable.task.api.history.HistoricTaskInstanceQuery;
@@ -130,6 +131,38 @@ class FlowableProcessFacadeTest {
         facade.activateProcessInstance("default", "pi-1");
 
         verify(runtimeService).activateProcessInstanceById("pi-1");
+    }
+
+    @Test
+    void queryCandidateTasksMergesCandidateUserAndGroupTasks() {
+        TaskQuery userQuery = mock(TaskQuery.class, RETURNS_SELF);
+        TaskQuery groupQuery = mock(TaskQuery.class, RETURNS_SELF);
+        Task availableTask = mockTask("task-1", "待认领", "pi-1", "pd-1", null, "reviewTask");
+        Task assignedTask = mockTask("task-2", "已分配", "pi-1", "pd-1", "manager", "reviewTask");
+        HistoricProcessInstanceQuery instanceQuery = mock(HistoricProcessInstanceQuery.class, RETURNS_SELF);
+        HistoricProcessInstance instance = mockHistoricInstance("pi-1", "pd-1", "REQ-1", "applicant", null);
+
+        when(taskService.createTaskQuery()).thenReturn(userQuery, groupQuery);
+        when(userQuery.list()).thenReturn(List.of(availableTask, assignedTask));
+        when(groupQuery.list()).thenReturn(List.of(availableTask));
+        when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
+        when(instanceQuery.singleResult()).thenReturn(instance);
+
+        var result = facade.queryCandidateTasks(new io.koravo.engine.command.TaskQueryCommand(
+                "default",
+                "manager",
+                "manager",
+                1,
+                20,
+                null,
+                null,
+                null,
+                null
+        ));
+
+        assertThat(result.items()).extracting("taskId").containsExactly("task-1");
+        verify(userQuery).taskCandidateUser("manager");
+        verify(groupQuery).taskCandidateGroup("manager");
     }
 
     @Test
@@ -268,6 +301,25 @@ class FlowableProcessFacadeTest {
         when(instance.getStartTime()).thenReturn(new Date(1_700_000_000_000L));
         when(instance.getEndTime()).thenReturn(endTime);
         return instance;
+    }
+
+    private Task mockTask(
+            String id,
+            String name,
+            String processInstanceId,
+            String processDefinitionId,
+            String assignee,
+            String taskDefinitionKey
+    ) {
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(id);
+        when(task.getName()).thenReturn(name);
+        when(task.getProcessInstanceId()).thenReturn(processInstanceId);
+        when(task.getProcessDefinitionId()).thenReturn(processDefinitionId);
+        when(task.getAssignee()).thenReturn(assignee);
+        when(task.getTaskDefinitionKey()).thenReturn(taskDefinitionKey);
+        when(task.getCreateTime()).thenReturn(new Date(1_700_000_000_000L));
+        return task;
     }
 
     private Job mockJob(String id, String type) {

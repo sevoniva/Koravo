@@ -5,11 +5,13 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Alert, Badge, Button, Empty, Flex, Space, Tabs, Tag } from 'antd';
+import { Alert, App, Badge, Button, Empty, Flex, Space, Tabs, Tag } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
+  handleTaskAction,
+  listCandidateTasks,
   listDoneTasks,
   listStartedInstances,
   listTasks,
@@ -160,7 +162,9 @@ function taskEmpty(
 }
 
 const Tasks: React.FC = () => {
+  const { message } = App.useApp();
   const todoRef = React.useRef<ActionType>(null);
+  const candidateRef = React.useRef<ActionType>(null);
   const doneRef = React.useRef<ActionType>(null);
   const startedRef = React.useRef<ActionType>(null);
   const [session, setSession] = React.useState<SessionContext>(() => getSessionContext());
@@ -169,9 +173,51 @@ const Tasks: React.FC = () => {
   const reloadTables = React.useCallback(() => {
     setSession(getSessionContext());
     todoRef.current?.reload();
+    candidateRef.current?.reload();
     doneRef.current?.reload();
     startedRef.current?.reload();
   }, []);
+
+  const claimTask = React.useCallback(
+    async (task: TaskItem) => {
+      await handleTaskAction(task.taskId, {
+        action: 'CLAIM',
+        comment: '从待认领列表认领',
+      });
+      message.success('已认领任务');
+      candidateRef.current?.reload();
+      todoRef.current?.reload();
+      history.push(`/tasks/${task.taskId}`);
+    },
+    [message],
+  );
+
+  const candidateColumns = React.useMemo<ProColumns<TaskItem>[]>(
+    () =>
+      taskColumns.map((column) => {
+        if (column.valueType !== 'option') return column;
+        return {
+          ...column,
+          width: 180,
+          render: (_, record) => (
+            <Space size={4}>
+              <Button type="link" onClick={() => claimTask(record)}>
+                认领
+              </Button>
+              <Button
+                type="link"
+                onClick={() =>
+                  history.push(`/process-instances/${record.processInstanceId}`)
+                }
+              >
+                查看实例
+              </Button>
+            </Space>
+          ),
+        };
+      }),
+    [claimTask],
+  );
 
   return (
     <PageContainer title="我的待办" content="处理当前账号的待办，查看经办记录和我发起的流程。">
@@ -235,6 +281,40 @@ const Tasks: React.FC = () => {
                 }}
                 request={async (params) => {
                   const result = await listTasks(taskParams(params));
+                  return {
+                    data: result.items,
+                    total: result.total,
+                    success: true,
+                  };
+                }}
+              />
+            ),
+          },
+          {
+            key: 'candidate',
+            label: '待认领',
+            children: (
+              <ProTable<TaskItem>
+                actionRef={candidateRef}
+                rowKey="taskId"
+                columns={candidateColumns}
+                search={{ labelWidth: 'auto' }}
+                scroll={{ x: 1100 }}
+                locale={{
+                  emptyText: taskEmpty(
+                    '当前账号暂无可认领任务',
+                    <Space wrap>
+                      <Button onClick={() => setActiveTab('todo')}>
+                        查看待办
+                      </Button>
+                      <Button onClick={() => history.push('/process-instances')}>
+                        查看流程实例
+                      </Button>
+                    </Space>,
+                  ),
+                }}
+                request={async (params) => {
+                  const result = await listCandidateTasks(taskParams(params));
                   return {
                     data: result.items,
                     total: result.total,

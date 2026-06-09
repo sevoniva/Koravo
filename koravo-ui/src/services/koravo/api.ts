@@ -399,6 +399,10 @@ export function listTasks(params?: TaskListParams) {
   return apiData<PageResult<TaskItem>>(http.get('/tasks/my', { params }))
 }
 
+export function listCandidateTasks(params?: TaskListParams) {
+  return apiData<PageResult<TaskItem>>(http.get('/tasks/candidate', { params }))
+}
+
 export function listDoneTasks(params?: TaskListParams) {
   return apiData<PageResult<TaskItem>>(http.get('/tasks/done', { params }))
 }

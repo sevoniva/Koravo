@@ -71,6 +71,20 @@ public class TaskAppService {
         ));
     }
 
+    public PageResult<TaskDTO> queryCandidateTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
+        return processFacade.queryCandidateTasks(new TaskQueryCommand(
+                TenantContextHolder.getTenantId(),
+                UserContextHolder.getUserId(),
+                UserContextHolder.getRole(),
+                page,
+                pageSize,
+                keyword,
+                status,
+                startTime,
+                endTime
+        ));
+    }
+
     public PageResult<TaskDTO> queryDoneTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
         return processFacade.queryDoneTasks(new TaskQueryCommand(
                 TenantContextHolder.getTenantId(),
