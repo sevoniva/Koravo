@@ -7,6 +7,7 @@ import {
   businessKeyLabel,
   connectionAddressLabel,
   isBusinessProcessModel,
+  processDescriptionLabel,
   processDefinitionLabel,
   processDisplayName,
   processModelKeyLabel,
@@ -59,6 +60,21 @@ describe('display helpers', () => {
     expect(productCopy('允许 localhost；公网地址必须使用 HTTPS')).toBe(
       '允许本地服务地址；公网地址必须使用 HTTPS',
     );
+  });
+
+  it('keeps stored process descriptions unchanged instead of masking legacy copy', () => {
+    expect(
+      processDescriptionLabel({
+        modelKey: 'expenseApproval',
+        description: 'Imported demo model',
+      }),
+    ).toBe('Imported demo model');
+    expect(
+      processDescriptionLabel({
+        modelKey: 'collaborativeApproval',
+        description: '',
+      }),
+    ).toBe('协同审批流程');
   });
 
   it('uses business labels for operation diagnostics fields', () => {

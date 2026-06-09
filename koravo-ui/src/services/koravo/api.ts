@@ -356,8 +356,10 @@ export function deployProcessModel(modelName: string, file: File) {
   return apiData<ProcessDeployment>(http.post(`/process-models/deploy?modelName=${encodeURIComponent(modelName)}`, formData))
 }
 
-export function listProcessModels(status?: string) {
-  return apiData<ProcessModelItem[]>(http.get('/process-models', { params: { status } }))
+export function listProcessModels(status?: string, includeNonProduction = false) {
+  return apiData<ProcessModelItem[]>(http.get('/process-models', {
+    params: { status, includeNonProduction },
+  }))
 }
 
 export function getProcessModel(id: string) {
@@ -523,8 +525,10 @@ export function handleTaskAction(taskId: string, payload: {
   return apiData<TaskItem>(http.post(`/tasks/${taskId}/actions`, payload))
 }
 
-export function listFormSchemas() {
-  return apiData<FormSchemaItem[]>(http.get('/forms/schemas'))
+export function listFormSchemas(includeNonProduction = false) {
+  return apiData<FormSchemaItem[]>(http.get('/forms/schemas', {
+    params: { includeNonProduction },
+  }))
 }
 
 export function createFormSchema(payload: {

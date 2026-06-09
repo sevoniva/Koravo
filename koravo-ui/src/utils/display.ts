@@ -213,7 +213,7 @@ export function processDescriptionLabel(
   model?: Pick<ProcessModelItem, 'modelKey' | 'description'> | null,
 ) {
   const description = model?.description?.trim();
-  if (!description || /演示|示例|demo/i.test(description)) {
+  if (!description) {
     return processKindLabel(model?.modelKey);
   }
   return productCopy(description);

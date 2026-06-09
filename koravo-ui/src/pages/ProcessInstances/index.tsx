@@ -735,7 +735,7 @@ const ProcessInstances: React.FC = () => {
   const isStartEntry = location.pathname === '/process-start';
   const { data: startFormSchemas = [] } = useQuery({
     queryKey: ['start-form-schemas'],
-    queryFn: listFormSchemas,
+    queryFn: () => listFormSchemas(),
     enabled: isStartEntry || Boolean(queryProcessModelId),
   });
 

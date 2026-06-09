@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -26,8 +27,10 @@ public class FormSchemaController {
     }
 
     @GetMapping("/api/v1/forms/schemas")
-    public ApiResponse<List<FormSchemaResponse>> list() {
-        return ApiResponse.success(formSchemaService.list());
+    public ApiResponse<List<FormSchemaResponse>> list(
+            @RequestParam(defaultValue = "false") boolean includeNonProduction
+    ) {
+        return ApiResponse.success(formSchemaService.list(includeNonProduction));
     }
 
     @GetMapping("/api/v1/forms/schemas/{id}")

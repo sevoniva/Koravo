@@ -51,8 +51,11 @@ public class ProcessModelController {
     }
 
     @GetMapping("/api/v1/process-models")
-    public ApiResponse<List<ProcessModelResponse>> list(@RequestParam(required = false) ProcessModelStatus status) {
-        return ApiResponse.success(processModelService.list(status));
+    public ApiResponse<List<ProcessModelResponse>> list(
+            @RequestParam(required = false) ProcessModelStatus status,
+            @RequestParam(defaultValue = "false") boolean includeNonProduction
+    ) {
+        return ApiResponse.success(processModelService.list(status, includeNonProduction));
     }
 
     @GetMapping("/api/v1/process-models/{id}")

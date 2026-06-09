@@ -19,6 +19,11 @@ import java.util.Map;
 
 @Service
 public class FormSchemaService {
+    private static final List<AssetOrigin> PRODUCTION_ASSET_ORIGINS = List.of(
+            AssetOrigin.SYSTEM_TEMPLATE,
+            AssetOrigin.USER_FLOW
+    );
+
     private final FormSchemaRepository repository;
     private final AuditLogService auditLogService;
 
@@ -47,7 +52,17 @@ public class FormSchemaService {
 
     @Transactional(readOnly = true)
     public List<FormSchemaResponse> list() {
-        return repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId())
+        return list(false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FormSchemaResponse> list(boolean includeNonProduction) {
+        return (includeNonProduction
+                ? repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId())
+                : repository.findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+                        TenantContextHolder.getTenantId(),
+                        PRODUCTION_ASSET_ORIGINS
+                ))
                 .stream()
                 .map(this::toResponse)
                 .toList();

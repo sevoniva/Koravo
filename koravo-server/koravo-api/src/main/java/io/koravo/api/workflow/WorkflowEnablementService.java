@@ -260,6 +260,10 @@ public class WorkflowEnablementService {
         if (DEMO_PROCESS_KEY_SET.contains(model.getModelKey())) {
             return false;
         }
+        if (model.getAssetOrigin() != AssetOrigin.SYSTEM_TEMPLATE
+                && model.getAssetOrigin() != AssetOrigin.USER_FLOW) {
+            return false;
+        }
         if (model.getStatus() != ProcessModelStatus.DEPLOYED) {
             return false;
         }

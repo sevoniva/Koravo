@@ -1,5 +1,6 @@
 package io.koravo.model.repo;
 
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,17 @@ public interface ProcessModelRepository extends JpaRepository<KoProcessModel, St
     List<KoProcessModel> findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(String tenantId);
 
     List<KoProcessModel> findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(String tenantId, ProcessModelStatus status);
+
+    List<KoProcessModel> findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            List<AssetOrigin> assetOrigins
+    );
+
+    List<KoProcessModel> findByTenantIdAndStatusAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            ProcessModelStatus status,
+            List<AssetOrigin> assetOrigins
+    );
 
     List<KoProcessModel> findByTenantIdAndModelKeyInAndDeletedFalseOrderByUpdatedAtDesc(
             String tenantId,

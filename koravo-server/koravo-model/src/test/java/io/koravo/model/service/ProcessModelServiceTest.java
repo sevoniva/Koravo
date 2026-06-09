@@ -1,5 +1,6 @@
 package io.koravo.model.service;
 
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
@@ -193,6 +194,41 @@ class ProcessModelServiceTest {
                 "status", "DRAFT",
                 "assetOrigin", "USER_FLOW"
         ));
+    }
+
+    @Test
+    void listHidesNonProductionAssetsByDefault() {
+        TenantContextHolder.setTenantId("default");
+        KoProcessModel model = model("model-1", ProcessModelStatus.DEPLOYED);
+        when(repository.findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                List.of(AssetOrigin.SYSTEM_TEMPLATE, AssetOrigin.USER_FLOW)
+        )).thenReturn(List.of(model));
+
+        var result = service.list(null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().id()).isEqualTo("model-1");
+        verify(repository).findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                List.of(AssetOrigin.SYSTEM_TEMPLATE, AssetOrigin.USER_FLOW)
+        );
+        verify(repository, never()).findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default");
+    }
+
+    @Test
+    void listCanIncludeNonProductionAssetsForGovernanceCleanup() {
+        TenantContextHolder.setTenantId("default");
+        KoProcessModel demoModel = model("demo-model", ProcessModelStatus.ARCHIVED);
+        demoModel.setAssetOrigin(AssetOrigin.LEGACY_DEMO);
+        when(repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
+                .thenReturn(List.of(demoModel));
+
+        var result = service.list(null, true);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().assetOrigin()).isEqualTo("LEGACY_DEMO");
+        verify(repository).findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default");
     }
 
     @Test

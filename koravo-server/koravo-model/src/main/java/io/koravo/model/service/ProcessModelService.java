@@ -40,6 +40,11 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 @Service
 public class ProcessModelService {
+    private static final List<AssetOrigin> PRODUCTION_ASSET_ORIGINS = List.of(
+            AssetOrigin.SYSTEM_TEMPLATE,
+            AssetOrigin.USER_FLOW
+    );
+
     private final ProcessFacade processFacade;
     private final ProcessModelRepository repository;
     private final AuditLogService auditLogService;
@@ -77,9 +82,22 @@ public class ProcessModelService {
 
     @Transactional(readOnly = true)
     public List<ProcessModelResponse> list(ProcessModelStatus status) {
-        List<KoProcessModel> models = status == null
-                ? repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId())
-                : repository.findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(TenantContextHolder.getTenantId(), status);
+        return list(status, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProcessModelResponse> list(ProcessModelStatus status, boolean includeNonProduction) {
+        String tenantId = TenantContextHolder.getTenantId();
+        List<KoProcessModel> models;
+        if (includeNonProduction) {
+            models = status == null
+                    ? repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(tenantId)
+                    : repository.findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(tenantId, status);
+        } else {
+            models = status == null
+                    ? repository.findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, PRODUCTION_ASSET_ORIGINS)
+                    : repository.findByTenantIdAndStatusAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, status, PRODUCTION_ASSET_ORIGINS);
+        }
         return models.stream().map(this::toResponse).toList();
     }
 

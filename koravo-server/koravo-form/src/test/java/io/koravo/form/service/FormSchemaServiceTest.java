@@ -1,5 +1,6 @@
 package io.koravo.form.service;
 
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.form.domain.FormStatus;
 import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.repo.FormSchemaRepository;
@@ -57,12 +58,28 @@ class FormSchemaServiceTest {
     void listReturnsTenantSchemas() {
         TenantContextHolder.setTenantId("default");
         KoFormSchema schema = schema("form-1", 1);
-        when(repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default")).thenReturn(List.of(schema));
+        when(repository.findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                List.of(AssetOrigin.SYSTEM_TEMPLATE, AssetOrigin.USER_FLOW)
+        )).thenReturn(List.of(schema));
 
         var result = service.list();
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().id()).isEqualTo("form-1");
+    }
+
+    @Test
+    void listCanIncludeNonProductionSchemasForGovernanceCleanup() {
+        TenantContextHolder.setTenantId("default");
+        KoFormSchema schema = schema("legacy-form", 1);
+        schema.setAssetOrigin(AssetOrigin.LEGACY_DEMO);
+        when(repository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default")).thenReturn(List.of(schema));
+
+        var result = service.list(true);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().assetOrigin()).isEqualTo("LEGACY_DEMO");
     }
 
     @Test
