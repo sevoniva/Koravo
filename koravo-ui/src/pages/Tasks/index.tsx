@@ -35,6 +35,7 @@ import {
 import {
   businessKeyLabel,
   processDefinitionLabel,
+  shortTraceLabel,
   taskDefinitionLabel,
   taskNameLabel,
 } from '@/utils/display';
@@ -59,19 +60,19 @@ const taskTabRoutes: Record<TaskTabKey, string> = {
 const taskTabMeta: Record<TaskTabKey, { title: string; content: string }> = {
   todo: {
     title: '我的待办',
-    content: '处理已经分配给当前办理人的审批任务。',
+    content: '处理已经分配给当前账号的审批任务。',
   },
   candidate: {
     title: '待认领',
-    content: '认领当前办理人或职责可处理的候选任务。',
+    content: '认领当前账号或职责可处理的候选任务。',
   },
   done: {
     title: '已办任务',
-    content: '查看当前办理人已处理过的任务和办理记录。',
+    content: '查看当前账号已处理过的任务和办理记录。',
   },
   started: {
     title: '我发起的',
-    content: '查看当前办理人发起的流程实例和处理进度。',
+    content: '查看当前账号发起的流程实例和处理进度。',
   },
 };
 
@@ -87,39 +88,46 @@ function taskNodeBadge(taskDefinitionKey?: string) {
   return <Badge status="processing" text={taskDefinitionLabel(taskDefinitionKey)} />;
 }
 
+function taskBusinessObject(task: Pick<TaskItem, 'businessKey' | 'processInstanceId'>) {
+  return task.businessKey
+    ? businessKeyLabel(task.businessKey)
+    : shortTraceLabel(task.processInstanceId);
+}
+
+function instanceBusinessObject(
+  instance: Pick<OpsProcessInstance, 'businessKey' | 'instanceId'>,
+) {
+  return instance.businessKey
+    ? businessKeyLabel(instance.businessKey)
+    : shortTraceLabel(instance.instanceId);
+}
+
 function buildTaskColumns(
   onPreview: (task: TaskItem) => void,
 ): ProColumns<TaskItem>[] {
   return [
   { title: '任务名称', dataIndex: 'name', renderText: (_, record) => taskNameLabel(record) },
   {
-    title: '业务编号',
+    title: '业务对象',
     dataIndex: 'businessKey',
     width: 180,
     render: (_, record) => (
       <CopyableText
-        value={record.businessKey}
-        displayValue={businessKeyLabel(record.businessKey)}
+        value={record.businessKey || record.processInstanceId}
+        displayValue={taskBusinessObject(record)}
       />
     ),
   },
   {
-    title: '流程定义',
+    title: '流程',
     dataIndex: 'processDefinitionId',
     ellipsis: true,
     renderText: (value) => processDefinitionLabel(value),
   },
   {
-    title: '节点',
+    title: '当前节点',
     dataIndex: 'taskDefinitionKey',
     width: 140,
-    renderText: (value) => taskDefinitionLabel(value),
-  },
-  {
-    title: '节点标签',
-    dataIndex: 'taskDefinitionKey',
-    width: 120,
-    search: false,
     render: (_, record) => taskNodeBadge(record.taskDefinitionKey),
   },
   { title: '处理人', dataIndex: 'assignee', width: 120, renderText: organizationMemberName },
@@ -171,25 +179,31 @@ function buildInstanceColumns(
 ): ProColumns<OpsProcessInstance>[] {
   return [
   {
-    title: '实例编号',
-    dataIndex: 'instanceId',
-    width: 220,
-    render: (_, record) => <CopyableText value={record.instanceId} />,
+    title: '业务对象',
+    dataIndex: 'businessKey',
+    width: 180,
+    render: (_, record) => (
+      <CopyableText
+        value={record.businessKey || record.instanceId}
+        displayValue={instanceBusinessObject(record)}
+      />
+    ),
   },
   {
-    title: '流程定义',
+    title: '流程',
     dataIndex: 'processDefinitionId',
     ellipsis: true,
     renderText: (value) => processDefinitionLabel(value),
   },
   {
-    title: '业务编号',
-    dataIndex: 'businessKey',
-    width: 180,
+    title: '实例追踪',
+    dataIndex: 'instanceId',
+    width: 140,
+    search: false,
     render: (_, record) => (
       <CopyableText
-        value={record.businessKey}
-        displayValue={businessKeyLabel(record.businessKey)}
+        value={record.instanceId}
+        displayValue={shortTraceLabel(record.instanceId)}
       />
     ),
   },
@@ -369,7 +383,7 @@ const Tasks: React.FC = () => {
         type="info"
         title={
           <Space wrap size={8}>
-            <span>办理人</span>
+            <span>当前账号</span>
             <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
             <span>职责</span>
             <Tag color="blue">{organizationRoleLabel(session.role)}</Tag>
@@ -380,7 +394,7 @@ const Tasks: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              待办按当前办理人和职责加载。需要调整成员、部门或职责时，请进入组织权限维护。
+              待办按当前账号和职责加载。需要调整成员、部门或职责时，请进入组织权限维护。
             </span>
             <Space wrap>
               <Button size="small" onClick={reloadTables}>
@@ -410,11 +424,11 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前处理人暂无待办任务',
+                    '当前账号暂无待办任务',
                     <Space wrap>
                       <Button
                         type="primary"
-                        onClick={() => history.push('/process-instances')}
+                        onClick={() => history.push('/process-start')}
                       >
                         发起流程
                       </Button>
@@ -447,7 +461,7 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前办理人暂无可认领任务',
+                    '当前账号暂无可认领任务',
                     <Space wrap>
                       <Button onClick={() => switchTab('todo')}>
                         查看待办
@@ -481,7 +495,7 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前处理人暂无已办记录',
+                    '当前账号暂无已办记录',
                     <Button onClick={() => switchTab('todo')}>
                       查看待办
                     </Button>,
@@ -510,10 +524,10 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '当前办理人暂无发起记录',
+                    '当前账号暂无发起记录',
                     <Button
                       type="primary"
-                      onClick={() => history.push('/process-instances')}
+                      onClick={() => history.push('/process-start')}
                     >
                       发起流程
                     </Button>,
