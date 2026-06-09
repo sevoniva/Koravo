@@ -25,7 +25,12 @@ import {
   type FormSchemaItem,
   type ProcessModelItem,
 } from '@/services/koravo/api';
-import { processDisplayName, taskDefinitionLabel } from '@/utils/display';
+import {
+  formSchemaNameLabel,
+  formSchemaOptionLabel,
+  processDisplayName,
+  taskDefinitionLabel,
+} from '@/utils/display';
 
 interface BindingForm {
   bindingType?: 'START' | 'TASK';
@@ -107,7 +112,7 @@ function formBindingLabel(record: BindingTableItem) {
 
   return (
     <Flex vertical gap={0}>
-      <Typography.Text>{record.formSchema.formName}</Typography.Text>
+      <Typography.Text>{formSchemaNameLabel(record.formSchema.formName)}</Typography.Text>
       <CopyableText
         value={record.formSchemaId}
         displayValue={`${record.formSchema.formKey} v${record.formSchema.version}`}
@@ -247,7 +252,7 @@ const BindingFormItems: React.FC<{
         }}
         request={async () =>
           (await listFormSchemas()).map((item) => ({
-            label: `${item.formName}（${item.formKey} v${item.version}）`,
+            label: formSchemaOptionLabel(item),
             value: item.id,
           }))
         }
@@ -459,7 +464,7 @@ const FormBindings: React.FC = () => {
                     item.processModel?.modelName,
                     item.processModel?.modelKey,
                     item.taskDefinitionKey,
-                    item.formSchema?.formName,
+                    formSchemaNameLabel(item.formSchema?.formName),
                     item.formSchema?.formKey,
                   ]
                     .filter(Boolean)

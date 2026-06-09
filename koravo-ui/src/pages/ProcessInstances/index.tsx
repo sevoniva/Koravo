@@ -38,6 +38,7 @@ import {
   setSessionContext,
 } from '@/services/koravo/session';
 import {
+  formSchemaOptionLabel,
   processDefinitionLabel,
   processDisplayName,
   taskDefinitionLabel,
@@ -166,7 +167,7 @@ function findTaskBinding(
 
 function formSchemaLabel(schema?: FormSchemaItem, version?: number) {
   if (!schema) return version ? `表单版本 v${version}` : '已绑定表单';
-  return `${schema.formName} v${version || schema.version}`;
+  return formSchemaOptionLabel(schema, version).replace('（', ' ').replace('）', '');
 }
 
 function isBusinessStartModel(model: ProcessModelItem) {
@@ -548,7 +549,10 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                     options={
                       startSchema
                         ? [{
-                            label: `${startSchema.formName}（${startSchema.formKey} v${startBinding.formSchemaVersion || startSchema.version}）`,
+                            label: formSchemaOptionLabel(
+                              startSchema,
+                              startBinding.formSchemaVersion,
+                            ),
                             value: startSchema.id,
                           }]
                         : []

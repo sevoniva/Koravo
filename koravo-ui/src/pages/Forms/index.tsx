@@ -2,6 +2,9 @@ import { PlusOutlined } from '@ant-design/icons';
 import {
   ModalForm,
   PageContainer,
+  ProForm,
+  ProFormDatePicker,
+  ProFormDigit,
   ProFormList,
   ProFormSelect,
   ProFormSwitch,
@@ -11,7 +14,7 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { Alert, App, Button, Drawer, Empty, Space, Tag } from 'antd';
+import { Alert, App, Button, Drawer, Empty, Space, Tabs, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -21,6 +24,7 @@ import {
   updateFormSchema,
   type FormSchemaItem,
 } from '@/services/koravo/api';
+import { formSchemaNameLabel } from '@/utils/display';
 import { history } from '@umijs/max';
 
 interface FormSchemaForm {
@@ -33,9 +37,9 @@ interface FormFieldConfig {
   fieldKey: string;
   title: string;
   type: 'string' | 'number' | 'boolean';
-  widget?: 'input' | 'textarea' | 'number' | 'switch';
+  widget?: 'input' | 'textarea' | 'number' | 'switch' | 'select';
   placeholder?: string;
-  optionsText?: string;
+  options?: string[];
   format?: string;
   required?: boolean;
 }
@@ -90,9 +94,12 @@ const fieldTypeOptions = [
 const widgetOptions = [
   { label: '单行文本', value: 'input' },
   { label: '多行文本', value: 'textarea' },
+  { label: '下拉选择', value: 'select' },
   { label: '数字输入', value: 'number' },
   { label: '开关', value: 'switch' },
 ];
+
+const formatOptions = [{ label: '日期', value: 'date' }];
 
 const fieldTypeText: Record<FormFieldConfig['type'], string> = {
   string: '文本',
@@ -103,6 +110,7 @@ const fieldTypeText: Record<FormFieldConfig['type'], string> = {
 const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
   input: '单行文本',
   textarea: '多行文本',
+  select: '下拉选择',
   number: '数字输入',
   switch: '开关',
 };
@@ -127,25 +135,27 @@ const normalizeWidget = (
   widget: unknown,
   type: FormFieldConfig['type'],
 ): NonNullable<FormFieldConfig['widget']> => {
-  if (widget === 'textarea') return 'textarea';
-  if (widget === 'switch') return 'switch';
-  if (widget === 'number') return 'number';
   if (type === 'boolean') return 'switch';
   if (type === 'number') return 'number';
+  if (widget === 'textarea') return 'textarea';
+  if (widget === 'select') return 'select';
   return 'input';
 };
 
-const normalizeOptionsText = (options?: unknown[]) => {
+const normalizeOptions = (options?: unknown[]) => {
   if (!Array.isArray(options)) return undefined;
-  return options.map(String).filter(Boolean).join('\n');
-};
-
-const optionsTextToEnum = (optionsText?: string) => {
-  const options = (optionsText || '')
-    .split(/\r?\n/)
+  const normalized = options
+    .map(String)
     .map((item) => item.trim())
     .filter(Boolean);
-  return options.length ? options : undefined;
+  return normalized.length ? normalized : undefined;
+};
+
+const normalizeOptionValues = (options?: string[]) => {
+  const normalized = (options || [])
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };
 
 const schemaToFields = (
@@ -172,13 +182,14 @@ const schemaToFields = (
       uiField?.['ui:placeholder'] ||
       uiField?.placeholder ||
       property?.['ui:placeholder'];
+    const options = normalizeOptions(property?.enum);
     return {
       fieldKey,
       title: property?.title || fieldKey,
       type,
-      widget: normalizeWidget(widget, type),
+      widget: options?.length ? 'select' : normalizeWidget(widget, type),
       placeholder: typeof placeholder === 'string' ? placeholder : undefined,
-      optionsText: normalizeOptionsText(property?.enum),
+      options,
       format: property?.format,
       required: required.includes(fieldKey),
     };
@@ -186,12 +197,20 @@ const schemaToFields = (
 };
 
 const buildPayload = (values: FormSchemaForm) => {
-  const fields = (values.fields || []).map((field) => ({
-    ...field,
-    fieldKey: field.fieldKey.trim(),
-    title: field.title.trim(),
-    widget: normalizeWidget(field.widget, field.type),
-  }));
+  const fields = (values.fields || []).map((field) => {
+    const options = normalizeOptionValues(field.options);
+    const widget =
+      field.type === 'string' && options?.length
+        ? 'select'
+        : normalizeWidget(field.widget, field.type);
+    return {
+      ...field,
+      fieldKey: field.fieldKey.trim(),
+      title: field.title.trim(),
+      widget,
+      options,
+    };
+  });
 
   const properties = fields.reduce<
     Record<
@@ -206,7 +225,7 @@ const buildPayload = (values: FormSchemaForm) => {
       }
     >
   >((result, field) => {
-    const options = optionsTextToEnum(field.optionsText);
+    const options = normalizeOptionValues(field.options);
     result[field.fieldKey] = {
       title: field.title,
       type: field.type,
@@ -233,7 +252,7 @@ const buildPayload = (values: FormSchemaForm) => {
 
   return {
     formKey: values.formKey,
-    formName: values.formName,
+    formName: formSchemaNameLabel(values.formName),
     schemaJson: JSON.stringify(
       {
         type: 'object',
@@ -277,12 +296,11 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
   },
   {
     title: '选项/格式',
-    dataIndex: 'optionsText',
+    dataIndex: 'options',
     width: 220,
     search: false,
     renderText: (_, record) => {
-      if (record.optionsText)
-        return record.optionsText.split(/\r?\n/).join('、');
+      if (record.options?.length) return record.options.join('、');
       return record.format === 'date' ? '日期' : '-';
     },
   },
@@ -294,6 +312,90 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
       record.required ? <Tag color="red">必填</Tag> : <Tag>选填</Tag>,
   },
 ];
+
+const renderPreviewField = (field: FormFieldConfig) => {
+  const rules = field.required
+    ? [{ required: true, message: `请填写${field.title}` }]
+    : undefined;
+  const name = field.fieldKey;
+  if (field.type === 'number') {
+    return (
+      <ProFormDigit
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        rules={rules}
+        fieldProps={{ precision: 2 }}
+      />
+    );
+  }
+  if (field.type === 'boolean') {
+    return <ProFormSwitch key={field.fieldKey} name={name} label={field.title} />;
+  }
+  if (field.options?.length) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        options={field.options.map((item) => ({ label: item, value: item }))}
+        rules={
+          field.required
+            ? [{ required: true, message: `请选择${field.title}` }]
+            : undefined
+        }
+      />
+    );
+  }
+  if (field.format === 'date') {
+    return (
+      <ProFormDatePicker
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        fieldProps={{ format: 'YYYY-MM-DD' }}
+        rules={
+          field.required
+            ? [{ required: true, message: `请选择${field.title}` }]
+            : undefined
+        }
+      />
+    );
+  }
+  if (field.widget === 'textarea') {
+    return (
+      <ProFormTextArea
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        rules={rules}
+        fieldProps={{ rows: 4 }}
+      />
+    );
+  }
+  return (
+    <ProFormText
+      key={field.fieldKey}
+      name={name}
+      label={field.title}
+      placeholder={field.placeholder}
+      rules={rules}
+    />
+  );
+};
+
+const renderFormPreview = (fields: FormFieldConfig[]) =>
+  fields.length ? (
+    <ProForm layout="vertical" disabled submitter={false}>
+      {fields.map(renderPreviewField)}
+    </ProForm>
+  ) : (
+    <Empty description="暂无字段配置" />
+  );
 
 const renderFormFieldsEditor = () => (
   <>
@@ -349,13 +451,24 @@ const renderFormFieldsEditor = () => (
           width="sm"
           placeholder="例如：请输入事项说明"
         />
-        <ProFormText name="format" label="格式" width="xs" placeholder="date" />
-        <ProFormTextArea
-          name="optionsText"
+        <ProFormSelect
+          name="format"
+          label="格式"
+          width="xs"
+          allowClear
+          options={formatOptions}
+          placeholder="不限制"
+        />
+        <ProFormSelect
+          name="options"
           label="选项"
           width="sm"
-          placeholder="每行一个选项"
-          fieldProps={{ rows: 1 }}
+          placeholder="输入选项后回车"
+          tooltip="配置后在发起和办理表单中显示为下拉选择。"
+          fieldProps={{
+            mode: 'tags',
+            tokenSeparators: [',', '，'],
+          }}
         />
         <ProFormSwitch name="required" label="必填" />
       </Space>
@@ -396,7 +509,11 @@ const Forms: React.FC = () => {
   };
 
   const columns: ProColumns<FormSchemaItem>[] = [
-    { title: '表单名称', dataIndex: 'formName' },
+    {
+      title: '表单名称',
+      dataIndex: 'formName',
+      renderText: (value) => formSchemaNameLabel(value),
+    },
     {
       title: '表单编码',
       dataIndex: 'formKey',
@@ -462,8 +579,8 @@ const Forms: React.FC = () => {
           return {
             data: keyword
               ? data.filter((item) =>
-                  [item.formName, item.formKey].some((value) =>
-                    String(value).includes(keyword),
+                  [formSchemaNameLabel(item.formName), item.formKey].some(
+                    (value) => String(value).includes(keyword),
                   ),
                 )
               : data,
@@ -508,7 +625,7 @@ const Forms: React.FC = () => {
           editing
             ? {
                 formKey: editing.formKey,
-                formName: editing.formName,
+                formName: formSchemaNameLabel(editing.formName),
                 fields: schemaToFields(
                   editing.schemaJson,
                   editing.uiSchemaJson,
@@ -545,20 +662,35 @@ const Forms: React.FC = () => {
       </ModalForm>
 
       <Drawer
-        title={preview?.formName}
+        title={formSchemaNameLabel(preview?.formName)}
         size={720}
         open={Boolean(preview)}
         onClose={() => setPreview(undefined)}
       >
         {previewFields.length ? (
-          <ProTable<FormFieldConfig>
-            rowKey="fieldKey"
-            columns={fieldColumns}
-            dataSource={previewFields}
-            search={false}
-            pagination={false}
-            options={false}
-            scroll={{ x: 760 }}
+          <Tabs
+            items={[
+              {
+                key: 'preview',
+                label: '填写预览',
+                children: renderFormPreview(previewFields),
+              },
+              {
+                key: 'fields',
+                label: '字段配置',
+                children: (
+                  <ProTable<FormFieldConfig>
+                    rowKey="fieldKey"
+                    columns={fieldColumns}
+                    dataSource={previewFields}
+                    search={false}
+                    pagination={false}
+                    options={false}
+                    scroll={{ x: 760 }}
+                  />
+                ),
+              },
+            ]}
           />
         ) : (
           <Empty description="暂无字段配置" />

@@ -42,6 +42,7 @@ import { getOrganizationMembers } from '@/services/koravo/organization';
 import {
   auditActionLabel,
   auditResourceLabel,
+  formSchemaNameLabel,
   processDefinitionLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
@@ -703,7 +704,11 @@ const TaskDetail: React.FC = () => {
             column={{ xs: 1, sm: 1, md: 2 }}
             dataSource={data?.formSchema}
             columns={[
-              { title: '表单名称', dataIndex: 'formName' },
+              {
+                title: '表单名称',
+                dataIndex: 'formName',
+                renderText: (value) => formSchemaNameLabel(value),
+              },
               { title: '表单编码', dataIndex: 'formKey' },
               { title: '版本', dataIndex: 'version', renderText: (value) => `v${value || 1}` },
               { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },

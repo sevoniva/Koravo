@@ -197,6 +197,19 @@ export function productCopy(value?: string | null) {
     .trim();
 }
 
+export function formSchemaNameLabel(formName?: string | null) {
+  return productCopy(formName) || '-';
+}
+
+export function formSchemaOptionLabel(schema: {
+  formKey?: string | null;
+  formName?: string | null;
+  version?: number | null;
+}, version?: number | null) {
+  const schemaVersion = version || schema.version || 1;
+  return `${formSchemaNameLabel(schema.formName)}（${schema.formKey || '-'} v${schemaVersion}）`;
+}
+
 export function processKindLabel(modelKey?: string) {
   const mapping: Record<string, string> = {
     httpConnectorDemo: 'HTTP 连接器调用流程',
