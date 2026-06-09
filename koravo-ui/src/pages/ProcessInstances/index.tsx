@@ -475,9 +475,15 @@ function buildColumns(
   ];
 }
 
-function buildStartVariables(values: StartInstanceForm): JsonRecord {
+function buildStartVariables(
+  values: StartInstanceForm,
+  formSchema?: FormSchemaItem,
+): JsonRecord {
   const formValues = normalizeStartVariables(values.formValues);
-  const fields = Object.keys(formValues).map((fieldKey) => ({ fieldKey }));
+  const schemaFields = schemaToStartFields(formSchema);
+  const fields = schemaFields.length
+    ? schemaFields
+    : Object.keys(formValues).map((fieldKey) => ({ fieldKey }));
   return applyOrganizationProfileValues(fields, formValues) as JsonRecord;
 }
 
@@ -500,10 +506,17 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
     queryKey: ['start-form-bindings'],
     queryFn: () => listFormBindings(),
   });
+  const startableModels = React.useMemo(
+    () =>
+      deployedModels.filter((model) =>
+        Boolean(findStartBinding(model, formBindings)),
+      ),
+    [deployedModels, formBindings],
+  );
 
   const setProcessContext = React.useCallback(
     (processDefinitionKey?: string, processModelId?: string) => {
-      const model = deployedModels.find(
+      const model = startableModels.find(
         (item) =>
           item.modelKey === processDefinitionKey || item.id === processModelId,
       );
@@ -520,12 +533,12 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
         formValues: {},
       });
     },
-    [deployedModels, form, formBindings],
+    [form, formBindings, startableModels],
   );
 
   React.useEffect(() => {
-    if (initialProcessModelId && deployedModels.length) {
-      const model = deployedModels.find(
+    if (initialProcessModelId && startableModels.length) {
+      const model = startableModels.find(
         (item) => item.id === initialProcessModelId,
       );
       if (model) {
@@ -537,7 +550,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
     if (processDefinitionKey && !form.getFieldValue('processModelId')) {
       setProcessContext(processDefinitionKey);
     }
-  }, [deployedModels, form, initialProcessModelId, setProcessContext]);
+  }, [form, initialProcessModelId, setProcessContext, startableModels]);
 
   return (
     <>
@@ -558,10 +571,24 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
           style={{ marginBottom: 16 }}
         />
       ) : null}
+      {deployedModels.length && !startableModels.length ? (
+        <Alert
+          showIcon
+          type="warning"
+          title="还没有可直接发起的流程"
+          description="请先为已部署流程绑定启动表单。发起页只展示能完整提交业务实例的流程。"
+          action={
+            <Button size="small" onClick={() => history.push('/form-bindings')}>
+              去绑定表单
+            </Button>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
       <ProFormSelect
         name="processDefinitionKey"
         label="流程"
-        disabled={!deployedModels.length}
+        disabled={!startableModels.length}
         rules={[{ required: true, message: '请选择流程' }]}
         fieldProps={{
           showSearch: true,
@@ -570,7 +597,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
             setProcessContext(String(value));
           },
         }}
-        options={deployedModels.map((item) => ({
+        options={startableModels.map((item) => ({
           label: processDisplayName(item.modelKey, item.modelName),
           value: item.modelKey,
         }))}
@@ -877,6 +904,11 @@ const ProcessInstances: React.FC = () => {
   const location = useLocation();
   const queryProcessModelId = useQueryProcessModelId();
   const isStartEntry = location.pathname === '/process-start';
+  const { data: startFormSchemas = [] } = useQuery({
+    queryKey: ['start-form-schemas'],
+    queryFn: listFormSchemas,
+    enabled: isStartEntry || Boolean(queryProcessModelId),
+  });
 
   const openTask = React.useCallback((task: TaskItem) => {
     history.push(`/tasks/${task.taskId}`);
@@ -903,7 +935,10 @@ const ProcessInstances: React.FC = () => {
                 message.warning('请先为流程配置启动表单');
                 return false;
               }
-              const formData = buildStartVariables(values);
+              const startFormSchema = startFormSchemas.find(
+                (item) => item.id === values.startFormSchemaId,
+              );
+              const formData = buildStartVariables(values, startFormSchema);
               const instance = await startProcessInstance({
                 processDefinitionKey: values.processDefinitionKey,
                 businessKey: values.businessKey,

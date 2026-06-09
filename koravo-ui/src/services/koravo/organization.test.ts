@@ -46,6 +46,8 @@ describe('organization display helpers', () => {
     expect(isOrganizationProfileField('applicantUserName', '申请人员')).toBe(true);
     expect(isOrganizationProfileField('applyPersonName', '申请者')).toBe(true);
     expect(isOrganizationProfileField('requesterDepartmentName', '部门名称')).toBe(true);
+    expect(isOrganizationProfileField('operatorName', '报送人')).toBe(true);
+    expect(isOrganizationProfileField('operatorDepartment', '所在单位')).toBe(true);
     expect(organizationProfileFieldValue('applyUserName', undefined, session, '申请人')).toBe(
       '业务申请专员',
     );
@@ -76,6 +78,27 @@ describe('organization display helpers', () => {
           department: '手工部门',
           subject: '合同审批',
         },
+        undefined,
+        session,
+      ),
+    ).toEqual({
+      requester: '业务申请专员',
+      department: '业务一部',
+      subject: '合同审批',
+    });
+  });
+
+  it('adds linked organization fields even when users never typed them', () => {
+    const session = { userId: 'applicant', role: 'applicant' as const };
+
+    expect(
+      applyOrganizationProfileValues(
+        [
+          { fieldKey: 'requester', title: '发起人' },
+          { fieldKey: 'department', title: '所属部门' },
+          { fieldKey: 'subject', title: '事项名称' },
+        ],
+        { subject: '合同审批' },
         undefined,
         session,
       ),

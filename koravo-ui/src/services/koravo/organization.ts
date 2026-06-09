@@ -138,10 +138,14 @@ function organizationProfileFieldKind(
       'creator',
       'createdby',
       'creatorname',
+      'operator',
+      'operatorname',
       'initiator',
       'initiatorname',
     ].includes(key) ||
-    /申请人|申请员工|申请人员|申请者|发起人|提交人|填报人|经办人|创建人|申请账号|发起账号/.test(title)
+    /申请人|申请员工|申请人员|申请者|发起人|提交人|填报人|经办人|创建人|报送人|办理发起人|申请账号|发起账号/.test(
+      title,
+    )
   ) {
     return 'applicant';
   }
@@ -177,8 +181,12 @@ function organizationProfileFieldKind(
       'submitdeptname',
       'createdepartment',
       'createdept',
+      'operatordepartment',
+      'operatordept',
     ].includes(key) ||
-      /申请部门|发起部门|提交部门|填报部门|所属部门|所在部门|经办部门|创建部门|部门名称|部门$/.test(title) ||
+      /申请部门|发起部门|提交部门|填报部门|所属部门|所在部门|经办部门|创建部门|报送部门|组织部门|部门名称|所属组织|申请单位|发起单位|提交单位|所在单位|部门$/.test(
+        title,
+      ) ||
       /department|dept/.test(combined))
   ) {
     return 'department';
