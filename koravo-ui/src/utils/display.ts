@@ -1,8 +1,8 @@
 import type { BpmnTaskDefinition, ProcessModelItem } from '../types/koravo';
 
 const AUDIT_ACTION_LABELS: Record<string, string> = {
-  DEMO_INIT: '流程资产检查',
-  WORKFLOW_ENABLEMENT_INIT: '补齐流程资产',
+  DEMO_INIT: '维护流程配置',
+  WORKFLOW_ENABLEMENT_INIT: '维护流程配置',
   PROCESS_MODEL_CREATE: '创建流程模型',
   PROCESS_MODEL_IMPORT: '导入流程模型',
   PROCESS_MODEL_UPDATE: '更新流程模型',
@@ -30,7 +30,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
 };
 
 const AUDIT_RESOURCE_LABELS: Record<string, string> = {
-  DEMO: '基础配置',
+  DEMO: '流程配置',
   WORKFLOW_ENABLEMENT: '流程配置',
   PROCESS_MODEL: '流程模型',
   PROCESS_INSTANCE: '流程实例',

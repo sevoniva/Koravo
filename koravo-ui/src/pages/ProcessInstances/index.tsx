@@ -610,7 +610,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                         showIcon
                         type="warning"
                         title="当前表单没有可填写字段"
-                        description="请先在表单管理配置字段，再回到这里发起实例。"
+                        description="请先在表单管理配置字段，再回到这里发起流程。"
                       />
                     );
                   }
@@ -815,7 +815,7 @@ const ProcessInstances: React.FC = () => {
                   icon={<PlayCircleOutlined />}
                   onClick={() => history.push('/process-start')}
                 >
-                  发起实例
+                  发起流程
                 </Button>
                 <Button onClick={() => history.push('/process-models')}>
                   创建流程模型
@@ -831,7 +831,7 @@ const ProcessInstances: React.FC = () => {
             icon={<PlayCircleOutlined />}
             onClick={() => history.push('/process-start')}
           >
-            发起实例
+            发起流程
           </Button>,
         ]}
       />

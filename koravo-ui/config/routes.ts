@@ -157,12 +157,6 @@ export default [
         icon: 'setting',
         component: './SystemSettings',
       },
-      {
-        path: '/quick-start',
-        name: '流程资产检查',
-        hideInMenu: true,
-        component: './QuickStart',
-      },
     ],
   },
   {

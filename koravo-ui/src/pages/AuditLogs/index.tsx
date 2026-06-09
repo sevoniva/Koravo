@@ -22,7 +22,7 @@ import {
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 
 const actionOptions = {
-  WORKFLOW_ENABLEMENT_INIT: { text: '补齐流程资产' },
+  WORKFLOW_ENABLEMENT_INIT: { text: '维护流程配置' },
   PROCESS_MODEL_CREATE: { text: '创建流程模型' },
   PROCESS_MODEL_IMPORT: { text: '导入流程模型' },
   PROCESS_MODEL_UPDATE: { text: '更新流程模型' },

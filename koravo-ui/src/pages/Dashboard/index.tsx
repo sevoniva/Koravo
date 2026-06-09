@@ -75,9 +75,9 @@ const workflowSteps: WorkflowStep[] = [
     icon: <DeploymentUnitOutlined />,
   },
   {
-    title: '发起实例',
+    title: '发起流程',
     description: '提交业务单据并跟踪处理',
-    path: '/process-instances',
+    path: '/process-start',
     icon: <PlayCircleOutlined />,
   },
 ];
@@ -209,9 +209,9 @@ const Dashboard: React.FC = () => {
           <Button
             type="primary"
             icon={<PlayCircleOutlined />}
-            onClick={() => history.push('/process-instances')}
+            onClick={() => history.push('/process-start')}
           >
-            发起实例
+            发起流程
           </Button>
         </Flex>
       }
@@ -221,7 +221,7 @@ const Dashboard: React.FC = () => {
           type="warning"
           showIcon
           title="摘要加载失败"
-          description="请确认 koravo-server 已启动，并检查当前组织和办理人上下文。"
+          description="请确认服务已启动，并检查当前账号权限。"
           style={{ marginBottom: 16 }}
         />
       )}

@@ -301,7 +301,7 @@ const FormBindings: React.FC = () => {
                 )
               }
             >
-              发起实例
+              发起流程
             </Button>
             {processModelId ? (
               <Button

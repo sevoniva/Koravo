@@ -392,7 +392,7 @@ const ProcessDesigner: React.FC = () => {
                   history.push(`/process-start?processModelId=${deployedModel.id}`)
                 }
               >
-                发起实例
+                发起流程
               </Button>
               <Button onClick={() => history.push('/process-models')}>
                 查看模型列表

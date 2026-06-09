@@ -56,7 +56,7 @@ export const roleLabels: Record<SessionRole, string> = {
 
 export function tenantDisplayName(tenantId?: string | null) {
   if (!tenantId) return '-';
-  return tenantId === 'default' ? '默认组织' : tenantId;
+  return tenantId === 'default' ? '当前组织' : tenantId;
 }
 
 export function getOrganizationMembers() {

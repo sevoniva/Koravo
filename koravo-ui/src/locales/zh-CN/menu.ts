@@ -1,6 +1,5 @@
 export default {
   'menu.dashboard': '总览',
-  'menu.quick-start': '流程资产检查',
   'menu.workbench': '工作台',
   'menu.process-center': '流程中心',
   'menu.process-modeling': '流程配置',

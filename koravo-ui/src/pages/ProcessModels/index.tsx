@@ -284,7 +284,7 @@ const ProcessModels: React.FC = () => {
                 history.push(`/process-start?processModelId=${record.id}`)
               }
             >
-              发起实例
+              发起流程
             </Button>
           </Space>
         </Flex>
@@ -507,7 +507,7 @@ const ProcessModels: React.FC = () => {
               history.push(`/process-start?processModelId=${record.id}`)
             }
           >
-            发起实例
+            发起流程
           </Button>
           <Button
             type="link"

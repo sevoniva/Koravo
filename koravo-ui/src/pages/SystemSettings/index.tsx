@@ -154,7 +154,7 @@ const SystemSettings: React.FC = () => {
     () => [
       {
         key: 'initialization',
-        name: '流程资产补齐',
+        name: '流程配置完整性',
         status: data?.workflowEnablement?.enabled ? 'READY' : 'DISABLED',
         message: productCopy(data?.workflowEnablement?.message),
       },
