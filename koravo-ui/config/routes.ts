@@ -6,7 +6,7 @@ export default [
   },
   {
     path: '/',
-    redirect: '/tasks',
+    component: './RootRedirect',
   },
   {
     path: '/dashboard',
