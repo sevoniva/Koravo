@@ -12,6 +12,7 @@ import React from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
   activateProcessInstance,
   getOpsInstance,
@@ -85,10 +86,23 @@ function instanceActionDisabled(status: string | undefined, action: 'suspend' | 
   return !['RUNNING', 'SUSPENDED'].includes(status || '');
 }
 
+function activityTypeLabel(activityType?: string) {
+  const mapping: Record<string, string> = {
+    startEvent: '开始',
+    endEvent: '结束',
+    userTask: '人工任务',
+    serviceTask: '系统任务',
+    exclusiveGateway: '条件分支',
+    parallelGateway: '并行分支',
+    inclusiveGateway: '包容分支',
+  };
+  return mapping[activityType || ''] || activityType || '-';
+}
+
 const traceColumns: ProColumns<ProcessTraceNode>[] = [
   { title: '节点编号', dataIndex: 'activityId', width: 180 },
   { title: '节点名称', dataIndex: 'activityName' },
-  { title: '类型', dataIndex: 'activityType', width: 150 },
+  { title: '类型', dataIndex: 'activityType', width: 150, renderText: activityTypeLabel },
   {
     title: '开始时间',
     dataIndex: 'startTime',
@@ -163,7 +177,7 @@ const ProcessInstanceDetail: React.FC = () => {
     queryFn: () => getOpsInstance(instanceId),
     enabled: Boolean(instanceId),
   });
-  const { data: trace } = useQuery({
+  const { data: trace, isLoading: traceLoading } = useQuery({
     queryKey: ['process-trace', instanceId],
     queryFn: () => getProcessTrace(instanceId),
     enabled: Boolean(instanceId),
@@ -180,6 +194,7 @@ const ProcessInstanceDetail: React.FC = () => {
   });
   const currentTasks = instance?.currentTasks || [];
   const timeline = trace?.timeline || [];
+  const visibleTimeline = timeline.filter((node) => node.activityType !== 'sequenceFlow');
   const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
   const openTaskAsAssignee = React.useCallback(
     (task: TaskItem) => {
@@ -383,6 +398,11 @@ const ProcessInstanceDetail: React.FC = () => {
       </ProCard>
 
       <Flex vertical gap={16}>
+        <ProcessProgressCard
+          trace={trace}
+          currentTasks={currentTasks}
+          loading={traceLoading}
+        />
         <ProCard
           title={
             <Flex align="center" gap={8}>
@@ -456,7 +476,7 @@ const ProcessInstanceDetail: React.FC = () => {
               `${record.activityId}-${record.activityType}-${record.startTime || 'pending'}-${record.endTime || 'running'}-${record.status}`
             }
             columns={traceColumns}
-            dataSource={timeline}
+            dataSource={visibleTimeline.length ? visibleTimeline : timeline}
             search={false}
             pagination={false}
             options={false}

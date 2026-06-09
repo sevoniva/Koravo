@@ -19,9 +19,11 @@ import React, { useState } from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
   completeTask,
   getOpsInstance,
+  getProcessTrace,
   getTaskDetail,
   handleTaskAction,
   type AuditLogItem,
@@ -433,10 +435,10 @@ const CompleteTaskFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
 );
 
 const taskActionTargetOptions = [
-  { label: '发起人 applicant', value: 'applicant' },
-  { label: '业务处理人 manager', value: 'manager' },
-  { label: '财务复核人 finance', value: 'finance' },
-  { label: '管理员 admin', value: 'admin' },
+  { label: '发起人', value: 'applicant' },
+  { label: '业务负责人', value: 'manager' },
+  { label: '财务复核人', value: 'finance' },
+  { label: '系统管理员', value: 'admin' },
 ];
 
 const TaskActionModal: React.FC<{
@@ -502,6 +504,11 @@ const TaskDetail: React.FC = () => {
   const { data: instance } = useQuery({
     queryKey: ['task-instance-context', task?.processInstanceId],
     queryFn: () => getOpsInstance(task?.processInstanceId || ''),
+    enabled: Boolean(task?.processInstanceId),
+  });
+  const { data: trace, isLoading: traceLoading } = useQuery({
+    queryKey: ['task-process-trace', task?.processInstanceId],
+    queryFn: () => getProcessTrace(task?.processInstanceId || ''),
     enabled: Boolean(task?.processInstanceId),
   });
   const canCompleteTask = Boolean(
@@ -635,6 +642,12 @@ const TaskDetail: React.FC = () => {
             openTaskAsAssignee,
           )
         : null}
+      <ProcessProgressCard
+        trace={trace}
+        currentTasks={instance?.currentTasks || (task ? [task] : [])}
+        activeTask={task}
+        loading={traceLoading}
+      />
       <ProCard title="业务数据" style={{ marginBottom: 16 }}>
         <BusinessDataDescriptions
           schemaJson={data?.formSchema?.schemaJson}

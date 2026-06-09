@@ -151,6 +151,7 @@ function readableIdentifier(value?: string | null) {
 
 export function processDisplayName(modelKey?: string, fallback?: string) {
   const mapping: Record<string, string> = {
+    designerDeployCheck: '流程发布检查',
     httpConnectorDemo: 'HTTP 健康检查',
     httpHealthCheck: 'HTTP 健康检查',
     purchaseApproval: '多人验收流程',
@@ -223,6 +224,8 @@ export function taskDefinitionLabel(
     financeApprovalTask: '财务验收',
     businessAcceptanceTask: '业务验收',
     financeAcceptanceTask: '财务验收',
+    reviewTask: '业务审批',
+    Task_1: '提交申请',
     approveTask: '处理任务',
   };
   return task?.name || mapping[key] || readableIdentifier(key);
