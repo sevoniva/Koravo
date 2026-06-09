@@ -148,6 +148,7 @@ const SystemSettings: React.FC = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-health'],
     queryFn: getSystemHealth,
+    enabled: !isOrganizationPage,
   });
 
   const policy = useMemo(
@@ -177,11 +178,6 @@ const SystemSettings: React.FC = () => {
 
   const memberColumns: ProColumns<OrganizationMember>[] = [
     { title: '成员', dataIndex: 'name' },
-    {
-      title: '账号',
-      dataIndex: 'userId',
-      render: (_, record) => organizationMemberName(record.userId),
-    },
     { title: '部门', dataIndex: 'department' },
     {
       title: '角色',
@@ -219,14 +215,106 @@ const SystemSettings: React.FC = () => {
     },
   ];
 
+  const organizationPermissionsContent = (
+    <>
+      <Alert
+        showIcon
+        type="info"
+        title="成员、部门和职责会影响待办分配"
+        description="维护组织成员后，发起表单、审批人选择、待办列表和审计记录都会按成员名称展示。"
+        style={{ marginBottom: 16 }}
+      />
+      <ProCard title="组织权限" split="vertical" gutter={16} wrap>
+        <ProCard title="成员清单" colSpan={{ xs: 24, xl: 10 }}>
+          <ProTable<OrganizationMember>
+            rowKey="key"
+            columns={memberColumns}
+            dataSource={members}
+            search={false}
+            pagination={false}
+            options={false}
+            size="small"
+            toolBarRender={() => [
+              <ModalForm<OrganizationMember>
+                key="create-member"
+                title="新增成员"
+                trigger={<Button type="primary">新增成员</Button>}
+                modalProps={{ destroyOnHidden: true }}
+                onFinish={async (values) => {
+                  const userId = values.userId.trim();
+                  const next = {
+                    ...values,
+                    key: userId,
+                    userId,
+                    status: '启用',
+                  };
+                  updateMembers([
+                    ...members.filter((item) => item.userId !== userId),
+                    next,
+                  ]);
+                  message.success('成员已保存');
+                  return true;
+                }}
+              >
+                <ProFormText
+                  name="name"
+                  label="成员名称"
+                  rules={[{ required: true, message: '请输入成员名称' }]}
+                />
+                <ProFormText
+                  name="userId"
+                  label="登录账号"
+                  tooltip="用于待办分配和审计追踪，业务页面优先显示成员名称。"
+                  rules={[{ required: true, message: '请输入登录账号' }]}
+                />
+                <ProFormText
+                  name="department"
+                  label="部门"
+                  rules={[{ required: true, message: '请输入部门' }]}
+                />
+                <ProFormSelect
+                  name="role"
+                  label="职责"
+                  options={roleOptions.map((item) => ({
+                    label: item.label,
+                    value: item.value,
+                  }))}
+                  rules={[{ required: true, message: '请选择职责' }]}
+                />
+              </ModalForm>,
+            ]}
+          />
+        </ProCard>
+        <ProCard title="权限矩阵" colSpan={{ xs: 24, xl: 14 }}>
+          <ProTable<PermissionMatrixItem>
+            rowKey="key"
+            columns={permissionColumns}
+            dataSource={permissionMatrix}
+            search={false}
+            pagination={false}
+            options={false}
+            size="small"
+          />
+        </ProCard>
+      </ProCard>
+    </>
+  );
+
+  if (isOrganizationPage) {
+    return (
+      <PageContainer
+        title="组织权限"
+        content="维护成员、部门、职责和流程办理权限。"
+      >
+        {organizationPermissionsContent}
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer
-      title={isOrganizationPage ? '组织权限' : '系统设置'}
-      content={
-        isOrganizationPage
-          ? '维护用户、部门、角色和流程办理权限。'
-          : '查看登录成员、依赖状态和系统策略。'
-      }
+      title="系统设置"
+      content="查看登录成员、依赖状态和系统策略。"
     >
       <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
@@ -317,80 +405,6 @@ const SystemSettings: React.FC = () => {
                 </Button>
               </Space>
             }
-          />
-        </ProCard>
-      </ProCard>
-
-      <ProCard title="组织权限" split="vertical" gutter={16} wrap style={{ marginTop: 16 }}>
-        <ProCard title="成员清单" colSpan={{ xs: 24, xl: 10 }}>
-          <ProTable<OrganizationMember>
-            rowKey="key"
-            columns={memberColumns}
-            dataSource={members}
-            search={false}
-            pagination={false}
-            options={false}
-            size="small"
-            toolBarRender={() => [
-              <ModalForm<OrganizationMember>
-                key="create-member"
-                title="新增成员"
-                trigger={<Button type="primary">新增成员</Button>}
-                modalProps={{ destroyOnHidden: true }}
-                onFinish={async (values) => {
-                  const userId = values.userId.trim();
-                  const next = {
-                    ...values,
-                    key: userId,
-                    userId,
-                    status: '启用',
-                  };
-                  updateMembers([
-                    ...members.filter((item) => item.userId !== userId),
-                    next,
-                  ]);
-                  message.success('成员已保存');
-                  return true;
-                }}
-              >
-                <ProFormText
-                  name="name"
-                  label="成员名称"
-                  rules={[{ required: true, message: '请输入成员名称' }]}
-                />
-                <ProFormText
-                  name="userId"
-                  label="账号"
-                  tooltip="账号用于待办分配和审计追踪，保存后业务页面显示成员名称。"
-                  rules={[{ required: true, message: '请输入账号' }]}
-                />
-                <ProFormText
-                  name="department"
-                  label="部门"
-                  rules={[{ required: true, message: '请输入部门' }]}
-                />
-                <ProFormSelect
-                  name="role"
-                  label="角色"
-                  options={roleOptions.map((item) => ({
-                    label: item.label,
-                    value: item.value,
-                  }))}
-                  rules={[{ required: true, message: '请选择角色' }]}
-                />
-              </ModalForm>,
-            ]}
-          />
-        </ProCard>
-        <ProCard title="权限矩阵" colSpan={{ xs: 24, xl: 14 }}>
-          <ProTable<PermissionMatrixItem>
-            rowKey="key"
-            columns={permissionColumns}
-            dataSource={permissionMatrix}
-            search={false}
-            pagination={false}
-            options={false}
-            size="small"
           />
         </ProCard>
       </ProCard>
