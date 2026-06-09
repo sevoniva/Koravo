@@ -71,6 +71,7 @@ export interface StartableWorkflowItem {
   processDefinitionKey: string
   processName: string
   description?: string
+  bpmnXml?: string
   startFormBindingId: string
   startFormSchema: FormSchemaItem
 }

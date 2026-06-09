@@ -8,6 +8,7 @@ public record StartableWorkflowResponse(
         String processDefinitionKey,
         String processName,
         String description,
+        String bpmnXml,
         String startFormBindingId,
         FormSchemaResponse startFormSchema
 ) {

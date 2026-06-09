@@ -290,6 +290,7 @@ public class WorkflowEnablementService {
                 model.getModelKey(),
                 model.getModelName(),
                 model.getDescription(),
+                model.getBpmnXml(),
                 startBinding.getId(),
                 toFormSchemaResponse(schema)
         );

@@ -226,6 +226,7 @@ class WorkflowEnablementServiceTest {
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).processDefinitionKey()).isEqualTo(WorkflowEnablementDefaults.PROCESS_KEY);
+        assertThat(response.get(0).bpmnXml()).contains(WorkflowEnablementDefaults.PROCESS_KEY);
         assertThat(response.get(0).startFormSchema().id()).isEqualTo("form-1");
     }
 

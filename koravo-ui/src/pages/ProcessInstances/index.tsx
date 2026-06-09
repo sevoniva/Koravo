@@ -1,4 +1,8 @@
-import { DownOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import {
+  DeploymentUnitOutlined,
+  DownOutlined,
+  PlayCircleOutlined,
+} from '@ant-design/icons';
 import {
   PageContainer,
   ProCard,
@@ -19,6 +23,7 @@ import {
   App,
   Badge,
   Button,
+  Drawer,
   Dropdown,
   Empty,
   Flex,
@@ -30,10 +35,13 @@ import {
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import ProcessDiagramViewer from '@/components/ProcessDiagramViewer';
+import ProcessProgressCard from '@/components/ProcessProgressCard';
 import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import {
   type FormSchemaItem,
   type JsonRecord,
+  getProcessTrace,
   listFormSchemas,
   listOpsInstances,
   listStartableWorkflows,
@@ -90,6 +98,12 @@ interface JsonSchemaProperty {
   enum?: string[];
   'ui:placeholder'?: string;
   'ui:widget'?: string;
+}
+
+interface ProcessPreviewTarget {
+  instanceId: string;
+  title: string;
+  currentTasks?: TaskItem[];
 }
 
 const taskDecisionFieldKeys = new Set([
@@ -258,7 +272,7 @@ const ProcessStartReadiness: React.FC<{
       description={
         <Flex vertical gap={8}>
           <Typography.Text type="secondary">
-            后端已确认该流程发布可用，并绑定了启动表单。提交后会保存表单快照，实例详情可追踪完整记录。
+            后端已确认该流程发布可用，并绑定了启动表单。提交后会生成审批待办，实例详情可追踪流程图、表单快照和办理记录。
           </Typography.Text>
           <Space size={[0, 6]} wrap>
             <Tag color="success" variant="outlined">
@@ -269,6 +283,9 @@ const ProcessStartReadiness: React.FC<{
               )}
             </Tag>
           </Space>
+          {workflow.bpmnXml ? (
+            <ProcessDiagramViewer bpmnXml={workflow.bpmnXml} height={260} />
+          ) : null}
         </Flex>
       }
       style={{ marginBottom: 16 }}
@@ -299,6 +316,7 @@ function renderCurrentTasks(record: OpsProcessInstance) {
 
 function buildColumns(
   openTask: (task: TaskItem) => void,
+  openPreview: (instance: OpsProcessInstance) => void,
 ): ProColumns<OpsProcessInstance>[] {
   return [
     {
@@ -370,11 +388,18 @@ function buildColumns(
     {
       title: '操作',
       valueType: 'option',
-      width: 180,
+      width: 240,
       render: (_, record) => {
         const tasks = record.currentTasks || [];
         return (
           <Space size={4}>
+            <Button
+              type="link"
+              icon={<DeploymentUnitOutlined />}
+              onClick={() => openPreview(record)}
+            >
+              流程
+            </Button>
             {tasks.length === 1 ? (
               <Button type="link" onClick={() => openTask(tasks[0])}>
                 处理任务
@@ -783,8 +808,27 @@ const ProcessInstances: React.FC = () => {
   const openTask = React.useCallback((task: TaskItem) => {
     history.push(`/tasks/${task.taskId}`);
   }, []);
+  const [previewTarget, setPreviewTarget] =
+    React.useState<ProcessPreviewTarget>();
+  const previewTrace = useQuery({
+    queryKey: ['process-instance-list-trace', previewTarget?.instanceId],
+    queryFn: () => getProcessTrace(previewTarget?.instanceId || ''),
+    enabled: Boolean(previewTarget?.instanceId),
+  });
+  const openPreview = React.useCallback((instance: OpsProcessInstance) => {
+    setPreviewTarget({
+      instanceId: instance.instanceId,
+      title: instance.businessKey
+        ? businessKeyLabel(instance.businessKey)
+        : shortTraceLabel(instance.instanceId),
+      currentTasks: instance.currentTasks,
+    });
+  }, []);
 
-  const columns = React.useMemo(() => buildColumns(openTask), [openTask]);
+  const columns = React.useMemo(
+    () => buildColumns(openTask, openPreview),
+    [openPreview, openTask],
+  );
 
   if (isStartEntry || queryProcessModelId) {
     return (
@@ -886,6 +930,23 @@ const ProcessInstances: React.FC = () => {
           </Button>,
         ]}
       />
+      <Drawer
+        title={previewTarget?.title || '流程预览'}
+        size="980px"
+        open={Boolean(previewTarget)}
+        destroyOnHidden
+        onClose={() => setPreviewTarget(undefined)}
+      >
+        <ProcessProgressCard
+          loading={previewTrace.isFetching}
+          trace={previewTrace.data}
+          currentTasks={
+            previewTrace.data?.currentTasks?.length
+              ? previewTrace.data.currentTasks
+              : previewTarget?.currentTasks
+          }
+        />
+      </Drawer>
     </PageContainer>
   );
 };
