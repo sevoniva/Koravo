@@ -14,7 +14,7 @@ import {
 } from '@ant-design/pro-components';
 import { history, useModel, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Tag, Typography } from 'antd';
+import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Steps, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
@@ -163,6 +163,147 @@ function parallelTaskStatus(task: TaskItem, currentTask?: TaskItem) {
   if (task.status === 'COMPLETED') return '已处理';
   return '待处理';
 }
+
+function taskStatusLabel(status?: string) {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'COMPLETED') return '已完成';
+  if (normalized === 'RUNNING' || normalized === 'ACTIVE') return '待处理';
+  if (normalized === 'CLAIMABLE') return '待认领';
+  return status || '-';
+}
+
+function taskActionVerb(action?: string) {
+  const normalized = String(action || '').toUpperCase();
+  const mapping: Record<string, string> = {
+    TASK_COMPLETE: '完成审批',
+    TASK_TRANSFER: '转交任务',
+    TASK_DELEGATE: '委托任务',
+    TASK_CLAIM: '认领任务',
+  };
+  return mapping[normalized] || auditActionLabel(action);
+}
+
+function taskActionSummary(log: AuditLogItem) {
+  const detail = parseJsonSafe<JsonRecord>(log.detailJson, {}) as JsonRecord;
+  const node = taskDefinitionLabel(String(detail.taskDefinitionKey || ''));
+  const comment =
+    typeof detail.comment === 'string'
+      ? detail.comment
+      : typeof detail.reason === 'string'
+        ? detail.reason
+        : '';
+  return {
+    key: log.id || `${log.createdAt}-${log.action}-${log.userId}`,
+    time: formatDateTime(log.createdAt),
+    text: `${log.userId || '系统'} ${taskActionVerb(log.action)}${node ? `「${node}」` : ''}`,
+    comment,
+  };
+}
+
+function latestTaskActions(logs: AuditLogItem[] = []) {
+  return logs
+    .filter((log) => String(log.action || '').startsWith('TASK_'))
+    .slice(0, 3)
+    .map(taskActionSummary);
+}
+
+function nextTaskInstruction(task?: TaskItem, hasForm?: boolean) {
+  if (!task) return '加载任务上下文后继续处理。';
+  if (task.status === 'COMPLETED') {
+    return '当前任务已完成，可查看表单快照、处理意见和实例进度。';
+  }
+  if (!task.assignee) {
+    return '当前任务还没有处理人，请先认领后再填写表单并提交处理意见。';
+  }
+  if (!hasForm) {
+    return '当前节点还没有绑定表单，请先完成节点表单绑定，再回到这里处理。';
+  }
+  return '核对业务数据，填写本节点表单和处理意见，然后提交审批结果。';
+}
+
+const TaskActionTimeline: React.FC<{ logs?: AuditLogItem[] }> = ({ logs = [] }) => {
+  const actions = latestTaskActions(logs);
+  if (!actions.length) {
+    return (
+      <Empty
+        description="暂无已办动作"
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+      />
+    );
+  }
+  return (
+    <Flex vertical gap={8}>
+      {actions.map((action) => (
+        <Flex key={action.key} vertical gap={2}>
+          <Typography.Text>{action.text}</Typography.Text>
+          <Typography.Text type="secondary">
+            {action.time}
+            {action.comment ? `，${action.comment}` : ''}
+          </Typography.Text>
+        </Flex>
+      ))}
+    </Flex>
+  );
+};
+
+const TaskHandlingContext: React.FC<{
+  task?: TaskItem;
+  hasForm?: boolean;
+  logs?: AuditLogItem[];
+}> = ({ task, hasForm, logs }) => {
+  const isDone = task?.status === 'COMPLETED';
+  const hasAssignee = Boolean(task?.assignee);
+  return (
+    <ProCard title="办理上下文" style={{ marginBottom: 16 }}>
+      <Flex vertical gap={16}>
+        <Alert
+          showIcon
+          type={isDone ? 'success' : hasForm ? 'info' : 'warning'}
+          title={
+            task
+              ? `当前节点：${taskDefinitionLabel(task.taskDefinitionKey)}`
+              : '正在加载任务上下文'
+          }
+          description={nextTaskInstruction(task, hasForm)}
+        />
+        <Steps
+          size="small"
+          current={isDone ? 2 : hasAssignee ? 1 : 0}
+          status={hasForm || isDone ? 'process' : 'wait'}
+          items={[
+            {
+              title: hasAssignee ? '已确定处理人' : '等待认领',
+              description: hasAssignee ? task?.assignee : '暂无处理人',
+            },
+            {
+              title: isDone ? '已提交处理意见' : '填写节点表单',
+              description: hasForm ? '按当前节点表单处理' : '未绑定表单',
+            },
+            {
+              title: isDone ? '已进入后续流转' : '提交审批结果',
+              description: taskStatusLabel(task?.status),
+            },
+          ]}
+        />
+        <ProDescriptions
+          size="small"
+          column={{ xs: 1, sm: 1, md: 3 }}
+          dataSource={{
+            assignee: task?.assignee || '未分配',
+            status: taskStatusLabel(task?.status),
+            node: taskDefinitionLabel(task?.taskDefinitionKey),
+          }}
+          columns={[
+            { title: '处理人', dataIndex: 'assignee' },
+            { title: '任务状态', dataIndex: 'status' },
+            { title: '任务节点', dataIndex: 'node' },
+          ]}
+        />
+        <TaskActionTimeline logs={logs} />
+      </Flex>
+    </ProCard>
+  );
+};
 
 function renderParallelTasks(
   currentTask: TaskItem,
@@ -647,6 +788,11 @@ const TaskDetail: React.FC = () => {
             openTaskAsAssignee,
           )
         : null}
+      <TaskHandlingContext
+        task={task}
+        hasForm={Boolean(data?.formSchema)}
+        logs={data?.auditLogs}
+      />
       <ProcessProgressCard
         trace={trace}
         currentTasks={instance?.currentTasks || (task ? [task] : [])}

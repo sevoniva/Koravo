@@ -10,7 +10,7 @@ export interface OrganizationMember {
 }
 
 const STORAGE_KEY = 'koravo:organization-members';
-const expression = (name: string) => `$${`{${name}}`}`;
+const expression = (name: string) => '$' + `{${name}}`;
 
 export const defaultOrganizationMembers: OrganizationMember[] = [
   {
