@@ -1,4 +1,3 @@
-import packageJson from '@root/package.json';
 import { Divider } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
@@ -18,11 +17,7 @@ const useStyles = createStyles(({ token, css }) => ({
     justify-content: center;
     flex-wrap: wrap;
     gap: 6px 12px;
-    font-family: ${token.fontFamilyCode};
     font-size: ${token.fontSizeSM - 1}px;
-  `,
-  label: css`
-    color: ${token.colorTextQuaternary};
   `,
 }));
 
@@ -32,12 +27,9 @@ const Footer: React.FC = () => {
   return (
     <div className={styles.footer}>
       <div className={styles.meta}>
-        <span>Koravo Console</span>
+        <span>Koravo</span>
         <Divider orientation="vertical" />
-        <span>
-          <span className={styles.label}>版本 </span>
-          {packageJson.version}
-        </span>
+        <span>流程协作平台</span>
       </div>
     </div>
   );

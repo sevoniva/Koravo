@@ -30,7 +30,7 @@ import {
   tenantDisplayName,
   type OrganizationMember,
 } from '@/services/koravo/organization';
-import { productCopy } from '@/utils/display';
+import { buildVersionLabel, productCopy } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
 const dependencyColumns: ProColumns<SystemHealthItem>[] = [
@@ -234,7 +234,7 @@ const SystemSettings: React.FC = () => {
           <KoravoStatusTag status={data?.status} />
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
-          <Statistic title="平台版本" value={data?.version || '-'} />
+          <Statistic title="构建状态" value={buildVersionLabel(data?.version)} />
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
           <Statistic title="系统时间" value={formatDateTime(data?.time)} />
@@ -297,7 +297,7 @@ const SystemSettings: React.FC = () => {
             { title: '组织', dataIndex: 'tenantId', renderText: tenantDisplayName },
             { title: '登录成员', dataIndex: 'userId', renderText: organizationMemberName },
             { title: '职责', dataIndex: 'role', renderText: () => roleLabel(session.role) },
-              { title: '版本', dataIndex: 'version' },
+              { title: '构建状态', dataIndex: 'version', renderText: buildVersionLabel },
               { title: '时间', dataIndex: 'time', renderText: formatDateTime },
             ]}
             extra={

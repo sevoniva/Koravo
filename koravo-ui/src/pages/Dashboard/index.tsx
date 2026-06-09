@@ -293,7 +293,6 @@ const Dashboard: React.FC = () => {
         </ProCard>
         <ProCard title="运行概览" colSpan={{ xs: 24, xl: 8 }}>
           <Flex vertical gap={12}>
-            <span>平台版本：{data?.version || '-'}</span>
             <span>组织：{tenantDisplayName(data?.tenantId)}</span>
             <span>登录成员：{organizationMemberName(data?.userId)}</span>
             <span>系统时间：{formatDateTime(data?.time)}</span>

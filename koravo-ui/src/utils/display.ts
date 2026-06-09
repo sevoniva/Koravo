@@ -203,8 +203,18 @@ export function productCopy(value?: string | null) {
     .replaceAll('部门验收', '业务验收')
     .replaceAll('部门审批', '业务验收')
     .replaceAll('财务审批', '财务验收')
+    .replaceAll('允许 localhost', '允许本地服务地址')
+    .replace(/v\d+(?:\.\d+)*\s*未接入对象存储健康探测/g, '对象存储健康探测暂未启用')
+    .replace(/v\d+(?:\.\d+)*\s*未接入/g, '暂未接入')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+export function buildVersionLabel(value?: string | null) {
+  if (!value) return '-';
+  const text = String(value).trim();
+  if (/snapshot|dev|local/i.test(text)) return '预发布构建';
+  return text;
 }
 
 export function businessKeyLabel(value?: string | null) {
