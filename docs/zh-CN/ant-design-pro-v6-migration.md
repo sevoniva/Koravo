@@ -56,7 +56,7 @@ npm exec --package @ant-design/cli -- antd info <Component> --format json --lang
 
 - 总览：`/dashboard`
 - 配置检查：`/quick-start`（开发兜底入口，不作为主业务路径）
-- 任务中心：`/tasks`
+- 我的待办：`/tasks`
 - 任务详情：`/tasks/:taskId`
 - 流程实例：`/process-instances`
 - 流程实例详情：`/process-instances/:instanceId`
@@ -108,5 +108,5 @@ git diff --check
 
 - 不使用模板痕迹、样板说明或 AI 助手生成等露怯文案。
 - 页面描述只保留业务必要信息，不写产品宣传句。
-- 按企业后台语气命名：总览、流程设计、流程模型、流程实例、任务中心、表单管理、集成连接、运维中心、审计日志、系统设置。
+- 按企业后台语气命名：总览、工作台、流程中心、流程配置、组织权限、集成管理、运维审计。
 - 技术 ID 默认短显示，完整值只通过复制入口提供。

@@ -4,8 +4,8 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useModel } from '@umijs/max';
-import { Alert, App, Badge, Button, Empty, Flex, Space, Tabs, Tag } from 'antd';
+import { history } from '@umijs/max';
+import { Alert, Badge, Button, Empty, Flex, Space, Tabs, Tag } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -19,19 +19,10 @@ import {
 } from '@/services/koravo/api';
 import {
   getSessionContext,
-  roleForUserId,
-  setSessionContext,
   type SessionContext,
 } from '@/services/koravo/session';
 import { processDefinitionLabel, taskDefinitionLabel } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
-
-const taskUserOptions = [
-  { label: '管理员', value: 'admin' },
-  { label: '一级处理人', value: 'manager' },
-  { label: '二级处理人', value: 'finance' },
-  { label: '发起人', value: 'applicant' },
-];
 
 function taskNodeBadge(taskDefinitionKey?: string) {
   if (!taskDefinitionKey) return '-';
@@ -169,49 +160,27 @@ function taskEmpty(
 }
 
 const Tasks: React.FC = () => {
-  const { message } = App.useApp();
   const todoRef = React.useRef<ActionType>(null);
   const doneRef = React.useRef<ActionType>(null);
   const startedRef = React.useRef<ActionType>(null);
   const [session, setSession] = React.useState<SessionContext>(() => getSessionContext());
   const [activeTab, setActiveTab] = React.useState('todo');
-  const { setInitialState } = useModel('@@initialState');
 
   const reloadTables = React.useCallback(() => {
+    setSession(getSessionContext());
     todoRef.current?.reload();
     doneRef.current?.reload();
     startedRef.current?.reload();
   }, []);
 
-  const switchUser = React.useCallback(
-    (userId: string) => {
-      const next = { ...getSessionContext(), userId, role: roleForUserId(userId) };
-      setSessionContext(next);
-      setSession(next);
-      setInitialState((state) => ({
-        ...state,
-        session: next,
-        currentUser: {
-          name: next.userId,
-          userid: next.userId,
-          access: next.role,
-          tenantId: next.tenantId,
-        },
-      }));
-      message.success(`已切换为 ${userId}`);
-      reloadTables();
-    },
-    [message, reloadTables, setInitialState],
-  );
-
   return (
-    <PageContainer title="任务中心" content="处理待办，查看已完成任务和发起记录。">
+    <PageContainer title="我的待办" content="处理当前账号的待办，查看经办记录和我发起的流程。">
       <Alert
         showIcon
         type="info"
         title={
           <Space wrap size={8}>
-            <span>当前处理人</span>
+            <span>当前账号</span>
             <Tag color="processing">{session.userId}</Tag>
             <span>租户</span>
             <Tag>{session.tenantId}</Tag>
@@ -220,21 +189,14 @@ const Tasks: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              任务按当前请求上下文加载。切换处理人后，可查看该用户名下的待办、已办和发起记录。
+              待办按当前登录上下文加载。需要调整用户、部门或角色时，请进入组织权限维护。
             </span>
             <Space wrap>
-              {taskUserOptions.map((item) => (
-                <Button
-                  key={item.value}
-                  size="small"
-                  type={session.userId === item.value ? 'primary' : 'default'}
-                  onClick={() => switchUser(item.value)}
-                >
-                  {item.label}
-                </Button>
-              ))}
-              <Button size="small" onClick={() => history.push('/system-settings')}>
-                更多设置
+              <Button size="small" onClick={reloadTables}>
+                刷新待办
+              </Button>
+              <Button size="small" onClick={() => history.push('/organization-permissions')}>
+                组织权限
               </Button>
             </Space>
           </Flex>

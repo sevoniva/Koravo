@@ -33,7 +33,7 @@ Runtime task detail and task completion first resolve binding by `processDefinit
 Use `processDefinitionId` when binding a Flowable definition directly. Use `processModelId` when binding a stored model from the model center; after deployment, runtime tasks can still find that model-scoped binding.
 The `/form-bindings` console page can load deployed models, fill both the platform `processModelId` and Flowable `processDefinitionId`, and filter the list to bindings for the selected deployment.
 The console renders simple schema fields as business controls. Supported field types are `string`, `number`, `integer`, and `boolean`, with text input, textarea, number input, date picker, select options, and switch controls.
-For purchase approval tasks, the task detail page uses dedicated approval controls and saves each role's opinion as a form snapshot.
+For acceptance tasks, the task detail page renders bound business fields and saves each handler's opinion as a form snapshot.
 
 ## Snapshot Behavior
 

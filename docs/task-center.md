@@ -81,7 +81,7 @@ Completion behavior:
 - completes the Flowable task through `ProcessFacade`
 - writes a `TASK_COMPLETE` audit log with task ID, process instance ID, business key, task definition key, and form schema ID when available
 - renders simple bound form schema fields in the task detail page
-- renders purchase approval tasks with dedicated conclusion and opinion controls
+- renders acceptance tasks with bound business fields, conclusion, and opinion controls
 - validates required business fields before submitting the request
 
 ## Current Limits

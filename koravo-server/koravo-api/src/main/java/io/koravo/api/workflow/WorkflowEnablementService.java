@@ -188,7 +188,7 @@ public class WorkflowEnablementService {
         model.setModelType("BPMN");
         model.setVersion(1);
         model.setStatus(ProcessModelStatus.DRAFT);
-        model.setDescription("验收申请提交后，部门验收和财务验收并行处理。");
+        model.setDescription("验收申请提交后，业务验收和财务验收并行处理。");
         model.setBpmnXml(WorkflowEnablementDefaults.acceptanceBpmn());
         actions.add("创建多人验收流程模型");
         return processModelRepository.save(model);

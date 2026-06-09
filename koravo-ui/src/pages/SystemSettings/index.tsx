@@ -7,7 +7,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useModel } from '@umijs/max';
+import { history, useLocation, useModel } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Button, Flex, Segmented, Space, Statistic, Tag } from 'antd';
 import React, { useMemo, useState } from 'react';
@@ -79,18 +79,18 @@ const roleOptions: RoleOption[] = [
     description: '发起业务流程并跟踪实例进度。',
   },
   {
-    label: '一级处理人',
+    label: '业务处理人',
     value: 'manager',
     userId: 'manager',
     department: '业务部门',
-    description: '处理部门负责人名下的待办任务。',
+    description: '处理业务验收、复核和协同待办。',
   },
   {
-    label: '二级处理人',
+    label: '财务复核人',
     value: 'finance',
     userId: 'finance',
     department: '财务部门',
-    description: '处理财务复核名下的待办任务。',
+    description: '处理财务验收和金额复核待办。',
   },
 ];
 
@@ -159,8 +159,8 @@ const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
   { title: '权限域', dataIndex: 'scope', width: 200 },
   { title: '管理员', dataIndex: 'admin' },
   { title: '发起人', dataIndex: 'applicant' },
-  { title: '一级处理人', dataIndex: 'manager' },
-  { title: '二级处理人', dataIndex: 'finance' },
+  { title: '业务处理人', dataIndex: 'manager' },
+  { title: '财务复核人', dataIndex: 'finance' },
 ];
 
 function roleLabel(role: SessionRole) {
@@ -169,6 +169,8 @@ function roleLabel(role: SessionRole) {
 
 const SystemSettings: React.FC = () => {
   const { message } = App.useApp();
+  const location = useLocation();
+  const isOrganizationPage = location.pathname === '/organization-permissions';
   const [session, setSession] = useState<SessionContext>(() => getSessionContext());
   const { setInitialState } = useModel('@@initialState');
   const { data, isLoading, refetch } = useQuery({
@@ -219,7 +221,14 @@ const SystemSettings: React.FC = () => {
   };
 
   return (
-    <PageContainer title="系统设置" content="维护运行上下文、组织成员和权限边界。">
+    <PageContainer
+      title={isOrganizationPage ? '组织权限' : '系统设置'}
+      content={
+        isOrganizationPage
+          ? '维护用户、部门、角色和流程办理权限。'
+          : '维护运行上下文、依赖状态和系统策略。'
+      }
+    >
       <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
           <Statistic title="服务状态" value={data?.status || '-'} />
@@ -249,7 +258,7 @@ const SystemSettings: React.FC = () => {
               {session.lastRequestId ? <Tag>最近追踪号：{session.lastRequestId}</Tag> : null}
             </Space>
             <Space wrap>
-              <Button onClick={() => history.push('/process-instances')}>
+              <Button onClick={() => history.push('/process-start')}>
                 发起流程
               </Button>
               <Button type="primary" onClick={() => history.push('/tasks')}>
@@ -277,7 +286,7 @@ const SystemSettings: React.FC = () => {
                   role: String(value) as SessionRole,
                   userId: role?.userId || String(value),
                 },
-                role ? `已切换为${role.label}` : '已切换处理人',
+                role ? `已应用${role.label}上下文` : '已应用处理上下文',
               );
             }}
             style={{ marginBottom: 16 }}

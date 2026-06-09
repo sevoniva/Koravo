@@ -190,7 +190,7 @@ function renderParallelTasks(
               </Typography.Text>
               {task.taskId !== currentTask.taskId ? (
                 <Button type="link" size="small" onClick={() => openTaskAsAssignee(task)}>
-                  切换处理
+                  进入办理
                 </Button>
               ) : null}
             </Space>
@@ -450,7 +450,7 @@ const TaskDetail: React.FC = () => {
             tenantId: next.tenantId,
           },
         }));
-        message.success(`已切换为 ${userId}`);
+        message.success(`已进入 ${userId} 的办理上下文`);
       }
       history.push(`/tasks/${nextTask.taskId}`);
     },
@@ -529,7 +529,7 @@ const TaskDetail: React.FC = () => {
                           history.push('/tasks');
                         }}
                       >
-                        返回任务中心
+                        返回我的待办
                       </Button>
                     </Flex>
                   </Flex>

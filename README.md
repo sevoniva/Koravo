@@ -166,22 +166,23 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
 3. Start frontend and open `http://localhost:8000`.
    The Dashboard shows backend health, tenant/user/request context, pending and done task totals, started instances, and HTTP connector success/failure counts.
-4. Use `Process Designer` to create or import `examples/bpmn/purchase-approval.bpmn20.xml`, validate it, save the draft, and deploy it. `Process Models` can also validate a stored draft and show structured errors or warnings before deployment.
-5. Create a purchase request form schema in `Forms`, bind it to `managerApprovalTask` and `financeApprovalTask` with either the stored `processModelId` or deployed `processDefinitionId` in `Form Bindings`, then start a process with `processDefinitionKey = purchaseApproval` and variables:
+4. Use `Process Models` to run the release check for the multi-acceptance process, or use `Process Designer` to adjust the BPMN and save the draft before deployment.
+5. Create or update the acceptance request form in `Forms`, bind the start form plus `businessAcceptanceTask` and `financeAcceptanceTask` in `Form Bindings`, then start a process with `processDefinitionKey = multiAcceptance` and variables:
 
 ```json
 {
   "applicant": "zhangsan",
-  "department": "研发部",
-  "itemName": "研发环境服务器",
+  "department": "业务部门",
+  "subject": "交付成果验收",
+  "acceptanceScope": "确认交付内容、数量、质量和资料齐备情况",
+  "expectedResult": "业务验收和财务验收均通过后完成流程",
   "amount": 12800,
-  "reason": "补充流程编排开发环境资源",
   "managerApprover": "manager",
   "financeApprover": "finance"
 }
 ```
 
-6. Open `Tasks`, switch to the assigned approver when needed, enter the task detail page, and complete the approval with the rendered business form or approval opinion controls.
+6. Open `My Tasks`, enter the task detail page as the assigned handler, and complete both parallel acceptance tasks with the rendered business form and processing comment.
 7. From task detail, open the linked process instance, or open `Process Instances` / `Ops`, to inspect the process trace, current/completed nodes, variables, timeline, and saved form snapshots.
 8. Open `Audit Logs` to review model, start, task, form, datasource, connector, and ops events.
 9. Create, update, test, and inspect datasource test logs in `Data Sources`; pool settings are edited with structured fields.
@@ -193,10 +194,10 @@ The same calls are available in [examples/http/koravo.http](examples/http/koravo
 Deploy BPMN:
 
 ```bash
-curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Purchase%20Approval' \
+curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Multi%20Acceptance' \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: admin' \
-  -F 'file=@examples/bpmn/purchase-approval.bpmn20.xml'
+  -F 'file=@examples/bpmn/multi-acceptance.bpmn20.xml'
 ```
 
 Start process:
@@ -206,7 +207,7 @@ curl -X POST http://localhost:8080/api/v1/process-instances/start \
   -H 'Content-Type: application/json' \
   -H 'X-Tenant-Id: default' \
   -H 'X-User-Id: admin' \
-  -d '{"processDefinitionKey":"purchaseApproval","businessKey":"PO-001","variables":{"applicant":"zhangsan","department":"研发部","itemName":"研发环境服务器","amount":12800,"reason":"补充流程编排开发环境资源","managerApprover":"manager","financeApprover":"finance"}}'
+  -d '{"processDefinitionKey":"multiAcceptance","businessKey":"ACC-001","variables":{"applicant":"zhangsan","department":"业务部门","subject":"交付成果验收","acceptanceScope":"确认交付内容、数量、质量和资料齐备情况","expectedResult":"业务验收和财务验收均通过后完成流程","amount":12800,"managerApprover":"manager","financeApprover":"finance"}}'
 ```
 
 Complete a task:

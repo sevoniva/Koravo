@@ -1,7 +1,7 @@
 import type { BpmnTaskDefinition, ProcessModelItem } from '../types/koravo';
 
 const AUDIT_ACTION_LABELS: Record<string, string> = {
-  DEMO_INIT: '资产检查',
+  DEMO_INIT: '开发资产检查',
   WORKFLOW_ENABLEMENT_INIT: '补齐流程资产',
   PROCESS_MODEL_CREATE: '创建流程模型',
   PROCESS_MODEL_IMPORT: '导入流程模型',
@@ -35,6 +35,9 @@ const AUDIT_RESOURCE_LABELS: Record<string, string> = {
   FORM_SCHEMA: '表单',
   FORM_BINDING: '表单绑定',
   DATASOURCE: '数据源',
+  DATASOURCE_TEST_LOG: '数据源测试',
+  FAILED_JOB: '失败任务',
+  DEAD_LETTER_JOB: '死信任务',
   CONNECTOR_EXECUTION: '连接器执行',
 };
 
@@ -73,12 +76,17 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   subject: '事项名称',
   amount: '金额',
   reason: '事项说明',
+  acceptanceScope: '验收事项',
+  expectedResult: '验收标准',
   description: '事项说明',
   remark: '备注',
-  managerApprover: '一级处理人',
-  financeApprover: '二级处理人',
+  managerApprover: '业务处理人',
+  financeApprover: '财务复核人',
+  accepted: '验收通过',
+  reviewComment: '验收意见',
   approver: '处理人',
   handler: '处理人',
+  role: '角色',
   approved: '处理结论',
   opinion: '处理意见',
   businessKey: '业务编号',
@@ -140,6 +148,8 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
   const mapping: Record<string, string> = {
     httpConnectorDemo: 'HTTP 健康检查',
     httpHealthCheck: 'HTTP 健康检查',
+    purchaseApproval: '多人验收流程',
+    multiAcceptance: '多人验收流程',
   };
   return mapping[modelKey || ''] || fallback || readableIdentifier(modelKey);
 }
@@ -147,6 +157,7 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
 export function processModelKeyLabel(modelKey?: string | null) {
   const mapping: Record<string, string> = {
     httpConnectorDemo: 'httpHealthCheck',
+    purchaseApproval: 'multiAcceptance',
   };
   if (!modelKey) return '-';
   return mapping[modelKey] || modelKey;
@@ -159,7 +170,7 @@ export function processDescriptionLabel(
   if (!description || /演示|示例|demo/i.test(description)) {
     return processKindLabel(model?.modelKey);
   }
-  return description;
+  return productCopy(description);
 }
 
 export function productCopy(value?: string | null) {
@@ -170,6 +181,12 @@ export function productCopy(value?: string | null) {
     .replaceAll('演示接口', '配置接口')
     .replaceAll('内置演示', '内置')
     .replaceAll('演示', '')
+    .replaceAll('采购申请提交后，部门审批和财务审批并行处理。', '验收申请提交后，业务验收和财务验收并行处理。')
+    .replaceAll('采购申请单', '验收申请表')
+    .replaceAll('采购申请', '验收申请')
+    .replaceAll('采购内容', '验收事项')
+    .replaceAll('采购原因', '事项说明')
+    .replaceAll('部门验收', '业务验收')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -178,6 +195,8 @@ export function processKindLabel(modelKey?: string) {
   const mapping: Record<string, string> = {
     httpConnectorDemo: 'HTTP 连接器调用流程',
     httpHealthCheck: 'HTTP 连接器调用流程',
+    purchaseApproval: '多人验收流程',
+    multiAcceptance: '多人验收流程',
   };
   return mapping[modelKey || ''] || '流程模型';
 }
@@ -195,8 +214,10 @@ export function taskDefinitionLabel(
 ) {
   if (!key) return '-';
   const mapping: Record<string, string> = {
-    managerApprovalTask: '一级处理',
-    financeApprovalTask: '二级处理',
+    managerApprovalTask: '业务验收',
+    financeApprovalTask: '财务验收',
+    businessAcceptanceTask: '业务验收',
+    financeAcceptanceTask: '财务验收',
     approveTask: '处理任务',
   };
   return task?.name || mapping[key] || readableIdentifier(key);

@@ -672,8 +672,12 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
 const ProcessInstances: React.FC = () => {
   const { message } = App.useApp();
   const { setInitialState } = useModel('@@initialState');
+  const location = useLocation();
   const queryProcessModelId = useQueryProcessModelId();
-  const [startOpen, setStartOpen] = React.useState(Boolean(queryProcessModelId));
+  const isStartEntry = location.pathname === '/process-start';
+  const [startOpen, setStartOpen] = React.useState(
+    isStartEntry || Boolean(queryProcessModelId),
+  );
 
   const openTask = React.useCallback(
     (task: TaskItem) => {
@@ -691,7 +695,7 @@ const ProcessInstances: React.FC = () => {
             tenantId: next.tenantId,
           },
         }));
-        message.success(`已切换为 ${userId}`);
+        message.success(`已进入 ${userId} 的办理上下文`);
       }
       history.push(`/tasks/${task.taskId}`);
     },
@@ -704,11 +708,18 @@ const ProcessInstances: React.FC = () => {
   );
 
   React.useEffect(() => {
-    if (queryProcessModelId) setStartOpen(true);
-  }, [queryProcessModelId]);
+    if (queryProcessModelId || isStartEntry) setStartOpen(true);
+  }, [isStartEntry, queryProcessModelId]);
 
   return (
-    <PageContainer title="流程实例" content="提交业务单据并跟踪运行中的实例。">
+    <PageContainer
+      title={isStartEntry ? '发起流程' : '流程实例'}
+      content={
+        isStartEntry
+          ? '选择已发布流程，填写启动表单并提交业务实例。'
+          : '查看业务实例、当前任务和运行状态。'
+      }
+    >
       <ProTable<OpsProcessInstance>
         rowKey="instanceId"
         columns={columns}

@@ -95,8 +95,8 @@ const QuickStart: React.FC = () => {
 
   return (
     <PageContainer
-      title="资产检查"
-      content="检查流程模型、业务表单、任务绑定和待办链路；缺失时可补齐流程资产。"
+      title="开发资产检查"
+      content="检查开发环境的流程模型、业务表单、任务绑定和待办链路；缺失时可补齐流程资产。"
       extra={[
         <Button
           key="reload"

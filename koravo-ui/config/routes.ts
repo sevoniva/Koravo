@@ -10,21 +10,65 @@ export default [
     component: './Dashboard',
   },
   {
+    key: 'workbench',
+    name: '工作台',
+    icon: 'checkCircle',
+    routes: [
+      {
+        path: '/tasks',
+        name: '我的待办',
+        icon: 'checkCircle',
+        component: './Tasks',
+      },
+      {
+        path: '/tasks/:taskId',
+        name: '任务详情',
+        hideInMenu: true,
+        component: './TaskDetail',
+      },
+    ],
+  },
+  {
+    key: 'process-center',
+    name: '流程中心',
+    icon: 'playCircle',
+    routes: [
+      {
+        path: '/process-start',
+        name: '发起流程',
+        icon: 'playCircle',
+        component: './ProcessInstances',
+      },
+      {
+        path: '/process-instances',
+        name: '流程实例',
+        icon: 'profile',
+        component: './ProcessInstances',
+      },
+      {
+        path: '/process-instances/:instanceId',
+        name: '实例详情',
+        hideInMenu: true,
+        component: './ProcessInstanceDetail',
+      },
+    ],
+  },
+  {
     key: 'process-modeling',
     name: '流程配置',
     icon: 'partition',
     routes: [
       {
-        path: '/process-designer',
-        name: '流程设计',
-        icon: 'edit',
-        component: './ProcessDesigner',
-      },
-      {
         path: '/process-models',
         name: '流程模型',
         icon: 'deploymentUnit',
         component: './ProcessModels',
+      },
+      {
+        path: '/process-designer',
+        name: '流程设计',
+        icon: 'edit',
+        component: './ProcessDesigner',
       },
       {
         path: '/forms',
@@ -41,39 +85,21 @@ export default [
     ],
   },
   {
-    key: 'process-runtime',
-    name: '流程运行',
-    icon: 'playCircle',
+    key: 'organization',
+    name: '组织权限',
+    icon: 'team',
     routes: [
       {
-        path: '/tasks',
-        name: '任务中心',
-        icon: 'checkCircle',
-        component: './Tasks',
-      },
-      {
-        path: '/tasks/:taskId',
-        name: '任务详情',
-        hideInMenu: true,
-        component: './TaskDetail',
-      },
-      {
-        path: '/process-instances',
-        name: '流程实例',
-        icon: 'playCircle',
-        component: './ProcessInstances',
-      },
-      {
-        path: '/process-instances/:instanceId',
-        name: '实例详情',
-        hideInMenu: true,
-        component: './ProcessInstanceDetail',
+        path: '/organization-permissions',
+        name: '组织权限',
+        icon: 'team',
+        component: './SystemSettings',
       },
     ],
   },
   {
     key: 'integration',
-    name: '集成',
+    name: '集成管理',
     icon: 'api',
     routes: [
       {
@@ -92,7 +118,7 @@ export default [
   },
   {
     key: 'ops',
-    name: '运维',
+    name: '运维审计',
     icon: 'control',
     routes: [
       {
@@ -115,7 +141,7 @@ export default [
       },
       {
         path: '/quick-start',
-        name: '资产检查',
+        name: '开发资产检查',
         hideInMenu: true,
         component: './QuickStart',
       },

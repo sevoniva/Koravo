@@ -21,23 +21,41 @@ import {
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 
 const actionOptions = {
+  WORKFLOW_ENABLEMENT_INIT: { text: '补齐流程资产' },
   PROCESS_MODEL_CREATE: { text: '创建流程模型' },
+  PROCESS_MODEL_IMPORT: { text: '导入流程模型' },
+  PROCESS_MODEL_UPDATE: { text: '更新流程模型' },
   PROCESS_MODEL_DEPLOY: { text: '部署流程模型' },
+  PROCESS_MODEL_DISABLE: { text: '停用流程模型' },
+  PROCESS_MODEL_ARCHIVE: { text: '归档流程模型' },
   PROCESS_INSTANCE_START: { text: '启动流程实例' },
+  PROCESS_INSTANCE_SUSPEND: { text: '挂起流程实例' },
+  PROCESS_INSTANCE_ACTIVATE: { text: '激活流程实例' },
+  PROCESS_INSTANCE_TERMINATE: { text: '终止流程实例' },
   TASK_COMPLETE: { text: '完成任务' },
   FORM_SCHEMA_CREATE: { text: '创建表单' },
+  FORM_SCHEMA_UPDATE: { text: '更新表单' },
   FORM_BIND: { text: '绑定表单' },
+  FORM_BIND_UPDATE: { text: '更新表单绑定' },
+  FORM_BIND_DELETE: { text: '删除表单绑定' },
+  DATASOURCE_CREATE: { text: '创建数据源' },
+  DATASOURCE_UPDATE: { text: '更新数据源' },
+  DATASOURCE_DELETE: { text: '删除数据源' },
   DATASOURCE_TEST: { text: '测试数据源' },
   CONNECTOR_EXECUTE: { text: '执行连接器' },
 };
 
 const resourceOptions = {
+  WORKFLOW_ENABLEMENT: { text: '流程配置' },
   PROCESS_MODEL: { text: '流程模型' },
   PROCESS_INSTANCE: { text: '流程实例' },
   TASK: { text: '任务' },
   FORM_SCHEMA: { text: '表单' },
   FORM_BINDING: { text: '表单绑定' },
   DATASOURCE: { text: '数据源' },
+  DATASOURCE_TEST_LOG: { text: '数据源测试' },
+  FAILED_JOB: { text: '失败任务' },
+  DEAD_LETTER_JOB: { text: '死信任务' },
   CONNECTOR_EXECUTION: { text: '连接器执行' },
 };
 
