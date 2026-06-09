@@ -495,7 +495,7 @@ const ProcessModels: React.FC = () => {
           </Button>
           <Button
             type="link"
-            disabled={record.status === 'ARCHIVED'}
+            disabled={record.status !== 'DRAFT'}
             onClick={async () => {
               const validation = await validateProcessModel(record.id);
               if (!validation.valid || !record.readiness.deployReady) {

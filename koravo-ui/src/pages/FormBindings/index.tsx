@@ -315,6 +315,11 @@ const FormBindings: React.FC = () => {
           <Space wrap>
             <Button
               type="primary"
+              onClick={() => history.push('/process-models')}
+            >
+              查看配置状态
+            </Button>
+            <Button
               onClick={() =>
                 history.push(
                   processModelId
@@ -389,6 +394,7 @@ const FormBindings: React.FC = () => {
         <Button
           key="start"
           type="link"
+          disabled={record.processModel?.status !== 'DEPLOYED'}
           onClick={() =>
             history.push(
               record.processModelId
@@ -437,7 +443,7 @@ const FormBindings: React.FC = () => {
           showIcon
           type="info"
           title="正在查看指定流程的表单绑定"
-          description="从流程模型进入后，列表和新建绑定会默认使用该流程模型。"
+          description="从流程模型进入后，列表和新建绑定会默认使用该流程模型。完成绑定后请回到流程模型做发布检查，确认启动表单、任务表单和办理人都已就绪。"
           action={
             <Button size="small" onClick={() => history.push('/form-bindings')}>
               查看全部
