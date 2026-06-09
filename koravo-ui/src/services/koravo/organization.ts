@@ -1,4 +1,4 @@
-import type { SessionContext, SessionRole } from './session';
+import { getSessionContext, type SessionContext, type SessionRole } from './session';
 
 export interface OrganizationMember {
   key: string;
@@ -82,6 +82,67 @@ export function organizationMemberName(userId?: string | null) {
   if (member) return member.name;
   if (/^\$\{.+\}$/.test(userId)) return '按流程变量分配';
   return '未登记成员';
+}
+
+export function isOrganizationProfileField(fieldKey?: string | null) {
+  const normalized = String(fieldKey || '').trim().toLowerCase();
+  return ['applicant', 'requester', 'department'].includes(normalized);
+}
+
+export function organizationAssigneeRole(fieldKey?: string | null): SessionRole | undefined {
+  const normalized = String(fieldKey || '').trim();
+  const mapping: Record<string, SessionRole> = {
+    managerApprover: 'manager',
+    financeApprover: 'finance',
+  };
+  return mapping[normalized];
+}
+
+function readableOrganizationValue(value: unknown) {
+  if (value === undefined || value === null) return undefined;
+  const text = String(value).trim();
+  return text || undefined;
+}
+
+export function organizationProfileFieldValue(
+  fieldKey?: string | null,
+  values?: Record<string, unknown>,
+  session: Pick<SessionContext, 'userId' | 'role'> = getSessionContext(),
+) {
+  const normalized = String(fieldKey || '').trim().toLowerCase();
+  const existing = fieldKey ? readableOrganizationValue(values?.[fieldKey]) : undefined;
+  if (existing) {
+    return normalized === 'applicant' || normalized === 'requester'
+      ? organizationMemberByUserId(existing)?.name || existing
+      : existing;
+  }
+
+  const member = organizationMemberByUserId(session.userId);
+  if (normalized === 'department') return member?.department || '-';
+  if (normalized === 'applicant' || normalized === 'requester') {
+    return member?.name || organizationMemberName(session.userId);
+  }
+  return undefined;
+}
+
+export function organizationMemberSelectOptions(role?: SessionRole) {
+  return getOrganizationMembers()
+    .filter((member) => member.status === '启用')
+    .filter((member) => !role || member.role === role)
+    .map((member) => ({
+      label: `${member.name}（${member.department}）`,
+      value: member.userId,
+    }));
+}
+
+export function organizationAssigneeFieldValue(
+  fieldKey?: string | null,
+  values?: Record<string, unknown>,
+) {
+  const existing = fieldKey ? readableOrganizationValue(values?.[fieldKey]) : undefined;
+  if (existing) return existing;
+  const role = organizationAssigneeRole(fieldKey);
+  return getOrganizationMembers().find((member) => member.status === '启用' && member.role === role)?.userId;
 }
 
 export function organizationRoleLabel(role?: SessionRole | null) {

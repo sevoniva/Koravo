@@ -24,7 +24,7 @@ import {
   updateFormSchema,
   type FormSchemaItem,
 } from '@/services/koravo/api';
-import { formSchemaNameLabel } from '@/utils/display';
+import { formSchemaKeyLabel, formSchemaNameLabel } from '@/utils/display';
 import { history } from '@umijs/max';
 
 interface FormSchemaForm {
@@ -518,7 +518,12 @@ const Forms: React.FC = () => {
       title: '表单编码',
       dataIndex: 'formKey',
       width: 180,
-      render: (_, record) => <CopyableText value={record.formKey} />,
+      render: (_, record) => (
+        <CopyableText
+          value={record.formKey}
+          displayValue={formSchemaKeyLabel(record.formKey)}
+        />
+      ),
     },
     {
       title: '版本',

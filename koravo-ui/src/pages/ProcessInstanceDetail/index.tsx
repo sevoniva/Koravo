@@ -7,7 +7,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useModel, useParams } from '@umijs/max';
+import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import { App, Badge, Button, Drawer, Empty, Flex, Space, Tag, Typography } from 'antd';
 import React from 'react';
@@ -30,13 +30,7 @@ import {
 } from '@/services/koravo/api';
 import {
   organizationMemberName,
-  sessionActorLabel,
 } from '@/services/koravo/organization';
-import {
-  getSessionContext,
-  roleForUserId,
-  setSessionContext,
-} from '@/services/koravo/session';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -277,8 +271,6 @@ const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
   const instanceId = params.instanceId || '';
   const [selectedSnapshot, setSelectedSnapshot] = React.useState<FormSnapshotItem>();
-  const { message } = App.useApp();
-  const { setInitialState } = useModel('@@initialState');
   const {
     data: instance,
     isLoading,
@@ -309,25 +301,9 @@ const ProcessInstanceDetail: React.FC = () => {
   const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
   const openTaskAsAssignee = React.useCallback(
     (task: TaskItem) => {
-      const userId = task.assignee?.trim();
-      if (userId) {
-        const next = { ...getSessionContext(), userId, role: roleForUserId(userId) };
-        setSessionContext(next);
-        setInitialState((state) => ({
-          ...state,
-          session: next,
-          currentUser: {
-            name: sessionActorLabel(next),
-            userid: next.userId,
-            access: next.role,
-            tenantId: next.tenantId,
-          },
-        }));
-        message.success(`已进入 ${sessionActorLabel(next)} 办理上下文`);
-      }
       history.push(`/tasks/${task.taskId}`);
     },
-    [message, setInitialState],
+    [],
   );
   const currentTaskColumns = React.useMemo<ProColumns<TaskItem>[]>(
     () => [

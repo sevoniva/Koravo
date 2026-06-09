@@ -1,7 +1,8 @@
 import { DownOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import {
-  ModalForm,
   PageContainer,
+  ProCard,
+  ProForm,
   ProFormDependency,
   ProFormDatePicker,
   ProFormDigit,
@@ -11,7 +12,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useLocation, useModel } from '@umijs/max';
+import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Badge, Button, Dropdown, Empty, Flex, Form, Space, Tag, Typography } from 'antd';
 import React from 'react';
@@ -33,14 +34,13 @@ import {
   type TaskItem,
 } from '@/services/koravo/api';
 import {
+  organizationAssigneeFieldValue,
+  organizationAssigneeRole,
+  isOrganizationProfileField,
+  organizationMemberSelectOptions,
   organizationMemberName,
-  sessionActorLabel,
+  organizationProfileFieldValue,
 } from '@/services/koravo/organization';
-import {
-  getSessionContext,
-  roleForUserId,
-  setSessionContext,
-} from '@/services/koravo/session';
 import {
   businessKeyLabel,
   formSchemaOptionLabel,
@@ -83,6 +83,7 @@ interface JsonSchemaProperty {
 const hiddenStartModelKeys = new Set(['httpConnectorDemo']);
 const nonBusinessModelPattern = /示例|演示|验证|调试|测试/i;
 const START_FORM_TASK_KEY = '__START__';
+const taskDecisionFieldKeys = new Set(['accepted', 'approved', 'reviewComment', 'approvalComment', 'decision']);
 
 function nextBusinessKey(prefix = 'REQ') {
   const now = new Date();
@@ -125,7 +126,7 @@ function schemaToStartFields(formSchema?: FormSchemaItem): StartFormField[] {
   const properties = schema.properties as Record<string, JsonSchemaProperty> | undefined;
   const required = Array.isArray(schema.required) ? schema.required.map(String) : [];
 
-  return Object.entries(properties || {}).map(([fieldKey, property]) => {
+  return Object.entries(properties || {}).filter(([fieldKey]) => !taskDecisionFieldKeys.has(fieldKey)).map(([fieldKey, property]) => {
     const uiField = uiSchema[fieldKey] as JsonRecord | undefined;
     const widget = uiField?.['ui:widget'] || uiField?.widget || property['ui:widget'] || property.widget;
     const placeholder = uiField?.['ui:placeholder'] || uiField?.placeholder || property['ui:placeholder'];
@@ -400,6 +401,12 @@ function buildStartVariables(values: StartInstanceForm): JsonRecord {
   return normalizeStartVariables(values.formValues);
 }
 
+function profileFieldRules(field: StartFormField) {
+  return field.required
+    ? [{ required: true, message: `${field.title}会按当前账号自动带出` }]
+    : [];
+}
+
 const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
   initialProcessModelId,
 }) => {
@@ -610,7 +617,33 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                   return (
                     <Flex vertical gap={4}>
                       {fields.map((field) =>
-                        field.type === 'number' || field.type === 'integer' ? (
+                        organizationAssigneeRole(field.fieldKey) ? (
+                          <ProFormSelect
+                            key={field.fieldKey}
+                            name={['formValues', field.fieldKey]}
+                            label={field.title}
+                            initialValue={organizationAssigneeFieldValue(field.fieldKey)}
+                            options={organizationMemberSelectOptions(
+                              organizationAssigneeRole(field.fieldKey),
+                            )}
+                            placeholder="请选择组织成员"
+                            rules={
+                              field.required
+                                ? [{ required: true, message: `请选择${field.title}` }]
+                                : []
+                            }
+                          />
+                        ) : isOrganizationProfileField(field.fieldKey) ? (
+                          <ProFormText
+                            key={field.fieldKey}
+                            name={['formValues', field.fieldKey]}
+                            label={field.title}
+                            initialValue={organizationProfileFieldValue(field.fieldKey)}
+                            tooltip="由当前账号和组织成员信息自动带出。"
+                            fieldProps={{ readOnly: true }}
+                            rules={profileFieldRules(field)}
+                          />
+                        ) : field.type === 'number' || field.type === 'integer' ? (
                           <ProFormDigit
                             key={field.fieldKey}
                             name={['formValues', field.fieldKey]}
@@ -689,35 +722,15 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
 
 const ProcessInstances: React.FC = () => {
   const { message } = App.useApp();
-  const { setInitialState } = useModel('@@initialState');
   const location = useLocation();
   const queryProcessModelId = useQueryProcessModelId();
   const isStartEntry = location.pathname === '/process-start';
-  const [startOpen, setStartOpen] = React.useState(
-    isStartEntry || Boolean(queryProcessModelId),
-  );
 
   const openTask = React.useCallback(
     (task: TaskItem) => {
-      const userId = task.assignee?.trim();
-      if (userId) {
-        const next = { ...getSessionContext(), userId, role: roleForUserId(userId) };
-        setSessionContext(next);
-        setInitialState((state) => ({
-          ...state,
-          session: next,
-          currentUser: {
-            name: sessionActorLabel(next),
-            userid: next.userId,
-            access: next.role,
-            tenantId: next.tenantId,
-          },
-        }));
-        message.success(`已进入 ${sessionActorLabel(next)} 办理上下文`);
-      }
       history.push(`/tasks/${task.taskId}`);
     },
-    [message, setInitialState],
+    [],
   );
 
   const columns = React.useMemo(
@@ -725,18 +738,49 @@ const ProcessInstances: React.FC = () => {
     [openTask],
   );
 
-  React.useEffect(() => {
-    if (queryProcessModelId || isStartEntry) setStartOpen(true);
-  }, [isStartEntry, queryProcessModelId]);
+  if (isStartEntry || queryProcessModelId) {
+    return (
+      <PageContainer
+        title="发起流程"
+        content="选择已发布流程，填写启动表单并提交业务实例。"
+      >
+        <ProCard>
+          <ProForm<StartInstanceForm>
+            submitter={{
+              searchConfig: {
+                submitText: '提交发起',
+                resetText: '重置',
+              },
+            }}
+            onFinish={async (values) => {
+              if (!values.startFormSchemaId) {
+                message.warning('请先为流程配置启动表单');
+                return false;
+              }
+              const formData = buildStartVariables(values);
+              const instance = await startProcessInstance({
+                processDefinitionKey: values.processDefinitionKey,
+                businessKey: values.businessKey,
+                variables: formData,
+                formSchemaId: values.startFormSchemaId,
+                formData,
+              });
+              message.success('已发起');
+              history.push(`/process-instances/${instance.instanceId}`);
+              return true;
+            }}
+          >
+            <StartInstanceFields initialProcessModelId={queryProcessModelId} />
+          </ProForm>
+        </ProCard>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer
-      title={isStartEntry ? '发起流程' : '流程实例'}
-      content={
-        isStartEntry
-          ? '选择已发布流程，填写启动表单并提交业务实例。'
-          : '查看业务实例、当前任务和运行状态。'
-      }
+      title="流程实例"
+      content="查看业务实例、当前任务和运行状态。"
     >
       <ProTable<OpsProcessInstance>
         rowKey="instanceId"
@@ -769,7 +813,7 @@ const ProcessInstances: React.FC = () => {
                 <Button
                   type="primary"
                   icon={<PlayCircleOutlined />}
-                  onClick={() => setStartOpen(true)}
+                  onClick={() => history.push('/process-start')}
                 >
                   发起实例
                 </Button>
@@ -780,42 +824,15 @@ const ProcessInstances: React.FC = () => {
             </Empty>
           ),
         }}
-        toolBarRender={(action) => [
-          <ModalForm<StartInstanceForm>
+        toolBarRender={() => [
+          <Button
             key="start"
-            title="发起流程实例"
-            open={startOpen}
-            onOpenChange={setStartOpen}
-            trigger={
-              <Button type="primary" icon={<PlayCircleOutlined />}>
-                发起实例
-              </Button>
-            }
-            modalProps={{
-              destroyOnHidden: true,
-              width: 'min(720px, calc(100vw - 16px))',
-            }}
-            onFinish={async (values) => {
-              if (!values.startFormSchemaId) {
-                message.warning('请先为流程配置启动表单');
-                return false;
-              }
-              const formData = buildStartVariables(values);
-              const instance = await startProcessInstance({
-                processDefinitionKey: values.processDefinitionKey,
-                businessKey: values.businessKey,
-                variables: formData,
-                formSchemaId: values.startFormSchemaId,
-                formData,
-              });
-              message.success('已发起');
-              action?.reload();
-              history.push(`/process-instances/${instance.instanceId}`);
-              return true;
-            }}
+            type="primary"
+            icon={<PlayCircleOutlined />}
+            onClick={() => history.push('/process-start')}
           >
-            <StartInstanceFields initialProcessModelId={queryProcessModelId} />
-          </ModalForm>,
+            发起实例
+          </Button>,
         ]}
       />
     </PageContainer>

@@ -3,15 +3,14 @@ import {
   PageContainer,
   ProCard,
   ProDescriptions,
-  ProForm,
   ProFormSelect,
   ProFormText,
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useLocation, useModel } from '@umijs/max';
+import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Button, Flex, Segmented, Space, Statistic, Tag } from 'antd';
+import { Alert, App, Button, Flex, Space, Statistic, Tag } from 'antd';
 import React, { useMemo, useState } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
@@ -20,8 +19,6 @@ import {
 } from '@/services/koravo/api';
 import {
   getSessionContext,
-  roleForUserId,
-  setSessionContext,
   type SessionContext,
   type SessionRole,
 } from '@/services/koravo/session';
@@ -30,7 +27,6 @@ import {
   organizationMemberName,
   organizationRoleLabel,
   saveOrganizationMembers,
-  sessionActorLabel,
   tenantDisplayName,
   type OrganizationMember,
 } from '@/services/koravo/organization';
@@ -147,9 +143,8 @@ const SystemSettings: React.FC = () => {
   const { message } = App.useApp();
   const location = useLocation();
   const isOrganizationPage = location.pathname === '/organization-permissions';
-  const [session, setSession] = useState<SessionContext>(() => getSessionContext());
+  const [session] = useState<SessionContext>(() => getSessionContext());
   const [members, setMembers] = useState<OrganizationMember[]>(() => getOrganizationMembers());
-  const { setInitialState } = useModel('@@initialState');
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['system-health'],
     queryFn: getSystemHealth,
@@ -220,35 +215,13 @@ const SystemSettings: React.FC = () => {
     },
   ];
 
-  const applySession = (values: Partial<SessionContext>, successText: string) => {
-    const next = {
-      ...getSessionContext(),
-      ...values,
-      role: values.role || roleForUserId(values.userId || session.userId),
-    };
-    setSessionContext(next);
-    setSession(next);
-    setInitialState((state) => ({
-      ...state,
-      session: next,
-      currentUser: {
-        name: sessionActorLabel(next),
-        userid: next.userId,
-        access: next.role,
-        tenantId: next.tenantId,
-      },
-    }));
-    message.success(successText);
-    void refetch();
-  };
-
   return (
     <PageContainer
       title={isOrganizationPage ? '组织权限' : '系统设置'}
       content={
         isOrganizationPage
           ? '维护用户、部门、角色和流程办理权限。'
-          : '维护办理身份、依赖状态和系统策略。'
+          : '查看当前账号上下文、依赖状态和系统策略。'
       }
     >
       <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
@@ -267,11 +240,11 @@ const SystemSettings: React.FC = () => {
       <Alert
         showIcon
         type="info"
-        title="当前办理身份"
+        title="当前账号上下文"
         description={
           <Flex vertical gap={8}>
             <span>
-              待办、发起和运维操作会按当前身份加载权限范围。发起、办理、复核分别对应不同职责边界。
+              待办、发起和运维操作会按当前登录账号加载权限范围。账号和职责由组织权限维护，不在业务页面临时切换。
             </span>
             <Space wrap>
               <Tag color="processing">办理人：{organizationMemberName(session.userId)}</Tag>
@@ -293,26 +266,7 @@ const SystemSettings: React.FC = () => {
       />
 
       <ProCard split="vertical" gutter={16} wrap>
-        <ProCard title="办理身份" colSpan={{ xs: 24, xl: 10 }}>
-          <Segmented
-            block
-            value={session.role}
-            options={roleOptions.map((item) => ({
-              label: item.label,
-              value: item.value,
-            }))}
-            onChange={(value) => {
-              const role = roleOptions.find((item) => item.value === value);
-              applySession(
-                {
-                  role: String(value) as SessionRole,
-                  userId: role?.userId || String(value),
-                },
-                role ? `已切换为${role.label}` : '已切换办理身份',
-              );
-            }}
-            style={{ marginBottom: 16 }}
-          />
+        <ProCard title="当前账号" colSpan={{ xs: 24, xl: 10 }}>
           {currentRole ? (
             <Alert
               showIcon
@@ -322,45 +276,16 @@ const SystemSettings: React.FC = () => {
               style={{ marginBottom: 16 }}
             />
           ) : null}
-          <ProForm<SessionContext>
-            key={`${session.tenantId}-${session.userId}-${session.role}-${session.requestId}-${session.lastRequestId || ''}`}
-            initialValues={session}
-            submitter={{
-              render: (_, dom) => dom,
-            }}
-            onFinish={async (values) => {
-              applySession(
-                { ...values, role: roleForUserId(values.userId) },
-                '已保存办理身份',
-              );
-              return true;
-            }}
-          >
-            <ProFormText
-              name="tenantId"
-              label="组织编码"
-              rules={[{ required: true, message: '请输入组织编码' }]}
-            />
-            <ProFormText
-              name="userId"
-              label="办理人账号"
-              rules={[{ required: true, message: '请输入办理人账号' }]}
-            />
-            <ProFormText
-              label="当前职责"
-              fieldProps={{ readOnly: true, value: roleLabel(session.role) }}
-            />
-            <ProFormText
-              name="requestId"
-              label="请求追踪号"
-              tooltip="仅在排查指定请求时填写；为空时系统会按当前操作生成追踪号。"
-            />
-            <ProFormText
-              name="lastRequestId"
-              label="最近追踪号"
-              fieldProps={{ readOnly: true }}
-            />
-          </ProForm>
+          <ProDescriptions<SessionContext>
+            column={1}
+            dataSource={session}
+            columns={[
+              { title: '组织', dataIndex: 'tenantId', renderText: tenantDisplayName },
+              { title: '账号', dataIndex: 'userId', renderText: organizationMemberName },
+              { title: '职责', dataIndex: 'role', renderText: () => roleLabel(session.role) },
+              { title: '最近追踪号', dataIndex: 'lastRequestId', renderText: (value) => value || '-' },
+            ]}
+          />
         </ProCard>
         <ProCard title="运行信息" colSpan={{ xs: 24, xl: 14 }}>
           <ProDescriptions

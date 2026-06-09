@@ -389,7 +389,7 @@ const ProcessDesigner: React.FC = () => {
               </Button>
               <Button
                 onClick={() =>
-                  history.push(`/process-instances?processModelId=${deployedModel.id}`)
+                  history.push(`/process-start?processModelId=${deployedModel.id}`)
                 }
               >
                 发起实例

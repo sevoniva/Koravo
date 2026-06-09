@@ -10,7 +10,7 @@ import {
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
-import { Alert, App, Button, Empty, Flex, Form, Modal, Space, Typography } from 'antd';
+import { Alert, App, Button, Empty, Flex, Form, Modal, Space, Tag, Typography } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import {
@@ -82,11 +82,7 @@ function useQueryFormSchemaId() {
 
 function modelBindingLabel(record: BindingTableItem) {
   if (!record.processModel) {
-    return record.processModelId ? (
-      <CopyableText value={record.processModelId} />
-    ) : (
-      '-'
-    );
+    return record.processModelId ? '未匹配流程模型' : '-';
   }
 
   return (
@@ -107,7 +103,7 @@ function modelBindingLabel(record: BindingTableItem) {
 
 function formBindingLabel(record: BindingTableItem) {
   if (!record.formSchema) {
-    return <CopyableText value={record.formSchemaId} />;
+    return record.formSchemaId ? '未匹配表单' : '-';
   }
 
   return (
@@ -119,6 +115,13 @@ function formBindingLabel(record: BindingTableItem) {
       />
     </Flex>
   );
+}
+
+function bindingTargetLabel(record: Pick<FormBindingItem, 'taskDefinitionKey'>) {
+  if (record.taskDefinitionKey === START_FORM_TASK_KEY) {
+    return <Tag color="processing">流程启动</Tag>;
+  }
+  return <Tag>{taskDefinitionLabel(record.taskDefinitionKey)}</Tag>;
 }
 
 function bindingModelId(binding: FormBindingItem | BindingForm) {
@@ -203,9 +206,7 @@ const BindingFormItems: React.FC<{
       />
       <ProFormText
         name="processDefinitionId"
-        label="流程定义"
-        fieldProps={{ readOnly: true }}
-        placeholder="选择已部署流程模型后自动带出"
+        hidden
       />
       <ProFormDependency name={['processModelId', 'bindingType']}>
         {({ processModelId, bindingType }) =>
@@ -295,8 +296,8 @@ const FormBindings: React.FC = () => {
               onClick={() =>
                 history.push(
                   processModelId
-                    ? `/process-instances?processModelId=${processModelId}`
-                    : '/process-instances',
+                    ? `/process-start?processModelId=${processModelId}`
+                    : '/process-start',
                 )
               }
             >
@@ -336,20 +337,13 @@ const FormBindings: React.FC = () => {
       render: (_, record) => modelBindingLabel(record),
     },
     {
-      title: '流程定义',
-      dataIndex: 'processDefinitionId',
-      ellipsis: true,
-      render: (_, record) => <CopyableText value={record.processDefinitionId} />,
-    },
-    {
-      title: '任务节点',
+      title: '绑定位置',
       dataIndex: 'taskDefinitionKey',
-      width: 160,
-      renderText: (value) =>
-        value === START_FORM_TASK_KEY ? '-' : taskDefinitionLabel(value),
+      width: 180,
+      render: (_, record) => bindingTargetLabel(record),
     },
     {
-      title: '表单编号',
+      title: '绑定表单',
       dataIndex: 'formSchemaId',
       ellipsis: true,
       render: (_, record) => formBindingLabel(record),
@@ -364,8 +358,21 @@ const FormBindings: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 140,
+      width: 210,
       render: (_, record) => [
+        <Button
+          key="start"
+          type="link"
+          onClick={() =>
+            history.push(
+              record.processModelId
+                ? `/process-start?processModelId=${record.processModelId}`
+                : '/process-start',
+            )
+          }
+        >
+          发起验证
+        </Button>,
         <Button key="edit" type="link" onClick={() => setEditing(record)}>
           编辑
         </Button>,

@@ -12,7 +12,7 @@ import {
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useModel, useParams } from '@umijs/max';
+import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Steps, Tag, Typography } from 'antd';
 import React, { useState } from 'react';
@@ -34,14 +34,13 @@ import {
   type TaskItem,
 } from '@/services/koravo/api';
 import {
-  getSessionContext,
-  roleForUserId,
-  setSessionContext,
-} from '@/services/koravo/session';
-import {
   getOrganizationMembers,
+  isOrganizationProfileField,
+  organizationAssigneeFieldValue,
+  organizationAssigneeRole,
   organizationMemberName,
-  sessionActorLabel,
+  organizationMemberSelectOptions,
+  organizationProfileFieldValue,
 } from '@/services/koravo/organization';
 import {
   auditActionLabel,
@@ -462,7 +461,10 @@ function snapshotSummary(record: FormSnapshotItem) {
   );
 }
 
-const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSchema }) => {
+const SchemaDrivenFields: React.FC<{
+  formSchema?: FormSchemaItem;
+  values?: JsonRecord;
+}> = ({ formSchema, values }) => {
   const fields = schemaToFields(formSchema);
 
   if (!fields.length) {
@@ -488,6 +490,41 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
           ? [{ required: true, message: `请输入${field.title}` }]
           : undefined;
         const name = ['formValues', field.fieldKey];
+        if (organizationAssigneeRole(field.fieldKey)) {
+          return (
+            <ProFormSelect
+              key={field.fieldKey}
+              name={name}
+              label={field.title}
+              initialValue={organizationAssigneeFieldValue(field.fieldKey, values)}
+              options={organizationMemberSelectOptions(organizationAssigneeRole(field.fieldKey))}
+              tooltip="由发起环节选择的组织成员带出。"
+              disabled
+              rules={
+                field.required
+                  ? [{ required: true, message: `${field.title}会自动带出` }]
+                  : undefined
+              }
+            />
+          );
+        }
+        if (isOrganizationProfileField(field.fieldKey)) {
+          return (
+            <ProFormText
+              key={field.fieldKey}
+              name={name}
+              label={field.title}
+              initialValue={organizationProfileFieldValue(field.fieldKey, values)}
+              tooltip="由流程发起信息或当前账号自动带出。"
+              fieldProps={{ readOnly: true }}
+              rules={
+                field.required
+                  ? [{ required: true, message: `${field.title}会自动带出` }]
+                  : undefined
+              }
+            />
+          );
+        }
         if (field.type === 'number') {
           return (
             <ProFormDigit
@@ -567,7 +604,10 @@ const SchemaDrivenFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
   );
 };
 
-const CompleteTaskFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSchema }) => (
+const CompleteTaskFields: React.FC<{
+  formSchema?: FormSchemaItem;
+  values?: JsonRecord;
+}> = ({ formSchema, values }) => (
   <>
     <ProFormSelect
       name="decision"
@@ -580,7 +620,7 @@ const CompleteTaskFields: React.FC<{ formSchema?: FormSchemaItem }> = ({ formSch
       ]}
       rules={[{ required: true, message: '请选择处理结论' }]}
     />
-    <SchemaDrivenFields formSchema={formSchema} />
+    <SchemaDrivenFields formSchema={formSchema} values={values} />
     <ProFormTextArea name="comment" label="处理意见" fieldProps={{ rows: 4 }} />
   </>
 );
@@ -644,7 +684,6 @@ const TaskDetail: React.FC = () => {
   const [snapshot, setSnapshot] = useState<FormSnapshotItem>();
   const [modal, contextHolder] = Modal.useModal();
   const { message } = App.useApp();
-  const { setInitialState } = useModel('@@initialState');
   const {
     data,
     isLoading,
@@ -673,25 +712,9 @@ const TaskDetail: React.FC = () => {
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
   const openTaskAsAssignee = React.useCallback(
     (nextTask: TaskItem) => {
-      const userId = nextTask.assignee?.trim();
-      if (userId) {
-        const next = { ...getSessionContext(), userId, role: roleForUserId(userId) };
-        setSessionContext(next);
-        setInitialState((state) => ({
-          ...state,
-          session: next,
-          currentUser: {
-            name: sessionActorLabel(next),
-            userid: next.userId,
-            access: next.role,
-            tenantId: next.tenantId,
-          },
-        }));
-        message.success(`已进入 ${sessionActorLabel(next)} 办理上下文`);
-      }
       history.push(`/tasks/${nextTask.taskId}`);
     },
-    [message, setInitialState],
+    [],
   );
 
   return (
@@ -775,7 +798,10 @@ const TaskDetail: React.FC = () => {
               return true;
             }}
           >
-            <CompleteTaskFields formSchema={data?.formSchema} />
+            <CompleteTaskFields
+              formSchema={data?.formSchema}
+              values={data?.processVariables}
+            />
           </ModalForm>
           ) : null}
           {task && task.status !== 'COMPLETED' ? (
