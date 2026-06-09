@@ -1,3 +1,4 @@
+import { DeploymentUnitOutlined } from '@ant-design/icons';
 import {
   PageContainer,
   ProCard,
@@ -12,12 +13,14 @@ import { Alert, App, Button, Drawer, Empty, Modal, Space, Statistic, Tabs, Typog
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
   deleteDeadLetterJob,
   deleteFailedJob,
   getDeadLetterJob,
   getFailedJob,
   getOpsSummary,
+  getProcessTrace,
   listDeadLetterJobs,
   listFailedJobs,
   listOpsCapabilities,
@@ -39,69 +42,91 @@ interface SelectedJob {
   id: string;
 }
 
-const instanceColumns: ProColumns<OpsProcessInstance>[] = [
-  {
-    title: '实例编号',
-    dataIndex: 'instanceId',
-    width: 220,
-    render: (_, record) => <CopyableText value={record.instanceId} />,
-  },
-  {
-    title: '流程定义',
-    dataIndex: 'processDefinitionId',
-    ellipsis: true,
-    renderText: processDefinitionLabel,
-  },
-  {
-    title: '业务编号',
-    dataIndex: 'businessKey',
-    width: 180,
-    render: (_, record) => (
-      <CopyableText
-        value={record.businessKey}
-        displayValue={businessKeyLabel(record.businessKey)}
-      />
-    ),
-  },
-  { title: '发起人', dataIndex: 'startUserId', width: 120, renderText: organizationMemberName },
-  {
-    title: '开始时间',
-    dataIndex: 'startTime',
-    width: 170,
-    renderText: formatDateTime,
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    width: 110,
-    render: (_, record) => <KoravoStatusTag status={record.status} />,
-  },
-  {
-    title: '操作',
-    valueType: 'option',
-    width: 160,
-    render: (_, record) => (
-      <Space size={4}>
-        <Button
-          type="link"
-          onClick={() => history.push(`/process-instances/${record.instanceId}`)}
-        >
-          查看实例
-        </Button>
-        <Button
-          type="link"
-          onClick={() =>
-            history.push(
-              `/audit-logs?resourceId=${encodeURIComponent(record.instanceId)}`,
-            )
-          }
-        >
-          审计日志
-        </Button>
-      </Space>
-    ),
-  },
-];
+interface ProcessPreviewTarget {
+  instanceId: string;
+  title: string;
+  currentTasks?: OpsProcessInstance['currentTasks'];
+}
+
+function buildInstanceColumns(
+  openPreview: (instance: OpsProcessInstance) => void,
+): ProColumns<OpsProcessInstance>[] {
+  return [
+    {
+      title: '实例编号',
+      dataIndex: 'instanceId',
+      width: 220,
+      render: (_, record) => <CopyableText value={record.instanceId} />,
+    },
+    {
+      title: '流程定义',
+      dataIndex: 'processDefinitionId',
+      ellipsis: true,
+      renderText: processDefinitionLabel,
+    },
+    {
+      title: '业务编号',
+      dataIndex: 'businessKey',
+      width: 180,
+      render: (_, record) => (
+        <CopyableText
+          value={record.businessKey}
+          displayValue={businessKeyLabel(record.businessKey)}
+        />
+      ),
+    },
+    {
+      title: '发起人',
+      dataIndex: 'startUserId',
+      width: 120,
+      renderText: organizationMemberName,
+    },
+    {
+      title: '开始时间',
+      dataIndex: 'startTime',
+      width: 170,
+      renderText: formatDateTime,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 110,
+      render: (_, record) => <KoravoStatusTag status={record.status} />,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 210,
+      render: (_, record) => (
+        <Space size={4}>
+          <Button
+            type="link"
+            icon={<DeploymentUnitOutlined />}
+            onClick={() => openPreview(record)}
+          >
+            流程
+          </Button>
+          <Button
+            type="link"
+            onClick={() => history.push(`/process-instances/${record.instanceId}`)}
+          >
+            查看实例
+          </Button>
+          <Button
+            type="link"
+            onClick={() =>
+              history.push(
+                `/audit-logs?resourceId=${encodeURIComponent(record.instanceId)}`,
+              )
+            }
+          >
+            审计日志
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+}
 
 function jobColumns(
   retryJob: (id: string) => Promise<unknown>,
@@ -240,6 +265,7 @@ const Ops: React.FC = () => {
   const failedRef = useRef<ActionType>(null);
   const deadLetterRef = useRef<ActionType>(null);
   const [selectedJob, setSelectedJob] = useState<SelectedJob>();
+  const [previewTarget, setPreviewTarget] = useState<ProcessPreviewTarget>();
   const [activeTab, setActiveTab] = useState('instances');
   const [modal, contextHolder] = Modal.useModal();
   const { message } = App.useApp();
@@ -255,6 +281,29 @@ const Ops: React.FC = () => {
         : getFailedJob(selectedJob?.id || ''),
     enabled: Boolean(selectedJob?.id),
   });
+  const previewTrace = useQuery({
+    queryKey: ['ops-process-trace', previewTarget?.instanceId],
+    queryFn: () => getProcessTrace(previewTarget?.instanceId || ''),
+    enabled: Boolean(previewTarget?.instanceId),
+  });
+  const jobTrace = useQuery({
+    queryKey: ['ops-job-process-trace', jobDetail?.processInstanceId],
+    queryFn: () => getProcessTrace(jobDetail?.processInstanceId || ''),
+    enabled: Boolean(selectedJob?.id && jobDetail?.processInstanceId),
+  });
+  const instanceColumns = React.useMemo(
+    () =>
+      buildInstanceColumns((instance) =>
+        setPreviewTarget({
+          instanceId: instance.instanceId,
+          title: `${processDefinitionLabel(instance.processDefinitionId)} · ${
+            instance.businessKey ? businessKeyLabel(instance.businessKey) : instance.instanceId
+          }`,
+          currentTasks: instance.currentTasks,
+        }),
+      ),
+    [],
+  );
 
   return (
     <PageContainer title="运维中心" content="查看运行实例、异常任务和平台运维能力。">
@@ -473,6 +522,13 @@ const Ops: React.FC = () => {
                 { title: '到期时间', dataIndex: 'dueDate', renderText: formatDateTime },
               ]}
             />
+            {jobDetail.processInstanceId ? (
+              <ProcessProgressCard
+                loading={jobTrace.isFetching}
+                trace={jobTrace.data}
+                currentTasks={jobTrace.data?.currentTasks}
+              />
+            ) : null}
             <Typography.Title level={5}>异常堆栈</Typography.Title>
             {jobDetail.exceptionStacktrace ? (
               <Typography.Paragraph
@@ -494,6 +550,23 @@ const Ops: React.FC = () => {
         ) : (
           <Empty description="暂无任务详情" />
         )}
+      </Drawer>
+      <Drawer
+        title={previewTarget?.title || '流程预览'}
+        size="980px"
+        open={Boolean(previewTarget)}
+        destroyOnHidden
+        onClose={() => setPreviewTarget(undefined)}
+      >
+        <ProcessProgressCard
+          loading={previewTrace.isFetching}
+          trace={previewTrace.data}
+          currentTasks={
+            previewTrace.data?.currentTasks?.length
+              ? previewTrace.data.currentTasks
+              : previewTarget?.currentTasks
+          }
+        />
       </Drawer>
     </PageContainer>
   );

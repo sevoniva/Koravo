@@ -77,7 +77,11 @@ export function organizationMemberByUserId(userId?: string | null) {
 }
 
 export function organizationMemberName(userId?: string | null) {
-  return organizationMemberByUserId(userId)?.name || userId || '-';
+  if (!userId) return '-';
+  const member = organizationMemberByUserId(userId);
+  if (member) return member.name;
+  if (/^\$\{.+\}$/.test(userId)) return '按流程变量分配';
+  return '未登记成员';
 }
 
 export function organizationRoleLabel(role?: SessionRole | null) {
