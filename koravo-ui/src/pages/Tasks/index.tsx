@@ -23,10 +23,7 @@ import {
   type TaskItem,
   type TaskListParams,
 } from '@/services/koravo/api';
-import {
-  getSessionContext,
-  type SessionContext,
-} from '@/services/koravo/session';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   organizationMemberName,
   organizationRoleLabel,
@@ -272,7 +269,7 @@ const Tasks: React.FC = () => {
   const candidateRef = React.useRef<ActionType>(null);
   const doneRef = React.useRef<ActionType>(null);
   const startedRef = React.useRef<ActionType>(null);
-  const [session, setSession] = React.useState<SessionContext>(() => getSessionContext());
+  const session = getSessionContext();
   const [previewTarget, setPreviewTarget] = React.useState<ProcessPreviewTarget>();
   const activeTab = tabFromPath(location.pathname);
   const pageMeta = taskTabMeta[activeTab];
@@ -283,7 +280,6 @@ const Tasks: React.FC = () => {
   });
 
   const reloadTables = React.useCallback(() => {
-    setSession(getSessionContext());
     todoRef.current?.reload();
     candidateRef.current?.reload();
     doneRef.current?.reload();
@@ -383,9 +379,9 @@ const Tasks: React.FC = () => {
         type="info"
         title={
           <Space wrap size={8}>
-            <span>当前操作者</span>
+            <span>当前成员</span>
             <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
-            <span>职责</span>
+            <span>岗位职责</span>
             <Tag color="blue">{organizationRoleLabel(session.role)}</Tag>
             <span>组织</span>
             <Tag>{tenantDisplayName(session.tenantId)}</Tag>
@@ -394,7 +390,7 @@ const Tasks: React.FC = () => {
         description={
           <Flex vertical gap={8}>
             <span>
-              待办按当前操作者和职责加载。需要调整成员、部门或职责时，请进入组织权限维护。
+              待办按平台身份源中的成员、部门和岗位职责加载。需要调整组织档案时，请进入组织权限维护。
             </span>
             <Space wrap>
               <Button size="small" onClick={reloadTables}>

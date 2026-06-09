@@ -21,7 +21,7 @@ describe('organization display helpers', () => {
   });
 
   it('does not expose unknown account ids in business-facing copy', () => {
-    expect(organizationMemberName('123')).toBe('未登记成员');
+    expect(organizationMemberName('123')).toBe('待同步成员');
   });
 
   it('keeps unresolved assignee expressions readable', () => {
@@ -134,7 +134,7 @@ describe('organization display helpers', () => {
 
     expect(organizationMemberName('manager')).toBe('业务审批主管');
     expect(organizationMemberName('admin')).toBe('流程平台负责人');
-    expect(organizationMemberName('local-only')).toBe('未登记成员');
+    expect(organizationMemberName('local-only')).toBe('待同步成员');
     expect(
       getOrganizationMembers().find((item) => item.userId === 'manager'),
     ).toMatchObject({

@@ -225,7 +225,7 @@ const Dashboard: React.FC = () => {
           type="warning"
           showIcon
           title="摘要加载失败"
-          description="请确认服务已启动，并检查当前操作者权限。"
+          description="请确认服务已启动，并检查组织权限配置。"
           style={{ marginBottom: 16 }}
         />
       )}
@@ -298,7 +298,7 @@ const Dashboard: React.FC = () => {
         <ProCard title="运行概览" colSpan={{ xs: 24, xl: 8 }}>
           <Flex vertical gap={12}>
             <span>组织：{tenantDisplayName(data?.tenantId)}</span>
-            <span>当前操作者：{organizationMemberName(operatorUserId)}</span>
+            <span>当前成员：{organizationMemberName(operatorUserId)}</span>
             <span>系统时间：{formatDateTime(data?.time)}</span>
             <span>
               连接器成功率：

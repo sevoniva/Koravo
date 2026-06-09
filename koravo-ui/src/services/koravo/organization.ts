@@ -72,7 +72,7 @@ export function organizationMemberName(userId?: string | null) {
   const member = organizationMemberByUserId(userId);
   if (member) return member.name;
   if (/^\$\{.+\}$/.test(userId)) return '按流程变量分配';
-  return '未登记成员';
+  return '待同步成员';
 }
 
 type OrganizationProfileFieldKind = 'applicant' | 'department';

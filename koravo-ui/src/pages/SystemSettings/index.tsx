@@ -151,7 +151,7 @@ const SystemSettings: React.FC = () => {
     [data],
   );
 
-  const currentRole = roleOptions.find((item) => item.value === session.role);
+  const currentPermissionProfile = roleOptions.find((item) => item.value === session.role);
   const systemOperatorName = (userId?: string) =>
     organizationMemberName(userId && userId !== 'anonymous' ? userId : session.userId);
 
@@ -246,7 +246,7 @@ const SystemSettings: React.FC = () => {
   return (
     <PageContainer
       title="系统状态"
-      content="查看当前操作者、依赖状态和系统策略。"
+      content="查看组织身份、依赖状态和系统策略。"
     >
       <ProCard
         gutter={16}
@@ -272,17 +272,17 @@ const SystemSettings: React.FC = () => {
       <Alert
         showIcon
         type="info"
-        title="我的权限范围"
+        title="组织权限范围"
         description={
           <Flex vertical gap={8}>
             <span>
-              待办、发起和运维操作会按当前操作者加载权限范围。成员、部门和职责由平台身份源同步。
+              待办、发起和运维操作会按平台身份源加载权限范围。成员、部门和岗位职责由组织档案同步。
             </span>
             <Space wrap>
               <Tag color="processing">
-                当前操作者：{organizationMemberName(session.userId)}
+                当前成员：{organizationMemberName(session.userId)}
               </Tag>
-              <Tag color="blue">职责：{roleLabel(session.role)}</Tag>
+              <Tag color="blue">岗位职责：{roleLabel(session.role)}</Tag>
               <Tag>组织：{tenantDisplayName(session.tenantId)}</Tag>
             </Space>
             <Space wrap>
@@ -299,13 +299,13 @@ const SystemSettings: React.FC = () => {
       />
 
       <ProCard split="vertical" gutter={16} wrap>
-        <ProCard title="我的权限" colSpan={{ xs: 24, xl: 10 }}>
-          {currentRole ? (
+        <ProCard title="权限档案" colSpan={{ xs: 24, xl: 10 }}>
+          {currentPermissionProfile ? (
             <Alert
               showIcon
               type="success"
-              title={currentRole.label}
-              description={currentRole.description}
+              title={currentPermissionProfile.label}
+              description={currentPermissionProfile.description}
               style={{ marginBottom: 16 }}
             />
           ) : null}
@@ -324,7 +324,7 @@ const SystemSettings: React.FC = () => {
                 renderText: organizationMemberName,
               },
               {
-                title: '职责',
+                title: '岗位职责',
                 dataIndex: 'role',
                 renderText: () => roleLabel(session.role),
               },
@@ -342,12 +342,12 @@ const SystemSettings: React.FC = () => {
                 renderText: tenantDisplayName,
               },
               {
-                title: '当前操作者',
+                title: '当前成员',
                 dataIndex: 'userId',
                 renderText: systemOperatorName,
               },
               {
-                title: '职责',
+                title: '岗位职责',
                 dataIndex: 'role',
                 renderText: () => roleLabel(session.role),
               },
