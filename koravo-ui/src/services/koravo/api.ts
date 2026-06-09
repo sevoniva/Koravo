@@ -400,7 +400,7 @@ export function listTasks(params?: TaskListParams) {
 }
 
 export function listCandidateTasks(params?: TaskListParams) {
-  return apiData<PageResult<TaskItem>>(http.get('/tasks/candidate', { params }))
+  return apiData<PageResult<TaskItem>>(http.get('/tasks/candidates', { params }))
 }
 
 export function listDoneTasks(params?: TaskListParams) {

@@ -49,6 +49,7 @@ Error:
 - `POST /api/v1/process-instances/start`
 - `GET /api/v1/process-instances/{instanceId}`
 - `GET /api/v1/tasks/my`
+- `GET /api/v1/tasks/candidates`
 - `GET /api/v1/tasks/done`
 - `GET /api/v1/tasks/started`
 - `GET /api/v1/tasks/{taskId}`

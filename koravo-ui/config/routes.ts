@@ -21,6 +21,24 @@ export default [
         component: './Tasks',
       },
       {
+        path: '/task-claims',
+        name: '待认领',
+        icon: 'audit',
+        component: './Tasks',
+      },
+      {
+        path: '/done-tasks',
+        name: '已办任务',
+        icon: 'fileDone',
+        component: './Tasks',
+      },
+      {
+        path: '/started-instances',
+        name: '我发起的',
+        icon: 'profile',
+        component: './Tasks',
+      },
+      {
         path: '/tasks/:taskId',
         name: '任务详情',
         hideInMenu: true,

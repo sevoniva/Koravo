@@ -10,6 +10,14 @@ GET /api/v1/tasks/my?page=1&pageSize=20
 
 The response contains the current user's assigned runtime tasks.
 
+## Candidate Tasks
+
+```http
+GET /api/v1/tasks/candidates?page=1&pageSize=20
+```
+
+The response contains tasks that the current user or role can claim before handling.
+
 ## Done Tasks
 
 ```http

@@ -36,7 +36,7 @@ public class TaskController {
         return ApiResponse.success(taskAppService.queryMyTasks(page, pageSize, keyword, status, startTime, endTime));
     }
 
-    @GetMapping("/api/v1/tasks/candidate")
+    @GetMapping("/api/v1/tasks/candidates")
     public ApiResponse<PageResult<TaskDTO>> candidateTasks(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize,

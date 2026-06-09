@@ -4,7 +4,7 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { history } from '@umijs/max';
+import { history, useLocation } from '@umijs/max';
 import { Alert, App, Badge, Button, Empty, Flex, Space, Tabs, Tag } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
@@ -25,6 +25,41 @@ import {
 } from '@/services/koravo/session';
 import { processDefinitionLabel, taskDefinitionLabel } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+
+type TaskTabKey = 'todo' | 'candidate' | 'done' | 'started';
+
+const taskTabRoutes: Record<TaskTabKey, string> = {
+  todo: '/tasks',
+  candidate: '/task-claims',
+  done: '/done-tasks',
+  started: '/started-instances',
+};
+
+const taskTabMeta: Record<TaskTabKey, { title: string; content: string }> = {
+  todo: {
+    title: '我的待办',
+    content: '处理已经分配给当前账号的审批任务。',
+  },
+  candidate: {
+    title: '待认领',
+    content: '认领当前账号或角色可处理的候选任务。',
+  },
+  done: {
+    title: '已办任务',
+    content: '查看当前账号已处理过的任务和办理记录。',
+  },
+  started: {
+    title: '我发起的',
+    content: '查看当前账号发起的流程实例和处理进度。',
+  },
+};
+
+function tabFromPath(pathname: string): TaskTabKey {
+  if (pathname === taskTabRoutes.candidate) return 'candidate';
+  if (pathname === taskTabRoutes.done) return 'done';
+  if (pathname === taskTabRoutes.started) return 'started';
+  return 'todo';
+}
 
 function taskNodeBadge(taskDefinitionKey?: string) {
   if (!taskDefinitionKey) return '-';
@@ -163,12 +198,14 @@ function taskEmpty(
 
 const Tasks: React.FC = () => {
   const { message } = App.useApp();
+  const location = useLocation();
   const todoRef = React.useRef<ActionType>(null);
   const candidateRef = React.useRef<ActionType>(null);
   const doneRef = React.useRef<ActionType>(null);
   const startedRef = React.useRef<ActionType>(null);
   const [session, setSession] = React.useState<SessionContext>(() => getSessionContext());
-  const [activeTab, setActiveTab] = React.useState('todo');
+  const activeTab = tabFromPath(location.pathname);
+  const pageMeta = taskTabMeta[activeTab];
 
   const reloadTables = React.useCallback(() => {
     setSession(getSessionContext());
@@ -219,8 +256,18 @@ const Tasks: React.FC = () => {
     [claimTask],
   );
 
+  const switchTab = React.useCallback(
+    (key: string) => {
+      const path = taskTabRoutes[key as TaskTabKey] || taskTabRoutes.todo;
+      if (path !== location.pathname) {
+        history.push(path);
+      }
+    },
+    [location.pathname],
+  );
+
   return (
-    <PageContainer title="我的待办" content="处理当前账号的待办，查看经办记录和我发起的流程。">
+    <PageContainer title={pageMeta.title} content={pageMeta.content}>
       <Alert
         showIcon
         type="info"
@@ -251,7 +298,7 @@ const Tasks: React.FC = () => {
       />
       <Tabs
         activeKey={activeTab}
-        onChange={setActiveTab}
+        onChange={switchTab}
         items={[
           {
             key: 'todo',
@@ -273,7 +320,7 @@ const Tasks: React.FC = () => {
                       >
                         发起流程
                       </Button>
-                      <Button onClick={() => setActiveTab('started')}>
+                      <Button onClick={() => switchTab('started')}>
                         查看我发起的
                       </Button>
                     </Space>,
@@ -304,7 +351,7 @@ const Tasks: React.FC = () => {
                   emptyText: taskEmpty(
                     '当前账号暂无可认领任务',
                     <Space wrap>
-                      <Button onClick={() => setActiveTab('todo')}>
+                      <Button onClick={() => switchTab('todo')}>
                         查看待办
                       </Button>
                       <Button onClick={() => history.push('/process-instances')}>
@@ -337,7 +384,7 @@ const Tasks: React.FC = () => {
                 locale={{
                   emptyText: taskEmpty(
                     '当前处理人暂无已办记录',
-                    <Button onClick={() => setActiveTab('todo')}>
+                    <Button onClick={() => switchTab('todo')}>
                       查看待办
                     </Button>,
                   ),

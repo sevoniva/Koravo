@@ -227,6 +227,7 @@ Complete a task:
 Then inspect:
 
 - `GET /api/v1/tasks/my?page=1&pageSize=20`
+- `GET /api/v1/tasks/candidates?page=1&pageSize=20`
 - `GET /api/v1/tasks/done?page=1&pageSize=20`
 - `GET /api/v1/tasks/{taskId}`
 - `GET /api/v1/process-instances/{instanceId}`
