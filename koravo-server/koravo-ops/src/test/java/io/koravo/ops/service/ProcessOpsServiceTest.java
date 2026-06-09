@@ -58,20 +58,24 @@ class ProcessOpsServiceTest {
     void suspendInstanceCallsFacadeAndWritesAuditLog() {
         TenantContextHolder.setTenantId("default");
 
-        service.suspendInstance("pi-1");
+        service.suspendInstance("pi-1", "等待业务确认");
 
         verify(processFacade).suspendProcessInstance("default", "pi-1");
-        verify(auditLogService).record(eq("PROCESS_INSTANCE_SUSPEND"), eq("PROCESS_INSTANCE"), eq("pi-1"), eq(java.util.Map.of()));
+        verify(auditLogService).record(eq("PROCESS_INSTANCE_SUSPEND"), eq("PROCESS_INSTANCE"), eq("pi-1"), eq(java.util.Map.of(
+                "reason", "等待业务确认"
+        )));
     }
 
     @Test
     void activateInstanceCallsFacadeAndWritesAuditLog() {
         TenantContextHolder.setTenantId("default");
 
-        service.activateInstance("pi-1");
+        service.activateInstance("pi-1", "继续处理");
 
         verify(processFacade).activateProcessInstance("default", "pi-1");
-        verify(auditLogService).record(eq("PROCESS_INSTANCE_ACTIVATE"), eq("PROCESS_INSTANCE"), eq("pi-1"), eq(java.util.Map.of()));
+        verify(auditLogService).record(eq("PROCESS_INSTANCE_ACTIVATE"), eq("PROCESS_INSTANCE"), eq("pi-1"), eq(java.util.Map.of(
+                "reason", "继续处理"
+        )));
     }
 
     @Test

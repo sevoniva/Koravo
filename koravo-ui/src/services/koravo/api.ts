@@ -588,12 +588,12 @@ export function terminateProcessInstance(instanceId: string, reason: string) {
   return apiData(http.post(`/ops/process-instances/${instanceId}/terminate`, { reason }))
 }
 
-export function suspendProcessInstance(instanceId: string) {
-  return apiData(http.post(`/ops/process-instances/${instanceId}/suspend`))
+export function suspendProcessInstance(instanceId: string, reason?: string) {
+  return apiData(http.post(`/ops/process-instances/${instanceId}/suspend`, { reason }))
 }
 
-export function activateProcessInstance(instanceId: string) {
-  return apiData(http.post(`/ops/process-instances/${instanceId}/activate`))
+export function activateProcessInstance(instanceId: string, reason?: string) {
+  return apiData(http.post(`/ops/process-instances/${instanceId}/activate`, { reason }))
 }
 
 export function listConnectorExecutionLogs(params: {

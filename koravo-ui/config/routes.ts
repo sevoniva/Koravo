@@ -141,7 +141,7 @@ export default [
       },
       {
         path: '/quick-start',
-        name: '开发资产检查',
+        name: '流程资产检查',
         hideInMenu: true,
         component: './QuickStart',
       },

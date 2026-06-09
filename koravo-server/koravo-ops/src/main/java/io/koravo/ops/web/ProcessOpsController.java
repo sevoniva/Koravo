@@ -115,14 +115,20 @@ public class ProcessOpsController {
     }
 
     @PostMapping("/api/v1/ops/process-instances/{instanceId}/suspend")
-    public ApiResponse<Void> suspendInstance(@PathVariable String instanceId) {
-        processOpsService.suspendInstance(instanceId);
+    public ApiResponse<Void> suspendInstance(
+            @PathVariable String instanceId,
+            @RequestBody(required = false) ProcessInstanceActionRequest request
+    ) {
+        processOpsService.suspendInstance(instanceId, request == null ? null : request.reason());
         return ApiResponse.success(null);
     }
 
     @PostMapping("/api/v1/ops/process-instances/{instanceId}/activate")
-    public ApiResponse<Void> activateInstance(@PathVariable String instanceId) {
-        processOpsService.activateInstance(instanceId);
+    public ApiResponse<Void> activateInstance(
+            @PathVariable String instanceId,
+            @RequestBody(required = false) ProcessInstanceActionRequest request
+    ) {
+        processOpsService.activateInstance(instanceId, request == null ? null : request.reason());
         return ApiResponse.success(null);
     }
 

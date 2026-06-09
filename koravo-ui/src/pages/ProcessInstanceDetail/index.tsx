@@ -1,13 +1,15 @@
 import {
+  ModalForm,
   PageContainer,
   ProCard,
   ProDescriptions,
+  ProFormTextArea,
   ProTable,
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useModel, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { App, Badge, Button, Drawer, Empty, Flex, Modal, Space, Tag, Typography } from 'antd';
+import { App, Badge, Button, Drawer, Empty, Flex, Space, Tag, Typography } from 'antd';
 import React from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
@@ -85,6 +87,96 @@ function instanceActionDisabled(status: string | undefined, action: 'suspend' | 
   if (action === 'activate') return status !== 'SUSPENDED';
   return !['RUNNING', 'SUSPENDED'].includes(status || '');
 }
+
+interface InstanceActionForm {
+  reason?: string;
+}
+
+interface InstanceActionButtonProps {
+  action: 'suspend' | 'activate' | 'terminate';
+  disabled: boolean;
+  instanceId: string;
+  refetch: () => Promise<unknown>;
+  refetchTrace: () => Promise<unknown>;
+}
+
+const instanceActionCopy = {
+  suspend: {
+    title: '挂起实例',
+    button: '挂起',
+    reasonLabel: '挂起原因',
+    placeholder: '说明需要暂停该流程的业务原因',
+    success: '已挂起',
+  },
+  activate: {
+    title: '激活实例',
+    button: '激活',
+    reasonLabel: '激活原因',
+    placeholder: '说明恢复处理该流程的原因',
+    success: '已激活',
+  },
+  terminate: {
+    title: '终止实例',
+    button: '终止',
+    reasonLabel: '终止原因',
+    placeholder: '说明终止该流程的依据和影响范围',
+    success: '已终止',
+  },
+};
+
+const InstanceActionButton: React.FC<InstanceActionButtonProps> = ({
+  action,
+  disabled,
+  instanceId,
+  refetch,
+  refetchTrace,
+}) => {
+  const { message } = App.useApp();
+  const copy = instanceActionCopy[action];
+  const danger = action === 'terminate';
+
+  return (
+    <ModalForm<InstanceActionForm>
+      title={copy.title}
+      trigger={
+        <Button danger={danger} disabled={disabled}>
+          {copy.button}
+        </Button>
+      }
+      modalProps={{ destroyOnHidden: true }}
+      submitter={{
+        searchConfig: {
+          submitText: copy.button,
+          resetText: '取消',
+        },
+      }}
+      onFinish={async (values) => {
+        const reason = values.reason?.trim();
+        if (action === 'suspend') {
+          await suspendProcessInstance(instanceId, reason);
+        } else if (action === 'activate') {
+          await activateProcessInstance(instanceId, reason);
+        } else {
+          await terminateProcessInstance(instanceId, reason || '');
+        }
+        message.success(copy.success);
+        await Promise.all([refetch(), refetchTrace()]);
+        return true;
+      }}
+    >
+      <ProFormTextArea
+        name="reason"
+        label={copy.reasonLabel}
+        placeholder={copy.placeholder}
+        fieldProps={{ rows: 4, maxLength: 200, showCount: true }}
+        rules={[
+          { required: true, message: `请输入${copy.reasonLabel}` },
+          { min: 4, message: `${copy.reasonLabel}至少 4 个字` },
+        ]}
+      />
+    </ModalForm>
+  );
+};
 
 function activityTypeLabel(activityType?: string) {
   const mapping: Record<string, string> = {
@@ -164,7 +256,6 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
 const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
   const instanceId = params.instanceId || '';
-  const [modal, contextHolder] = Modal.useModal();
   const [selectedSnapshot, setSelectedSnapshot] = React.useState<FormSnapshotItem>();
   const { message } = App.useApp();
   const { setInitialState } = useModel('@@initialState');
@@ -177,7 +268,7 @@ const ProcessInstanceDetail: React.FC = () => {
     queryFn: () => getOpsInstance(instanceId),
     enabled: Boolean(instanceId),
   });
-  const { data: trace, isLoading: traceLoading } = useQuery({
+  const { data: trace, isLoading: traceLoading, refetch: refetchTrace } = useQuery({
     queryKey: ['process-trace', instanceId],
     queryFn: () => getProcessTrace(instanceId),
     enabled: Boolean(instanceId),
@@ -326,57 +417,30 @@ const ProcessInstanceDetail: React.FC = () => {
           >
             审计日志
           </Button>
-          <Button
+          <InstanceActionButton
+            action="suspend"
             disabled={instanceActionDisabled(instance?.status, 'suspend')}
-            onClick={() => {
-              modal.confirm({
-                title: '挂起实例',
-                content: '确认挂起该流程实例？',
-                okText: '挂起',
-                cancelText: '取消',
-                onOk: async () => {
-                  await suspendProcessInstance(instanceId);
-                  message.success('已挂起');
-                  await refetch();
-                },
-              });
-            }}
-          >
-            挂起
-          </Button>
-          <Button
+            instanceId={instanceId}
+            refetch={refetch}
+            refetchTrace={refetchTrace}
+          />
+          <InstanceActionButton
+            action="activate"
             disabled={instanceActionDisabled(instance?.status, 'activate')}
-            onClick={async () => {
-              await activateProcessInstance(instanceId);
-              message.success('已激活');
-              await refetch();
-            }}
-          >
-            激活
-          </Button>
-          <Button
-            danger
+            instanceId={instanceId}
+            refetch={refetch}
+            refetchTrace={refetchTrace}
+          />
+          <InstanceActionButton
+            action="terminate"
             disabled={instanceActionDisabled(instance?.status, 'terminate')}
-            onClick={() => {
-              modal.confirm({
-                title: '终止实例',
-                content: '确认终止该流程实例？',
-                okText: '终止',
-                cancelText: '取消',
-                onOk: async () => {
-                  await terminateProcessInstance(instanceId, 'operator terminated');
-                  message.success('已终止');
-                  await refetch();
-                },
-              });
-            }}
-          >
-            终止
-          </Button>
+            instanceId={instanceId}
+            refetch={refetch}
+            refetchTrace={refetchTrace}
+          />
         </Space>
       }
     >
-      {contextHolder}
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
         <ProDescriptions
           column={{ xs: 1, sm: 1, md: 2 }}

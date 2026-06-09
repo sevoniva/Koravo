@@ -142,14 +142,18 @@ public class ProcessOpsService {
         ));
     }
 
-    public void suspendInstance(String instanceId) {
+    public void suspendInstance(String instanceId, String reason) {
         processFacade.suspendProcessInstance(TenantContextHolder.getTenantId(), instanceId);
-        auditLogService.record("PROCESS_INSTANCE_SUSPEND", "PROCESS_INSTANCE", instanceId, Map.of());
+        auditLogService.record("PROCESS_INSTANCE_SUSPEND", "PROCESS_INSTANCE", instanceId, Map.of(
+                "reason", reason == null || reason.isBlank() ? "Suspend by ops" : reason
+        ));
     }
 
-    public void activateInstance(String instanceId) {
+    public void activateInstance(String instanceId, String reason) {
         processFacade.activateProcessInstance(TenantContextHolder.getTenantId(), instanceId);
-        auditLogService.record("PROCESS_INSTANCE_ACTIVATE", "PROCESS_INSTANCE", instanceId, Map.of());
+        auditLogService.record("PROCESS_INSTANCE_ACTIVATE", "PROCESS_INSTANCE", instanceId, Map.of(
+                "reason", reason == null || reason.isBlank() ? "Activate by ops" : reason
+        ));
     }
 
     public void retryFailedJob(String jobId, int retries) {
