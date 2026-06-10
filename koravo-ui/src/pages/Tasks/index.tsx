@@ -421,15 +421,12 @@ const Tasks: React.FC = () => {
           <Flex vertical gap={8}>
             <span>
               {identitySynced
-                ? '待办按平台身份源中的成员、部门和岗位职责加载。需要调整组织档案时，请进入组织权限维护。'
+                ? '待办按平台身份源中的成员、部门和岗位职责加载。需要调整组织档案时，请联系管理员。'
                 : '当前会话还没有拿到平台身份源中的成员档案，待办不会按默认成员展示。'}
             </span>
             <Space wrap>
               <Button size="small" onClick={reloadTables}>
                 刷新待办
-              </Button>
-              <Button size="small" onClick={() => history.push('/organization-permissions')}>
-                组织权限
               </Button>
             </Space>
           </Flex>

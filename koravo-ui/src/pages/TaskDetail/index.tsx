@@ -175,26 +175,6 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     width: 170,
     render: (_, record) => <CopyableText value={record.requestId} />,
   },
-  {
-    title: '操作',
-    valueType: 'option',
-    width: 96,
-    render: (_, record) =>
-      record.requestId ? (
-        <Button
-          type="link"
-          onClick={() =>
-            history.push(
-              `/audit-logs?requestId=${encodeURIComponent(record.requestId || '')}`,
-            )
-          }
-        >
-          查看审计
-        </Button>
-      ) : (
-        '-'
-      ),
-  },
 ];
 
 function parseJsonObject(value?: string): JsonRecord {
@@ -843,6 +823,12 @@ const TaskDetail: React.FC = () => {
   const canCompleteTask = Boolean(
     task && task.status !== 'COMPLETED' && data?.formSchema,
   );
+  const canManageAssignedTask = Boolean(
+    task && task.status !== 'COMPLETED' && String(task.assignee || '').trim(),
+  );
+  const canClaimDetailTask = Boolean(
+    task && task.status !== 'COMPLETED' && !String(task.assignee || '').trim(),
+  );
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
   const openTaskAsAssignee = React.useCallback((nextTask: TaskItem) => {
     history.push(`/tasks/${nextTask.taskId}`);
@@ -936,7 +922,7 @@ const TaskDetail: React.FC = () => {
               />
             </ModalForm>
           ) : null}
-          {task && task.status !== 'COMPLETED' ? (
+          {task && canManageAssignedTask ? (
             <>
               <TaskActionModal
                 task={task}
@@ -950,13 +936,15 @@ const TaskDetail: React.FC = () => {
                 label="委托"
                 refetch={refetch}
               />
+            </>
+          ) : null}
+          {task && canClaimDetailTask ? (
               <TaskActionModal
                 task={task}
                 action="CLAIM"
                 label="认领"
                 refetch={refetch}
               />
-            </>
           ) : null}
         </Space>
       }
@@ -1168,19 +1156,7 @@ const TaskDetail: React.FC = () => {
                 <Empty
                   description="暂无内嵌审计记录"
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
-                >
-                  {task ? (
-                    <Button
-                      onClick={() =>
-                        history.push(
-                          `/audit-logs?resourceId=${encodeURIComponent(task.taskId)}`,
-                        )
-                      }
-                    >
-                      查看审计日志
-                    </Button>
-                  ) : null}
-                </Empty>
+                />
               ),
             }}
             scroll={{ x: 1000 }}

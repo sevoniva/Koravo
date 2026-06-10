@@ -246,26 +246,6 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     width: 170,
     render: (_, record) => <CopyableText value={record.requestId} />,
   },
-  {
-    title: '操作',
-    valueType: 'option',
-    width: 110,
-    render: (_, record) =>
-      record.requestId ? (
-        <Button
-          type="link"
-          onClick={() =>
-            history.push(
-              `/audit-logs?requestId=${encodeURIComponent(record.requestId || '')}`,
-            )
-          }
-        >
-          查看审计
-        </Button>
-      ) : (
-        '-'
-      ),
-  },
 ];
 
 const ProcessInstanceDetail: React.FC = () => {
@@ -549,17 +529,19 @@ const ProcessInstanceDetail: React.FC = () => {
                   }
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 >
-                  <Space>
-                    <Button
-                      onClick={() =>
-                        history.push(
-                          `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
-                        )
-                      }
-                    >
-                      查看审计日志
-                    </Button>
-                  </Space>
+                  {canOperateInstance ? (
+                    <Space>
+                      <Button
+                        onClick={() =>
+                          history.push(
+                            `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
+                          )
+                        }
+                      >
+                        查看审计日志
+                      </Button>
+                    </Space>
+                  ) : null}
                 </Empty>
               ),
             }}
@@ -592,18 +574,20 @@ const ProcessInstanceDetail: React.FC = () => {
                   description="暂无内嵌审计记录"
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 >
-                  <Space>
-                    <Button
-                      type="primary"
-                      onClick={() =>
-                        history.push(
-                          `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
-                        )
-                      }
-                    >
-                      查看审计日志
-                    </Button>
-                  </Space>
+                  {canOperateInstance ? (
+                    <Space>
+                      <Button
+                        type="primary"
+                        onClick={() =>
+                          history.push(
+                            `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
+                          )
+                        }
+                      >
+                        查看审计日志
+                      </Button>
+                    </Space>
+                  ) : null}
                 </Empty>
               ),
             }}
