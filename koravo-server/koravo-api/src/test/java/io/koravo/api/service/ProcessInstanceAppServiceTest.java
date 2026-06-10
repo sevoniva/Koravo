@@ -9,6 +9,7 @@ import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.StartProcessCommand;
 import io.koravo.engine.dto.ProcessInstanceDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
+import io.koravo.engine.dto.ProcessTraceDTO;
 import io.koravo.form.service.FormSchemaService;
 import io.koravo.form.service.FormSnapshotService;
 import io.koravo.form.web.FormSchemaResponse;
@@ -246,6 +247,28 @@ class ProcessInstanceAppServiceTest {
 
         assertThat(detail.instanceId()).isEqualTo("pi-1");
         assertThat(detail.auditLogs()).containsExactly(auditLog);
+    }
+
+    @Test
+    void traceReturnsTenantScopedProcessTrace() {
+        TenantContextHolder.setTenantId("tenant-a");
+        ProcessTraceDTO trace = new ProcessTraceDTO(
+                "pi-1",
+                "pd-1",
+                "REQ-001",
+                "RUNNING",
+                "<definitions />",
+                Map.of(),
+                List.of("approveTask"),
+                List.of(),
+                List.of()
+        );
+        when(processFacade.getInstanceTrace("tenant-a", "pi-1")).thenReturn(trace);
+
+        var result = service.trace("pi-1");
+
+        assertThat(result).isEqualTo(trace);
+        verify(processFacade).getInstanceTrace("tenant-a", "pi-1");
     }
 
     private KoOrganizationMember member(String userId, String name, String department, String role) {

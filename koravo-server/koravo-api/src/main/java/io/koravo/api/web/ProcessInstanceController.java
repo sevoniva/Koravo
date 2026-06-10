@@ -3,6 +3,7 @@ package io.koravo.api.web;
 import io.koravo.api.service.ProcessInstanceAppService;
 import io.koravo.common.api.ApiResponse;
 import io.koravo.engine.dto.ProcessInstanceDTO;
+import io.koravo.engine.dto.ProcessTraceDTO;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,5 +27,10 @@ public class ProcessInstanceController {
     @GetMapping("/api/v1/process-instances/{instanceId}")
     public ApiResponse<ProcessInstanceDetailResponse> get(@PathVariable String instanceId) {
         return ApiResponse.success(processInstanceAppService.get(instanceId));
+    }
+
+    @GetMapping("/api/v1/process-instances/{instanceId}/trace")
+    public ApiResponse<ProcessTraceDTO> trace(@PathVariable String instanceId) {
+        return ApiResponse.success(processInstanceAppService.trace(instanceId));
     }
 }

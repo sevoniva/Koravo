@@ -12,6 +12,7 @@ import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.StartProcessCommand;
 import io.koravo.engine.dto.ProcessInstanceDTO;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
+import io.koravo.engine.dto.ProcessTraceDTO;
 import io.koravo.form.service.FormSchemaService;
 import io.koravo.form.service.FormSnapshotService;
 import io.koravo.form.web.FormSchemaResponse;
@@ -103,6 +104,10 @@ public class ProcessInstanceAppService {
                 instance,
                 auditLogQueryService.queryByResource("PROCESS_INSTANCE", instanceId, 20)
         );
+    }
+
+    public ProcessTraceDTO trace(String instanceId) {
+        return processFacade.getInstanceTrace(TenantContextHolder.getTenantId(), instanceId);
     }
 
     private Map<String, Object> startAuditDetail(StartProcessRequest request, ProcessInstanceDTO instance) {

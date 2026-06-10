@@ -438,6 +438,10 @@ export function getProcessInstance(instanceId: string) {
   return apiData<OpsProcessInstance>(http.get(`/process-instances/${instanceId}`))
 }
 
+export function getProcessTrace(instanceId: string) {
+  return apiData<ProcessTrace>(http.get(`/process-instances/${instanceId}/trace`))
+}
+
 export function listTasks(params?: TaskListParams) {
   return apiData<PageResult<TaskItem>>(http.get('/tasks/my', { params }))
 }
@@ -685,7 +689,7 @@ export function getOpsInstance(instanceId: string) {
   return apiData<OpsProcessInstance>(http.get(`/ops/process-instances/${instanceId}`))
 }
 
-export function getProcessTrace(instanceId: string) {
+export function getOpsProcessTrace(instanceId: string) {
   return apiData<ProcessTrace>(http.get(`/ops/process-instances/${instanceId}/trace`))
 }
 

@@ -17,7 +17,7 @@ import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
   activateProcessInstance,
-  getOpsInstance,
+  getProcessInstance,
   getProcessTrace,
   listAuditLogs,
   listFormSnapshots,
@@ -31,6 +31,7 @@ import {
 import {
   organizationMemberName,
 } from '@/services/koravo/organization';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -270,6 +271,7 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
 const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
   const instanceId = params.instanceId || '';
+  const canOperateInstance = getSessionContext().role === 'operator';
   const [selectedSnapshot, setSelectedSnapshot] = React.useState<FormSnapshotItem>();
   const {
     data: instance,
@@ -277,7 +279,7 @@ const ProcessInstanceDetail: React.FC = () => {
     refetch,
   } = useQuery({
     queryKey: ['process-instance', instanceId],
-    queryFn: () => getOpsInstance(instanceId),
+    queryFn: () => getProcessInstance(instanceId),
     enabled: Boolean(instanceId),
   });
   const { data: trace, isLoading: traceLoading, refetch: refetchTrace } = useQuery({
@@ -293,7 +295,7 @@ const ProcessInstanceDetail: React.FC = () => {
   const { data: auditLogs } = useQuery({
     queryKey: ['process-instance-audit-logs', instanceId],
     queryFn: () => listAuditLogs({ resourceId: instanceId, page: 1, pageSize: 20 }),
-    enabled: Boolean(instanceId),
+    enabled: canOperateInstance && Boolean(instanceId),
   });
   const currentTasks = instance?.currentTasks || [];
   const timeline = trace?.timeline || [];
@@ -409,36 +411,42 @@ const ProcessInstanceDetail: React.FC = () => {
           <Button onClick={() => refetch()}>
             刷新
           </Button>
-          <Button
-            onClick={() =>
-              history.push(
-                `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
-              )
-            }
-          >
-            审计日志
-          </Button>
-          <InstanceActionButton
-            action="suspend"
-            disabled={instanceActionDisabled(instance?.status, 'suspend')}
-            instanceId={instanceId}
-            refetch={refetch}
-            refetchTrace={refetchTrace}
-          />
-          <InstanceActionButton
-            action="activate"
-            disabled={instanceActionDisabled(instance?.status, 'activate')}
-            instanceId={instanceId}
-            refetch={refetch}
-            refetchTrace={refetchTrace}
-          />
-          <InstanceActionButton
-            action="terminate"
-            disabled={instanceActionDisabled(instance?.status, 'terminate')}
-            instanceId={instanceId}
-            refetch={refetch}
-            refetchTrace={refetchTrace}
-          />
+          {canOperateInstance ? (
+            <Button
+              onClick={() =>
+                history.push(
+                  `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
+                )
+              }
+            >
+              审计日志
+            </Button>
+          ) : null}
+          {canOperateInstance ? (
+            <>
+              <InstanceActionButton
+                action="suspend"
+                disabled={instanceActionDisabled(instance?.status, 'suspend')}
+                instanceId={instanceId}
+                refetch={refetch}
+                refetchTrace={refetchTrace}
+              />
+              <InstanceActionButton
+                action="activate"
+                disabled={instanceActionDisabled(instance?.status, 'activate')}
+                instanceId={instanceId}
+                refetch={refetch}
+                refetchTrace={refetchTrace}
+              />
+              <InstanceActionButton
+                action="terminate"
+                disabled={instanceActionDisabled(instance?.status, 'terminate')}
+                instanceId={instanceId}
+                refetch={refetch}
+                refetchTrace={refetchTrace}
+              />
+            </>
+          ) : null}
         </Space>
       }
     >

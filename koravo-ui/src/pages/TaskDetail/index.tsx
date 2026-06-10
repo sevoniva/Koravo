@@ -39,7 +39,7 @@ import {
   completeTask,
   type FormSchemaItem,
   type FormSnapshotItem,
-  getOpsInstance,
+  getProcessInstance,
   getProcessTrace,
   getTaskDetail,
   handleTaskAction,
@@ -832,7 +832,7 @@ const TaskDetail: React.FC = () => {
   const task = data?.task;
   const { data: instance } = useQuery({
     queryKey: ['task-instance-context', task?.processInstanceId],
-    queryFn: () => getOpsInstance(task?.processInstanceId || ''),
+    queryFn: () => getProcessInstance(task?.processInstanceId || ''),
     enabled: Boolean(task?.processInstanceId),
   });
   const { data: trace, isLoading: traceLoading } = useQuery({
@@ -869,7 +869,7 @@ const TaskDetail: React.FC = () => {
                     data?.processVariables,
                   ),
                 );
-                const instance = await getOpsInstance(task.processInstanceId);
+                const instance = await getProcessInstance(task.processInstanceId);
                 const nextTask = nextPendingTask(
                   task,
                   instance.currentTasks || [],

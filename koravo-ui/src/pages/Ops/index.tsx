@@ -33,7 +33,7 @@ import {
   getDeadLetterJob,
   getFailedJob,
   getOpsSummary,
-  getProcessTrace,
+  getOpsProcessTrace,
   listDeadLetterJobs,
   listFailedJobs,
   listOpsCapabilities,
@@ -337,12 +337,12 @@ const Ops: React.FC = () => {
   });
   const previewTrace = useQuery({
     queryKey: ['ops-process-trace', previewTarget?.instanceId],
-    queryFn: () => getProcessTrace(previewTarget?.instanceId || ''),
+    queryFn: () => getOpsProcessTrace(previewTarget?.instanceId || ''),
     enabled: Boolean(previewTarget?.instanceId),
   });
   const jobTrace = useQuery({
     queryKey: ['ops-job-process-trace', jobDetail?.processInstanceId],
-    queryFn: () => getProcessTrace(jobDetail?.processInstanceId || ''),
+    queryFn: () => getOpsProcessTrace(jobDetail?.processInstanceId || ''),
     enabled: Boolean(selectedJob?.id && jobDetail?.processInstanceId),
   });
   const instanceColumns = React.useMemo(

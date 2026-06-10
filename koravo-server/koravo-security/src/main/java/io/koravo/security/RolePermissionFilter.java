@@ -46,6 +46,7 @@ public class RolePermissionFilter extends OncePerRequestFilter {
                     rule("/api/v1/tasks/done", WORKFLOW_USER_ROLES),
                     rule("/api/v1/tasks/started", WORKFLOW_USER_ROLES),
                     rule("/api/v1/tasks/[^/]+", WORKFLOW_USER_ROLES),
+                    rule("/api/v1/process-instances/[^/]+/trace", WORKFLOW_USER_ROLES),
                     rule("/api/v1/process-instances/[^/]+", WORKFLOW_USER_ROLES),
                     rule("/api/v1/forms/snapshots", WORKFLOW_USER_ROLES),
                     prefix("/api/v1/process-models", ADMIN_ROLES),

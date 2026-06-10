@@ -41,7 +41,7 @@ import OrganizationProfileFormItem from '@/components/OrganizationProfileFormIte
 import {
   type FormSchemaItem,
   type JsonRecord,
-  getProcessTrace,
+  getOpsProcessTrace,
   listFormSchemas,
   listOpsInstances,
   listStartableWorkflows,
@@ -812,7 +812,7 @@ const ProcessInstances: React.FC = () => {
     React.useState<ProcessPreviewTarget>();
   const previewTrace = useQuery({
     queryKey: ['process-instance-list-trace', previewTarget?.instanceId],
-    queryFn: () => getProcessTrace(previewTarget?.instanceId || ''),
+    queryFn: () => getOpsProcessTrace(previewTarget?.instanceId || ''),
     enabled: Boolean(previewTarget?.instanceId),
   });
   const openPreview = React.useCallback((instance: OpsProcessInstance) => {
