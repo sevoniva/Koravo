@@ -2,12 +2,21 @@ import 'bpmn-js/dist/assets/bpmn-js.css';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 
-import { LoadingOutlined } from '@ant-design/icons';
-import { Alert, Empty, Flex, Spin, Tag, Typography } from 'antd';
+import {
+  AimOutlined,
+  FullscreenOutlined,
+  LoadingOutlined,
+  ZoomInOutlined,
+} from '@ant-design/icons';
+import { Alert, Button, Empty, Flex, Space, Spin, Tag, Tooltip, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTraceNode } from '@/services/koravo/api';
 import { processStatusLabel, taskDefinitionLabel } from '@/utils/display';
+
+type BpmnAutoLayoutModule = {
+  layoutProcess: (xml: string) => Promise<string>;
+};
 
 type ViewerConstructor = new (options: Record<string, unknown>) => BpmnViewer;
 
@@ -18,9 +27,10 @@ type BpmnViewer = {
 };
 
 type Canvas = {
-  zoom: (value: string, center?: string) => void;
+  zoom: (value: string | number, center?: string) => void;
   addMarker: (elementId: string, marker: string) => void;
   removeMarker: (elementId: string, marker: string) => void;
+  scrollToElement?: (element: unknown, padding?: number) => void;
 };
 
 type ElementRegistry = {
@@ -98,6 +108,17 @@ const useStyles = createStyles(({ css, token }) => ({
     right: 12px;
     z-index: 1;
     padding: 6px 8px;
+    background: ${token.colorBgElevated};
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: ${token.borderRadiusSM}px;
+    box-shadow: ${token.boxShadowTertiary};
+  `,
+  toolbar: css`
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1;
+    padding: 4px;
     background: ${token.colorBgElevated};
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: ${token.borderRadiusSM}px;
@@ -227,6 +248,25 @@ function timelineIdsByStatus(timeline: ProcessTraceNode[] | undefined, statuses:
   );
 }
 
+function hasBpmnDiagramLayout(bpmnXml: string) {
+  if (typeof DOMParser === 'undefined') return true;
+  try {
+    const document = new DOMParser().parseFromString(bpmnXml, 'application/xml');
+    if (document.querySelector('parsererror')) return true;
+    return Array.from(document.getElementsByTagName('*')).some(
+      (element) => element.localName === 'BPMNShape',
+    );
+  } catch {
+    return true;
+  }
+}
+
+async function ensureBpmnDiagramLayout(bpmnXml: string) {
+  if (hasBpmnDiagramLayout(bpmnXml)) return bpmnXml;
+  const module = await import('bpmn-auto-layout') as BpmnAutoLayoutModule;
+  return module.layoutProcess(bpmnXml);
+}
+
 function clearMarkers(canvas: Canvas, elementRegistry: ElementRegistry) {
   elementRegistry.getAll().forEach((element) => {
     if (!element.id) return;
@@ -244,6 +284,34 @@ function addMarkerIfPresent(
 ) {
   if (elementRegistry.get(elementId)) {
     canvas.addMarker(elementId, marker);
+  }
+}
+
+function renderableDiagramElements(elementRegistry: ElementRegistry) {
+  return elementRegistry.getAll().filter((element) => element.id && !element.id.endsWith('_label'));
+}
+
+function currentDiagramElementId(
+  currentActivityIds: string[],
+  timeline: ProcessTraceNode[] | undefined,
+) {
+  const currentIds = currentActivityIds.filter(Boolean);
+  if (currentIds.length) return currentIds[0];
+  const active = (timeline || []).find((node) =>
+    ['ACTIVE', 'RUNNING'].includes(String(node.status || '').toUpperCase()),
+  );
+  return active?.activityId;
+}
+
+function focusDiagramElement(
+  canvas: Canvas,
+  elementRegistry: ElementRegistry,
+  elementId?: string,
+) {
+  if (!elementId || !canvas.scrollToElement) return;
+  const element = elementRegistry.get(elementId);
+  if (element) {
+    canvas.scrollToElement(element, 96);
   }
 }
 
@@ -491,6 +559,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   const viewerRef = React.useRef<BpmnViewer | undefined>(undefined);
   const [loading, setLoading] = React.useState(Boolean(bpmnXml));
   const [error, setError] = React.useState<string>();
+  const [diagramReady, setDiagramReady] = React.useState(false);
   const hasXml = Boolean(bpmnXml?.trim());
 
   const applyMarkers = React.useCallback(() => {
@@ -519,6 +588,42 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     }
   }, [currentActivityIds, timeline]);
 
+  const diagramServices = React.useCallback(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return undefined;
+    return {
+      canvas: viewer.get('canvas') as Canvas,
+      elementRegistry: viewer.get('elementRegistry') as ElementRegistry,
+    };
+  }, []);
+
+  const focusCurrentActivity = React.useCallback(() => {
+    const services = diagramServices();
+    if (!services) return;
+    focusDiagramElement(
+      services.canvas,
+      services.elementRegistry,
+      currentDiagramElementId(currentActivityIds, timeline),
+    );
+  }, [currentActivityIds, diagramServices, timeline]);
+
+  const fitDiagram = React.useCallback(() => {
+    const services = diagramServices();
+    if (!services) return;
+    services.canvas.zoom('fit-viewport', 'auto');
+  }, [diagramServices]);
+
+  const readableDiagram = React.useCallback(() => {
+    const services = diagramServices();
+    if (!services) return;
+    services.canvas.zoom(0.85, 'auto');
+    focusDiagramElement(
+      services.canvas,
+      services.elementRegistry,
+      currentDiagramElementId(currentActivityIds, timeline),
+    );
+  }, [currentActivityIds, diagramServices, timeline]);
+
   React.useEffect(() => () => {
     viewerRef.current?.destroy();
     viewerRef.current = undefined;
@@ -539,15 +644,29 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
 
       setLoading(true);
       setError(undefined);
+      setDiagramReady(false);
       try {
-        await viewerRef.current.importXML(bpmnXml);
+        const renderableBpmnXml = await ensureBpmnDiagramLayout(bpmnXml);
+        if (disposed) return;
+        await viewerRef.current.importXML(renderableBpmnXml);
         const canvas = viewerRef.current.get('canvas') as Canvas;
         const elementRegistry = viewerRef.current.get('elementRegistry') as ElementRegistry;
-        if (!elementRegistry.getAll().some((element) => element.id && !element.id.endsWith('_label'))) {
+        const elements = renderableDiagramElements(elementRegistry);
+        if (!elements.length) {
           throw new Error('流程图没有可显示节点');
         }
-        canvas.zoom('fit-viewport', 'auto');
+        if (elements.length > 18) {
+          canvas.zoom(0.85, 'auto');
+          focusDiagramElement(
+            canvas,
+            elementRegistry,
+            currentDiagramElementId(currentActivityIds, timeline),
+          );
+        } else {
+          canvas.zoom('fit-viewport', 'auto');
+        }
         applyMarkers();
+        setDiagramReady(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : '流程图加载失败');
       } finally {
@@ -560,7 +679,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     return () => {
       disposed = true;
     };
-  }, [applyMarkers, bpmnXml, hasXml]);
+  }, [applyMarkers, bpmnXml, currentActivityIds, hasXml, timeline]);
 
   React.useEffect(() => {
     applyMarkers();
@@ -598,6 +717,38 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   return (
     <div className={styles.shell} style={{ height }} data-testid="process-diagram-viewer">
       <div ref={mountRef} className={styles.mount} />
+      <Space.Compact className={styles.toolbar}>
+        <Tooltip title="适配视图">
+          <Button
+            aria-label="适配视图"
+            disabled={!diagramReady}
+            icon={<FullscreenOutlined />}
+            size="small"
+            type="text"
+            onClick={fitDiagram}
+          />
+        </Tooltip>
+        <Tooltip title="可读比例">
+          <Button
+            aria-label="可读比例"
+            disabled={!diagramReady}
+            icon={<ZoomInOutlined />}
+            size="small"
+            type="text"
+            onClick={readableDiagram}
+          />
+        </Tooltip>
+        <Tooltip title="定位当前节点">
+          <Button
+            aria-label="定位当前节点"
+            disabled={!diagramReady}
+            icon={<AimOutlined />}
+            size="small"
+            type="text"
+            onClick={focusCurrentActivity}
+          />
+        </Tooltip>
+      </Space.Compact>
       <Flex className={styles.legend} gap={8} wrap>
         <Tag color="success">已完成</Tag>
         <Tag color="processing">当前节点</Tag>

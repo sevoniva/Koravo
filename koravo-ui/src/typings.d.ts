@@ -14,6 +14,10 @@ declare module '*.md' {
   export default content;
 }
 
+declare module 'bpmn-auto-layout' {
+  export function layoutProcess(xml: string): Promise<string>;
+}
+
 declare const __APP_VERSION__: string;
 declare const __UMI_VERSION__: string;
 declare const __UTOO_VERSION__: string;
