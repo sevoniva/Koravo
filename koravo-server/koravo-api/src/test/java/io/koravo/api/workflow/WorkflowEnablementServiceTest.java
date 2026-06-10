@@ -159,6 +159,70 @@ class WorkflowEnablementServiceTest {
     }
 
     @Test
+    void initMigratesLegacyDefaultProcessDefinitionBeforeStart() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = deployedModel();
+        model.setBpmnXml(legacyManagerApprovalBpmn());
+        KoFormSchema form = activeForm();
+        when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                WorkflowEnablementDefaults.PROCESS_KEY
+        )).thenReturn(Optional.of(model));
+        when(formSchemaRepository.findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                WorkflowEnablementDefaults.FORM_KEY
+        )).thenReturn(Optional.of(form));
+        when(processFacade.deploy(new DeployProcessCommand(
+                "default",
+                "admin",
+                WorkflowEnablementDefaults.PROCESS_KEY,
+                WorkflowEnablementDefaults.PROCESS_NAME,
+                WorkflowEnablementDefaults.PROCESS_KEY + ".bpmn20.xml",
+                WorkflowEnablementDefaults.businessRequestBpmn()
+        ))).thenReturn(new ProcessDeploymentDTO(null, "dep-2", "pd-2", WorkflowEnablementDefaults.PROCESS_KEY, 2));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-2",
+                WorkflowEnablementDefaults.START_FORM_TASK_KEY
+        )).thenReturn(Optional.empty());
+        when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "model-1",
+                WorkflowEnablementDefaults.START_FORM_TASK_KEY
+        )).thenReturn(Optional.empty());
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-2",
+                WorkflowEnablementDefaults.PRIMARY_TASK_KEY
+        )).thenReturn(Optional.empty());
+        when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "model-1",
+                WorkflowEnablementDefaults.PRIMARY_TASK_KEY
+        )).thenReturn(Optional.empty());
+        when(processModelRepository.save(any(KoProcessModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(formBindingRepository.save(any(KoFormBinding.class))).thenAnswer(invocation -> {
+            KoFormBinding binding = invocation.getArgument(0);
+            binding.setId(binding.getTaskDefinitionKey() + "-binding");
+            return binding;
+        });
+
+        WorkflowEnablementInitResponse response = service.init();
+
+        assertThat(model.getBpmnXml()).contains(WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY);
+        assertThat(model.getBpmnXml()).doesNotContain("managerApprover", "financeApprover");
+        assertThat(model.getFlowableDefinitionId()).isEqualTo("pd-2");
+        assertThat(response.processDefinitionId()).isEqualTo("pd-2");
+        assertThat(response.actions()).contains(
+                "更新协同审批流程定义",
+                "部署协同审批流程",
+                "绑定启动表单",
+                "绑定业务申请表到多人会签"
+        );
+    }
+
+    @Test
     void statusReturnsInitializedWhenWorkflowAssetsAreReady() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
@@ -307,6 +371,24 @@ class WorkflowEnablementServiceTest {
         model.setFlowableDefinitionId(WorkflowEnablementDefaults.PROCESS_KEY.equals(modelKey) ? "pd-1" : modelKey + ":1:demo");
         model.setBpmnXml(WorkflowEnablementDefaults.businessRequestBpmn());
         return model;
+    }
+
+    private String legacyManagerApprovalBpmn() {
+        return """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                             xmlns:flowable="http://flowable.org/bpmn">
+                  <process id="collaborativeApproval" name="协同审批流程" isExecutable="true">
+                    <startEvent id="start"/>
+                    <sequenceFlow id="flow_start_review" sourceRef="start" targetRef="businessReviewTask"/>
+                    <userTask id="businessReviewTask" name="业务审批" flowable:assignee="${managerApprover}"/>
+                    <sequenceFlow id="flow_review_finance" sourceRef="businessReviewTask" targetRef="financeReviewTask"/>
+                    <userTask id="financeReviewTask" name="财务复核" flowable:assignee="${financeApprover}"/>
+                    <sequenceFlow id="flow_finance_end" sourceRef="financeReviewTask" targetRef="end"/>
+                    <endEvent id="end"/>
+                  </process>
+                </definitions>
+                """;
     }
 
     private KoFormSchema activeForm() {

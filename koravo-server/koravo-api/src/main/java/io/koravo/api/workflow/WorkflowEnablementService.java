@@ -315,12 +315,10 @@ public class WorkflowEnablementService {
 
     private void ensureProcessModel(KoProcessModel model, String userId, List<String> actions) {
         boolean changed = false;
-        boolean needsDefinitionMigration =
-                !WorkflowEnablementDefaults.PROCESS_KEY.equals(model.getModelKey())
-                        || !StringUtils.hasText(model.getBpmnXml())
-                        || !model.getBpmnXml().contains(WorkflowEnablementDefaults.PROCESS_KEY);
+        boolean needsDefinitionMigration = needsDefaultProcessDefinitionMigration(model);
         if (needsDefinitionMigration) {
             model.setBpmnXml(WorkflowEnablementDefaults.businessRequestBpmn());
+            actions.add("更新协同审批流程定义");
             changed = true;
         }
         if (!WorkflowEnablementDefaults.PROCESS_KEY.equals(model.getModelKey())) {
@@ -363,6 +361,16 @@ public class WorkflowEnablementService {
             model.setUpdatedBy(userId);
             processModelRepository.save(model);
         }
+    }
+
+    private boolean needsDefaultProcessDefinitionMigration(KoProcessModel model) {
+        String bpmnXml = model.getBpmnXml();
+        return !WorkflowEnablementDefaults.PROCESS_KEY.equals(model.getModelKey())
+                || !StringUtils.hasText(bpmnXml)
+                || !bpmnXml.contains(WorkflowEnablementDefaults.PROCESS_KEY)
+                || !bpmnXml.contains(WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY)
+                || bpmnXml.contains("managerApprover")
+                || bpmnXml.contains("financeApprover");
     }
 
     private KoFormSchema createFormSchema(String tenantId, String userId, List<String> actions) {
