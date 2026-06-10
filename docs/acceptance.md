@@ -39,6 +39,14 @@ This verification deploys and starts an enterprise approval process with 34 appr
 
 The same BPMN file is available for manual console upload at `examples/bpmn/enterprise-approval-30-node.bpmn20.xml`. The model service test uploads that file through the user-facing deploy path and verifies platform validation, deployment metadata, model persistence, and audit recording.
 
+Runtime approval workflow check:
+
+```bash
+node scripts/verify-enterprise-approval.mjs
+```
+
+This check uses the running backend API. It logs in as admin, creates or updates 20 approver accounts across 10 departments, deploys the enterprise BPMN through `/api/v1/process-models/deploy`, starts `enterpriseApproval30` as applicant, completes all 34 tasks through assigned and candidate task APIs, then checks process trace, failed jobs, and dead-letter jobs.
+
 ## Console Workflow Check
 
 The console workflow check is:
