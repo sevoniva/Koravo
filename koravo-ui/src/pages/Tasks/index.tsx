@@ -1,12 +1,13 @@
 import { DeploymentUnitOutlined } from '@ant-design/icons';
 import {
   PageContainer,
+  ProCard,
   ProTable,
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
-import { Alert, App, Badge, Button, Drawer, Empty, Flex, Space, Tabs, Tag } from 'antd';
+import { App, Badge, Button, Drawer, Empty, Space, Tabs, Tag } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
@@ -55,22 +56,18 @@ const taskTabRoutes: Record<TaskTabKey, string> = {
   started: '/started-instances',
 };
 
-const taskTabMeta: Record<TaskTabKey, { title: string; content: string }> = {
+const taskTabMeta: Record<TaskTabKey, { title: string }> = {
   todo: {
     title: '我的待办',
-    content: '处理已经分配给你的审批任务。',
   },
   candidate: {
     title: '待认领',
-    content: '认领你所在职责可处理的候选任务。',
   },
   done: {
     title: '已办任务',
-    content: '查看你已处理过的任务和办理记录。',
   },
   started: {
     title: '我发起的',
-    content: '查看你发起的流程实例和处理进度。',
   },
 };
 
@@ -401,38 +398,25 @@ const Tasks: React.FC = () => {
   );
 
   return (
-    <PageContainer title={pageMeta.title} content={pageMeta.content}>
-      <Alert
-        showIcon
-        type={identitySynced ? 'info' : 'warning'}
-        title={
-          <Space wrap size={8}>
-            <span>当前成员</span>
-            <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
-            <span>岗位职责</span>
-            <Tag color={identitySynced ? 'blue' : 'warning'}>
-              {identitySynced ? organizationRoleLabel(session.role) : '待平台同步'}
-            </Tag>
-            <span>组织</span>
-            <Tag>{tenantDisplayName(session.tenantId)}</Tag>
-          </Space>
-        }
-        description={
-          <Flex vertical gap={8}>
-            <span>
-              {identitySynced
-                ? '待办按平台身份源中的成员、部门和岗位职责加载。需要调整组织档案时，请联系管理员。'
-                : '当前会话还没有拿到平台身份源中的成员档案，待办不会按默认成员展示。'}
-            </span>
-            <Space wrap>
-              <Button size="small" onClick={reloadTables}>
-                刷新待办
-              </Button>
-            </Space>
-          </Flex>
+    <PageContainer title={pageMeta.title}>
+      <ProCard
+        size="small"
+        title="当前身份"
+        extra={
+          <Button size="small" onClick={reloadTables}>
+            刷新
+          </Button>
         }
         style={{ marginBottom: 16 }}
-      />
+      >
+        <Space wrap size={8}>
+          <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
+          <Tag color={identitySynced ? 'blue' : 'warning'}>
+            {identitySynced ? organizationRoleLabel(session.role) : '身份未同步'}
+          </Tag>
+          <Tag>{tenantDisplayName(session.tenantId)}</Tag>
+        </Space>
+      </ProCard>
       <Tabs
         activeKey={activeTab}
         onChange={switchTab}

@@ -1,5 +1,5 @@
 import { ProCard, ProDescriptions } from '@ant-design/pro-components';
-import { Alert, Badge, Empty, Flex, Tag, Timeline, Typography } from 'antd';
+import { Badge, Empty, Flex, Tag, Timeline, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTrace, ProcessTraceNode, TaskItem } from '@/services/koravo/api';
@@ -20,10 +20,10 @@ interface ProcessProgressCardProps {
   loading?: boolean;
 }
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ css, token }) => ({
   content: css`
     display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.75fr);
+    grid-template-columns: minmax(0, 1.75fr) minmax(280px, 0.65fr);
     gap: 16px;
 
     @media (max-width: 960px) {
@@ -32,6 +32,36 @@ const useStyles = createStyles(({ css }) => ({
   `,
   side: css`
     min-width: 0;
+  `,
+  statusStrip: css`
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    padding: 10px 0 14px;
+    border-bottom: 1px solid ${token.colorBorderSecondary};
+
+    @media (max-width: 520px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `,
+  metric: css`
+    min-width: 0;
+  `,
+  metricLabel: css`
+    margin-bottom: 2px;
+    color: ${token.colorTextTertiary};
+    font-size: ${token.fontSizeSM}px;
+  `,
+  metricValue: css`
+    min-width: 0;
+    color: ${token.colorText};
+    font-weight: ${token.fontWeightStrong};
+    word-break: break-word;
+  `,
+  timelineWrap: css`
+    max-height: 320px;
+    overflow: auto;
+    padding-right: 4px;
   `,
 }));
 
@@ -63,6 +93,30 @@ function latestCompletedNode(trace?: ProcessTrace) {
 function visibleTimelineNodes(timeline: ProcessTraceNode[]) {
   const nodes = timeline.filter((node) => node.activityType !== 'sequenceFlow');
   return nodes.length ? nodes : timeline;
+}
+
+function bpmnNodeCount(bpmnXml?: string) {
+  if (!bpmnXml || typeof DOMParser === 'undefined') return 0;
+  try {
+    const document = new DOMParser().parseFromString(bpmnXml, 'application/xml');
+    if (document.querySelector('parsererror')) return 0;
+    const activityTypes = new Set([
+      'startEvent',
+      'endEvent',
+      'userTask',
+      'serviceTask',
+      'exclusiveGateway',
+      'parallelGateway',
+      'inclusiveGateway',
+      'subProcess',
+      'callActivity',
+    ]);
+    return Array.from(document.getElementsByTagName('*')).filter((element) =>
+      activityTypes.has(element.localName),
+    ).length;
+  } catch {
+    return 0;
+  }
 }
 
 function activityTypeLabel(activityType?: string) {
@@ -115,44 +169,26 @@ function buildTimelineItems(timeline: ProcessTraceNode[]) {
   }));
 }
 
-function progressSummary(
-  trace: ProcessTrace | undefined,
-  pendingTasks: TaskItem[],
-  activeTask?: TaskItem,
-) {
-  if (!trace) {
-    return {
-      title: '流程上下文待加载',
-      description: '正在读取流程图、当前节点和办理记录。',
-      type: 'info' as const,
-    };
-  }
-  if (!pendingTasks.length) {
-    const isCompleted = String(trace.status || '').toUpperCase() === 'COMPLETED';
-    return {
-      title: '当前没有待处理节点',
-      description:
-        isCompleted
-          ? '流程已完成，可查看上方流程图和下方办理记录。'
-          : '当前实例没有可办理任务，请查看流程图确认是否处于系统处理或等待状态。',
-      type: isCompleted ? ('success' as const) : ('warning' as const),
-    };
-  }
-  const targetTask = activeTask || pendingTasks[0];
-  const node = taskDefinitionLabel(targetTask.taskDefinitionKey);
-  const handler = targetTask.assignee
-    ? organizationMemberName(targetTask.assignee)
-    : '待分配处理人';
-  const parallelText =
-    pendingTasks.length > 1
-      ? `当前还有 ${pendingTasks.length} 个并行待办，所有待办完成后流程才会继续。`
-      : '当前节点完成后流程会进入下一步流转。';
-  return {
-    title: `当前在 ${node}`,
-    description: `处理人：${handler}。需要核对业务数据、填写本节点意见并提交处理结果。${parallelText}`,
-    type: 'info' as const,
-  };
+function diagramHeight(trace?: ProcessTrace) {
+  const nodeCount = Math.max(
+    visibleTimelineNodes(trace?.timeline || []).length,
+    bpmnNodeCount(trace?.bpmnXml),
+  );
+  if (nodeCount > 32) return 640;
+  if (nodeCount > 24) return 560;
+  if (nodeCount > 14) return 480;
+  return 380;
 }
+
+const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => {
+  const { styles } = useStyles();
+  return (
+    <div className={styles.metric}>
+      <div className={styles.metricLabel}>{label}</div>
+      <div className={styles.metricValue}>{value || '-'}</div>
+    </div>
+  );
+};
 
 const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   trace,
@@ -175,16 +211,17 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
       .filter(Boolean)
       .join('、') ||
     '-';
-  const summary = progressSummary(trace, pendingTasks, activeTask);
+  const isCompleted = String(trace?.status || '').toUpperCase() === 'COMPLETED';
+  const pendingLabel = isCompleted ? '已完成' : `待办 ${pendingTasks.length}`;
 
   return (
     <ProCard
-      title="流程进度"
+      title="流程图"
       loading={loading}
       extra={
         <Flex gap={8} wrap>
-          <Badge count={pendingTasks.length} showZero />
-          <Typography.Text type="secondary">待处理任务</Typography.Text>
+          <Badge status={badgeStatus(trace?.status)} />
+          <Typography.Text type="secondary">{pendingLabel}</Typography.Text>
         </Flex>
       }
       style={{ marginBottom: 16 }}
@@ -194,14 +231,15 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
           bpmnXml={trace?.bpmnXml}
           currentActivityIds={trace?.currentActivityIds}
           timeline={trace?.timeline}
+          height={diagramHeight(trace)}
         />
         <Flex vertical gap={16} className={styles.side}>
-          <Alert
-            showIcon
-            type={summary.type}
-            title={summary.title}
-            description={summary.description}
-          />
+          <div className={styles.statusStrip}>
+            <Metric label="当前节点" value={currentNodeText} />
+            <Metric label="处理人" value={currentHandlerText} />
+            <Metric label="待办数" value={pendingTasks.length} />
+            <Metric label="最近完成" value={nodeLabel(latestDone)} />
+          </div>
           <ProDescriptions
             size="small"
             column={1}
@@ -221,14 +259,11 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
               },
               { title: '业务编号', dataIndex: 'businessKey', copyable: true },
               { title: '实例状态', dataIndex: 'status' },
-              { title: '当前节点', dataIndex: 'currentNodeText' },
-              { title: '当前处理人', dataIndex: 'currentHandlerText' },
-              { title: '最近完成', dataIndex: 'latestDone' },
             ]}
           />
           {pendingTasks.length ? (
             <Flex vertical gap={8}>
-              <Typography.Text strong>待办分布</Typography.Text>
+              <Typography.Text strong>待办</Typography.Text>
               <Flex gap={8} wrap>
                 {pendingTasks.map((task) => (
                   <Tag key={task.taskId} color={task.taskId === activeTask?.taskId ? 'processing' : 'default'}>
@@ -240,9 +275,14 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             </Flex>
           ) : null}
           {trace?.timeline?.length ? (
-            <Timeline items={buildTimelineItems(trace.timeline)} />
+            <Flex vertical gap={8}>
+              <Typography.Text strong>记录</Typography.Text>
+              <div className={styles.timelineWrap}>
+                <Timeline items={buildTimelineItems(trace.timeline)} />
+              </div>
+            </Flex>
           ) : (
-            <Empty description="暂无执行记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            <Empty description="暂无记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           )}
         </Flex>
       </div>

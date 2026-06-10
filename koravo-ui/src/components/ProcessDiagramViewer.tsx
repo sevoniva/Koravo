@@ -102,17 +102,6 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 24px;
     background: ${token.colorBgContainer};
   `,
-  legend: css`
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 1;
-    padding: 6px 8px;
-    background: ${token.colorBgElevated};
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadiusSM}px;
-    box-shadow: ${token.boxShadowTertiary};
-  `,
   toolbar: css`
     position: absolute;
     top: 12px;
@@ -313,6 +302,13 @@ function focusDiagramElement(
   if (element) {
     canvas.scrollToElement(element, 96);
   }
+}
+
+function readableZoom(elementCount: number) {
+  if (elementCount > 36) return 0.64;
+  if (elementCount > 24) return 0.72;
+  if (elementCount > 18) return 0.82;
+  return 0.9;
 }
 
 function visibleFlowNodes(timeline: ProcessTraceNode[]) {
@@ -616,7 +612,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   const readableDiagram = React.useCallback(() => {
     const services = diagramServices();
     if (!services) return;
-    services.canvas.zoom(0.85, 'auto');
+    services.canvas.zoom(readableZoom(renderableDiagramElements(services.elementRegistry).length), 'auto');
     focusDiagramElement(
       services.canvas,
       services.elementRegistry,
@@ -656,7 +652,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
           throw new Error('流程图没有可显示节点');
         }
         if (elements.length > 18) {
-          canvas.zoom(0.85, 'auto');
+          canvas.zoom(readableZoom(elements.length), 'auto');
           focusDiagramElement(
             canvas,
             elementRegistry,
@@ -749,11 +745,6 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
           />
         </Tooltip>
       </Space.Compact>
-      <Flex className={styles.legend} gap={8} wrap>
-        <Tag color="success">已完成</Tag>
-        <Tag color="processing">当前节点</Tag>
-        <Tag color="warning">处理中</Tag>
-      </Flex>
       {loading ? (
         <div className={styles.overlay}>
           <Spin indicator={<LoadingOutlined spin />} />

@@ -245,17 +245,17 @@ function latestTaskActions(logs: AuditLogItem[] = []) {
 }
 
 function nextTaskInstruction(task?: TaskItem, hasForm?: boolean) {
-  if (!task) return '加载任务信息后继续处理。';
+  if (!task) return '加载中';
   if (task.status === 'COMPLETED') {
-    return '当前任务已完成，可查看表单快照、处理意见和实例进度。';
+    return '已完成';
   }
   if (!task.assignee) {
-    return '当前任务还没有处理人，请先认领后再填写表单并提交处理意见。';
+    return '待认领';
   }
   if (!hasForm) {
-    return '当前节点还没有绑定表单，请先完成节点表单绑定，再回到这里处理。';
+    return '未绑定表单';
   }
-  return '核对业务数据，填写本节点表单和处理意见，然后提交审批结果。';
+  return '填写意见并提交';
 }
 
 const TaskActionTimeline: React.FC<{ logs?: AuditLogItem[] }> = ({
@@ -264,7 +264,7 @@ const TaskActionTimeline: React.FC<{ logs?: AuditLogItem[] }> = ({
   const actions = latestTaskActions(logs);
   if (!actions.length) {
     return (
-      <Empty description="暂无已办动作" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      <Empty description="暂无记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
     );
   }
   return (
@@ -290,17 +290,32 @@ const TaskHandlingContext: React.FC<{
   const isDone = task?.status === 'COMPLETED';
   const hasAssignee = Boolean(task?.assignee);
   return (
-    <ProCard title="办理信息" style={{ marginBottom: 16 }}>
-      <Flex vertical gap={16}>
-        <Alert
-          showIcon
-          type={isDone ? 'success' : hasForm ? 'info' : 'warning'}
-          title={
-            task
-              ? `当前节点：${taskDefinitionLabel(task.taskDefinitionKey)}`
-              : '正在加载任务信息'
-          }
-          description={nextTaskInstruction(task, hasForm)}
+    <ProCard
+      title="办理"
+      extra={
+        <Badge
+          status={isDone ? 'success' : hasForm ? 'processing' : 'warning'}
+          text={nextTaskInstruction(task, hasForm)}
+        />
+      }
+      style={{ marginBottom: 16 }}
+    >
+      <Flex vertical gap={14}>
+        <ProDescriptions
+          size="small"
+          column={{ xs: 1, sm: 1, md: 3 }}
+          dataSource={{
+            node: taskDefinitionLabel(task?.taskDefinitionKey),
+            assignee: task?.assignee
+              ? organizationMemberName(task.assignee)
+              : '未分配',
+            status: taskStatusLabel(task?.status),
+          }}
+          columns={[
+            { title: '当前节点', dataIndex: 'node' },
+            { title: '处理人', dataIndex: 'assignee' },
+            { title: '状态', dataIndex: 'status' },
+          ]}
         />
         <Steps
           size="small"
@@ -308,35 +323,19 @@ const TaskHandlingContext: React.FC<{
           status={hasForm || isDone ? 'process' : 'wait'}
           items={[
             {
-              title: hasAssignee ? '已确定处理人' : '等待认领',
-              description: hasAssignee
+              title: hasAssignee ? '处理人' : '待认领',
+              content: hasAssignee
                 ? organizationMemberName(task?.assignee)
-                : '暂无处理人',
+                : '未分配',
             },
             {
-              title: isDone ? '已提交处理意见' : '填写节点表单',
-              description: hasForm ? '按当前节点表单处理' : '未绑定表单',
+              title: isDone ? '已提交' : '表单',
+              content: hasForm ? '已绑定' : '未绑定',
             },
             {
-              title: isDone ? '已进入后续流转' : '提交审批结果',
-              description: taskStatusLabel(task?.status),
+              title: isDone ? '已流转' : '提交',
+              content: taskStatusLabel(task?.status),
             },
-          ]}
-        />
-        <ProDescriptions
-          size="small"
-          column={{ xs: 1, sm: 1, md: 3 }}
-          dataSource={{
-            assignee: task?.assignee
-              ? organizationMemberName(task.assignee)
-              : '未分配',
-            status: taskStatusLabel(task?.status),
-            node: taskDefinitionLabel(task?.taskDefinitionKey),
-          }}
-          columns={[
-            { title: '处理人', dataIndex: 'assignee' },
-            { title: '任务状态', dataIndex: 'status' },
-            { title: '当前节点', dataIndex: 'node' },
           ]}
         />
         <TaskActionTimeline logs={logs} />
@@ -566,8 +565,7 @@ const SchemaDrivenFields: React.FC<{
       <Alert
         showIcon
         type="warning"
-        title="当前任务没有可填写表单"
-        description="请先在表单绑定中为该任务节点配置表单，再回到这里处理任务。"
+        title="未绑定节点表单"
         action={
           <Button size="small" onClick={() => history.push('/form-bindings')}>
             去绑定表单
@@ -837,7 +835,6 @@ const TaskDetail: React.FC = () => {
   return (
     <PageContainer
       title="任务详情"
-      content="查看任务状态、表单快照、处理意见和审计记录。"
       extra={
         <Space wrap>
           <Button onClick={() => history.push('/tasks')}>返回列表</Button>
@@ -871,8 +868,8 @@ const TaskDetail: React.FC = () => {
                     <Flex vertical gap={12}>
                       <span>
                         {nextTask
-                          ? `${taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，当前实例还有 ${taskDefinitionLabel(nextTask.taskDefinitionKey)} 待处理。`
-                          : `${taskDefinitionLabel(task.taskDefinitionKey)} 已处理完成，可回到实例查看当前进度、表单快照和审计记录。`}
+                          ? `下一节点：${taskDefinitionLabel(nextTask.taskDefinitionKey)}`
+                          : '流程已无当前待办。'}
                       </span>
                       <Flex gap={8} wrap>
                         {nextTask ? (

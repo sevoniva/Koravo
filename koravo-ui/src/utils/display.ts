@@ -108,6 +108,9 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   managerApprover: '第一审批人',
   financeApprover: '第二审批人',
   accepted: '审批通过',
+  approvalNodeCount: '审批节点数',
+  businessDescription: '事项说明',
+  departmentCount: '部门数',
   reviewComment: '处理意见',
   approver: '处理人',
   handler: '处理人',
@@ -124,6 +127,9 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   requestId: '业务追踪号',
   tenantId: '组织',
   userId: '成员',
+  startUserId: '发起人',
+  startUserName: '发起人',
+  roleCount: '角色数',
   createdAt: '创建时间',
   updatedAt: '更新时间',
   time: '时间',
@@ -192,6 +198,9 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
     collaborativeApproval: '协同审批流程',
     httpHealthCheck: '接口巡检流程',
   };
+  if (/^enterpriseApproval\d*$/i.test(modelKey || '')) {
+    return '企业级审批流程';
+  }
   return processNameLabel(mapping[modelKey || ''] || fallback || readableIdentifier(modelKey));
 }
 
@@ -296,12 +305,19 @@ export function taskDefinitionLabel(
   const mapping: Record<string, string> = {
     managerApprovalTask: '审批',
     financeApprovalTask: '复核',
+    jointApprovalTask: '多人会签',
     businessReviewTask: '审批',
     financeReviewTask: '复核',
     reviewTask: '审批',
     Task_1: '提交申请',
     approveTask: '处理任务',
   };
+  const departmentApproval = key.match(/^dept(\d+)_approval_(\d+)$/i);
+  if (departmentApproval) {
+    return `部门${departmentApproval[1]}审批节点${departmentApproval[2]}`;
+  }
+  const roleApproval = key.match(/^role[-_]?(\d+)(?:Task|Approval)?$/i);
+  if (roleApproval) return `流程角色 ${roleApproval[1]}`;
   return mapping[key] || productCopy(task?.name) || readableIdentifier(key);
 }
 
@@ -371,6 +387,8 @@ export function shortTraceLabel(value?: string | number | null) {
 
 export function businessFieldLabel(value?: string | null) {
   if (!value) return '-';
+  const roleUser = value.match(/^role(\d+)[_-]?User$/i);
+  if (roleUser) return `流程角色 ${roleUser[1]}`;
   return BUSINESS_FIELD_LABELS[value] || readableIdentifier(value);
 }
 
