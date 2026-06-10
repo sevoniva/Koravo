@@ -932,7 +932,7 @@ const ProcessInstances: React.FC = () => {
       />
       <Drawer
         title={previewTarget?.title || '流程预览'}
-        size="980px"
+        size={980}
         open={Boolean(previewTarget)}
         destroyOnHidden
         onClose={() => setPreviewTarget(undefined)}

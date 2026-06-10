@@ -3,11 +3,11 @@ import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 
 import { LoadingOutlined } from '@ant-design/icons';
-import { Alert, Empty, Flex, Spin, Steps, Tag, Typography } from 'antd';
+import { Alert, Empty, Flex, Spin, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTraceNode } from '@/services/koravo/api';
-import { processStatusLabel, productCopy, taskDefinitionLabel } from '@/utils/display';
+import { processStatusLabel, taskDefinitionLabel } from '@/utils/display';
 
 type ViewerConstructor = new (options: Record<string, unknown>) => BpmnViewer;
 
@@ -104,18 +104,115 @@ const useStyles = createStyles(({ css, token }) => ({
     box-shadow: ${token.boxShadowTertiary};
   `,
   generatedFlow: css`
-    display: flex;
     height: 100%;
     min-height: inherit;
-    flex-direction: column;
-    gap: 16px;
-    justify-content: center;
-    padding: 24px;
+    overflow: auto;
+    padding: 16px 18px;
     background: ${token.colorBgContainer};
+  `,
+  generatedHeader: css`
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-bottom: 12px;
+    background: ${token.colorBgContainer};
+  `,
+  generatedList: css`
+    display: grid;
+    gap: 10px;
+    padding-bottom: 8px;
+  `,
+  generatedRow: css`
+    display: grid;
+    grid-template-columns: 34px 20px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  `,
+  generatedIndex: css`
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    color: ${token.colorTextSecondary};
+    font-weight: 600;
+    font-size: 12px;
+    background: ${token.colorFillQuaternary};
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 50%;
+  `,
+  generatedRail: css`
+    position: relative;
+    display: flex;
+    min-height: 64px;
+    justify-content: center;
 
-    .ant-steps-item-title {
-      max-width: 160px;
-      white-space: normal;
+    &::before {
+      position: absolute;
+      top: 16px;
+      bottom: -18px;
+      width: 2px;
+      background: ${token.colorBorderSecondary};
+      content: '';
+    }
+  `,
+  generatedRailEnd: css`
+    &::before {
+      display: none;
+    }
+  `,
+  generatedDot: css`
+    position: relative;
+    z-index: 1;
+    width: 12px;
+    height: 12px;
+    margin-top: 9px;
+    background: ${token.colorBgContainer};
+    border: 3px solid ${token.colorBorder};
+    border-radius: 50%;
+  `,
+  generatedDotFinish: css`
+    border-color: ${token.colorSuccess};
+  `,
+  generatedDotProcess: css`
+    border-color: ${token.colorPrimary};
+    box-shadow: 0 0 0 4px ${token.colorPrimaryBg};
+  `,
+  generatedDotError: css`
+    border-color: ${token.colorError};
+  `,
+  generatedCard: css`
+    min-width: 0;
+    padding: 10px 12px;
+    background: ${token.colorBgElevated};
+    border: 1px solid ${token.colorBorderSecondary};
+    border-left: 3px solid ${token.colorBorder};
+    border-radius: ${token.borderRadiusSM}px;
+  `,
+  generatedCardFinish: css`
+    border-left-color: ${token.colorSuccess};
+    background: ${token.colorSuccessBg};
+  `,
+  generatedCardProcess: css`
+    border-color: ${token.colorPrimaryBorder};
+    border-left-color: ${token.colorPrimary};
+    background: ${token.colorPrimaryBg};
+  `,
+  generatedCardError: css`
+    border-left-color: ${token.colorError};
+    background: ${token.colorErrorBg};
+  `,
+  generatedTitle: css`
+    min-width: 0;
+    word-break: break-word;
+  `,
+  generatedMeta: css`
+    margin-top: 4px;
+    color: ${token.colorTextSecondary};
+    font-size: 12px;
+
+    .ant-tag {
+      margin-inline-end: 4px;
     }
   `,
 }));
@@ -162,6 +259,62 @@ function visibleFlowNodes(timeline: ProcessTraceNode[]) {
   });
 }
 
+function bpmnActivityOrder(bpmnXml?: string) {
+  if (!bpmnXml || typeof DOMParser === 'undefined') return [];
+  try {
+    const document = new DOMParser().parseFromString(bpmnXml, 'application/xml');
+    if (document.querySelector('parsererror')) return [];
+    const processElement = Array.from(document.getElementsByTagName('*')).find(
+      (element) => element.localName === 'process',
+    );
+    if (!processElement) return [];
+
+    const orderedIds: string[] = [];
+    const activityTypes = new Set([
+      'startEvent',
+      'endEvent',
+      'userTask',
+      'serviceTask',
+      'exclusiveGateway',
+      'parallelGateway',
+      'inclusiveGateway',
+      'subProcess',
+    ]);
+
+    function collect(scope: Element) {
+      Array.from(scope.children).forEach((child) => {
+        if (!activityTypes.has(child.localName)) return;
+        const id = child.getAttribute('id');
+        if (id) orderedIds.push(id);
+        if (child.localName === 'subProcess') {
+          collect(child);
+        }
+      });
+    }
+
+    collect(processElement);
+    return orderedIds;
+  } catch {
+    return [];
+  }
+}
+
+function generatedFlowNodes(timeline: ProcessTraceNode[], bpmnXml?: string) {
+  const nodes = visibleFlowNodes(timeline);
+  const order = bpmnActivityOrder(bpmnXml);
+  if (!order.length) return nodes;
+
+  const nodeById = new Map(nodes.map((node) => [node.activityId, node]));
+  const ordered = order
+    .map((activityId) => nodeById.get(activityId))
+    .filter((node): node is ProcessTraceNode => Boolean(node));
+  const orderedIds = new Set(ordered.map((node) => node.activityId));
+  return [
+    ...ordered,
+    ...nodes.filter((node) => !orderedIds.has(node.activityId)),
+  ];
+}
+
 function generatedStepStatus(node: ProcessTraceNode, currentActivityIds: string[]) {
   const normalized = String(node.status || '').toUpperCase();
   if (currentActivityIds.includes(node.activityId) || normalized === 'ACTIVE' || normalized === 'RUNNING') {
@@ -170,6 +323,57 @@ function generatedStepStatus(node: ProcessTraceNode, currentActivityIds: string[
   if (normalized === 'COMPLETED') return 'finish' as const;
   if (normalized === 'FAILED' || normalized === 'TERMINATED') return 'error' as const;
   return 'wait' as const;
+}
+
+function generatedStatusColor(status: ReturnType<typeof generatedStepStatus>) {
+  const mapping = {
+    finish: 'success',
+    process: 'processing',
+    error: 'error',
+    wait: 'default',
+  };
+  return mapping[status];
+}
+
+function generatedDotClassName(
+  styles: ReturnType<typeof useStyles>['styles'],
+  status: ReturnType<typeof generatedStepStatus>,
+) {
+  return [
+    styles.generatedDot,
+    status === 'finish' ? styles.generatedDotFinish : '',
+    status === 'process' ? styles.generatedDotProcess : '',
+    status === 'error' ? styles.generatedDotError : '',
+  ].filter(Boolean).join(' ');
+}
+
+function generatedCardClassName(
+  styles: ReturnType<typeof useStyles>['styles'],
+  status: ReturnType<typeof generatedStepStatus>,
+) {
+  return [
+    styles.generatedCard,
+    status === 'finish' ? styles.generatedCardFinish : '',
+    status === 'process' ? styles.generatedCardProcess : '',
+    status === 'error' ? styles.generatedCardError : '',
+  ].filter(Boolean).join(' ');
+}
+
+function currentNodeIndex(nodes: ProcessTraceNode[], currentActivityIds: string[]) {
+  const currentIds = new Set(currentActivityIds.filter(Boolean));
+  const current = nodes.findIndex((node) => currentIds.has(node.activityId));
+  if (current >= 0) return current;
+
+  const active = nodes.findIndex((node) =>
+    ['ACTIVE', 'RUNNING'].includes(String(node.status || '').toUpperCase()),
+  );
+  if (active >= 0) return active;
+
+  const completed = nodes
+    .map((node, index) => ({ node, index }))
+    .filter(({ node }) => String(node.status || '').toUpperCase() === 'COMPLETED')
+    .at(-1)?.index;
+  return completed ?? 0;
 }
 
 function nodeTitle(node: ProcessTraceNode) {
@@ -191,21 +395,23 @@ function activityTypeLabel(activityType?: string) {
   return mapping[activityType || ''] || activityType || '-';
 }
 
-function stepDescription(node: ProcessTraceNode) {
-  return `${activityTypeLabel(node.activityType)} · ${processStatusLabel(node.status)}`;
-}
-
 const GeneratedFlow: React.FC<{
+  bpmnXml?: string;
   timeline: ProcessTraceNode[];
   currentActivityIds: string[];
   height: number;
-}> = ({ timeline, currentActivityIds, height }) => {
+}> = ({ bpmnXml, timeline, currentActivityIds, height }) => {
   const { styles } = useStyles();
-  const nodes = visibleFlowNodes(timeline);
-  const currentIndex = Math.max(
-    0,
-    nodes.findIndex((node) => currentActivityIds.includes(node.activityId)),
-  );
+  const activeNodeRef = React.useRef<HTMLDivElement>(null);
+  const nodes = generatedFlowNodes(timeline, bpmnXml);
+  const currentIndex = currentNodeIndex(nodes, currentActivityIds);
+  const completedCount = nodes.filter(
+    (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
+  ).length;
+
+  React.useEffect(() => {
+    activeNodeRef.current?.scrollIntoView({ block: 'center' });
+  }, []);
 
   if (!nodes.length) {
     return (
@@ -218,21 +424,57 @@ const GeneratedFlow: React.FC<{
   return (
     <div className={styles.shell} style={{ height }} data-testid="process-diagram-viewer">
       <div className={styles.generatedFlow}>
-        <Flex align="center" gap={8} wrap>
-          <Tag color="processing">按执行轨迹生成</Tag>
-          <Typography.Text type="secondary">
-            当前流程未保存图形布局，已按节点记录展示流程位置。
+        <Flex className={styles.generatedHeader} vertical gap={8}>
+          <Flex align="center" gap={8} wrap>
+            <Tag color="processing">执行轨迹流程图</Tag>
+            <Typography.Text type="secondary">
+              已完成 {completedCount}/{nodes.length}
+            </Typography.Text>
+          </Flex>
+          <Typography.Text strong>
+            当前位置：{nodeTitle(nodes[currentIndex])}
           </Typography.Text>
         </Flex>
-        <Steps
-          current={currentIndex}
-          responsive
-          items={nodes.map((node) => ({
-            title: nodeTitle(node),
-            description: stepDescription(node),
-            status: generatedStepStatus(node, currentActivityIds),
-          }))}
-        />
+        <div className={styles.generatedList}>
+          {nodes.map((node, index) => {
+            const status = generatedStepStatus(node, currentActivityIds);
+            const selected = index === currentIndex;
+            return (
+              <div
+                key={`${node.activityId}-${node.startTime || index}`}
+                ref={selected ? activeNodeRef : undefined}
+                className={styles.generatedRow}
+              >
+                <span className={styles.generatedIndex}>{index + 1}</span>
+                <span
+                  className={[
+                    styles.generatedRail,
+                    index === nodes.length - 1 ? styles.generatedRailEnd : '',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <span className={generatedDotClassName(styles, status)} />
+                </span>
+                <div className={generatedCardClassName(styles, status)}>
+                  <Flex align="center" gap={8} wrap>
+                    <Typography.Text strong className={styles.generatedTitle}>
+                      {nodeTitle(node)}
+                    </Typography.Text>
+                    {selected ? <Tag color="processing">当前位置</Tag> : null}
+                    <Tag color={generatedStatusColor(status)}>
+                      {processStatusLabel(node.status)}
+                    </Tag>
+                  </Flex>
+                  <div className={styles.generatedMeta}>
+                    <Tag>{activityTypeLabel(node.activityType)}</Tag>
+                    <Typography.Text type="secondary">
+                      {processStatusLabel(node.status)}
+                    </Typography.Text>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -277,25 +519,10 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     }
   }, [currentActivityIds, timeline]);
 
-  React.useEffect(() => {
-    let disposed = false;
-
-    async function bootViewer() {
-      if (!mountRef.current || viewerRef.current || !hasXml) return;
-      const module = await import('bpmn-js/lib/Viewer');
-      if (disposed || !mountRef.current) return;
-      const Viewer = module.default as ViewerConstructor;
-      viewerRef.current = new Viewer({ container: mountRef.current });
-    }
-
-    void bootViewer();
-
-    return () => {
-      disposed = true;
-      viewerRef.current?.destroy();
-      viewerRef.current = undefined;
-    };
-  }, [hasXml]);
+  React.useEffect(() => () => {
+    viewerRef.current?.destroy();
+    viewerRef.current = undefined;
+  }, []);
 
   React.useEffect(() => {
     let disposed = false;
@@ -306,14 +533,19 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
         const module = await import('bpmn-js/lib/Viewer');
         if (disposed || !mountRef.current) return;
         const Viewer = module.default as ViewerConstructor;
+        mountRef.current.replaceChildren();
         viewerRef.current = new Viewer({ container: mountRef.current });
       }
 
       setLoading(true);
       setError(undefined);
       try {
-        await viewerRef.current.importXML(productCopy(bpmnXml));
+        await viewerRef.current.importXML(bpmnXml);
         const canvas = viewerRef.current.get('canvas') as Canvas;
+        const elementRegistry = viewerRef.current.get('elementRegistry') as ElementRegistry;
+        if (!elementRegistry.getAll().some((element) => element.id && !element.id.endsWith('_label'))) {
+          throw new Error('流程图没有可显示节点');
+        }
         canvas.zoom('fit-viewport', 'auto');
         applyMarkers();
       } catch (err) {
@@ -338,6 +570,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     if (timeline.length) {
       return (
         <GeneratedFlow
+          bpmnXml={bpmnXml}
           timeline={timeline}
           currentActivityIds={currentActivityIds}
           height={height}
@@ -354,6 +587,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   if (error && timeline.length) {
     return (
       <GeneratedFlow
+        bpmnXml={bpmnXml}
         timeline={timeline}
         currentActivityIds={currentActivityIds}
         height={height}
