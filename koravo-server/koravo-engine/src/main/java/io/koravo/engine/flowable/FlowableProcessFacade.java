@@ -729,15 +729,28 @@ public class FlowableProcessFacade implements ProcessFacade {
     }
 
     private boolean matchesTaskQuery(TaskDTO task, TaskQueryCommand command) {
-        return matchesStatus(task.status(), command)
+        return matchesProcessDefinition(task.processDefinitionId(), command)
+                && matchesStatus(task.status(), command)
                 && matchesTime(task.createTime(), command)
                 && matchesKeyword(command, task.name(), task.businessKey(), task.taskDefinitionKey(), task.assignee(), task.processInstanceId());
     }
 
     private boolean matchesStartedQuery(ProcessInstanceDetailDTO instance, TaskQueryCommand command) {
-        return matchesStatus(instance.status(), command)
+        return matchesProcessDefinition(instance.processDefinitionId(), command)
+                && matchesStatus(instance.status(), command)
                 && matchesTime(instance.startTime(), command)
                 && matchesKeyword(command, instance.businessKey(), instance.instanceId(), instance.processDefinitionId(), instance.startUserId());
+    }
+
+    private boolean matchesProcessDefinition(String processDefinitionId, TaskQueryCommand command) {
+        if (!command.hasProcessDefinitionKeys()) {
+            return true;
+        }
+        if (processDefinitionId == null || processDefinitionId.isBlank()) {
+            return false;
+        }
+        return command.processDefinitionKeys().stream()
+                .anyMatch(key -> processDefinitionId.equals(key) || processDefinitionId.startsWith(key + ":"));
     }
 
     private boolean matchesInstanceQuery(ProcessInstanceDetailDTO instance, InstanceQueryCommand command) {

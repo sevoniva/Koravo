@@ -3,6 +3,7 @@ package io.koravo.task.service;
 import io.koravo.common.api.PageResult;
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.CompleteTaskCommand;
 import io.koravo.engine.command.TaskQueryCommand;
@@ -13,6 +14,8 @@ import io.koravo.form.service.FormSnapshotService;
 import io.koravo.form.service.FormSchemaService;
 import io.koravo.form.web.FormBindingResponse;
 import io.koravo.form.web.FormSchemaResponse;
+import io.koravo.model.domain.KoProcessModel;
+import io.koravo.model.domain.ProcessModelStatus;
 import io.koravo.model.repo.ProcessModelRepository;
 import io.koravo.ops.audit.AuditLogQueryService;
 import io.koravo.ops.audit.AuditLogService;
@@ -26,9 +29,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskAppService {
@@ -59,16 +66,7 @@ public class TaskAppService {
     }
 
     public PageResult<TaskDTO> queryMyTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
-        return processFacade.queryMyTasks(new TaskQueryCommand(
-                TenantContextHolder.getTenantId(),
-                UserContextHolder.getUserId(),
-                page,
-                pageSize,
-                keyword,
-                status,
-                startTime,
-                endTime
-        ));
+        return processFacade.queryMyTasks(taskQueryCommand(page, pageSize, keyword, status, startTime, endTime));
     }
 
     public PageResult<TaskDTO> queryCandidateTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
@@ -76,9 +74,7 @@ public class TaskAppService {
     }
 
     public PageResult<TaskDTO> queryCandidateTasks(int page, int pageSize, String candidateGroup, String keyword, String status, Instant startTime, Instant endTime) {
-        return processFacade.queryCandidateTasks(new TaskQueryCommand(
-                TenantContextHolder.getTenantId(),
-                UserContextHolder.getUserId(),
+        return processFacade.queryCandidateTasks(taskQueryCommand(
                 StringUtils.hasText(candidateGroup) ? candidateGroup.trim() : UserContextHolder.getRole(),
                 page,
                 pageSize,
@@ -90,29 +86,54 @@ public class TaskAppService {
     }
 
     public PageResult<TaskDTO> queryDoneTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
-        return processFacade.queryDoneTasks(new TaskQueryCommand(
-                TenantContextHolder.getTenantId(),
-                UserContextHolder.getUserId(),
-                page,
-                pageSize,
-                keyword,
-                status,
-                startTime,
-                endTime
-        ));
+        return processFacade.queryDoneTasks(taskQueryCommand(page, pageSize, keyword, status, startTime, endTime));
     }
 
     public PageResult<ProcessInstanceDetailDTO> queryStartedInstances(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
-        return processFacade.queryStartedInstances(new TaskQueryCommand(
+        return processFacade.queryStartedInstances(taskQueryCommand(page, pageSize, keyword, status, startTime, endTime));
+    }
+
+    private TaskQueryCommand taskQueryCommand(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
+        return taskQueryCommand(null, page, pageSize, keyword, status, startTime, endTime);
+    }
+
+    private TaskQueryCommand taskQueryCommand(
+            String candidateGroup,
+            int page,
+            int pageSize,
+            String keyword,
+            String status,
+            Instant startTime,
+            Instant endTime
+    ) {
+        return new TaskQueryCommand(
                 TenantContextHolder.getTenantId(),
                 UserContextHolder.getUserId(),
+                candidateGroup,
                 page,
                 pageSize,
                 keyword,
                 status,
                 startTime,
-                endTime
-        ));
+                endTime,
+                visibleProcessDefinitionKeys()
+        );
+    }
+
+    private Set<String> visibleProcessDefinitionKeys() {
+        List<KoProcessModel> models = processModelRepository
+                .findByTenantIdAndStatusAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+                        TenantContextHolder.getTenantId(),
+                        ProcessModelStatus.DEPLOYED,
+                        List.of(AssetOrigin.SYSTEM_TEMPLATE, AssetOrigin.USER_FLOW)
+                );
+        if (models == null || models.isEmpty()) {
+            return Set.of();
+        }
+        return models.stream()
+                .map(KoProcessModel::getModelKey)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @Transactional(readOnly = true)

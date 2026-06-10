@@ -1,17 +1,18 @@
 package io.koravo.task.service;
 
+import io.koravo.common.api.PageResult;
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.CompleteTaskCommand;
 import io.koravo.engine.command.TaskQueryCommand;
 import io.koravo.engine.dto.ProcessInstanceDetailDTO;
 import io.koravo.engine.dto.TaskCommentDTO;
 import io.koravo.engine.dto.TaskDTO;
-import io.koravo.common.api.PageResult;
 import io.koravo.form.service.FormBindingService;
 import io.koravo.form.service.FormSnapshotService;
 import io.koravo.form.service.FormSchemaService;
-import io.koravo.form.web.FormSnapshotResponse;
 import io.koravo.form.web.FormBindingResponse;
+import io.koravo.form.web.FormSnapshotResponse;
 import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
@@ -31,6 +32,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -154,6 +156,42 @@ class TaskAppServiceTest {
 
         assertThat(result.items()).isEmpty();
         verify(processFacade).queryCandidateTasks(command);
+    }
+
+    @Test
+    void queryTasksRestrictsDefaultListsToProductionWorkflowKeys() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("manager");
+        KoProcessModel model = model("model-1", "collaborativeApproval:2:pd");
+        model.setModelKey("collaborativeApproval");
+        model.setAssetOrigin(AssetOrigin.SYSTEM_TEMPLATE);
+        KoProcessModel userModel = model("model-2", "enterpriseApproval30:1:pd");
+        userModel.setModelKey("enterpriseApproval30");
+        userModel.setAssetOrigin(AssetOrigin.USER_FLOW);
+        when(processModelRepository.findByTenantIdAndStatusAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                ProcessModelStatus.DEPLOYED,
+                List.of(AssetOrigin.SYSTEM_TEMPLATE, AssetOrigin.USER_FLOW)
+        )).thenReturn(List.of(model, userModel));
+        TaskQueryCommand command = new TaskQueryCommand(
+                "default",
+                "manager",
+                null,
+                1,
+                20,
+                null,
+                null,
+                null,
+                null,
+                Set.of("collaborativeApproval", "enterpriseApproval30")
+        );
+        when(processFacade.queryMyTasks(command))
+                .thenReturn(PageResult.of(List.of(), 0, 1, 20));
+
+        var result = service.queryMyTasks(1, 20, null, null, null, null);
+
+        assertThat(result.items()).isEmpty();
+        verify(processFacade).queryMyTasks(command);
     }
 
     @Test
