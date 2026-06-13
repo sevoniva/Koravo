@@ -21,9 +21,11 @@ import {
   App,
   Badge,
   Button,
+  Checkbox,
   Drawer,
   Empty,
   Flex,
+  Form,
   Popconfirm,
   Space,
   Tabs,
@@ -65,6 +67,7 @@ interface FormSchemaForm {
   formKey: string;
   formName: string;
   fields: FormFieldConfig[];
+  confirmBindingImpact?: boolean;
 }
 
 interface FormFieldConfig {
@@ -824,13 +827,21 @@ const Forms: React.FC = () => {
   );
   const editingImpact = bindingImpact(editing?.id, formBindings);
 
-  const saveFormSchema = async (values: FormSchemaForm, id?: string) => {
+  const saveFormSchema = async (
+    values: FormSchemaForm,
+    id?: string,
+    impact?: FormBindingImpact,
+  ) => {
     if (!values.fields?.length) {
       message.error('请至少配置一个字段');
       return false;
     }
     if (hasDuplicatedFieldKey(values.fields)) {
       message.error('业务字段不能重复');
+      return false;
+    }
+    if (id && impact?.total && !values.confirmBindingImpact) {
+      message.warning('请先确认影响范围');
       return false;
     }
     const payload = buildPayload(values);
@@ -1037,6 +1048,7 @@ const Forms: React.FC = () => {
             ? {
                 formKey: editing.formKey,
                 formName: formSchemaNameLabel(editing.formName),
+                confirmBindingImpact: false,
                 fields: schemaToFields(
                   editing.schemaJson,
                   editing.uiSchemaJson,
@@ -1055,10 +1067,26 @@ const Forms: React.FC = () => {
         }}
         onFinish={async (values) => {
           if (!editing) return false;
-          return saveFormSchema(values, editing.id);
+          return saveFormSchema(values, editing.id, editingImpact);
         }}
       >
         <BindingImpactSummary impact={editingImpact} />
+        {editingImpact.total ? (
+          <Form.Item
+            name="confirmBindingImpact"
+            valuePropName="checked"
+            rules={[
+              {
+                validator: (_, value) =>
+                  value
+                    ? Promise.resolve()
+                    : Promise.reject(new Error('请确认影响范围')),
+              },
+            ]}
+          >
+            <Checkbox>已确认影响范围，继续保存</Checkbox>
+          </Form.Item>
+        ) : null}
         <ProFormText
           name="formKey"
           label="表单标识"
