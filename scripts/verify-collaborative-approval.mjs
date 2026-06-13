@@ -28,8 +28,6 @@ async function main() {
   const workflow = await startableWorkflow(applicant);
   const businessKey = `COLLAB-VERIFY-${Date.now()}`;
   const formData = {
-    applicant: "系统会按登录成员覆盖",
-    department: "系统会按组织覆盖",
     subject: "协同审批验收",
     businessDescription: "验证通用业务申请可以流转给多个审批人并完成会签。",
     expectedResult: "全部审批人完成后流程结束。",

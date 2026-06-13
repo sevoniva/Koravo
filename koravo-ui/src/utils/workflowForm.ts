@@ -34,6 +34,8 @@ interface WorkflowJsonSchemaProperty {
   pattern?: unknown;
   minimum?: unknown;
   maximum?: unknown;
+  readOnly?: unknown;
+  readonly?: unknown;
   'ui:placeholder'?: string;
   'ui:widget'?: string;
 }
@@ -59,9 +61,14 @@ function normalizeFieldType(type?: string): WorkflowFieldType {
   return 'string';
 }
 
-function normalizePermission(permission?: unknown): WorkflowFieldPermission {
+function normalizePermission(
+  permission?: unknown,
+  readOnly?: unknown,
+): WorkflowFieldPermission {
   return permission === 'readonly' || permission === 'hidden'
     ? permission
+    : readOnly === true || readOnly === 'true'
+      ? 'readonly'
     : 'editable';
 }
 
@@ -144,7 +151,10 @@ export function parseWorkflowFormFields(
         placeholder: typeof placeholder === 'string' ? placeholder : undefined,
         required: required.includes(fieldKey),
         options: normalizeOptions(property.enum),
-        permission: normalizePermission(uiField?.permission),
+        permission: normalizePermission(
+          uiField?.permission,
+          property.readOnly ?? property.readonly,
+        ),
         visibleWhenField: visibleWhenField || undefined,
         visibleWhenValue: visibleWhenValue || undefined,
         minLength: finiteNumber(property.minLength),

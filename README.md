@@ -184,8 +184,6 @@ The same workflow can be started through the API with `processDefinitionKey = co
 
 ```json
 {
-  "applicant": "业务申请专员",
-  "department": "业务一部",
   "subject": "通用业务申请",
   "businessDescription": "说明申请事项、背景和需要审批的内容",
   "expectedResult": "所有审批人完成会签后流程结束",
@@ -193,6 +191,8 @@ The same workflow can be started through the API with `processDefinitionKey = co
   "approvalUsers": ["manager", "finance"]
 }
 ```
+
+`applicant` and `department` are written from the authenticated organization member and do not need to be submitted by the caller.
 
 The API loop below mirrors the same collaborative approval path. For a repeatable runtime check:
 
@@ -230,7 +230,7 @@ curl -X POST http://localhost:8080/api/v1/process-instances/start \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $APPLICANT_TOKEN" \
   -H 'X-Koravo-Tenant-Id: default' \
-  -d '{"processDefinitionKey":"collaborativeApproval","businessKey":"REQ-001","variables":{"applicant":"业务申请专员","department":"业务一部","subject":"通用业务申请","businessDescription":"说明申请事项、背景和需要审批的内容","expectedResult":"所有审批人完成会签后流程结束","amount":12800,"approvalUsers":["manager","finance"]}}'
+  -d '{"processDefinitionKey":"collaborativeApproval","businessKey":"REQ-001","variables":{"subject":"通用业务申请","businessDescription":"说明申请事项、背景和需要审批的内容","expectedResult":"所有审批人完成会签后流程结束","amount":12800,"approvalUsers":["manager","finance"]}}'
 ```
 
 Complete a task:

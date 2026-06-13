@@ -110,6 +110,11 @@ describe('workflow form helpers', () => {
             minimum: 1,
             maximum: 100,
           },
+          applicant: {
+            title: '申请人',
+            type: 'string',
+            readOnly: true,
+          },
         },
       }),
       '{}',
@@ -117,10 +122,12 @@ describe('workflow form helpers', () => {
 
     const subject = fields.find((field) => field.fieldKey === 'subject');
     const amount = fields.find((field) => field.fieldKey === 'amount');
+    const applicant = fields.find((field) => field.fieldKey === 'applicant');
 
     expect(subject).toBeDefined();
     expect(amount).toBeDefined();
-    if (!subject || !amount) return;
+    expect(applicant).toBeDefined();
+    if (!subject || !amount || !applicant) return;
 
     expect(subject).toMatchObject({
       minLength: 2,
@@ -128,6 +135,7 @@ describe('workflow form helpers', () => {
       pattern: '^[\\u4e00-\\u9fa5A-Za-z0-9]+$',
     });
     expect(amount).toMatchObject({ minimum: 1, maximum: 100 });
+    expect(applicant).toMatchObject({ permission: 'readonly' });
     expect(workflowFieldRules(subject)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ required: true }),

@@ -513,6 +513,7 @@ public class WorkflowEnablementService {
                 || schemaJson.contains("\"financeApprover\"")
                 || !StringUtils.hasText(uiSchemaJson)
                 || !uiSchemaJson.contains("\"approvalUsers\"")
+                || !uiSchemaJson.contains("\"permission\": \"readonly\"")
                 || uiSchemaJson.contains("\"managerApprover\"")
                 || uiSchemaJson.contains("\"financeApprover\"");
     }
@@ -722,8 +723,6 @@ public class WorkflowEnablementService {
 
     public Map<String, Object> defaultStartVariables() {
         Map<String, Object> variables = new LinkedHashMap<>();
-        variables.put("applicant", "业务申请专员");
-        variables.put("department", "业务一部");
         variables.put("subject", "业务事项申请");
         variables.put("businessDescription", "说明本次申请的背景、内容和需要协同处理的事项");
         variables.put("expectedResult", "所有审批人完成会签后流程结束");

@@ -262,8 +262,10 @@ class WorkflowEnablementServiceTest {
         WorkflowEnablementInitResponse response = service.init();
 
         assertThat(form.getSchemaJson()).contains("\"approvalUsers\"");
+        assertThat(form.getSchemaJson()).contains("\"readOnly\": true");
         assertThat(form.getSchemaJson()).doesNotContain("\"managerApprover\"", "\"financeApprover\"");
         assertThat(form.getUiSchemaJson()).contains("\"approvalUsers\"");
+        assertThat(form.getUiSchemaJson()).contains("\"permission\": \"readonly\"");
         assertThat(form.getVersion()).isEqualTo(3);
         assertThat(startBinding.getFormSchemaVersion()).isEqualTo(3);
         assertThat(approvalBinding.getFormSchemaVersion()).isEqualTo(3);
@@ -314,8 +316,8 @@ class WorkflowEnablementServiceTest {
         assertThat(response.form().ready()).isTrue();
         assertThat(response.binding().ready()).isTrue();
         assertThat(response.audit().count()).isEqualTo(3);
-        assertThat(response.defaultStartVariables()).containsEntry("applicant", "业务申请专员");
-        assertThat(response.defaultStartVariables()).containsEntry("department", "业务一部");
+        assertThat(response.defaultStartVariables()).containsEntry("subject", "业务事项申请");
+        assertThat(response.defaultStartVariables()).doesNotContainKeys("applicant", "department");
         assertThat(response.defaultStartVariables()).containsEntry("approvalUsers", List.of("manager", "finance"));
         verify(processFacade, never()).deploy(any());
     }

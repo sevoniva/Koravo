@@ -117,6 +117,8 @@ interface JsonSchemaProperty {
   pattern?: unknown;
   minimum?: unknown;
   maximum?: unknown;
+  readOnly?: unknown;
+  readonly?: unknown;
   'ui:placeholder'?: string;
   'ui:widget'?: string;
 }
@@ -218,6 +220,7 @@ const defaultFields: FormFieldConfig[] = [
     title: '发起人',
     type: 'string',
     widget: 'organizationProfile',
+    permission: 'readonly',
     required: true,
   },
   {
@@ -225,6 +228,7 @@ const defaultFields: FormFieldConfig[] = [
     title: '所属部门',
     type: 'string',
     widget: 'organizationProfile',
+    permission: 'readonly',
   },
   {
     fieldKey: 'subject',
@@ -475,9 +479,12 @@ const finiteNumber = (value: unknown) => {
 
 const normalizePermission = (
   permission?: unknown,
+  readOnly?: unknown,
 ): NonNullable<FormFieldConfig['permission']> => {
   return permission === 'readonly' || permission === 'hidden'
     ? permission
+    : readOnly === true || readOnly === 'true'
+      ? 'readonly'
     : 'editable';
 };
 
@@ -600,7 +607,10 @@ const schemaToFields = (
       options: isProfileField || isAssigneeField ? undefined : options,
       format: isProfileField || isAssigneeField ? undefined : property?.format,
       required: required.includes(fieldKey),
-      permission: normalizePermission(uiField?.permission),
+      permission: normalizePermission(
+        uiField?.permission,
+        property?.readOnly ?? property?.readonly,
+      ),
       visibleWhenField:
         typeof uiField?.visibleWhenField === 'string'
           ? uiField.visibleWhenField
@@ -658,12 +668,16 @@ const buildPayload = (values: FormSchemaForm) => {
           : field.type === 'string' && options?.length
             ? 'select'
             : normalizeWidget(field.widget, field.type);
+    const permission = isProfileField
+      ? 'readonly'
+      : field.permission || 'editable';
     return {
       ...field,
       fieldKey: field.fieldKey.trim(),
       title: field.title.trim(),
       type,
       widget,
+      permission,
       options,
       placeholder:
         isProfileField || isAssigneeField ? undefined : field.placeholder,
@@ -705,6 +719,7 @@ const buildPayload = (values: FormSchemaForm) => {
         pattern?: string;
         minimum?: number;
         maximum?: number;
+        readOnly?: boolean;
         'ui:placeholder'?: string;
         'ui:widget'?: string;
       }
@@ -732,6 +747,7 @@ const buildPayload = (values: FormSchemaForm) => {
       ...(field.type !== 'number' && field.pattern?.trim()
         ? { pattern: field.pattern.trim() }
         : {}),
+      ...(field.permission === 'readonly' ? { readOnly: true } : {}),
       ...(field.placeholder?.trim()
         ? { 'ui:placeholder': field.placeholder.trim() }
         : {}),

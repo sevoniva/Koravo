@@ -66,11 +66,13 @@ public final class WorkflowEnablementDefaults {
                   "properties": {
                     "applicant": {
                       "type": "string",
-                      "title": "申请人"
+                      "title": "申请人",
+                      "readOnly": true
                     },
                     "department": {
                       "type": "string",
-                      "title": "申请部门"
+                      "title": "申请部门",
+                      "readOnly": true
                     },
                     "subject": {
                       "type": "string",
@@ -120,10 +122,12 @@ public final class WorkflowEnablementDefaults {
         return """
                 {
                   "applicant": {
-                    "widget": "organizationProfile"
+                    "widget": "organizationProfile",
+                    "permission": "readonly"
                   },
                   "department": {
-                    "widget": "organizationProfile"
+                    "widget": "organizationProfile",
+                    "permission": "readonly"
                   },
                   "approvalUsers": {
                     "widget": "organizationMemberMulti"
