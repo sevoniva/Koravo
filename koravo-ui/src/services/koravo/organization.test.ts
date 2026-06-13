@@ -186,6 +186,14 @@ describe('organization display helpers', () => {
     ]);
   });
 
+  it('does not fall back to default members after an empty server directory sync', () => {
+    setOrganizationMembers([]);
+
+    expect(getOrganizationMembers()).toEqual([]);
+    expect(organizationMemberName('manager')).toBe('待同步成员');
+    expect(organizationApprovalMemberSelectOptions()).toEqual([]);
+  });
+
   it('keeps handler options business-facing', () => {
     const labels = organizationHandlerOptions().map((item) => item.label);
     expect(labels).toContain('流程发起人');

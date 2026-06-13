@@ -82,20 +82,27 @@ async function loadRuntimeSession() {
 }
 
 async function loadOrganizationDirectory() {
-  if (!hasAuthSession()) return;
+  if (!hasAuthSession()) {
+    setOrganizationMembers([]);
+    return;
+  }
   try {
     const response = await fetch('/api/v1/organization/members', {
       headers: sessionRequestHeaders(),
     });
     if (!response.ok) {
       if (response.status === 401) clearAuthSession();
+      setOrganizationMembers([]);
       return;
     }
     const payload = (await response.json()) as OrganizationMembersResponse;
-    if (payload.success === false || !Array.isArray(payload.data)) return;
+    if (payload.success === false || !Array.isArray(payload.data)) {
+      setOrganizationMembers([]);
+      return;
+    }
     setOrganizationMembers(payload.data);
   } catch {
-    setOrganizationMembers();
+    setOrganizationMembers([]);
   }
 }
 
