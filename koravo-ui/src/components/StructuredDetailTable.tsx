@@ -12,10 +12,10 @@ import {
   businessFieldLabel,
   businessKeyLabel,
   dataSourceTypeLabel,
+  genericStatusLabel,
   processDefinitionLabel,
   processModelKeyLabel,
   processNameLabel,
-  processStatusLabel,
   productCopy,
   shortTraceLabel,
   taskDefinitionLabel,
@@ -161,7 +161,7 @@ function domainText(rowKey: string, value: unknown) {
   }
   if (field === 'type') return dataSourceTypeLabel(value);
   if (field === 'status' || field === 'statusText')
-    return processStatusLabel(value);
+    return genericStatusLabel(value);
   const copy = productCopy(value);
   return copy && copy !== value ? copy : undefined;
 }

@@ -8,6 +8,7 @@ import {
   businessFieldLabel,
   businessKeyLabel,
   connectionAddressLabel,
+  genericStatusLabel,
   isBusinessProcessModel,
   isActiveBusinessProcessModel,
   normalizeBpmnXmlLabels,
@@ -135,6 +136,26 @@ describe('display helpers', () => {
     expect(auditActionLabel('AUTH_LOGIN')).toBe('登录系统');
     expect(auditActionLabel('AUTH_LOGOUT')).toBe('退出登录');
     expect(auditResourceLabel('LOGIN_SESSION')).toBe('登录会话');
+  });
+
+  it('uses product labels for production audit actions', () => {
+    expect(auditActionLabel('FORM_SCHEMA_RESTORE_VERSION')).toBe('恢复表单版本');
+    expect(auditActionLabel('FORM_SCHEMA_ACTIVATE')).toBe('启用表单');
+    expect(auditActionLabel('FORM_SCHEMA_DISABLE')).toBe('停用表单');
+    expect(auditActionLabel('ORG_MEMBER_PASSWORD_RESET')).toBe('重置成员密码');
+    expect(auditActionLabel('FAILED_JOB_RETRY')).toBe('重试失败任务');
+    expect(auditActionLabel('DEAD_LETTER_JOB_DELETE')).toBe('删除死信任务');
+    expect(auditResourceLabel('ORGANIZATION_MEMBER')).toBe('组织成员');
+  });
+
+  it('uses readable labels for audit detail fields and generic statuses', () => {
+    expect(businessFieldLabel('deploymentId')).toBe('部署编号');
+    expect(businessFieldLabel('jobId')).toBe('任务编号');
+    expect(businessFieldLabel('exceptionMessage')).toBe('异常信息');
+    expect(businessFieldLabel('exceptionStacktrace')).toBe('异常堆栈');
+    expect(businessFieldLabel('fromVersion')).toBe('恢复版本');
+    expect(genericStatusLabel('ACTIVE')).toBe('启用');
+    expect(genericStatusLabel('DISABLED')).toBe('已停用');
   });
 
   it('labels workflow asset origins for governance surfaces', () => {

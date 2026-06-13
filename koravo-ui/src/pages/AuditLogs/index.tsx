@@ -46,13 +46,25 @@ const actionOptions = {
   TASK_CLAIM: { text: '认领任务' },
   FORM_SCHEMA_CREATE: { text: '创建表单' },
   FORM_SCHEMA_UPDATE: { text: '更新表单' },
+  FORM_SCHEMA_RESTORE_VERSION: { text: '恢复表单版本' },
+  FORM_SCHEMA_ACTIVATE: { text: '启用表单' },
+  FORM_SCHEMA_DISABLE: { text: '停用表单' },
   FORM_BIND: { text: '绑定表单' },
   FORM_BIND_UPDATE: { text: '更新表单绑定' },
   FORM_BIND_DELETE: { text: '删除表单绑定' },
+  ORG_MEMBER_CREATE: { text: '创建成员' },
+  ORG_MEMBER_UPDATE: { text: '更新成员' },
+  ORG_MEMBER_ENABLE: { text: '启用成员' },
+  ORG_MEMBER_DISABLE: { text: '停用成员' },
+  ORG_MEMBER_PASSWORD_RESET: { text: '重置成员密码' },
   DATASOURCE_CREATE: { text: '创建数据源' },
   DATASOURCE_UPDATE: { text: '更新数据源' },
   DATASOURCE_DELETE: { text: '删除数据源' },
   DATASOURCE_TEST: { text: '检测数据源连接' },
+  FAILED_JOB_RETRY: { text: '重试失败任务' },
+  FAILED_JOB_DELETE: { text: '删除失败任务' },
+  DEAD_LETTER_JOB_RETRY: { text: '重试死信任务' },
+  DEAD_LETTER_JOB_DELETE: { text: '删除死信任务' },
   CONNECTOR_EXECUTE: { text: '执行连接器' },
 };
 
@@ -64,6 +76,7 @@ const resourceOptions = {
   TASK: { text: '任务' },
   FORM_SCHEMA: { text: '表单' },
   FORM_BINDING: { text: '表单绑定' },
+  ORGANIZATION_MEMBER: { text: '组织成员' },
   DATASOURCE: { text: '数据源' },
   DATASOURCE_TEST_LOG: { text: '数据源检测记录' },
   FAILED_JOB: { text: '失败任务' },
@@ -349,7 +362,7 @@ const AuditLogs: React.FC = () => {
         rowKey="id"
         columns={columns}
         scroll={{ x: 1200 }}
-        search={{ labelWidth: 'auto' }}
+        search={{ labelWidth: 88, span: 6, defaultCollapsed: false }}
         locale={{
           emptyText: (
             <Empty

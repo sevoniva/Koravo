@@ -20,13 +20,25 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   TASK_CLAIM: '认领任务',
   FORM_SCHEMA_CREATE: '创建表单',
   FORM_SCHEMA_UPDATE: '更新表单',
+  FORM_SCHEMA_RESTORE_VERSION: '恢复表单版本',
+  FORM_SCHEMA_ACTIVATE: '启用表单',
+  FORM_SCHEMA_DISABLE: '停用表单',
   FORM_BIND: '绑定表单',
   FORM_BIND_UPDATE: '更新表单绑定',
   FORM_BIND_DELETE: '删除表单绑定',
+  ORG_MEMBER_CREATE: '创建成员',
+  ORG_MEMBER_UPDATE: '更新成员',
+  ORG_MEMBER_ENABLE: '启用成员',
+  ORG_MEMBER_DISABLE: '停用成员',
+  ORG_MEMBER_PASSWORD_RESET: '重置成员密码',
   DATASOURCE_CREATE: '创建数据源',
   DATASOURCE_UPDATE: '更新数据源',
   DATASOURCE_DELETE: '删除数据源',
   DATASOURCE_TEST: '检测数据源连接',
+  FAILED_JOB_RETRY: '重试失败任务',
+  FAILED_JOB_DELETE: '删除失败任务',
+  DEAD_LETTER_JOB_RETRY: '重试死信任务',
+  DEAD_LETTER_JOB_DELETE: '删除死信任务',
   CONNECTOR_EXECUTE: '执行连接器',
 };
 
@@ -38,6 +50,7 @@ const AUDIT_RESOURCE_LABELS: Record<string, string> = {
   TASK: '任务',
   FORM_SCHEMA: '表单',
   FORM_BINDING: '表单绑定',
+  ORGANIZATION_MEMBER: '组织成员',
   DATASOURCE: '数据源',
   DATASOURCE_TEST_LOG: '数据源检测记录',
   FAILED_JOB: '失败任务',
@@ -58,6 +71,14 @@ const PROCESS_STATUS_LABELS: Record<string, string> = {
   FAILED: '失败',
   READY: '就绪',
   AVAILABLE: '可用',
+};
+
+const GENERIC_STATUS_LABELS: Record<string, string> = {
+  ...PROCESS_STATUS_LABELS,
+  ACTIVE: '启用',
+  DISABLED: '已停用',
+  ENABLED: '启用',
+  INACTIVE: '停用',
 };
 
 const DATASOURCE_TYPE_LABELS: Record<string, string> = {
@@ -170,9 +191,12 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   processDefinitionKey: '流程标识',
   processDefinitionId: '运行版本',
   processInstanceId: '流程实例编号',
+  deploymentId: '部署编号',
   taskId: '任务编号',
   taskDefinitionKey: '任务节点',
   taskName: '任务名称',
+  jobId: '任务编号',
+  activityId: '节点编号',
   executionId: '执行编号',
   elementId: '节点编号',
   elementName: '节点名称',
@@ -191,7 +215,10 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   elapsedMillis: '耗时',
   retries: '重试次数',
   errorMessage: '错误信息',
+  exceptionMessage: '异常信息',
+  exceptionStacktrace: '异常堆栈',
   reasonMessage: '原因',
+  fromVersion: '恢复版本',
   url: '请求地址',
   method: '请求方式',
   statusCode: '状态码',
@@ -451,6 +478,10 @@ export function auditResourceLabel(value?: string | null) {
 
 export function processStatusLabel(value?: string | null) {
   return auditCodeLabel(value, PROCESS_STATUS_LABELS);
+}
+
+export function genericStatusLabel(value?: string | null) {
+  return auditCodeLabel(value, GENERIC_STATUS_LABELS);
 }
 
 export function dataSourceTypeLabel(value?: string | null) {
