@@ -69,5 +69,17 @@ class RolePermissionMatrixTest {
                 "operator",
                 UserContextHolder.ROLE_OPERATOR
         )).isTrue();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "GET",
+                "/api/v1/process-instances/pi-1/trace",
+                "operator",
+                UserContextHolder.ROLE_OPERATOR
+        )).isTrue();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "GET",
+                "/api/v1/process-instances/pi-1/trace",
+                "admin",
+                UserContextHolder.ROLE_ADMIN
+        )).isFalse();
     }
 }
