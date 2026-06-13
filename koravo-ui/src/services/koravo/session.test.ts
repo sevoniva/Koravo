@@ -71,6 +71,28 @@ describe('session context', () => {
     });
   });
 
+  it('keeps server permissions with the stored login session', () => {
+    setAuthSession({
+      tenantId: 'default',
+      userId: 'manager',
+      role: 'manager',
+      token: 'session-token',
+      expiresAt: '2099-01-01T00:00:00Z',
+      permissions: {
+        canHandleTask: true,
+        canConfigureWorkflow: false,
+      },
+    });
+
+    expect(getSessionContext()).toMatchObject({
+      userId: 'manager',
+      permissions: {
+        canHandleTask: true,
+        canConfigureWorkflow: false,
+      },
+    });
+  });
+
   it('clears expired login sessions before sending credentials', () => {
     window.localStorage.setItem(
       'koravo.auth',

@@ -1,6 +1,7 @@
 package io.koravo.api.auth;
 
 import java.time.Instant;
+import java.util.Map;
 
 public record LoginResponse(
         String token,
@@ -9,6 +10,7 @@ public record LoginResponse(
         String name,
         String department,
         String role,
-        Instant expiresAt
+        Instant expiresAt,
+        Map<String, Boolean> permissions
 ) {
 }

@@ -61,6 +61,7 @@ const Login: React.FC = () => {
         userId: session.userId,
         role: session.role as SessionRole,
         expiresAt: session.expiresAt,
+        permissions: session.permissions,
       });
       message.success('登录成功');
       window.location.href = loginSuccessRedirectPath(session.role as SessionRole);

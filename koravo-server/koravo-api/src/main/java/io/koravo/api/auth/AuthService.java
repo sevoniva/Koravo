@@ -5,6 +5,7 @@ import io.koravo.api.organization.OrganizationMemberRepository;
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
 import io.koravo.ops.audit.AuditLogService;
+import io.koravo.security.RolePermissionMatrix;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.beans.factory.annotation.Value;
@@ -82,7 +83,8 @@ public class AuthService {
                 member.getName(),
                 member.getDepartment(),
                 member.getRole(),
-                session.getExpiresAt()
+                session.getExpiresAt(),
+                RolePermissionMatrix.capabilitiesForRole(member.getRole())
         );
     }
 

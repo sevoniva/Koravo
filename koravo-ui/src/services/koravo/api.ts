@@ -330,6 +330,7 @@ export interface LoginResult {
   department: string
   role: string
   expiresAt: string
+  permissions?: SessionPermissions
 }
 
 export interface TaskListParams {
