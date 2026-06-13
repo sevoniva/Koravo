@@ -1,6 +1,8 @@
 import type { BpmnTaskDefinition, ProcessModelItem } from '../types/koravo';
 
 const AUDIT_ACTION_LABELS: Record<string, string> = {
+  AUTH_LOGIN: '登录系统',
+  AUTH_LOGOUT: '退出登录',
   WORKFLOW_ENABLEMENT_INIT: '维护流程配置',
   PROCESS_MODEL_CREATE: '创建流程模型',
   PROCESS_MODEL_IMPORT: '导入流程模型',
@@ -29,6 +31,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
 };
 
 const AUDIT_RESOURCE_LABELS: Record<string, string> = {
+  LOGIN_SESSION: '登录会话',
   WORKFLOW_ENABLEMENT: '流程配置',
   PROCESS_MODEL: '流程模型',
   PROCESS_INSTANCE: '流程实例',

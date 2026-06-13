@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  auditActionLabel,
+  auditResourceLabel,
   assetOriginColor,
   assetOriginLabel,
   buildVersionLabel,
@@ -82,6 +84,12 @@ describe('display helpers', () => {
     expect(businessFieldLabel('executionId')).toBe('执行编号');
     expect(businessFieldLabel('delegateExpression')).toBe('执行表达式');
     expect(businessFieldLabel('X-Koravo-User-Role')).toBe('职责');
+  });
+
+  it('uses product labels for authentication audit records', () => {
+    expect(auditActionLabel('AUTH_LOGIN')).toBe('登录系统');
+    expect(auditActionLabel('AUTH_LOGOUT')).toBe('退出登录');
+    expect(auditResourceLabel('LOGIN_SESSION')).toBe('登录会话');
   });
 
   it('labels workflow asset origins for governance surfaces', () => {
