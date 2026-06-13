@@ -13,7 +13,7 @@ interface OrganizationProfileFormItemProps {
 
 const OrganizationProfileFormItem: React.FC<
   OrganizationProfileFormItemProps
-> = ({ name, label, value, required, sourceText = '组织档案', preserve = true }) => {
+> = ({ name, label, value, required, sourceText = '自动带出', preserve = true }) => {
   const form = Form.useFormInstance();
   const displayValue = value || '-';
   const namePathKey = Array.isArray(name) ? name.join('.') : name;
@@ -36,7 +36,7 @@ const OrganizationProfileFormItem: React.FC<
       <Form.Item label={label} required={required}>
         <Space size={8} wrap>
           <Typography.Text>{displayValue}</Typography.Text>
-          <Tag color="processing">{sourceText}自动带出</Tag>
+          <Tag color="processing">{sourceText}</Tag>
         </Space>
       </Form.Item>
     </>
