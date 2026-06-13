@@ -1,16 +1,19 @@
 package io.koravo.api.workflow;
 
+import io.koravo.common.model.AssetOrigin;
+import io.koravo.common.exception.BusinessException;
+import io.koravo.common.exception.ErrorCode;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.command.TaskQueryCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
-import io.koravo.common.model.AssetOrigin;
 import io.koravo.form.domain.FormStatus;
 import io.koravo.form.domain.KoFormBinding;
 import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.form.repo.FormSchemaRepository;
 import io.koravo.form.service.FormSchemaService;
+import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
 import io.koravo.model.repo.ProcessModelRepository;
@@ -296,8 +299,19 @@ public class WorkflowEnablementService {
                 model.getDescription(),
                 model.getBpmnXml(),
                 startBinding.getId(),
-                formSchemaService.get(schema.getId(), startBinding.getFormSchemaVersion())
+                startFormSchema(schema, startBinding)
         );
+    }
+
+    private FormSchemaResponse startFormSchema(KoFormSchema schema, KoFormBinding startBinding) {
+        try {
+            return formSchemaService.get(schema.getId(), startBinding.getFormSchemaVersion());
+        } catch (BusinessException ex) {
+            if (ex.errorCode() != ErrorCode.FORM_SCHEMA_NOT_FOUND) {
+                throw ex;
+            }
+            return formSchemaService.get(schema.getId());
+        }
     }
 
     private KoProcessModel createProcessModel(String tenantId, String userId, List<String> actions) {

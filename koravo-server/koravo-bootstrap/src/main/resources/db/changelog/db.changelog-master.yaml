@@ -527,3 +527,45 @@ databaseChangeLog:
                 schema_json, ui_schema_json, created_by, created_at, updated_by, updated_at, deleted
               from ko_form_schema
               where deleted = false;
+  - changeSet:
+      id: 0013-backfill-bound-form-schema-versions
+      author: koravo
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              insert into ko_form_schema_version (
+                id, tenant_id, form_schema_id, version, form_key, form_name,
+                schema_json, ui_schema_json, created_by, created_at, updated_by, updated_at, deleted
+              )
+              select
+                md5(bound.tenant_id || ':' || bound.form_schema_id || ':' || bound.form_schema_version),
+                schema.tenant_id,
+                schema.id,
+                bound.form_schema_version,
+                schema.form_key,
+                schema.form_name,
+                schema.schema_json,
+                schema.ui_schema_json,
+                schema.updated_by,
+                schema.updated_at,
+                schema.updated_by,
+                schema.updated_at,
+                false
+              from (
+                select distinct tenant_id, form_schema_id, form_schema_version
+                from ko_form_binding
+                where deleted = false
+              ) bound
+              join ko_form_schema schema
+                on schema.tenant_id = bound.tenant_id
+               and schema.id = bound.form_schema_id
+               and schema.deleted = false
+              where not exists (
+                select 1
+                from ko_form_schema_version version
+                where version.tenant_id = bound.tenant_id
+                  and version.form_schema_id = bound.form_schema_id
+                  and version.version = bound.form_schema_version
+                  and version.deleted = false
+              );

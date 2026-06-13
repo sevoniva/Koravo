@@ -1,6 +1,8 @@
 package io.koravo.api.workflow;
 
 import io.koravo.common.api.PageResult;
+import io.koravo.common.exception.BusinessException;
+import io.koravo.common.exception.ErrorCode;
 import io.koravo.common.model.AssetOrigin;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.DeployProcessCommand;
@@ -343,6 +345,30 @@ class WorkflowEnablementServiceTest {
         assertThat(response.get(0).processDefinitionKey()).isEqualTo(WorkflowEnablementDefaults.PROCESS_KEY);
         assertThat(response.get(0).bpmnXml()).contains(WorkflowEnablementDefaults.PROCESS_KEY);
         assertThat(response.get(0).startFormSchema().id()).isEqualTo("form-1");
+    }
+
+    @Test
+    void startableProcessesFallsBackToCurrentFormWhenBoundVersionIsMissing() {
+        TenantContextHolder.setTenantId("default");
+        KoProcessModel model = deployedModel();
+        KoFormSchema form = activeForm();
+        KoFormBinding startBinding = binding("start-binding", "form-1", 1, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+
+        when(processModelRepository.findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc("default", ProcessModelStatus.DEPLOYED))
+                .thenReturn(List.of(model));
+        when(formBindingRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
+                .thenReturn(List.of(startBinding));
+        when(formSchemaRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
+                .thenReturn(List.of(form));
+        when(formSchemaService.get("form-1", 1))
+                .thenThrow(new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema version not found"));
+        when(formSchemaService.get("form-1")).thenReturn(formResponse(form));
+
+        List<StartableWorkflowResponse> response = service.startableProcesses();
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).startFormSchema().id()).isEqualTo("form-1");
+        assertThat(response.get(0).startFormSchema().version()).isEqualTo(form.getVersion());
     }
 
     @Test
