@@ -74,7 +74,7 @@ class OrganizationDirectoryServiceTest {
                 "1234567"
         )))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage("密码至少 8 位，且包含字母和数字");
+                .hasMessage("密码至少 10 位，且包含大小写字母、数字和特殊字符");
         verify(repository, never()).save(any(KoOrganizationMember.class));
     }
 
@@ -93,7 +93,7 @@ class OrganizationDirectoryServiceTest {
 
         assertThatThrownBy(() -> service.resetPassword(existing.getId(), "password"))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage("密码至少 8 位，且包含字母和数字");
+                .hasMessage("密码至少 10 位，且包含大小写字母、数字和特殊字符");
         verify(repository, never()).save(any(KoOrganizationMember.class));
     }
 

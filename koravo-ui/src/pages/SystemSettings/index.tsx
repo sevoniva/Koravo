@@ -318,8 +318,11 @@ function roleLabel(role: SessionRole) {
 }
 
 const passwordPolicyRules = [
-  { min: 8, message: '密码至少 8 位' },
-  { pattern: /^(?=.*[A-Za-z])(?=.*\d).+$/, message: '密码需包含字母和数字' },
+  { min: 10, message: '密码至少 10 位' },
+  {
+    pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/,
+    message: '密码需包含大小写字母、数字和特殊字符',
+  },
 ];
 
 const MemberFormFields: React.FC<{

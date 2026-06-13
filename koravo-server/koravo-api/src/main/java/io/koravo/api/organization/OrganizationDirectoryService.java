@@ -226,10 +226,12 @@ public class OrganizationDirectoryService {
 
     private void assertPasswordPolicy(String password) {
         String value = password == null ? "" : password;
-        boolean hasLetter = value.chars().anyMatch(Character::isLetter);
+        boolean hasUppercase = value.chars().anyMatch(Character::isUpperCase);
+        boolean hasLowercase = value.chars().anyMatch(Character::isLowerCase);
         boolean hasDigit = value.chars().anyMatch(Character::isDigit);
-        if (value.length() < 8 || !hasLetter || !hasDigit) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "密码至少 8 位，且包含字母和数字");
+        boolean hasSpecial = value.chars().anyMatch(character -> !Character.isLetterOrDigit(character));
+        if (value.length() < 10 || !hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "密码至少 10 位，且包含大小写字母、数字和特殊字符");
         }
     }
 
