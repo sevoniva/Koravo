@@ -29,14 +29,15 @@ export function createDefaultBpmnXml(modelKey?: string, modelName?: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:flowable="http://flowable.org/bpmn" id="Definitions_${processId}" targetNamespace="http://koravo.io/bpmn">
   <bpmn:process id="${processId}" name="${processName}" isExecutable="true">
-    <bpmn:startEvent id="StartEvent_1" name="Start">
+    <bpmn:startEvent id="StartEvent_1" name="开始">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="Task_1" name="提交申请" flowable:assignee="\${startUserId}">
+    <bpmn:userTask id="Task_1" name="多人会签" flowable:assignee="\${approvalUser}">
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics isSequential="false" flowable:collection="approvalUsers" flowable:elementVariable="approvalUser" />
     </bpmn:userTask>
-    <bpmn:endEvent id="EndEvent_1" name="End">
+    <bpmn:endEvent id="EndEvent_1" name="完成">
       <bpmn:incoming>Flow_2</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_1" />

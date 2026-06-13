@@ -2,18 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultBpmnXml, resolveDesignerXml } from './modelerXml';
 
 describe('ProcessDesigner BPMN XML helpers', () => {
-  it('creates an executable BPMN process with a start task and end event', () => {
+  it('creates an executable BPMN process with a parallel approval task', () => {
     const xml = createDefaultBpmnXml('collaborativeApproval', '协同审批流程');
 
     expect(xml).toContain('id="collaborativeApproval"');
     expect(xml).toContain('name="协同审批流程"');
     expect(xml).toContain('isExecutable="true"');
-    expect(xml).toContain('<bpmn:startEvent id="StartEvent_1" name="Start"');
+    expect(xml).toContain('<bpmn:startEvent id="StartEvent_1" name="开始"');
     expect(xml).toContain(
-      '<bpmn:userTask id="Task_1" name="提交申请" flowable:assignee="$' +
-        '{startUserId}"',
+      '<bpmn:userTask id="Task_1" name="多人会签" flowable:assignee="$' +
+        '{approvalUser}"',
     );
-    expect(xml).toContain('<bpmn:endEvent id="EndEvent_1" name="End"');
+    expect(xml).toContain('flowable:collection="approvalUsers"');
+    expect(xml).not.toContain('name="提交申请"');
+    expect(xml).toContain('<bpmn:endEvent id="EndEvent_1" name="完成"');
     expect(xml).toContain('<bpmndi:BPMNDiagram');
   });
 
@@ -63,6 +65,7 @@ describe('ProcessDesigner BPMN XML helpers', () => {
   <bpmn:process id="legacyFlow" isExecutable="true">
     <bpmn:userTask id="Task_1" name="Submit" />
   </bpmn:process>
+  <bpmndi:BPMNDiagram xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" id="Diagram_1" />
 </bpmn:definitions>`,
       'legacyFlow',
       'Legacy flow',
