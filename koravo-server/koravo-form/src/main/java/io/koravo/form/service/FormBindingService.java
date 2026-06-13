@@ -169,6 +169,7 @@ public class FormBindingService {
         }
         detail.put("taskDefinitionKey", binding.getTaskDefinitionKey());
         detail.put("formSchemaId", binding.getFormSchemaId());
+        detail.put("formSchemaVersion", binding.getFormSchemaVersion());
         return detail;
     }
 }

@@ -18,6 +18,7 @@ import {
   Flex,
   Form,
   Modal,
+  Popconfirm,
   Space,
   Tag,
   Typography,
@@ -427,6 +428,19 @@ const FormBindings: React.FC = () => {
     });
   };
 
+  const syncBindingVersion = async (record: BindingTableItem) => {
+    if (!record.formSchema) return;
+    await updateFormBinding(record.id, {
+      processModelId: record.processModelId,
+      processDefinitionId: record.processDefinitionId,
+      taskDefinitionKey: record.taskDefinitionKey,
+      formSchemaId: record.formSchemaId,
+      formSchemaVersion: record.formSchema.version,
+    });
+    message.success('已同步版本');
+    actionRef.current?.reload();
+  };
+
   const columns: ProColumns<BindingTableItem>[] = [
     {
       title: '绑定范围',
@@ -478,58 +492,74 @@ const FormBindings: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 240,
-      render: (_, record) => [
-        <Button
-          key="start"
-          type="link"
-          disabled={!canStartFromBinding(record)}
-          onClick={() =>
-            history.push(
+      width: 300,
+      render: (_, record) => {
+        const canSyncVersion =
+          bindingVersionState(record) === 'outdated' && Boolean(record.formSchema);
+        return [
+          <Button
+            key="start"
+            type="link"
+            disabled={!canStartFromBinding(record)}
+            onClick={() =>
+              history.push(
+                record.processModelId
+                  ? `/process-start?processModelId=${record.processModelId}`
+                  : '/process-start',
+              )
+            }
+          >
+            发起流程
+          </Button>,
+          canSyncVersion ? (
+            <Popconfirm
+              key="sync-version"
+              title="同步表单版本"
+              description={`同步到 v${record.formSchema?.version || 1}，后续发起和办理使用新字段。`}
+              okText="同步"
+              cancelText="取消"
+              onConfirm={() => syncBindingVersion(record)}
+            >
+              <Button type="link">同步版本</Button>
+            </Popconfirm>
+          ) : null,
+          <Button key="edit" type="link" onClick={() => setEditing(record)}>
+            编辑
+          </Button>,
+          <Button
+            key="model"
+            type="link"
+            disabled={!record.processModelId}
+            onClick={() =>
               record.processModelId
-                ? `/process-start?processModelId=${record.processModelId}`
-                : '/process-start',
-            )
-          }
-        >
-          发起流程
-        </Button>,
-        <Button key="edit" type="link" onClick={() => setEditing(record)}>
-          编辑
-        </Button>,
-        <Button
-          key="model"
-          type="link"
-          disabled={!record.processModelId}
-          onClick={() =>
-            record.processModelId
-              ? history.push(`/process-designer?modelId=${record.processModelId}`)
-              : undefined
-          }
-        >
-          查看模型
-        </Button>,
-        <Button
-          key="delete"
-          type="link"
-          danger
-          onClick={() => {
-            modal.confirm({
-              title: '删除表单绑定',
-              content: '确认删除该任务节点的表单绑定？',
-              okText: '删除',
-              cancelText: '取消',
-              onOk: async () => {
-                await deleteFormBinding(record.id);
-                message.success('已删除');
-                actionRef.current?.reload();
-              },
-            });
-          }}
-        >
-          删除
-        </Button>,
-      ],
+                ? history.push(`/process-designer?modelId=${record.processModelId}`)
+                : undefined
+            }
+          >
+            查看模型
+          </Button>,
+          <Button
+            key="delete"
+            type="link"
+            danger
+            onClick={() => {
+              modal.confirm({
+                title: '删除表单绑定',
+                content: '确认删除该任务节点的表单绑定？',
+                okText: '删除',
+                cancelText: '取消',
+                onOk: async () => {
+                  await deleteFormBinding(record.id);
+                  message.success('已删除');
+                  actionRef.current?.reload();
+                },
+              });
+            }}
+          >
+            删除
+          </Button>,
+        ].filter(Boolean);
+      },
     },
   ];
 

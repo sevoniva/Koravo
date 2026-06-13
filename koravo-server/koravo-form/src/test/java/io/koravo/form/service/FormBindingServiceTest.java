@@ -67,7 +67,8 @@ class FormBindingServiceTest {
         verify(auditLogService).record("FORM_BIND", "FORM_BINDING", "binding-1", java.util.Map.of(
                 "processModelId", "model-1",
                 "taskDefinitionKey", "approveTask",
-                "formSchemaId", "form-1"
+                "formSchemaId", "form-1",
+                "formSchemaVersion", 2
         ));
     }
 
@@ -120,7 +121,8 @@ class FormBindingServiceTest {
                 "processModelId", "model-1",
                 "processDefinitionId", "pd-1",
                 "taskDefinitionKey", "reviewTask",
-                "formSchemaId", "form-2"
+                "formSchemaId", "form-2",
+                "formSchemaVersion", 3
         ));
     }
 
@@ -166,7 +168,8 @@ class FormBindingServiceTest {
         verify(auditLogService).record("FORM_BIND_DELETE", "FORM_BINDING", "binding-1", java.util.Map.of(
                 "processModelId", "model-1",
                 "taskDefinitionKey", "approveTask",
-                "formSchemaId", "form-1"
+                "formSchemaId", "form-1",
+                "formSchemaVersion", 1
         ));
     }
 }
