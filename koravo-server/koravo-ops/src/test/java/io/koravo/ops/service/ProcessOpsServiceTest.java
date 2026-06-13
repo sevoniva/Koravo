@@ -45,7 +45,8 @@ class ProcessOpsServiceTest {
                         "purchaseApproval",
                         "leaveApproval",
                         "httpConnectorDemo",
-                        "designerDeployCheck"
+                        "designerDeployCheck",
+                        "koravoProcess%"
                 ));
     }
 

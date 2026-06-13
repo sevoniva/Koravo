@@ -767,7 +767,18 @@ public class FlowableProcessFacade implements ProcessFacade {
             return false;
         }
         return command.excludedProcessDefinitionKeys().stream()
-                .anyMatch(key -> processDefinitionId.equals(key) || processDefinitionId.startsWith(key + ":"));
+                .anyMatch(pattern -> matchesExcludedProcessDefinitionPattern(processDefinitionId, pattern));
+    }
+
+    private boolean matchesExcludedProcessDefinitionPattern(String processDefinitionId, String pattern) {
+        if (pattern == null || pattern.isBlank()) {
+            return false;
+        }
+        String value = pattern.trim();
+        if (value.endsWith("%") || value.endsWith("*")) {
+            return processDefinitionId.startsWith(value.substring(0, value.length() - 1));
+        }
+        return processDefinitionId.equals(value) || processDefinitionId.startsWith(value + ":");
     }
 
     private boolean matchesStatus(String status, TaskQueryCommand command) {

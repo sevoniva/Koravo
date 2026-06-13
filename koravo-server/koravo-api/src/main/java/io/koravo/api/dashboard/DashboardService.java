@@ -27,12 +27,13 @@ public class DashboardService {
             AssetOrigin.SYSTEM_TEMPLATE,
             AssetOrigin.USER_FLOW
     );
-    private static final Set<String> RETIRED_PROCESS_KEYS = Set.of(
+    private static final Set<String> HIDDEN_PROCESS_DEFINITION_PATTERNS = Set.of(
             "multiAcceptance",
             "purchaseApproval",
             "leaveApproval",
             "httpConnectorDemo",
-            "designerDeployCheck"
+            "designerDeployCheck",
+            "koravoProcess%"
     );
 
     private final ProcessFacade processFacade;
@@ -62,7 +63,7 @@ public class DashboardService {
         String tenantId = TenantContextHolder.getTenantId();
         String userId = UserContextHolder.getUserId();
         ConnectorExecutionSummaryResponse connectorSummary = connectorLogQueryService.summary("http");
-        long runningInstances = processFacade.listInstances(new InstanceQueryCommand(tenantId, 1, 1, null, "RUNNING", RETIRED_PROCESS_KEYS)).total();
+        long runningInstances = processFacade.listInstances(new InstanceQueryCommand(tenantId, 1, 1, null, "RUNNING", HIDDEN_PROCESS_DEFINITION_PATTERNS)).total();
         return new DashboardSummaryResponse(
                 tenantId,
                 userId,

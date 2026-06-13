@@ -241,16 +241,20 @@ class FlowableProcessFacadeTest {
         ProcessInstance runtimeInstance = mock(ProcessInstance.class);
         TaskQuery taskQuery = mock(TaskQuery.class, RETURNS_SELF);
         HistoricProcessInstance purchase = mockHistoricInstance("pi-1", "purchaseApproval:1", "PO-1001", "applicant", null);
+        HistoricProcessInstance fixture = mockHistoricInstance("pi-0", "koravoProcessmq5amzdq:1", "PO-1001", "admin", null);
         HistoricProcessInstance collaborative = mockHistoricInstance("pi-2", "collaborativeApproval:2", "REQ-1001", "applicant", null);
         when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
-        when(instanceQuery.list()).thenReturn(List.of(purchase, collaborative));
+        when(instanceQuery.list()).thenReturn(List.of(fixture, purchase, collaborative));
         when(runtimeService.createProcessInstanceQuery()).thenReturn(runtimeQuery);
         when(runtimeQuery.singleResult()).thenReturn(runtimeInstance);
         when(runtimeInstance.isSuspended()).thenReturn(false);
         when(taskService.createTaskQuery()).thenReturn(taskQuery);
         when(taskQuery.list()).thenReturn(List.of());
 
-        var result = facade.listInstances(new InstanceQueryCommand("default", 1, 10, null, null, java.util.Set.of("purchaseApproval")));
+        var result = facade.listInstances(new InstanceQueryCommand("default", 1, 10, null, null, java.util.Set.of(
+                "purchaseApproval",
+                "koravoProcess%"
+        )));
 
         assertThat(result.total()).isEqualTo(1);
         assertThat(result.items()).extracting("instanceId").containsExactly("pi-2");
