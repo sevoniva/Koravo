@@ -16,6 +16,7 @@ import {
   organizationMemberSelectOptions,
   tenantDisplayName,
 } from '@/services/koravo/organization';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -84,13 +85,6 @@ function auditProcessInstanceId(log?: AuditLogItem) {
   return undefined;
 }
 
-function auditTaskId(log?: AuditLogItem) {
-  const detail = auditDetailRecord(log);
-  if (typeof detail.taskId === 'string') return detail.taskId;
-  if (log?.resourceType === 'TASK') return log.resourceId;
-  return undefined;
-}
-
 function auditProcessModelId(log?: AuditLogItem) {
   const detail = auditDetailRecord(log);
   if (typeof detail.processModelId === 'string') return detail.processModelId;
@@ -107,13 +101,34 @@ function auditResourceName(value: unknown) {
   return text;
 }
 
-function auditRelatedButtons(log?: AuditLogItem) {
+interface AuditRelatedAccess {
+  canOpenProcessInstance: boolean;
+  canConfigureWorkflow: boolean;
+  canManageIntegration: boolean;
+}
+
+function auditRelatedAccess(): AuditRelatedAccess {
+  const session = getSessionContext();
+  return {
+    canOpenProcessInstance:
+      session.permissions?.canViewProcessContext ??
+      ['applicant', 'manager', 'finance', 'operator'].includes(session.role),
+    canConfigureWorkflow:
+      session.permissions?.canConfigureWorkflow ?? session.role === 'admin',
+    canManageIntegration:
+      session.permissions?.canManageIntegration ?? session.role === 'admin',
+  };
+}
+
+function auditRelatedButtons(
+  log?: AuditLogItem,
+  access = auditRelatedAccess(),
+) {
   const processInstanceId = auditProcessInstanceId(log);
-  const taskId = auditTaskId(log);
   const processModelId = auditProcessModelId(log);
   const actions: React.ReactNode[] = [];
 
-  if (processInstanceId) {
+  if (processInstanceId && access.canOpenProcessInstance) {
     actions.push(
       <Button
         key="instance"
@@ -124,18 +139,7 @@ function auditRelatedButtons(log?: AuditLogItem) {
       </Button>,
     );
   }
-  if (taskId) {
-    actions.push(
-      <Button
-        key="task"
-        type="link"
-        onClick={() => history.push(`/tasks/${taskId}`)}
-      >
-        查看任务
-      </Button>,
-    );
-  }
-  if (processModelId) {
+  if (processModelId && access.canConfigureWorkflow) {
     actions.push(
       <Button
         key="model"
@@ -148,14 +152,14 @@ function auditRelatedButtons(log?: AuditLogItem) {
       </Button>,
     );
   }
-  if (log?.resourceType === 'FORM_SCHEMA') {
+  if (log?.resourceType === 'FORM_SCHEMA' && access.canConfigureWorkflow) {
     actions.push(
       <Button key="form" type="link" onClick={() => history.push('/forms')}>
         查看表单
       </Button>,
     );
   }
-  if (log?.resourceType === 'FORM_BINDING') {
+  if (log?.resourceType === 'FORM_BINDING' && access.canConfigureWorkflow) {
     actions.push(
       <Button
         key="binding"
@@ -172,7 +176,7 @@ function auditRelatedButtons(log?: AuditLogItem) {
       </Button>,
     );
   }
-  if (log?.resourceType === 'DATASOURCE') {
+  if (log?.resourceType === 'DATASOURCE' && access.canManageIntegration) {
     actions.push(
       <Button
         key="datasource"
@@ -183,7 +187,10 @@ function auditRelatedButtons(log?: AuditLogItem) {
       </Button>,
     );
   }
-  if (log?.resourceType === 'CONNECTOR_EXECUTION') {
+  if (
+    log?.resourceType === 'CONNECTOR_EXECUTION' &&
+    access.canManageIntegration
+  ) {
     actions.push(
       <Button
         key="connector"
