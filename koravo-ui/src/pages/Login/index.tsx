@@ -114,6 +114,10 @@ const Login: React.FC = () => {
             rules={[
               { required: true, message: '请输入登录密码' },
               { min: 8, message: '密码至少 8 位' },
+              {
+                pattern: /^(?=.*[A-Za-z])(?=.*\d).+$/,
+                message: '密码需包含字母和数字',
+              },
             ]}
           >
             <Input.Password

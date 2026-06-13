@@ -10,7 +10,17 @@ import {
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { history, useLocation } from '@umijs/max';
-import { Alert, App, Button, Flex, Popconfirm, Space, Statistic, Tag, Typography } from 'antd';
+import {
+  Alert,
+  App,
+  Button,
+  Flex,
+  Popconfirm,
+  Space,
+  Statistic,
+  Tag,
+  Typography,
+} from 'antd';
 import React, { useMemo } from 'react';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
@@ -170,6 +180,11 @@ function roleLabel(role: SessionRole) {
   return organizationRoleLabel(role);
 }
 
+const passwordPolicyRules = [
+  { min: 8, message: '密码至少 8 位' },
+  { pattern: /^(?=.*[A-Za-z])(?=.*\d).+$/, message: '密码需包含字母和数字' },
+];
+
 const MemberFormFields: React.FC<{ passwordRequired?: boolean }> = ({
   passwordRequired,
 }) => (
@@ -218,9 +233,9 @@ const MemberFormFields: React.FC<{ passwordRequired?: boolean }> = ({
         passwordRequired
           ? [
               { required: true, message: '请输入初始密码' },
-              { min: 8, message: '密码至少 8 位' },
+              ...passwordPolicyRules,
             ]
-          : [{ min: 8, message: '密码至少 8 位' }]
+          : passwordPolicyRules
       }
     />
   </>
@@ -236,11 +251,12 @@ const SystemSettings: React.FC = () => {
     queryFn: getSystemHealth,
     enabled: !isOrganizationPage,
   });
-  const { data: organizationMembers, refetch: refetchOrganizationMembers } = useQuery({
-    queryKey: ['organization-members'],
-    queryFn: listOrganizationMembers,
-    enabled: isOrganizationPage,
-  });
+  const { data: organizationMembers, refetch: refetchOrganizationMembers } =
+    useQuery({
+      queryKey: ['organization-members'],
+      queryFn: listOrganizationMembers,
+      enabled: isOrganizationPage,
+    });
 
   React.useEffect(() => {
     if (organizationMembers) {
@@ -277,9 +293,13 @@ const SystemSettings: React.FC = () => {
   const currentPermissionProfile = identitySynced
     ? roleOptions.find((item) => item.value === session.role)
     : undefined;
-  const sessionRoleLabel = identitySynced ? roleLabel(session.role) : '待平台同步';
+  const sessionRoleLabel = identitySynced
+    ? roleLabel(session.role)
+    : '待平台同步';
   const systemOperatorName = (userId?: string) =>
-    organizationMemberName(userId && userId !== 'anonymous' ? userId : session.userId);
+    organizationMemberName(
+      userId && userId !== 'anonymous' ? userId : session.userId,
+    );
 
   const memberColumns: ProColumns<OrganizationMember>[] = [
     {
@@ -361,7 +381,10 @@ const SystemSettings: React.FC = () => {
               searchConfig: { submitText: '确认重置', resetText: '取消' },
             }}
             onFinish={async (values) => {
-              await resetOrganizationMemberPassword(record.key, values.password);
+              await resetOrganizationMemberPassword(
+                record.key,
+                values.password,
+              );
               message.success('密码已重置');
               await refetchOrganizationMembers();
               return true;
@@ -373,7 +396,7 @@ const SystemSettings: React.FC = () => {
               fieldProps={{ autoComplete: 'new-password' }}
               rules={[
                 { required: true, message: '请输入新密码' },
-                { min: 8, message: '密码至少 8 位' },
+                ...passwordPolicyRules,
               ]}
             />
           </ModalForm>
