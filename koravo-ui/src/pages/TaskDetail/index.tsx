@@ -58,6 +58,7 @@ import {
   taskNameLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
+import { taskActionAccess, taskHandlingInstruction } from '@/utils/taskAccess';
 import {
   filterWorkflowFormValues,
   parseWorkflowFormFields,
@@ -178,8 +179,14 @@ function remainingPendingTasks(currentTask: TaskItem, tasks: TaskItem[]) {
   );
 }
 
-function parallelTaskStatus(task: TaskItem, currentTask?: TaskItem) {
-  if (currentTask?.taskId === task.taskId) return '当前任务';
+function parallelTaskStatus(
+  task: TaskItem,
+  currentTask?: TaskItem,
+  currentUserId?: string,
+) {
+  if (currentTask?.taskId === task.taskId) {
+    return task.assignee === currentUserId ? '当前任务' : '当前查看';
+  }
   if (task.status === 'COMPLETED') return '已处理';
   return '待处理';
 }
@@ -227,23 +234,23 @@ function latestTaskActions(logs: AuditLogItem[] = []) {
     .map(taskActionSummary);
 }
 
-function nextTaskInstruction(task?: TaskItem, hasForm?: boolean) {
-  if (!task) return '加载中';
-  if (task.status === 'COMPLETED') {
-    return '已完成';
-  }
-  if (!task.assignee) {
-    return '待认领';
-  }
-  if (!hasForm) {
-    return '未绑定表单';
-  }
-  return '填写意见并提交';
-}
-
-function taskStepItems(task: TaskItem | undefined, hasForm?: boolean) {
+function taskStepItems(
+  task: TaskItem | undefined,
+  hasForm?: boolean,
+  currentUserId?: string,
+) {
   const isDone = task?.status === 'COMPLETED';
   const hasAssignee = Boolean(task?.assignee);
+  const canHandle = Boolean(
+    hasAssignee && task?.assignee && task.assignee === currentUserId,
+  );
+  const handleText = canHandle
+    ? hasForm
+      ? '填写表单'
+      : '缺少表单'
+    : hasAssignee
+      ? '等待处理人'
+      : '等待认领';
   return [
     {
       title: hasAssignee ? '已分配' : '待认领',
@@ -253,10 +260,10 @@ function taskStepItems(task: TaskItem | undefined, hasForm?: boolean) {
     },
     {
       title: isDone ? '已办理' : '办理',
-      content: hasForm ? '填写表单' : '缺少表单',
+      content: handleText,
       status: isDone
         ? ('finish' as const)
-        : hasAssignee
+        : canHandle
           ? ('process' as const)
           : ('wait' as const),
     },
@@ -295,17 +302,23 @@ const TaskActionTimeline: React.FC<{ logs?: AuditLogItem[] }> = ({
 const TaskHandlingContext: React.FC<{
   task?: TaskItem;
   hasForm?: boolean;
+  currentUserId?: string;
   logs?: AuditLogItem[];
-}> = ({ task, hasForm, logs }) => {
+}> = ({ task, hasForm, currentUserId, logs }) => {
   const isDone = task?.status === 'COMPLETED';
   const hasAssignee = Boolean(task?.assignee);
+  const nextInstruction = taskHandlingInstruction({
+    task,
+    currentUserId,
+    hasForm,
+  });
   return (
     <ProCard
       title="办理"
       extra={
         <Badge
           status={isDone ? 'success' : hasForm ? 'processing' : 'warning'}
-          text={nextTaskInstruction(task, hasForm)}
+          text={nextInstruction}
         />
       }
       style={{ marginBottom: 16 }}
@@ -320,7 +333,7 @@ const TaskHandlingContext: React.FC<{
               ? organizationMemberName(task.assignee)
               : '未分配',
             status: taskStatusLabel(task?.status),
-            next: nextTaskInstruction(task, hasForm),
+            next: nextInstruction,
           }}
           columns={[
             { title: '当前节点', dataIndex: 'node' },
@@ -333,7 +346,7 @@ const TaskHandlingContext: React.FC<{
           size="small"
           current={isDone ? 2 : hasAssignee ? 1 : 0}
           status={hasForm || isDone ? 'process' : 'wait'}
-          items={taskStepItems(task, hasForm)}
+          items={taskStepItems(task, hasForm, currentUserId)}
         />
         <TaskActionTimeline logs={logs} />
       </Flex>
@@ -393,7 +406,7 @@ function renderParallelTasks(
                   }`}
                 />
                 <Typography.Text type="secondary">
-                  {parallelTaskStatus(task, currentTask)}
+                  {parallelTaskStatus(task, currentTask, currentUserId)}
                 </Typography.Text>
                 {canEnterTask ? (
                   <Button
@@ -613,17 +626,21 @@ const TaskDetail: React.FC = () => {
     queryFn: () => getProcessTrace(task?.processInstanceId || ''),
     enabled: Boolean(task?.processInstanceId),
   });
-  const canCompleteTask = Boolean(
-    task && task.status !== 'COMPLETED' && data?.formSchema,
-  );
-  const canManageAssignedTask = Boolean(
-    task && task.status !== 'COMPLETED' && String(task.assignee || '').trim(),
-  );
-  const canClaimDetailTask = Boolean(
-    task && task.status !== 'COMPLETED' && !String(task.assignee || '').trim(),
-  );
+  const session = getSessionContext();
+  const canClaimTask =
+    session.permissions?.canClaimTask ??
+    ['manager', 'finance'].includes(session.role);
+  const {
+    canCompleteTask,
+    canManageAssignedTask,
+    canClaimDetailTask,
+  } = taskActionAccess({
+    task,
+    currentUserId: session.userId,
+    hasForm: Boolean(data?.formSchema),
+    canClaimTask,
+  });
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
-  const currentUserId = getSessionContext().userId;
   const openTaskAsAssignee = React.useCallback((nextTask: TaskItem) => {
     history.push(`/tasks/${nextTask.taskId}`);
   }, []);
@@ -759,11 +776,13 @@ const TaskDetail: React.FC = () => {
         trace={trace}
         currentTasks={instance?.currentTasks || (task ? [task] : [])}
         activeTask={task}
+        currentUserId={session.userId}
         loading={traceLoading}
       />
       <TaskHandlingContext
         task={task}
         hasForm={Boolean(data?.formSchema)}
+        currentUserId={session.userId}
         logs={data?.auditLogs}
       />
       {task && instance?.currentTasks
@@ -771,7 +790,7 @@ const TaskDetail: React.FC = () => {
             task,
             instance.currentTasks,
             openTaskAsAssignee,
-            currentUserId,
+            session.userId,
           )
         : null}
       <ProCard title="业务数据" style={{ marginBottom: 16 }}>

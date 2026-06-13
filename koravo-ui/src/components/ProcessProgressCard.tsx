@@ -15,12 +15,14 @@ import {
   taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+import { taskHandlingInstruction } from '@/utils/taskAccess';
 import ProcessDiagramViewer from './ProcessDiagramViewer';
 
 interface ProcessProgressCardProps {
   trace?: ProcessTrace;
   currentTasks?: TaskItem[];
   activeTask?: TaskItem;
+  currentUserId?: string;
   loading?: boolean;
 }
 
@@ -246,13 +248,20 @@ function nextStepText(
   trace: ProcessTrace | undefined,
   pendingTasks: TaskItem[],
   activeTask?: TaskItem,
+  currentUserId?: string,
 ) {
   const status = String(trace?.status || '').toUpperCase();
   if (status === 'COMPLETED') return '无待办';
   if (status === 'TERMINATED') return '已终止';
   if (status === 'SUSPENDED') return '等待恢复';
   if (!pendingTasks.length) return '等待流转';
-  if (activeTask && activeTask.status !== 'COMPLETED') return '待你处理';
+  if (activeTask && activeTask.status !== 'COMPLETED') {
+    return taskHandlingInstruction({
+      task: activeTask,
+      currentUserId,
+      hasForm: true,
+    });
+  }
   if (pendingTasks.length > 1) return `并行待办 ${pendingTasks.length}`;
   const task = pendingTasks[0];
   return task.assignee
@@ -316,6 +325,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   trace,
   currentTasks = [],
   activeTask,
+  currentUserId,
   loading,
 }) => {
   const { styles } = useStyles();
@@ -327,12 +337,17 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const nodeText = currentNodeText(activeTask, activeNodes);
   const currentHandlerText = handlerText(activeTask, pendingTasks);
   const isCompleted = String(trace?.status || '').toUpperCase() === 'COMPLETED';
+  const activeTaskOwned = Boolean(
+    activeTask?.assignee && activeTask.assignee === currentUserId,
+  );
   const pendingLabel = isCompleted
     ? '已完成'
     : activeTask
-      ? '当前任务'
+      ? activeTaskOwned
+        ? '待你处理'
+        : '当前查看'
       : `待办 ${pendingTasks.length}`;
-  const nextStep = nextStepText(trace, pendingTasks, activeTask);
+  const nextStep = nextStepText(trace, pendingTasks, activeTask, currentUserId);
   const timeline = trace?.timeline || [];
   const hasTimeline = timeline.length > 0;
   const taskGroups = pendingTaskGroups(pendingTasks);
