@@ -201,5 +201,6 @@ export function clearAuthSession() {
 export function defaultRouteForRole(role?: SessionRole) {
   if (role === 'admin') return '/dashboard';
   if (role === 'operator') return '/ops';
+  if (role === 'applicant') return '/process-start';
   return '/tasks';
 }

@@ -104,7 +104,7 @@ describe('session context', () => {
   it('routes users to a role-appropriate landing page after login', () => {
     expect(defaultRouteForRole('admin')).toBe('/dashboard');
     expect(defaultRouteForRole('operator')).toBe('/ops');
-    expect(defaultRouteForRole('applicant')).toBe('/tasks');
+    expect(defaultRouteForRole('applicant')).toBe('/process-start');
     expect(defaultRouteForRole('manager')).toBe('/tasks');
     expect(defaultRouteForRole('finance')).toBe('/tasks');
   });
