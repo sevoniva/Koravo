@@ -32,6 +32,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
+import { createStyles } from 'antd-style';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -99,6 +100,48 @@ interface JsonSchemaProperty {
 }
 
 const START_FORM_TASK_KEY = '__START__';
+
+const useStyles = createStyles(({ css, token }) => ({
+  fieldList: css`
+    .ant-pro-form-list-container,
+    .ant-pro-form-list-row,
+    .ant-pro-form-list-content {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .ant-pro-form-list-action {
+      align-self: flex-start;
+      padding-top: 30px;
+    }
+  `,
+  fieldGrid: css`
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px 12px;
+    align-items: start;
+    padding: 8px 0;
+
+    .ant-form-item {
+      min-width: 0;
+      margin-bottom: 8px;
+    }
+
+    .ant-form-item-label > label {
+      color: ${token.colorTextSecondary};
+      font-size: ${token.fontSizeSM}px;
+    }
+
+    @media (max-width: 760px) {
+      grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
+
+    @media (max-width: 560px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `,
+}));
 
 const defaultFields: FormFieldConfig[] = [
   {
@@ -676,8 +719,11 @@ const renderFormPreview = (fields: FormFieldConfig[]) =>
     <Empty description="暂无字段配置" />
   );
 
-const renderFormFieldsEditor = () => (
-  <>
+const renderFormFieldsEditor = (
+  fieldListClassName: string,
+  fieldGridClassName: string,
+) => (
+  <div className={fieldListClassName}>
     <ProFormList
       name="fields"
       label="字段清单"
@@ -685,7 +731,7 @@ const renderFormFieldsEditor = () => (
       copyIconProps={false}
       min={1}
     >
-      <Space align="start" wrap>
+      <div className={fieldGridClassName}>
         <ProFormDependency name={['fieldKey', 'title', 'widget']}>
           {({ fieldKey, title, widget }) => {
             const isSystemField =
@@ -804,13 +850,14 @@ const renderFormFieldsEditor = () => (
           }}
         </ProFormDependency>
         <ProFormSwitch name="required" label="必填" />
-      </Space>
+      </div>
     </ProFormList>
-  </>
+  </div>
 );
 
 const Forms: React.FC = () => {
   const { message } = App.useApp();
+  const { styles } = useStyles();
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormSchemaItem>();
   const [preview, setPreview] = useState<FormSchemaItem>();
@@ -1028,7 +1075,7 @@ const Forms: React.FC = () => {
               label="表单名称"
               rules={[{ required: true, message: '请输入表单名称' }]}
             />
-            {renderFormFieldsEditor()}
+            {renderFormFieldsEditor(styles.fieldList, styles.fieldGrid)}
           </ModalForm>,
         ]}
       />
@@ -1092,7 +1139,7 @@ const Forms: React.FC = () => {
           label="表单名称"
           rules={[{ required: true, message: '请输入表单名称' }]}
         />
-        {renderFormFieldsEditor()}
+        {renderFormFieldsEditor(styles.fieldList, styles.fieldGrid)}
       </ModalForm>
 
       <Drawer
