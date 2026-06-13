@@ -1,5 +1,6 @@
 package io.koravo.form.service;
 
+import io.koravo.common.exception.BusinessException;
 import io.koravo.form.domain.KoFormBinding;
 import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.form.web.FormBindingRequest;
@@ -13,8 +14,10 @@ import java.util.Optional;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +46,7 @@ class FormBindingServiceTest {
                 "default",
                 "model-1",
                 "approveTask"
-        )).thenAnswer(invocation -> {
+        )).thenReturn(Optional.empty()).thenAnswer(invocation -> {
             KoFormBinding binding = new KoFormBinding();
             binding.setId("binding-1");
             binding.setTenantId("default");
@@ -66,6 +69,30 @@ class FormBindingServiceTest {
                 "taskDefinitionKey", "approveTask",
                 "formSchemaId", "form-1"
         ));
+    }
+
+    @Test
+    void bindRejectsDuplicateProcessNodeBinding() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoFormBinding existing = new KoFormBinding();
+        existing.setId("binding-1");
+        existing.setTenantId("default");
+        existing.setProcessModelId("model-1");
+        existing.setTaskDefinitionKey("approveTask");
+        existing.setFormSchemaId("form-1");
+        existing.setFormSchemaVersion(1);
+        existing.prePersist();
+        when(repository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "model-1",
+                "approveTask"
+        )).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.bind(new FormBindingRequest("model-1", null, "approveTask", "form-2", 1)))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("该流程节点已绑定表单");
+        verify(repository, never()).save(any(KoFormBinding.class));
     }
 
     @Test

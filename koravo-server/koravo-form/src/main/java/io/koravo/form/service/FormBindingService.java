@@ -30,6 +30,7 @@ public class FormBindingService {
 
     @Transactional
     public FormBindingResponse bind(FormBindingRequest request) {
+        ensureUniqueBinding(null, request);
         KoFormBinding binding = new KoFormBinding();
         binding.setTenantId(TenantContextHolder.getTenantId());
         binding.setCreatedBy(UserContextHolder.getUserId());
@@ -84,6 +85,7 @@ public class FormBindingService {
     @Transactional
     public FormBindingResponse update(String id, FormBindingRequest request) {
         KoFormBinding binding = findActive(id);
+        ensureUniqueBinding(id, request);
         binding.setUpdatedBy(UserContextHolder.getUserId());
         binding.setProcessModelId(request.processModelId());
         binding.setProcessDefinitionId(request.processDefinitionId());
@@ -110,6 +112,40 @@ public class FormBindingService {
             throw new BusinessException(ErrorCode.FORM_BINDING_NOT_FOUND, "Form binding not found");
         }
         return binding;
+    }
+
+    private void ensureUniqueBinding(String currentBindingId, FormBindingRequest request) {
+        String tenantId = TenantContextHolder.getTenantId();
+        assertNoDuplicate(
+                currentBindingId,
+                StringUtils.hasText(request.processModelId())
+                        ? repository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                                tenantId,
+                                request.processModelId(),
+                                request.taskDefinitionKey()
+                        )
+                        : Optional.empty()
+        );
+        assertNoDuplicate(
+                currentBindingId,
+                StringUtils.hasText(request.processDefinitionId())
+                        ? repository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                                tenantId,
+                                request.processDefinitionId(),
+                                request.taskDefinitionKey()
+                        )
+                        : Optional.empty()
+        );
+    }
+
+    private void assertNoDuplicate(String currentBindingId, Optional<KoFormBinding> existing) {
+        if (existing == null || existing.isEmpty()) {
+            return;
+        }
+        if (StringUtils.hasText(currentBindingId) && currentBindingId.equals(existing.get().getId())) {
+            return;
+        }
+        throw new BusinessException(ErrorCode.BAD_REQUEST, "该流程节点已绑定表单");
     }
 
     private FormBindingResponse toResponse(KoFormBinding binding) {
