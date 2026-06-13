@@ -59,6 +59,7 @@ import {
   organizationGroupOptions,
   organizationHandlerOptions,
 } from '@/services/koravo/organization';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   isBusinessProcessModel,
   processDisplayName,
@@ -256,6 +257,9 @@ const ProcessDesigner: React.FC = () => {
   const location = useLocation();
   const { message, modal } = App.useApp();
   const { styles } = useStyles();
+  const session = getSessionContext();
+  const canStartProcess =
+    session.permissions?.canStartProcess ?? session.role === 'applicant';
   const modelerRef = useRef<BpmnModelerCanvasHandle>(null);
   const draftModelKeyRef = useRef(createDraftModelKey());
   const [selectedId, setSelectedId] = useState<string>();
@@ -497,7 +501,7 @@ const ProcessDesigner: React.FC = () => {
                 deployedModel.modelKey,
                 deployedModel.modelName,
               )}
-              已发布，可继续绑定任务表单或发起流程实例。
+              已发布。发起后进入实例追踪。
             </span>
             <Space wrap>
               <Button
@@ -510,15 +514,17 @@ const ProcessDesigner: React.FC = () => {
               >
                 绑定表单
               </Button>
-              <Button
-                onClick={() =>
-                  history.push(
-                    `/process-start?processModelId=${deployedModel.id}`,
-                  )
-                }
-              >
-                发起流程
-              </Button>
+              {canStartProcess ? (
+                <Button
+                  onClick={() =>
+                    history.push(
+                      `/process-start?processModelId=${deployedModel.id}`,
+                    )
+                  }
+                >
+                  发起流程
+                </Button>
+              ) : null}
               <Button onClick={() => history.push('/process-models')}>
                 查看模型列表
               </Button>
@@ -533,6 +539,7 @@ const ProcessDesigner: React.FC = () => {
     activeModel,
     getCurrentXml,
     handleSave,
+    canStartProcess,
     message,
     modal,
     modelForm,

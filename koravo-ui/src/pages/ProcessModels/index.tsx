@@ -64,6 +64,7 @@ import {
   taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+import { getSessionContext } from '@/services/koravo/session';
 
 interface ProcessModelForm {
   modelKey: string;
@@ -178,7 +179,7 @@ function resolveModelNextAction(
     return {
       nextAction: 'start',
       nextActionText: '发起流程',
-      nextActionDescription: '配置已就绪',
+      nextActionDescription: '发起后追踪',
     };
   }
   if (deployReady) {
@@ -354,7 +355,7 @@ function renderReadinessSteps(record: ProcessModelTableItem) {
       : 0;
 
   return (
-    <div style={{ minWidth: 340, overflowX: 'auto', paddingBlock: 2 }}>
+    <div style={{ minWidth: 430, overflowX: 'auto', paddingBlock: 2 }}>
       <Steps
         current={current}
         items={[
@@ -390,6 +391,10 @@ function renderReadinessSteps(record: ProcessModelTableItem) {
               false,
             ),
           },
+          {
+            title: '追踪',
+            status: 'wait',
+          },
         ]}
         responsive={false}
         size="small"
@@ -406,6 +411,9 @@ const ProcessModels: React.FC = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ModelViewMode>('business');
+  const session = getSessionContext();
+  const canStartProcess =
+    session.permissions?.canStartProcess ?? session.role === 'applicant';
 
   const saveProcessModel = async (values: ProcessModelForm) => {
     const model = await createProcessModel(values);
@@ -444,6 +452,9 @@ const ProcessModels: React.FC = () => {
             {processDisplayName(record.modelKey, record.modelName)} 已发布为{' '}
             {deployedDefinitionText(record)}
           </span>
+          <Typography.Text type="secondary">
+            发起后进入实例追踪。
+          </Typography.Text>
           <Space wrap>
             <Button
               type="primary"
@@ -453,13 +464,15 @@ const ProcessModels: React.FC = () => {
             >
               绑定表单
             </Button>
-            <Button
-              onClick={() =>
-                history.push(`/process-start?processModelId=${record.id}`)
-              }
-            >
-              发起流程
-            </Button>
+            {canStartProcess ? (
+              <Button
+                onClick={() =>
+                  history.push(`/process-start?processModelId=${record.id}`)
+                }
+              >
+                发起流程
+              </Button>
+            ) : null}
           </Space>
         </Flex>
       ),
@@ -667,7 +680,7 @@ const ProcessModels: React.FC = () => {
     {
       title: '配置路径',
       key: 'readinessPath',
-      width: 380,
+      width: 460,
       search: false,
       render: (_, record) => renderReadinessSteps(record),
     },
@@ -681,7 +694,10 @@ const ProcessModels: React.FC = () => {
           <Button
             size="small"
             type={record.readiness.nextAction === 'start' ? 'primary' : 'default'}
-            disabled={record.readiness.nextAction === 'none'}
+            disabled={
+              record.readiness.nextAction === 'none' ||
+              (record.readiness.nextAction === 'start' && !canStartProcess)
+            }
             onClick={() => {
               void openNextStep(record);
             }}
@@ -689,7 +705,9 @@ const ProcessModels: React.FC = () => {
             {record.readiness.nextActionText}
           </Button>
           <Typography.Text type="secondary">
-            {record.readiness.nextActionDescription}
+            {record.readiness.nextAction === 'start' && !canStartProcess
+              ? '发起人可用'
+              : record.readiness.nextActionDescription}
           </Typography.Text>
         </Flex>
       ),
@@ -766,7 +784,7 @@ const ProcessModels: React.FC = () => {
           </Button>
           <Button
             type="link"
-            disabled={!record.readiness.canStart}
+            disabled={!record.readiness.canStart || !canStartProcess}
             onClick={() =>
               history.push(`/process-start?processModelId=${record.id}`)
             }

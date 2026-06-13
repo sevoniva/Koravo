@@ -4,6 +4,7 @@ import {
   FormOutlined,
   LinkOutlined,
   PlayCircleOutlined,
+  ProfileOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
 import {
@@ -70,6 +71,11 @@ const workflowSteps: WorkflowStep[] = [
     title: '发起流程',
     path: '/process-start',
     icon: <PlayCircleOutlined />,
+  },
+  {
+    title: '追踪流程',
+    path: '/started-instances',
+    icon: <ProfileOutlined />,
   },
 ];
 
@@ -144,6 +150,9 @@ const Dashboard: React.FC = () => {
     session.permissions?.canConfigureWorkflow ?? session.role === 'admin';
   const canStartProcess =
     session.permissions?.canStartProcess ?? session.role === 'applicant';
+  const canViewOwnWork =
+    session.permissions?.canViewOwnWork ??
+    ['applicant', 'manager', 'finance'].includes(session.role);
   const canHandleTask =
     session.permissions?.canHandleTask ??
     ['manager', 'finance'].includes(session.role);
@@ -196,10 +205,12 @@ const Dashboard: React.FC = () => {
   );
   const visibleWorkflowSteps = useMemo(
     () =>
-      workflowSteps.filter((step) =>
-        step.path === '/process-start' ? canStartProcess : canConfigureWorkflow,
-      ),
-    [canConfigureWorkflow, canStartProcess],
+      workflowSteps.filter((step) => {
+        if (step.path === '/process-start') return canStartProcess;
+        if (step.path === '/started-instances') return canViewOwnWork;
+        return canConfigureWorkflow;
+      }),
+    [canConfigureWorkflow, canStartProcess, canViewOwnWork],
   );
 
   return (
@@ -258,7 +269,7 @@ const Dashboard: React.FC = () => {
 
       {visibleWorkflowSteps.length ? (
         <ProCard
-          title="流程搭建路径"
+          title="流程路径"
           extra={
             canConfigureWorkflow ? (
               <Button
