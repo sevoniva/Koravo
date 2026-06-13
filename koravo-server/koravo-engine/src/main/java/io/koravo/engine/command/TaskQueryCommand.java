@@ -13,10 +13,14 @@ public record TaskQueryCommand(
         String status,
         Instant startTime,
         Instant endTime,
-        Set<String> processDefinitionKeys
+        Set<String> processDefinitionKeys,
+        Set<String> excludedBusinessKeyPatterns
 ) {
     public TaskQueryCommand {
         processDefinitionKeys = processDefinitionKeys == null ? Set.of() : Set.copyOf(processDefinitionKeys);
+        excludedBusinessKeyPatterns = excludedBusinessKeyPatterns == null
+                ? Set.of()
+                : Set.copyOf(excludedBusinessKeyPatterns);
     }
 
     public TaskQueryCommand(
@@ -29,7 +33,7 @@ public record TaskQueryCommand(
             Instant startTime,
             Instant endTime
     ) {
-        this(tenantId, userId, null, page, pageSize, keyword, status, startTime, endTime, Set.of());
+        this(tenantId, userId, null, page, pageSize, keyword, status, startTime, endTime, Set.of(), Set.of());
     }
 
     public TaskQueryCommand(
@@ -43,7 +47,22 @@ public record TaskQueryCommand(
             Instant startTime,
             Instant endTime
     ) {
-        this(tenantId, userId, candidateGroup, page, pageSize, keyword, status, startTime, endTime, Set.of());
+        this(tenantId, userId, candidateGroup, page, pageSize, keyword, status, startTime, endTime, Set.of(), Set.of());
+    }
+
+    public TaskQueryCommand(
+            String tenantId,
+            String userId,
+            String candidateGroup,
+            int page,
+            int pageSize,
+            String keyword,
+            String status,
+            Instant startTime,
+            Instant endTime,
+            Set<String> processDefinitionKeys
+    ) {
+        this(tenantId, userId, candidateGroup, page, pageSize, keyword, status, startTime, endTime, processDefinitionKeys, Set.of());
     }
 
     public int offset() {
@@ -68,5 +87,9 @@ public record TaskQueryCommand(
 
     public boolean hasProcessDefinitionKeys() {
         return processDefinitionKeys != null && !processDefinitionKeys.isEmpty();
+    }
+
+    public boolean hasExcludedBusinessKeyPatterns() {
+        return excludedBusinessKeyPatterns != null && !excludedBusinessKeyPatterns.isEmpty();
     }
 }

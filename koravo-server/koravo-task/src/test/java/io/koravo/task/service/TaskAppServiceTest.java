@@ -2,6 +2,7 @@ package io.koravo.task.service;
 
 import io.koravo.common.api.PageResult;
 import io.koravo.common.model.AssetOrigin;
+import io.koravo.common.workflow.RuntimeVisibilityPolicy;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.CompleteTaskCommand;
 import io.koravo.engine.command.TaskQueryCommand;
@@ -87,12 +88,15 @@ class TaskAppServiceTest {
         TaskQueryCommand command = new TaskQueryCommand(
                 "default",
                 "admin",
+                null,
                 1,
                 20,
                 "审批",
                 "COMPLETED",
                 Instant.parse("2026-06-07T00:00:00Z"),
-                Instant.parse("2026-06-07T23:59:59Z")
+                Instant.parse("2026-06-07T23:59:59Z"),
+                Set.of(),
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         );
         when(processFacade.queryDoneTasks(command))
                 .thenReturn(PageResult.of(List.of(), 0, 1, 20));
@@ -123,7 +127,9 @@ class TaskAppServiceTest {
                 "验收",
                 "RUNNING",
                 null,
-                null
+                null,
+                Set.of(),
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         );
         when(processFacade.queryCandidateTasks(command))
                 .thenReturn(PageResult.of(List.of(), 0, 1, 20));
@@ -147,7 +153,9 @@ class TaskAppServiceTest {
                 "部门01",
                 "RUNNING",
                 null,
-                null
+                null,
+                Set.of(),
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         );
         when(processFacade.queryCandidateTasks(command))
                 .thenReturn(PageResult.of(List.of(), 0, 1, 20));
@@ -183,7 +191,8 @@ class TaskAppServiceTest {
                 null,
                 null,
                 null,
-                Set.of("collaborativeApproval", "enterpriseApproval30")
+                Set.of("collaborativeApproval", "enterpriseApproval30"),
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         );
         when(processFacade.queryMyTasks(command))
                 .thenReturn(PageResult.of(List.of(), 0, 1, 20));
@@ -201,12 +210,15 @@ class TaskAppServiceTest {
         TaskQueryCommand command = new TaskQueryCommand(
                 "default",
                 "admin",
+                null,
                 1,
                 20,
                 "LEAVE",
                 "RUNNING",
                 null,
-                null
+                null,
+                Set.of(),
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         );
         when(processFacade.queryStartedInstances(command))
                 .thenReturn(PageResult.of(List.of(), 0, 1, 20));

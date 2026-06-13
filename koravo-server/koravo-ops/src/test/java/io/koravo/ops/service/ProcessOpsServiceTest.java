@@ -2,6 +2,7 @@ package io.koravo.ops.service;
 
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.InstanceQueryCommand;
+import io.koravo.common.workflow.RuntimeVisibilityPolicy;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -41,22 +42,15 @@ class ProcessOpsServiceTest {
                         InstanceQueryCommand::excludedProcessDefinitionKeys,
                         InstanceQueryCommand::excludedBusinessKeyPatterns
                 )
-                .containsExactly("default", 2, 15, "PO-1001", "COMPLETED", java.util.Set.of(
-                        "multiAcceptance",
-                        "purchaseApproval",
-                        "leaveApproval",
-                        "httpConnectorDemo",
-                        "designerDeployCheck",
-                        "koravoProcess%"
-                ), java.util.Set.of(
-                        "PO-%",
-                        "EA-%",
-                        "TRACE-%",
-                        "SECURITY-CHECK-%",
-                        "COMPLETE-%",
-                        "HTTP-%",
-                        "REQ-CODEX-%"
-                ));
+                .containsExactly(
+                        "default",
+                        2,
+                        15,
+                        "PO-1001",
+                        "COMPLETED",
+                        RuntimeVisibilityPolicy.HIDDEN_PROCESS_DEFINITION_PATTERNS,
+                        RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
+                );
     }
 
     @Test

@@ -1,6 +1,7 @@
 package io.koravo.ops.service;
 
 import io.koravo.common.api.PageResult;
+import io.koravo.common.workflow.RuntimeVisibilityPolicy;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.InstanceQueryCommand;
 import io.koravo.engine.dto.OpsJobDTO;
@@ -14,28 +15,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Service
 public class ProcessOpsService {
-    private static final Set<String> HIDDEN_PROCESS_DEFINITION_PATTERNS = Set.of(
-            "multiAcceptance",
-            "purchaseApproval",
-            "leaveApproval",
-            "httpConnectorDemo",
-            "designerDeployCheck",
-            "koravoProcess%"
-    );
-    private static final Set<String> HIDDEN_BUSINESS_KEY_PATTERNS = Set.of(
-            "PO-%",
-            "EA-%",
-            "TRACE-%",
-            "SECURITY-CHECK-%",
-            "COMPLETE-%",
-            "HTTP-%",
-            "REQ-CODEX-%"
-    );
-
     private final ProcessFacade processFacade;
     private final AuditLogService auditLogService;
 
@@ -51,8 +33,8 @@ public class ProcessOpsService {
                 pageSize,
                 keyword,
                 status,
-                HIDDEN_PROCESS_DEFINITION_PATTERNS,
-                HIDDEN_BUSINESS_KEY_PATTERNS
+                RuntimeVisibilityPolicy.HIDDEN_PROCESS_DEFINITION_PATTERNS,
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         ));
     }
 
@@ -90,8 +72,8 @@ public class ProcessOpsService {
                 1,
                 null,
                 "RUNNING",
-                HIDDEN_PROCESS_DEFINITION_PATTERNS,
-                HIDDEN_BUSINESS_KEY_PATTERNS
+                RuntimeVisibilityPolicy.HIDDEN_PROCESS_DEFINITION_PATTERNS,
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         )).total();
         return new OpsSummaryResponse(
                 runningInstances,

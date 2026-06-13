@@ -3,6 +3,7 @@ package io.koravo.api.dashboard;
 import io.koravo.connector.log.ConnectorExecutionSummaryResponse;
 import io.koravo.connector.log.ConnectorExecutionLogQueryService;
 import io.koravo.common.model.AssetOrigin;
+import io.koravo.common.workflow.RuntimeVisibilityPolicy;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.InstanceQueryCommand;
 import io.koravo.engine.command.TaskQueryCommand;
@@ -19,7 +20,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class DashboardService {
@@ -27,24 +27,6 @@ public class DashboardService {
             AssetOrigin.SYSTEM_TEMPLATE,
             AssetOrigin.USER_FLOW
     );
-    private static final Set<String> HIDDEN_PROCESS_DEFINITION_PATTERNS = Set.of(
-            "multiAcceptance",
-            "purchaseApproval",
-            "leaveApproval",
-            "httpConnectorDemo",
-            "designerDeployCheck",
-            "koravoProcess%"
-    );
-    private static final Set<String> HIDDEN_BUSINESS_KEY_PATTERNS = Set.of(
-            "PO-%",
-            "EA-%",
-            "TRACE-%",
-            "SECURITY-CHECK-%",
-            "COMPLETE-%",
-            "HTTP-%",
-            "REQ-CODEX-%"
-    );
-
     private final ProcessFacade processFacade;
     private final ProcessModelRepository processModelRepository;
     private final AuditLogQueryService auditLogQueryService;
@@ -78,8 +60,8 @@ public class DashboardService {
                 1,
                 null,
                 "RUNNING",
-                HIDDEN_PROCESS_DEFINITION_PATTERNS,
-                HIDDEN_BUSINESS_KEY_PATTERNS
+                RuntimeVisibilityPolicy.HIDDEN_PROCESS_DEFINITION_PATTERNS,
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         )).total();
         return new DashboardSummaryResponse(
                 tenantId,
@@ -90,7 +72,19 @@ public class DashboardService {
                 processModelRepository.countByTenantIdAndAssetOriginInAndDeletedFalse(tenantId, PRODUCTION_ASSET_ORIGINS),
                 processModelRepository.countByTenantIdAndStatusAndAssetOriginInAndDeletedFalse(tenantId, ProcessModelStatus.DEPLOYED, PRODUCTION_ASSET_ORIGINS),
                 runningInstances,
-                processFacade.queryMyTasks(new TaskQueryCommand(tenantId, userId, 1, 1, null, null, null, null)).total(),
+                processFacade.queryMyTasks(new TaskQueryCommand(
+                        tenantId,
+                        userId,
+                        null,
+                        1,
+                        1,
+                        null,
+                        null,
+                        null,
+                        null,
+                        java.util.Set.of(),
+                        RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
+                )).total(),
                 auditLogRepository.countByTenantIdAndActionAndCreatedAtGreaterThanEqual(
                         tenantId,
                         "TASK_COMPLETE",

@@ -3,6 +3,7 @@ package io.koravo.api.workflow;
 import io.koravo.common.model.AssetOrigin;
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
+import io.koravo.common.workflow.RuntimeVisibilityPolicy;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.command.TaskQueryCommand;
@@ -94,12 +95,15 @@ public class WorkflowEnablementService {
         long todoCount = processFacade.queryMyTasks(new TaskQueryCommand(
                 tenantId,
                 UserContextHolder.getUserId(),
+                null,
                 1,
                 1,
                 null,
                 null,
                 null,
-                null
+                null,
+                Set.of(),
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         )).total();
         long auditCount = auditLogQueryService.query(null, null, null, null, null, null, null, 1, 1).total();
         return new WorkflowEnablementStatusResponse(

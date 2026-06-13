@@ -3,6 +3,7 @@ package io.koravo.engine.flowable;
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
 import io.koravo.engine.command.InstanceQueryCommand;
+import io.koravo.engine.command.TaskQueryCommand;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.IdentityService;
 import org.flowable.engine.ManagementService;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -163,6 +165,41 @@ class FlowableProcessFacadeTest {
         assertThat(result.items()).extracting("taskId").containsExactly("task-1");
         verify(userQuery).taskCandidateUser("manager");
         verify(groupQuery).taskCandidateGroup("manager");
+    }
+
+    @Test
+    void queryMyTasksExcludesBusinessKeyPatternsBeforePaging() {
+        TaskQuery taskQuery = mock(TaskQuery.class, RETURNS_SELF);
+        HistoricProcessInstanceQuery instanceQuery = mock(HistoricProcessInstanceQuery.class, RETURNS_SELF);
+        Task acceptanceTask = mockTask("task-1", "多人会签", "pi-1", "collaborativeApproval:2", "manager", "jointApprovalTask");
+        Task traceTask = mockTask("task-2", "多人会签", "pi-2", "collaborativeApproval:2", "manager", "jointApprovalTask");
+        Task userTask = mockTask("task-3", "审批", "pi-3", "collaborativeApproval:2", "manager", "approvalTask");
+        HistoricProcessInstance acceptance = mockHistoricInstance("pi-1", "collaborativeApproval:2", "REQ-CODEX-1", "applicant", null);
+        HistoricProcessInstance trace = mockHistoricInstance("pi-2", "collaborativeApproval:2", "TRACE-1", "applicant", null);
+        HistoricProcessInstance userFlow = mockHistoricInstance("pi-3", "collaborativeApproval:2", "COLLABORATIVE-APPROVAL-1", "applicant", null);
+        when(taskService.createTaskQuery()).thenReturn(taskQuery);
+        when(taskQuery.list()).thenReturn(List.of(acceptanceTask, traceTask, userTask));
+        when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
+        when(instanceQuery.singleResult()).thenReturn(acceptance, trace, userFlow);
+
+        var result = facade.queryMyTasks(new TaskQueryCommand(
+                "default",
+                "manager",
+                null,
+                1,
+                10,
+                null,
+                null,
+                null,
+                null,
+                Set.of("collaborativeApproval"),
+                Set.of("REQ-CODEX-%", "TRACE-%")
+        ));
+
+        assertThat(result.total()).isEqualTo(1);
+        assertThat(result.items()).extracting("taskId").containsExactly("task-3");
+        verify(taskQuery).taskTenantId("default");
+        verify(taskQuery).taskAssignee("manager");
     }
 
     @Test

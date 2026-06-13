@@ -4,6 +4,7 @@ import io.koravo.common.api.PageResult;
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
 import io.koravo.common.model.AssetOrigin;
+import io.koravo.common.workflow.RuntimeVisibilityPolicy;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.CompleteTaskCommand;
 import io.koravo.engine.command.TaskQueryCommand;
@@ -116,7 +117,8 @@ public class TaskAppService {
                 status,
                 startTime,
                 endTime,
-                visibleProcessDefinitionKeys()
+                visibleProcessDefinitionKeys(),
+                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         );
     }
 

@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class FlowableProcessFacade implements ProcessFacade {
@@ -730,6 +731,7 @@ public class FlowableProcessFacade implements ProcessFacade {
 
     private boolean matchesTaskQuery(TaskDTO task, TaskQueryCommand command) {
         return matchesProcessDefinition(task.processDefinitionId(), command)
+                && !matchesExcludedBusinessKey(task.businessKey(), command)
                 && matchesStatus(task.status(), command)
                 && matchesTime(task.createTime(), command)
                 && matchesKeyword(command, task.name(), task.businessKey(), task.taskDefinitionKey(), task.assignee(), task.processInstanceId());
@@ -737,6 +739,7 @@ public class FlowableProcessFacade implements ProcessFacade {
 
     private boolean matchesStartedQuery(ProcessInstanceDetailDTO instance, TaskQueryCommand command) {
         return matchesProcessDefinition(instance.processDefinitionId(), command)
+                && !matchesExcludedBusinessKey(instance.businessKey(), command)
                 && matchesStatus(instance.status(), command)
                 && matchesTime(instance.startTime(), command)
                 && matchesKeyword(command, instance.businessKey(), instance.instanceId(), instance.processDefinitionId(), instance.startUserId());
@@ -783,13 +786,20 @@ public class FlowableProcessFacade implements ProcessFacade {
     }
 
     private boolean matchesExcludedBusinessKey(String businessKey, InstanceQueryCommand command) {
-        if (!command.hasExcludedBusinessKeyPatterns()) {
-            return false;
-        }
+        return command.hasExcludedBusinessKeyPatterns()
+                && matchesExcludedBusinessKey(businessKey, command.excludedBusinessKeyPatterns());
+    }
+
+    private boolean matchesExcludedBusinessKey(String businessKey, TaskQueryCommand command) {
+        return command.hasExcludedBusinessKeyPatterns()
+                && matchesExcludedBusinessKey(businessKey, command.excludedBusinessKeyPatterns());
+    }
+
+    private boolean matchesExcludedBusinessKey(String businessKey, Set<String> excludedBusinessKeyPatterns) {
         if (businessKey == null || businessKey.isBlank()) {
             return false;
         }
-        return command.excludedBusinessKeyPatterns().stream()
+        return excludedBusinessKeyPatterns.stream()
                 .anyMatch(pattern -> matchesExcludedBusinessKeyPattern(businessKey, pattern));
     }
 
