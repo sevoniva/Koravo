@@ -36,6 +36,10 @@ describe('StructuredDetailTable', () => {
       <StructuredDetailTable
         value={{
           approvalUsers: ['manager', 'finance'],
+          applicantName: '真实申请专员',
+          applicantDepartment: '业务一部',
+          approverUserId: 'manager',
+          reviewers: ['manager', 'finance'],
           candidateGroups: ['role-01', 'role-02'],
           password: 'plain-password',
           comment:
@@ -45,11 +49,16 @@ describe('StructuredDetailTable', () => {
     );
 
     expect(await screen.findByText('审批人')).toBeInTheDocument();
-    expect(screen.getByText('审批主管')).toBeInTheDocument();
-    expect(screen.getByText('复核专员')).toBeInTheDocument();
+    expect(screen.getByText('申请部门')).toBeInTheDocument();
+    expect(screen.getByText('业务一部')).toBeInTheDocument();
+    expect(screen.getAllByText('审批主管').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('复核专员').length).toBeGreaterThan(0);
+    expect(screen.getByText('复核人')).toBeInTheDocument();
     expect(screen.getByText('候选角色')).toBeInTheDocument();
     expect(screen.getByText('审批角色 1')).toBeInTheDocument();
     expect(screen.getByText('审批角色 2')).toBeInTheDocument();
+    expect(screen.getByText('处理意见')).toBeInTheDocument();
+    expect(screen.getByText('密码')).toBeInTheDocument();
     expect(screen.getByText('******')).toBeInTheDocument();
     expect(screen.queryByText('plain-password')).not.toBeInTheDocument();
     expect(screen.queryByText('role-01')).not.toBeInTheDocument();

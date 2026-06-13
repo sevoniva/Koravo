@@ -156,6 +156,10 @@ describe('display helpers', () => {
     expect(businessFieldLabel('exceptionMessage')).toBe('异常信息');
     expect(businessFieldLabel('exceptionStacktrace')).toBe('异常堆栈');
     expect(businessFieldLabel('fromVersion')).toBe('恢复版本');
+    expect(businessFieldLabel('applicantName')).toBe('发起人');
+    expect(businessFieldLabel('applicantDepartment')).toBe('申请部门');
+    expect(businessFieldLabel('approverUserId')).toBe('审批账号');
+    expect(businessFieldLabel('reviewers')).toBe('复核人');
     expect(genericStatusLabel('ACTIVE')).toBe('启用');
     expect(genericStatusLabel('DISABLED')).toBe('已停用');
   });

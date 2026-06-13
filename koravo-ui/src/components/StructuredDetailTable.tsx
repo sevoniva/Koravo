@@ -109,19 +109,44 @@ function isMemberField(rowKey: string) {
   return [
     'userId',
     'startUserId',
+    'applicantUserId',
+    'requesterUserId',
+    'applyUserId',
+    'submitUserId',
     'assignee',
+    'assigneeUser',
+    'assigneeUserId',
     'approver',
+    'approverUser',
+    'approverUserId',
+    'reviewer',
+    'reviewerUser',
+    'reviewerUserId',
     'handler',
+    'handlerUser',
+    'handlerUserId',
+    'processor',
+    'processorUser',
+    'processorUserId',
     'targetUserId',
     'createdBy',
     'updatedBy',
     'approvalUser',
+    'approvalUserId',
   ].includes(field || '');
 }
 
 function isMemberListField(rowKey: string) {
   const field = rowKey.split('.').pop();
-  return field === 'approvalUsers' || field === 'candidateUsers';
+  return [
+    'approvalUsers',
+    'approvers',
+    'reviewers',
+    'assignees',
+    'handlers',
+    'processors',
+    'candidateUsers',
+  ].includes(field || '');
 }
 
 function isRoleListField(rowKey: string) {
