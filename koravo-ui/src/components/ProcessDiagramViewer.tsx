@@ -71,7 +71,7 @@ const useStyles = createStyles(({ css, token }) => ({
   shell: css`
     position: relative;
     height: 100%;
-    min-height: 320px;
+    min-height: 220px;
     overflow: hidden;
     background: ${token.colorBgContainer};
     border: 1px solid ${token.colorBorderSecondary};
@@ -263,10 +263,23 @@ function focusDiagramElement(
 }
 
 function readableZoom(elementCount: number) {
-  if (elementCount > 36) return 0.88;
-  if (elementCount > 24) return 0.92;
-  if (elementCount > 18) return 0.96;
+  if (elementCount <= 5) return 1.45;
+  if (elementCount <= 10) return 1.28;
+  if (elementCount <= 18) return 1.12;
   return 1;
+}
+
+function applyReadableViewport(
+  canvas: Canvas,
+  elementRegistry: ElementRegistry,
+) {
+  const elements = renderableDiagramElements(elementRegistry);
+  canvas.zoom('fit-viewport', 'auto');
+  const zoom = readableZoom(elements.length);
+  if (zoom > 1) {
+    canvas.zoom(zoom, 'auto');
+  }
+  return elements;
 }
 
 function visibleFlowNodes(timeline: ProcessTraceNode[]) {
@@ -536,7 +549,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   const readableDiagram = React.useCallback(() => {
     const services = diagramServices();
     if (!services) return;
-    services.canvas.zoom(readableZoom(renderableDiagramElements(services.elementRegistry).length), 'auto');
+    applyReadableViewport(services.canvas, services.elementRegistry);
     focusDiagramElement(
       services.canvas,
       services.elementRegistry,
@@ -571,20 +584,15 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
         await viewerRef.current.importXML(renderableBpmnXml);
         const canvas = viewerRef.current.get('canvas') as Canvas;
         const elementRegistry = viewerRef.current.get('elementRegistry') as ElementRegistry;
-        const elements = renderableDiagramElements(elementRegistry);
+        const elements = applyReadableViewport(canvas, elementRegistry);
         if (!elements.length) {
           throw new Error('流程图没有可显示节点');
         }
-        if (elements.length > 18) {
-          canvas.zoom(readableZoom(elements.length), 'auto');
-          focusDiagramElement(
-            canvas,
-            elementRegistry,
-            currentDiagramElementId(currentActivityIds, timeline),
-          );
-        } else {
-          canvas.zoom('fit-viewport', 'auto');
-        }
+        focusDiagramElement(
+          canvas,
+          elementRegistry,
+          currentDiagramElementId(currentActivityIds, timeline),
+        );
         applyMarkers();
         setDiagramReady(true);
       } catch (err) {
