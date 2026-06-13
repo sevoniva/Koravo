@@ -45,8 +45,11 @@ import {
   disableFormSchema,
   type FormBindingItem,
   type FormSchemaItem,
+  type FormSchemaVersionItem,
   listFormBindings,
   listFormSchemas,
+  listFormSchemaVersions,
+  restoreFormSchemaVersion,
   updateFormSchema,
 } from '@/services/koravo/api';
 import {
@@ -65,6 +68,7 @@ import {
   formSchemaNameLabel,
   productCopy,
 } from '@/utils/display';
+import { formatDateTime } from '@/utils/format';
 
 interface FormSchemaForm {
   formKey: string;
@@ -1122,6 +1126,7 @@ const Forms: React.FC = () => {
   const { message } = App.useApp();
   const { styles } = useStyles();
   const actionRef = useRef<ActionType>(null);
+  const versionActionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormSchemaItem>();
   const [preview, setPreview] = useState<FormSchemaItem>();
   const [formBindings, setFormBindings] = useState<FormBindingItem[]>([]);
@@ -1171,6 +1176,15 @@ const Forms: React.FC = () => {
       message.success('已停用');
     }
     actionRef.current?.reload();
+  };
+
+  const restoreVersion = async (record: FormSchemaVersionItem) => {
+    if (!preview) return;
+    const updated = await restoreFormSchemaVersion(preview.id, record.version);
+    message.success(`已恢复为 v${updated.version}`);
+    setPreview(updated);
+    actionRef.current?.reload();
+    versionActionRef.current?.reload();
   };
 
   const columns: ProColumns<FormSchemaItem>[] = [
@@ -1285,6 +1299,64 @@ const Forms: React.FC = () => {
           </Popconfirm>,
         ];
       },
+    },
+  ];
+
+  const versionColumns: ProColumns<FormSchemaVersionItem>[] = [
+    {
+      title: '版本',
+      dataIndex: 'version',
+      width: 96,
+      render: (_, record) =>
+        record.version === preview?.version ? (
+          <Tag color="blue">v{record.version} 当前</Tag>
+        ) : (
+          <Tag>v{record.version}</Tag>
+        ),
+    },
+    {
+      title: '表单名称',
+      dataIndex: 'formName',
+      renderText: (value) => formSchemaNameLabel(value),
+    },
+    {
+      title: '字段数',
+      key: 'fieldCount',
+      width: 96,
+      renderText: (_, record) =>
+        schemaToFields(record.schemaJson, record.uiSchemaJson).length,
+    },
+    {
+      title: '创建人',
+      dataIndex: 'createdBy',
+      width: 120,
+      renderText: (value) => value || '-',
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      width: 170,
+      renderText: formatDateTime,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 96,
+      render: (_, record) =>
+        record.version === preview?.version
+          ? [<Typography.Text key="current" type="secondary">当前</Typography.Text>]
+          : [
+              <Popconfirm
+                key="restore"
+                title="恢复版本"
+                description={`恢复 v${record.version} 后会生成新的当前版本。`}
+                okText="恢复"
+                cancelText="取消"
+                onConfirm={() => restoreVersion(record)}
+              >
+                <Button type="link">恢复</Button>
+              </Popconfirm>,
+            ],
     },
   ];
 
@@ -1471,6 +1543,27 @@ const Forms: React.FC = () => {
                         pagination={false}
                         options={false}
                         scroll={{ x: 1040 }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'versions',
+                    label: '版本记录',
+                    children: (
+                      <ProTable<FormSchemaVersionItem>
+                        actionRef={versionActionRef}
+                        rowKey="id"
+                        columns={versionColumns}
+                        search={false}
+                        pagination={false}
+                        options={false}
+                        request={async () => {
+                          if (!preview?.id) {
+                            return { data: [], success: true };
+                          }
+                          const data = await listFormSchemaVersions(preview.id);
+                          return { data, success: true };
+                        }}
                       />
                     ),
                   },

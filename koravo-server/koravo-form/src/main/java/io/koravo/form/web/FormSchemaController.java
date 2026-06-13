@@ -38,9 +38,19 @@ public class FormSchemaController {
         return ApiResponse.success(formSchemaService.get(id));
     }
 
+    @GetMapping("/api/v1/forms/schemas/{id}/versions")
+    public ApiResponse<List<FormSchemaVersionResponse>> versions(@PathVariable String id) {
+        return ApiResponse.success(formSchemaService.listVersions(id));
+    }
+
     @PutMapping("/api/v1/forms/schemas/{id}")
     public ApiResponse<FormSchemaResponse> update(@PathVariable String id, @Valid @RequestBody FormSchemaRequest request) {
         return ApiResponse.success(formSchemaService.update(id, request));
+    }
+
+    @PostMapping("/api/v1/forms/schemas/{id}/versions/{version}/restore")
+    public ApiResponse<FormSchemaResponse> restoreVersion(@PathVariable String id, @PathVariable int version) {
+        return ApiResponse.success(formSchemaService.restoreVersion(id, version));
     }
 
     @PostMapping("/api/v1/forms/schemas/{id}/activate")

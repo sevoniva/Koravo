@@ -8,9 +8,12 @@ import io.koravo.common.exception.ErrorCode;
 import io.koravo.common.model.AssetOrigin;
 import io.koravo.form.domain.FormStatus;
 import io.koravo.form.domain.KoFormSchema;
+import io.koravo.form.domain.KoFormSchemaVersion;
 import io.koravo.form.repo.FormSchemaRepository;
+import io.koravo.form.repo.FormSchemaVersionRepository;
 import io.koravo.form.web.FormSchemaRequest;
 import io.koravo.form.web.FormSchemaResponse;
+import io.koravo.form.web.FormSchemaVersionResponse;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
@@ -29,11 +32,18 @@ public class FormSchemaService {
     );
 
     private final FormSchemaRepository repository;
+    private final FormSchemaVersionRepository versionRepository;
     private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
 
-    public FormSchemaService(FormSchemaRepository repository, AuditLogService auditLogService, ObjectMapper objectMapper) {
+    public FormSchemaService(
+            FormSchemaRepository repository,
+            FormSchemaVersionRepository versionRepository,
+            AuditLogService auditLogService,
+            ObjectMapper objectMapper
+    ) {
         this.repository = repository;
+        this.versionRepository = versionRepository;
         this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
     }
@@ -53,6 +63,7 @@ public class FormSchemaService {
         schema.setStatus(FormStatus.ACTIVE);
         schema.setAssetOrigin(AssetOrigin.USER_FLOW);
         KoFormSchema saved = repository.save(schema);
+        saveVersion(saved);
         auditLogService.record("FORM_SCHEMA_CREATE", "FORM_SCHEMA", saved.getId(), Map.of("formKey", saved.getFormKey()));
         return toResponse(saved);
     }
@@ -82,11 +93,20 @@ public class FormSchemaService {
         return toResponse(schema);
     }
 
+    @Transactional(readOnly = true)
+    public List<FormSchemaVersionResponse> listVersions(String id) {
+        KoFormSchema schema = findCurrentSchema(id);
+        return versionRepository
+                .findByTenantIdAndFormSchemaIdAndDeletedFalseOrderByVersionDesc(schema.getTenantId(), schema.getId())
+                .stream()
+                .map(this::toVersionResponse)
+                .toList();
+    }
+
     @Transactional
     public FormSchemaResponse update(String id, FormSchemaRequest request) {
         validateSchemaPayload(request);
-        KoFormSchema schema = repository.findByIdAndTenantIdAndDeletedFalse(id, TenantContextHolder.getTenantId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema not found"));
+        KoFormSchema schema = findCurrentSchema(id);
         schema.setFormKey(request.formKey());
         schema.setFormName(request.formName());
         schema.setSchemaJson(request.schemaJson());
@@ -94,8 +114,31 @@ public class FormSchemaService {
         schema.setVersion(schema.getVersion() + 1);
         schema.setUpdatedBy(UserContextHolder.getUserId());
         KoFormSchema saved = repository.save(schema);
+        saveVersion(saved);
         auditLogService.record("FORM_SCHEMA_UPDATE", "FORM_SCHEMA", saved.getId(), Map.of(
                 "formKey", saved.getFormKey(),
+                "version", saved.getVersion()
+        ));
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public FormSchemaResponse restoreVersion(String id, int version) {
+        KoFormSchema schema = findCurrentSchema(id);
+        KoFormSchemaVersion source = versionRepository
+                .findByTenantIdAndFormSchemaIdAndVersionAndDeletedFalse(schema.getTenantId(), schema.getId(), version)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema version not found"));
+        schema.setFormKey(source.getFormKey());
+        schema.setFormName(source.getFormName());
+        schema.setSchemaJson(source.getSchemaJson());
+        schema.setUiSchemaJson(source.getUiSchemaJson());
+        schema.setVersion(schema.getVersion() + 1);
+        schema.setUpdatedBy(UserContextHolder.getUserId());
+        KoFormSchema saved = repository.save(schema);
+        saveVersion(saved);
+        auditLogService.record("FORM_SCHEMA_RESTORE_VERSION", "FORM_SCHEMA", saved.getId(), Map.of(
+                "formKey", saved.getFormKey(),
+                "fromVersion", version,
                 "version", saved.getVersion()
         ));
         return toResponse(saved);
@@ -112,8 +155,7 @@ public class FormSchemaService {
     }
 
     private FormSchemaResponse updateStatus(String id, FormStatus status, String action) {
-        KoFormSchema schema = repository.findByIdAndTenantIdAndDeletedFalse(id, TenantContextHolder.getTenantId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema not found"));
+        KoFormSchema schema = findCurrentSchema(id);
         schema.setStatus(status);
         schema.setUpdatedBy(UserContextHolder.getUserId());
         KoFormSchema saved = repository.save(schema);
@@ -122,6 +164,32 @@ public class FormSchemaService {
                 "status", saved.getStatus().name()
         ));
         return toResponse(saved);
+    }
+
+    private KoFormSchema findCurrentSchema(String id) {
+        return repository.findByIdAndTenantIdAndDeletedFalse(id, TenantContextHolder.getTenantId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema not found"));
+    }
+
+    private void saveVersion(KoFormSchema schema) {
+        if (versionRepository.existsByTenantIdAndFormSchemaIdAndVersionAndDeletedFalse(
+                schema.getTenantId(),
+                schema.getId(),
+                schema.getVersion()
+        )) {
+            return;
+        }
+        KoFormSchemaVersion version = new KoFormSchemaVersion();
+        version.setTenantId(schema.getTenantId());
+        version.setCreatedBy(UserContextHolder.getUserId());
+        version.setUpdatedBy(UserContextHolder.getUserId());
+        version.setFormSchemaId(schema.getId());
+        version.setVersion(schema.getVersion());
+        version.setFormKey(schema.getFormKey());
+        version.setFormName(schema.getFormName());
+        version.setSchemaJson(schema.getSchemaJson());
+        version.setUiSchemaJson(schema.getUiSchemaJson());
+        versionRepository.save(version);
     }
 
     private void validateSchemaPayload(FormSchemaRequest request) {
@@ -156,6 +224,20 @@ public class FormSchemaService {
                 schema.getUiSchemaJson(),
                 schema.getStatus().name(),
                 schema.getAssetOrigin().name()
+        );
+    }
+
+    private FormSchemaVersionResponse toVersionResponse(KoFormSchemaVersion version) {
+        return new FormSchemaVersionResponse(
+                version.getId(),
+                version.getFormSchemaId(),
+                version.getVersion(),
+                version.getFormKey(),
+                version.getFormName(),
+                version.getSchemaJson(),
+                version.getUiSchemaJson(),
+                version.getCreatedBy(),
+                version.getCreatedAt()
         );
     }
 }

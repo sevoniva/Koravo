@@ -485,3 +485,45 @@ databaseChangeLog:
             indexName: idx_ko_login_session_expires
             columns:
               - column: { name: expires_at }
+  - changeSet:
+      id: 0012-create-form-schema-version
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_form_schema_version
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: form_schema_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: version, type: int, constraints: { nullable: false } }
+              - column: { name: form_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: form_name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: schema_json, type: clob, constraints: { nullable: false } }
+              - column: { name: ui_schema_json, type: clob }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - addUniqueConstraint:
+            tableName: ko_form_schema_version
+            columnNames: tenant_id,form_schema_id,version
+            constraintName: uk_ko_form_schema_version
+        - createIndex:
+            tableName: ko_form_schema_version
+            indexName: idx_ko_form_schema_version_schema
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: form_schema_id }
+              - column: { name: version }
+        - sql:
+            sql: |
+              insert into ko_form_schema_version (
+                id, tenant_id, form_schema_id, version, form_key, form_name,
+                schema_json, ui_schema_json, created_by, created_at, updated_by, updated_at, deleted
+              )
+              select
+                id, tenant_id, id, version, form_key, form_name,
+                schema_json, ui_schema_json, created_by, created_at, updated_by, updated_at, deleted
+              from ko_form_schema
+              where deleted = false;

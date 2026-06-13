@@ -202,6 +202,18 @@ export interface FormSchemaItem {
   assetOrigin?: string
 }
 
+export interface FormSchemaVersionItem {
+  id: string
+  formSchemaId: string
+  version: number
+  formKey: string
+  formName: string
+  schemaJson: string
+  uiSchemaJson?: string
+  createdBy?: string
+  createdAt?: string
+}
+
 export interface FormBindingItem {
   id: string
   processModelId?: string
@@ -567,6 +579,14 @@ export function disableFormSchema(id: string) {
 
 export function getFormSchema(id: string) {
   return apiData<FormSchemaItem>(http.get(`/forms/schemas/${id}`))
+}
+
+export function listFormSchemaVersions(id: string) {
+  return apiData<FormSchemaVersionItem[]>(http.get(`/forms/schemas/${id}/versions`))
+}
+
+export function restoreFormSchemaVersion(id: string, version: number) {
+  return apiData<FormSchemaItem>(http.post(`/forms/schemas/${id}/versions/${version}/restore`))
 }
 
 export function listFormSnapshots(params: { processInstanceId: string }) {

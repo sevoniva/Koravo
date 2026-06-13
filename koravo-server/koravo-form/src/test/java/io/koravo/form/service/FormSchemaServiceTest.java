@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.koravo.common.model.AssetOrigin;
 import io.koravo.form.domain.FormStatus;
 import io.koravo.form.domain.KoFormSchema;
+import io.koravo.form.domain.KoFormSchemaVersion;
 import io.koravo.form.repo.FormSchemaRepository;
+import io.koravo.form.repo.FormSchemaVersionRepository;
 import io.koravo.form.web.FormSchemaRequest;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.tenant.TenantContextHolder;
@@ -25,8 +27,9 @@ import static org.mockito.Mockito.when;
 
 class FormSchemaServiceTest {
     private final FormSchemaRepository repository = mock(FormSchemaRepository.class);
+    private final FormSchemaVersionRepository versionRepository = mock(FormSchemaVersionRepository.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
-    private final FormSchemaService service = new FormSchemaService(repository, auditLogService, new ObjectMapper());
+    private final FormSchemaService service = new FormSchemaService(repository, versionRepository, auditLogService, new ObjectMapper());
 
     @AfterEach
     void tearDown() {
@@ -53,6 +56,7 @@ class FormSchemaServiceTest {
 
         assertThat(result.id()).isEqualTo("form-1");
         assertThat(result.assetOrigin()).isEqualTo("USER_FLOW");
+        verify(versionRepository).save(any(KoFormSchemaVersion.class));
         verify(auditLogService).record("FORM_SCHEMA_CREATE", "FORM_SCHEMA", "form-1", Map.of("formKey", "leave"));
     }
 
@@ -102,9 +106,52 @@ class FormSchemaServiceTest {
         assertThat(result.version()).isEqualTo(2);
         assertThat(result.formName()).isEqualTo("Leave Approval");
         assertThat(result.status()).isEqualTo("DISABLED");
+        verify(versionRepository).save(any(KoFormSchemaVersion.class));
         verify(auditLogService).record("FORM_SCHEMA_UPDATE", "FORM_SCHEMA", "form-1", Map.of(
                 "formKey", "leave",
                 "version", 2
+        ));
+    }
+
+    @Test
+    void listVersionsReturnsSchemaHistory() {
+        TenantContextHolder.setTenantId("default");
+        KoFormSchema schema = schema("form-1", 2);
+        KoFormSchemaVersion version = version("form-1", 1);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("form-1", "default")).thenReturn(Optional.of(schema));
+        when(versionRepository.findByTenantIdAndFormSchemaIdAndDeletedFalseOrderByVersionDesc("default", "form-1"))
+                .thenReturn(List.of(version));
+
+        var result = service.listVersions("form-1");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().version()).isEqualTo(1);
+        assertThat(result.getFirst().schemaJson()).contains("days");
+    }
+
+    @Test
+    void restoreVersionCreatesNewCurrentVersion() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoFormSchema schema = schema("form-1", 3);
+        KoFormSchemaVersion oldVersion = version("form-1", 1);
+        oldVersion.setFormName("Old Leave");
+        oldVersion.setSchemaJson("{\"type\":\"object\",\"properties\":{\"reason\":{\"type\":\"string\"}}}");
+        when(repository.findByIdAndTenantIdAndDeletedFalse("form-1", "default")).thenReturn(Optional.of(schema));
+        when(versionRepository.findByTenantIdAndFormSchemaIdAndVersionAndDeletedFalse("default", "form-1", 1))
+                .thenReturn(Optional.of(oldVersion));
+        when(repository.save(any(KoFormSchema.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = service.restoreVersion("form-1", 1);
+
+        assertThat(result.version()).isEqualTo(4);
+        assertThat(result.formName()).isEqualTo("Old Leave");
+        assertThat(result.schemaJson()).contains("reason");
+        verify(versionRepository).save(any(KoFormSchemaVersion.class));
+        verify(auditLogService).record("FORM_SCHEMA_RESTORE_VERSION", "FORM_SCHEMA", "form-1", Map.of(
+                "formKey", "leave",
+                "fromVersion", 1,
+                "version", 4
         ));
     }
 
@@ -161,5 +208,18 @@ class FormSchemaServiceTest {
         schema.setUiSchemaJson("{}");
         schema.setStatus(FormStatus.ACTIVE);
         return schema;
+    }
+
+    private KoFormSchemaVersion version(String formSchemaId, int version) {
+        KoFormSchemaVersion item = new KoFormSchemaVersion();
+        item.setId("version-" + version);
+        item.setTenantId("default");
+        item.setFormSchemaId(formSchemaId);
+        item.setVersion(version);
+        item.setFormKey("leave");
+        item.setFormName("Leave");
+        item.setSchemaJson("{\"type\":\"object\",\"properties\":{\"days\":{\"type\":\"number\"}}}");
+        item.setUiSchemaJson("{}");
+        return item;
     }
 }
