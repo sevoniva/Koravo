@@ -109,9 +109,9 @@ const APPROVAL_STAGE_NAMES = [
 export const ASSET_ORIGIN_LABELS: Record<string, string> = {
   SYSTEM_TEMPLATE: '系统模板',
   USER_FLOW: '用户流程',
-  LEGACY_DEMO: '历史演示',
-  TEST_FIXTURE: '测试数据',
-  SAMPLE: '示例模板',
+  LEGACY_DEMO: '历史资产',
+  TEST_FIXTURE: '验证数据',
+  SAMPLE: '模板资产',
 };
 
 export const ASSET_ORIGIN_COLORS: Record<string, string> = {

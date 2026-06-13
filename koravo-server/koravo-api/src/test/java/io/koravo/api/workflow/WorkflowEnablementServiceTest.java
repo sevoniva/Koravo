@@ -318,17 +318,17 @@ class WorkflowEnablementServiceTest {
     void startableProcessesOnlyReturnsDeployedModelsWithActiveStartForms() {
         TenantContextHolder.setTenantId("default");
         KoProcessModel model = deployedModel();
-        KoProcessModel demoModel = deployedModel("demo-model", "purchaseApproval", "采购申请流程");
+        KoProcessModel retiredModel = deployedModel("retired-model", "purchaseApproval", "历史流程资产");
         KoFormSchema form = activeForm();
         KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
-        KoFormBinding demoBinding = binding("demo-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
-        demoBinding.setProcessModelId("demo-model");
-        demoBinding.setProcessDefinitionId("purchaseApproval:1:demo");
+        KoFormBinding retiredBinding = binding("retired-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        retiredBinding.setProcessModelId("retired-model");
+        retiredBinding.setProcessDefinitionId("purchaseApproval:1:retired");
 
         when(processModelRepository.findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc("default", ProcessModelStatus.DEPLOYED))
-                .thenReturn(List.of(model, demoModel));
+                .thenReturn(List.of(model, retiredModel));
         when(formBindingRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
-                .thenReturn(List.of(startBinding, demoBinding));
+                .thenReturn(List.of(startBinding, retiredBinding));
         when(formSchemaRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
                 .thenReturn(List.of(form));
 
@@ -341,7 +341,7 @@ class WorkflowEnablementServiceTest {
     }
 
     @Test
-    void initArchivesDemoWorkflowAssetsWithoutDeletingCurrentDefaultAssets() {
+    void initArchivesRetiredWorkflowAssetsWithoutDeletingCurrentDefaultAssets() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
         KoProcessModel model = deployedModel();
@@ -349,8 +349,8 @@ class WorkflowEnablementServiceTest {
         KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
         KoFormBinding businessBinding = binding("business-binding", "form-1", 2, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY);
         KoFormBinding financeBinding = binding("finance-binding", "form-1", 2, WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY);
-        KoProcessModel demoModel = deployedModel("demo-model", "leaveApproval", "请假审批流程");
-        KoFormSchema demoForm = activeForm("demo-form", "leave-form", "请假申请表");
+        KoProcessModel retiredModel = deployedModel("retired-model", "leaveApproval", "历史流程资产");
+        KoFormSchema retiredForm = activeForm("retired-form", "leave-form", "历史表单资产");
 
         when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
@@ -376,9 +376,9 @@ class WorkflowEnablementServiceTest {
                 WorkflowEnablementDefaults.FINANCE_ACCEPTANCE_TASK_KEY
         )).thenReturn(Optional.of(financeBinding));
         when(processModelRepository.findByTenantIdAndModelKeyInAndDeletedFalseOrderByUpdatedAtDesc(eq("default"), any()))
-                .thenReturn(List.of(model, demoModel));
+                .thenReturn(List.of(model, retiredModel));
         when(formSchemaRepository.findByTenantIdAndFormKeyInAndDeletedFalseOrderByUpdatedAtDesc(eq("default"), any()))
-                .thenReturn(List.of(form, demoForm));
+                .thenReturn(List.of(form, retiredForm));
         when(processModelRepository.save(any(KoProcessModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(formSchemaRepository.save(any(KoFormSchema.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -388,15 +388,15 @@ class WorkflowEnablementServiceTest {
         assertThat(model.getAssetOrigin()).isEqualTo(AssetOrigin.SYSTEM_TEMPLATE);
         assertThat(form.getStatus()).isEqualTo(FormStatus.ACTIVE);
         assertThat(form.getAssetOrigin()).isEqualTo(AssetOrigin.SYSTEM_TEMPLATE);
-        assertThat(demoModel.getStatus()).isEqualTo(ProcessModelStatus.ARCHIVED);
-        assertThat(demoModel.getAssetOrigin()).isEqualTo(AssetOrigin.LEGACY_DEMO);
-        assertThat(demoModel.getUpdatedBy()).isEqualTo("admin");
-        assertThat(demoForm.getStatus()).isEqualTo(FormStatus.DISABLED);
-        assertThat(demoForm.getAssetOrigin()).isEqualTo(AssetOrigin.LEGACY_DEMO);
-        assertThat(demoForm.getUpdatedBy()).isEqualTo("admin");
+        assertThat(retiredModel.getStatus()).isEqualTo(ProcessModelStatus.ARCHIVED);
+        assertThat(retiredModel.getAssetOrigin()).isEqualTo(AssetOrigin.LEGACY_DEMO);
+        assertThat(retiredModel.getUpdatedBy()).isEqualTo("admin");
+        assertThat(retiredForm.getStatus()).isEqualTo(FormStatus.DISABLED);
+        assertThat(retiredForm.getAssetOrigin()).isEqualTo(AssetOrigin.LEGACY_DEMO);
+        assertThat(retiredForm.getUpdatedBy()).isEqualTo("admin");
         assertThat(response.actions()).contains(
-                "归档历史演示流程：请假审批流程",
-                "停用历史演示表单：请假申请表"
+                "归档历史流程资产：历史流程资产",
+                "停用历史表单资产：历史表单资产"
         );
     }
 
@@ -414,7 +414,7 @@ class WorkflowEnablementServiceTest {
         model.setVersion(1);
         model.setStatus(ProcessModelStatus.DEPLOYED);
         model.setFlowableDeploymentId("dep-1");
-        model.setFlowableDefinitionId(WorkflowEnablementDefaults.PROCESS_KEY.equals(modelKey) ? "pd-1" : modelKey + ":1:demo");
+        model.setFlowableDefinitionId(WorkflowEnablementDefaults.PROCESS_KEY.equals(modelKey) ? "pd-1" : modelKey + ":1:retired");
         model.setBpmnXml(WorkflowEnablementDefaults.businessRequestBpmn());
         return model;
     }

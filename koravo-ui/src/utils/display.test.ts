@@ -43,8 +43,8 @@ describe('display helpers', () => {
     expect(businessKeyLabel('HTTP-1780845610965')).toBe('HTTP-1780845610965');
   });
 
-  it('keeps legacy demo markers visible for governance cleanup', () => {
-    expect(shortTraceLabel('demo-http-connector')).toBe('demo-htt');
+  it('keeps historical asset markers visible for governance cleanup', () => {
+    expect(shortTraceLabel('legacy-http-connector')).toBe('legacy-h');
   });
 
   it('hides local development addresses from primary labels', () => {
@@ -70,9 +70,9 @@ describe('display helpers', () => {
     expect(
       processDescriptionLabel({
         modelKey: 'expenseApproval',
-        description: 'Imported demo model',
+        description: 'Imported legacy model',
       }),
-    ).toBe('Imported demo model');
+    ).toBe('Imported legacy model');
     expect(
       processDescriptionLabel({
         modelKey: 'collaborativeApproval',
@@ -139,7 +139,7 @@ describe('display helpers', () => {
   it('labels workflow asset origins for governance surfaces', () => {
     expect(assetOriginLabel('SYSTEM_TEMPLATE')).toBe('系统模板');
     expect(assetOriginLabel('USER_FLOW')).toBe('用户流程');
-    expect(assetOriginLabel('LEGACY_DEMO')).toBe('历史演示');
+    expect(assetOriginLabel('LEGACY_DEMO')).toBe('历史资产');
     expect(assetOriginColor('LEGACY_DEMO')).toBe('warning');
     expect(assetOriginColor(undefined)).toBe('default');
   });

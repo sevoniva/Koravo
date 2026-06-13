@@ -33,19 +33,19 @@ import java.util.Set;
 public class WorkflowEnablementService {
     private static final List<String> LEGACY_PROCESS_KEYS = List.of("multiAcceptance", "purchaseApproval");
     private static final List<String> LEGACY_FORM_KEYS = List.of("acceptance-request-form", "purchase-request-form");
-    private static final List<String> DEMO_PROCESS_KEYS = List.of(
+    private static final List<String> RETIRED_PROCESS_KEYS = List.of(
             "multiAcceptance",
             "purchaseApproval",
             "leaveApproval",
             "httpConnectorDemo",
             "designerDeployCheck"
     );
-    private static final List<String> DEMO_FORM_KEYS = List.of(
+    private static final List<String> RETIRED_FORM_KEYS = List.of(
             "acceptance-request-form",
             "purchase-request-form",
             "leave-form"
     );
-    private static final Set<String> DEMO_PROCESS_KEY_SET = Set.copyOf(DEMO_PROCESS_KEYS);
+    private static final Set<String> RETIRED_PROCESS_KEY_SET = Set.copyOf(RETIRED_PROCESS_KEYS);
 
     private final ProcessFacade processFacade;
     private final ProcessModelRepository processModelRepository;
@@ -172,7 +172,7 @@ public class WorkflowEnablementService {
 
         KoFormBinding startBinding = ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.START_FORM_TASK_KEY, "启动表单", actions);
         ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY, "多人会签", actions);
-        archiveDemoWorkflowAssets(tenantId, userId, model, form, actions);
+        archiveRetiredWorkflowAssets(tenantId, userId, model, form, actions);
 
         auditLogService.record("WORKFLOW_ENABLEMENT_INIT", "WORKFLOW_ENABLEMENT", "collaborative-approval", Map.of(
                 "processModelId", model.getId(),
@@ -254,7 +254,7 @@ public class WorkflowEnablementService {
         if (model == null || !StringUtils.hasText(model.getFlowableDefinitionId())) {
             return false;
         }
-        if (DEMO_PROCESS_KEY_SET.contains(model.getModelKey())) {
+        if (RETIRED_PROCESS_KEY_SET.contains(model.getModelKey())) {
             return false;
         }
         if (model.getAssetOrigin() != AssetOrigin.SYSTEM_TEMPLATE
@@ -563,21 +563,21 @@ public class WorkflowEnablementService {
                 : "更新审批任务表单绑定");
     }
 
-    private void archiveDemoWorkflowAssets(
+    private void archiveRetiredWorkflowAssets(
             String tenantId,
             String userId,
             KoProcessModel currentModel,
             KoFormSchema currentForm,
             List<String> actions
     ) {
-        for (KoProcessModel model : processModelRepository.findByTenantIdAndModelKeyInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, DEMO_PROCESS_KEYS)) {
+        for (KoProcessModel model : processModelRepository.findByTenantIdAndModelKeyInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, RETIRED_PROCESS_KEYS)) {
             if (currentModel != null && currentModel.getId().equals(model.getId())) {
                 continue;
             }
             boolean changed = false;
             if (model.getStatus() != ProcessModelStatus.ARCHIVED) {
                 model.setStatus(ProcessModelStatus.ARCHIVED);
-                actions.add("归档历史演示流程：" + model.getModelName());
+                actions.add("归档历史流程资产：" + model.getModelName());
                 changed = true;
             }
             if (model.getAssetOrigin() != AssetOrigin.LEGACY_DEMO) {
@@ -589,14 +589,14 @@ public class WorkflowEnablementService {
                 processModelRepository.save(model);
             }
         }
-        for (KoFormSchema form : formSchemaRepository.findByTenantIdAndFormKeyInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, DEMO_FORM_KEYS)) {
+        for (KoFormSchema form : formSchemaRepository.findByTenantIdAndFormKeyInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, RETIRED_FORM_KEYS)) {
             if (currentForm != null && currentForm.getId().equals(form.getId())) {
                 continue;
             }
             boolean changed = false;
             if (form.getStatus() != FormStatus.DISABLED) {
                 form.setStatus(FormStatus.DISABLED);
-                actions.add("停用历史演示表单：" + form.getFormName());
+                actions.add("停用历史表单资产：" + form.getFormName());
                 changed = true;
             }
             if (form.getAssetOrigin() != AssetOrigin.LEGACY_DEMO) {
