@@ -8,7 +8,7 @@ import {
   LoadingOutlined,
   ZoomInOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Empty, Flex, Space, Spin, Tag, Tooltip, Typography } from 'antd';
+import { Alert, Badge, Button, Empty, Flex, Space, Spin, Tag, Tooltip, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTraceNode } from '@/services/koravo/api';
@@ -117,31 +117,31 @@ const useStyles = createStyles(({ css, token }) => ({
     height: 100%;
     min-height: inherit;
     overflow: auto;
-    padding: 16px 18px;
+    padding: 14px 16px;
     background: ${token.colorBgContainer};
   `,
   generatedHeader: css`
     position: sticky;
     top: 0;
     z-index: 1;
-    padding-bottom: 12px;
+    padding-bottom: 10px;
     background: ${token.colorBgContainer};
   `,
   generatedList: css`
     display: grid;
-    gap: 10px;
+    gap: 8px;
     padding-bottom: 8px;
   `,
   generatedRow: css`
     display: grid;
-    grid-template-columns: 34px 20px minmax(0, 1fr);
-    gap: 10px;
+    grid-template-columns: 28px 18px minmax(0, 1fr);
+    gap: 8px;
     align-items: start;
   `,
   generatedIndex: css`
     display: inline-flex;
-    width: 30px;
-    height: 30px;
+    width: 24px;
+    height: 24px;
     align-items: center;
     justify-content: center;
     color: ${token.colorTextSecondary};
@@ -154,13 +154,13 @@ const useStyles = createStyles(({ css, token }) => ({
   generatedRail: css`
     position: relative;
     display: flex;
-    min-height: 64px;
+    min-height: 54px;
     justify-content: center;
 
     &::before {
       position: absolute;
-      top: 16px;
-      bottom: -18px;
+      top: 14px;
+      bottom: -16px;
       width: 2px;
       background: ${token.colorBorderSecondary};
       content: '';
@@ -176,7 +176,7 @@ const useStyles = createStyles(({ css, token }) => ({
     z-index: 1;
     width: 12px;
     height: 12px;
-    margin-top: 9px;
+    margin-top: 6px;
     background: ${token.colorBgContainer};
     border: 3px solid ${token.colorBorder};
     border-radius: 50%;
@@ -193,7 +193,7 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   generatedCard: css`
     min-width: 0;
-    padding: 10px 12px;
+    padding: 8px 10px;
     background: ${token.colorBgElevated};
     border: 1px solid ${token.colorBorderSecondary};
     border-left: 3px solid ${token.colorBorder};
@@ -459,6 +459,11 @@ function activityTypeLabel(activityType?: string) {
   return mapping[activityType || ''] || activityType || '-';
 }
 
+function generatedCurrentText(nodes: ProcessTraceNode[], currentIndex: number) {
+  const currentNode = nodes[currentIndex];
+  return currentNode ? nodeTitle(currentNode) : '-';
+}
+
 const GeneratedFlow: React.FC<{
   bpmnXml?: string;
   timeline: ProcessTraceNode[];
@@ -488,16 +493,16 @@ const GeneratedFlow: React.FC<{
   return (
     <div className={styles.shell} style={{ height }} data-testid="process-diagram-viewer">
       <div className={styles.generatedFlow}>
-        <Flex className={styles.generatedHeader} vertical gap={8}>
-          <Flex align="center" gap={8} wrap>
-            <Tag color="processing">执行轨迹流程图</Tag>
-            <Typography.Text type="secondary">
-              已完成 {completedCount}/{nodes.length}
-            </Typography.Text>
-          </Flex>
+        <Flex className={styles.generatedHeader} align="center" justify="space-between" gap={8} wrap>
           <Typography.Text strong>
-            当前位置：{nodeTitle(nodes[currentIndex])}
+            {generatedCurrentText(nodes, currentIndex)}
           </Typography.Text>
+          <Space size={8} wrap>
+            <Badge status="processing" text="当前节点" />
+            <Typography.Text type="secondary">
+              {completedCount}/{nodes.length}
+            </Typography.Text>
+          </Space>
         </Flex>
         <div className={styles.generatedList}>
           {nodes.map((node, index) => {
@@ -523,15 +528,14 @@ const GeneratedFlow: React.FC<{
                     <Typography.Text strong className={styles.generatedTitle}>
                       {nodeTitle(node)}
                     </Typography.Text>
-                    {selected ? <Tag color="processing">当前位置</Tag> : null}
+                    {selected ? <Tag color="processing">当前</Tag> : null}
                     <Tag color={generatedStatusColor(status)}>
                       {processStatusLabel(node.status)}
                     </Tag>
                   </Flex>
                   <div className={styles.generatedMeta}>
-                    <Tag>{activityTypeLabel(node.activityType)}</Tag>
                     <Typography.Text type="secondary">
-                      {processStatusLabel(node.status)}
+                      {activityTypeLabel(node.activityType)}
                     </Typography.Text>
                   </div>
                 </div>

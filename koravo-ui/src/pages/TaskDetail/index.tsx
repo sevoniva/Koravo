@@ -258,6 +258,28 @@ function nextTaskInstruction(task?: TaskItem, hasForm?: boolean) {
   return '填写意见并提交';
 }
 
+function taskStepItems(task: TaskItem | undefined, hasForm?: boolean) {
+  const isDone = task?.status === 'COMPLETED';
+  const hasAssignee = Boolean(task?.assignee);
+  return [
+    {
+      title: hasAssignee ? '已分配' : '待认领',
+      content: hasAssignee ? organizationMemberName(task?.assignee) : '未分配',
+      status: hasAssignee || isDone ? 'finish' as const : 'process' as const,
+    },
+    {
+      title: isDone ? '已办理' : '办理',
+      content: hasForm ? '填写表单' : '缺少表单',
+      status: isDone ? 'finish' as const : hasAssignee ? 'process' as const : 'wait' as const,
+    },
+    {
+      title: isDone ? '已流转' : '流转',
+      content: taskStatusLabel(task?.status),
+      status: isDone ? 'finish' as const : 'wait' as const,
+    },
+  ];
+}
+
 const TaskActionTimeline: React.FC<{ logs?: AuditLogItem[] }> = ({
   logs = [],
 }) => {
@@ -303,40 +325,27 @@ const TaskHandlingContext: React.FC<{
       <Flex vertical gap={14}>
         <ProDescriptions
           size="small"
-          column={{ xs: 1, sm: 1, md: 3 }}
+          column={{ xs: 1, sm: 2, md: 4 }}
           dataSource={{
             node: taskDefinitionLabel(task?.taskDefinitionKey),
             assignee: task?.assignee
               ? organizationMemberName(task.assignee)
               : '未分配',
             status: taskStatusLabel(task?.status),
+            next: nextTaskInstruction(task, hasForm),
           }}
           columns={[
             { title: '当前节点', dataIndex: 'node' },
             { title: '处理人', dataIndex: 'assignee' },
             { title: '状态', dataIndex: 'status' },
+            { title: '下一步', dataIndex: 'next' },
           ]}
         />
         <Steps
           size="small"
           current={isDone ? 2 : hasAssignee ? 1 : 0}
           status={hasForm || isDone ? 'process' : 'wait'}
-          items={[
-            {
-              title: hasAssignee ? '处理人' : '待认领',
-              content: hasAssignee
-                ? organizationMemberName(task?.assignee)
-                : '未分配',
-            },
-            {
-              title: isDone ? '已提交' : '表单',
-              content: hasForm ? '已绑定' : '未绑定',
-            },
-            {
-              title: isDone ? '已流转' : '提交',
-              content: taskStatusLabel(task?.status),
-            },
-          ]}
+          items={taskStepItems(task, hasForm)}
         />
         <TaskActionTimeline logs={logs} />
       </Flex>
