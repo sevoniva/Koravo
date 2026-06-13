@@ -447,6 +447,7 @@ const FormBindings: React.FC = () => {
       key: 'bindingType',
       dataIndex: 'taskDefinitionKey',
       width: 120,
+      search: false,
       valueType: 'select',
       valueEnum: {
         [START_FORM_TASK_KEY]: { text: '启动表单' },
@@ -493,6 +494,7 @@ const FormBindings: React.FC = () => {
       title: '操作',
       valueType: 'option',
       width: 300,
+      search: false,
       render: (_, record) => {
         const canSyncVersion =
           bindingVersionState(record) === 'outdated' && Boolean(record.formSchema);
@@ -677,7 +679,7 @@ const FormBindings: React.FC = () => {
             success: true,
           };
         }}
-        search={{ labelWidth: 'auto' }}
+        search={{ labelWidth: 'auto', defaultCollapsed: false }}
         locale={{
           emptyText: (
             <Empty

@@ -360,6 +360,7 @@ function buildColumns(
       title: '发起人',
       dataIndex: 'startUserId',
       width: 120,
+      search: false,
       renderText: organizationMemberName,
     },
     {
@@ -393,6 +394,7 @@ function buildColumns(
       title: '操作',
       valueType: 'option',
       width: 160,
+      search: false,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -879,7 +881,7 @@ const ProcessInstances: React.FC = () => {
       <ProTable<OpsProcessInstance>
         rowKey="instanceId"
         columns={columns}
-        search={{ labelWidth: 'auto' }}
+        search={{ labelWidth: 'auto', defaultCollapsed: false }}
         scroll={{ x: 1120 }}
         request={async (params) => {
           const keyword = String(

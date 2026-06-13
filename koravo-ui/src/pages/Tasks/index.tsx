@@ -121,12 +121,14 @@ function buildTaskColumns(
       title: '流程',
       dataIndex: 'processDefinitionId',
       ellipsis: true,
+      search: false,
       renderText: (value) => processDefinitionLabel(value),
     },
     {
       title: '流程位置',
       dataIndex: 'taskDefinitionKey',
       width: 260,
+      search: false,
       render: (_, record) => (
         <ProcessContextSummary tasks={[record]} activeTask={record} />
       ),
@@ -135,6 +137,7 @@ function buildTaskColumns(
       title: '处理人',
       dataIndex: 'assignee',
       width: 120,
+      search: false,
       renderText: organizationMemberName,
     },
     {
@@ -148,12 +151,14 @@ function buildTaskColumns(
       title: '状态',
       dataIndex: 'status',
       width: 110,
+      search: false,
       render: (_, record) => <KoravoStatusTag status={record.status} />,
     },
     {
       title: '操作',
       valueType: 'option',
       width: 210,
+      search: false,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -220,6 +225,7 @@ function buildInstanceColumns(
       title: '发起人',
       dataIndex: 'startUserId',
       width: 120,
+      search: false,
       renderText: organizationMemberName,
     },
     {
@@ -245,12 +251,14 @@ function buildInstanceColumns(
       title: '状态',
       dataIndex: 'status',
       width: 110,
+      search: false,
       render: (_, record) => <KoravoStatusTag status={record.status} />,
     },
     {
       title: '操作',
       valueType: 'option',
       width: 160,
+      search: false,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -275,11 +283,14 @@ function buildInstanceColumns(
 }
 
 function taskParams(params: Record<string, unknown>): TaskListParams {
+  const keyword = String(
+    params.keyword || params.name || params.businessKey || '',
+  ).trim();
   return {
     page: Number(params.current || 1),
     pageSize: Number(params.pageSize || 10),
     candidateGroup: String(params.candidateGroup || '').trim() || undefined,
-    keyword: String(params.keyword || '').trim() || undefined,
+    keyword: keyword || undefined,
   };
 }
 

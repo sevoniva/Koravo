@@ -1326,12 +1326,14 @@ const Forms: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       width: 110,
+      search: false,
       render: (_, record) => <KoravoStatusTag status={record.status} />,
     },
     {
       title: '来源',
       dataIndex: 'assetOrigin',
       width: 120,
+      search: false,
       valueType: 'select',
       valueEnum: Object.fromEntries(
         Object.entries(ASSET_ORIGIN_LABELS).map(([value, text]) => [
@@ -1369,6 +1371,7 @@ const Forms: React.FC = () => {
       title: '操作',
       valueType: 'option',
       width: 280,
+      search: false,
       render: (_, record) => {
         const impact = bindingImpact(record.id, formBindings);
         const willActivate = record.status === 'DISABLED';

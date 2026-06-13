@@ -525,6 +525,7 @@ const ProcessModels: React.FC = () => {
       title: '来源',
       dataIndex: 'assetOrigin',
       width: 120,
+      search: false,
       valueType: 'select',
       valueEnum: Object.fromEntries(
         Object.entries(ASSET_ORIGIN_LABELS).map(([value, text]) => [
@@ -599,6 +600,7 @@ const ProcessModels: React.FC = () => {
       title: '操作',
       valueType: 'option',
       width: 340,
+      search: false,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -749,7 +751,7 @@ const ProcessModels: React.FC = () => {
             success: true,
           };
         }}
-        search={{ labelWidth: 'auto' }}
+        search={{ labelWidth: 'auto', defaultCollapsed: false }}
         options={{
           density: true,
           fullScreen: true,
