@@ -888,6 +888,13 @@ const TaskDetail: React.FC = () => {
   const canClaimTask =
     session.permissions?.canClaimTask ??
     ['manager', 'finance'].includes(session.role);
+  const canViewOperationalContext = Boolean(
+    session.permissions?.canOperateSystem ||
+      session.permissions?.canViewAudit ||
+      session.permissions?.canConfigureWorkflow ||
+      session.role === 'admin' ||
+      session.role === 'operator',
+  );
   const {
     canCompleteTask,
     canManageAssignedTask,
@@ -899,6 +906,8 @@ const TaskDetail: React.FC = () => {
     canClaimTask,
   });
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
+  const showComments =
+    canViewOperationalContext || Boolean(data?.comments?.length);
   const openTaskAsAssignee = React.useCallback((nextTask: TaskItem) => {
     history.push(`/tasks/${nextTask.taskId}`);
   }, []);
@@ -1058,107 +1067,82 @@ const TaskDetail: React.FC = () => {
           values={data?.processVariables}
         />
       </ProCard>
-      <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
-        <ProDescriptions<TaskItem>
-          column={{ xs: 1, sm: 1, md: 2 }}
-          dataSource={task}
-          columns={[
-            {
-              title: '任务追踪',
-              dataIndex: 'taskId',
-              render: (_, record) => (
-                <CopyableText
-                  value={record.taskId}
-                  displayValue={shortTraceLabel(record.taskId)}
-                />
-              ),
-            },
-            {
-              title: '任务名称',
-              dataIndex: 'name',
-              renderText: (_, record) => taskNameLabel(record),
-            },
-            {
-              title: '流程',
-              dataIndex: 'processDefinitionId',
-              renderText: processDefinitionLabel,
-            },
-            {
-              title: '实例追踪',
-              dataIndex: 'processInstanceId',
-              render: (_, record) => (
-                <Flex align="center" gap={8} wrap>
-                  <CopyableText
-                    value={record.processInstanceId}
-                    displayValue={shortTraceLabel(record.processInstanceId)}
-                  />
-                  <Button
-                    type="link"
-                    onClick={() =>
-                      history.push(
-                        `/process-instances/${record.processInstanceId}`,
-                      )
-                    }
-                  >
-                    查看实例
-                  </Button>
-                </Flex>
-              ),
-            },
-            {
-              title: '业务对象',
-              dataIndex: 'businessKey',
-              render: (_, record) => (
-                <CopyableText
-                  value={record.businessKey || record.processInstanceId}
-                  displayValue={
-                    record.businessKey
-                      ? businessKeyLabel(record.businessKey)
-                      : shortTraceLabel(record.processInstanceId)
-                  }
-                />
-              ),
-            },
-            {
-              title: '当前节点',
-              dataIndex: 'taskDefinitionKey',
-              renderText: taskDefinitionLabel,
-            },
-            {
-              title: '处理人',
-              dataIndex: 'assignee',
-              renderText: organizationMemberName,
-            },
-            {
-              title: '创建时间',
-              dataIndex: 'createTime',
-              renderText: formatDateTime,
-            },
-            {
-              title: '状态',
-              dataIndex: 'status',
-              render: (_, record) => <KoravoStatusTag status={record.status} />,
-            },
-          ]}
-        />
-      </ProCard>
-
-      <Flex vertical gap={16}>
-        <ProCard title="表单">
-          <ProDescriptions
+      {canViewOperationalContext ? (
+        <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
+          <ProDescriptions<TaskItem>
             column={{ xs: 1, sm: 1, md: 2 }}
-            dataSource={data?.formSchema}
+            dataSource={task}
             columns={[
               {
-                title: '表单名称',
-                dataIndex: 'formName',
-                renderText: (value) => formSchemaNameLabel(value),
+                title: '任务追踪',
+                dataIndex: 'taskId',
+                render: (_, record) => (
+                  <CopyableText
+                    value={record.taskId}
+                    displayValue={shortTraceLabel(record.taskId)}
+                  />
+                ),
               },
-              { title: '表单标识', dataIndex: 'formKey' },
               {
-                title: '版本',
-                dataIndex: 'version',
-                renderText: (value) => `v${value || 1}`,
+                title: '任务名称',
+                dataIndex: 'name',
+                renderText: (_, record) => taskNameLabel(record),
+              },
+              {
+                title: '流程',
+                dataIndex: 'processDefinitionId',
+                renderText: processDefinitionLabel,
+              },
+              {
+                title: '实例追踪',
+                dataIndex: 'processInstanceId',
+                render: (_, record) => (
+                  <Flex align="center" gap={8} wrap>
+                    <CopyableText
+                      value={record.processInstanceId}
+                      displayValue={shortTraceLabel(record.processInstanceId)}
+                    />
+                    <Button
+                      type="link"
+                      onClick={() =>
+                        history.push(
+                          `/process-instances/${record.processInstanceId}`,
+                        )
+                      }
+                    >
+                      查看实例
+                    </Button>
+                  </Flex>
+                ),
+              },
+              {
+                title: '业务对象',
+                dataIndex: 'businessKey',
+                render: (_, record) => (
+                  <CopyableText
+                    value={record.businessKey || record.processInstanceId}
+                    displayValue={
+                      record.businessKey
+                        ? businessKeyLabel(record.businessKey)
+                        : shortTraceLabel(record.processInstanceId)
+                    }
+                  />
+                ),
+              },
+              {
+                title: '当前节点',
+                dataIndex: 'taskDefinitionKey',
+                renderText: taskDefinitionLabel,
+              },
+              {
+                title: '处理人',
+                dataIndex: 'assignee',
+                renderText: organizationMemberName,
+              },
+              {
+                title: '创建时间',
+                dataIndex: 'createTime',
+                renderText: formatDateTime,
               },
               {
                 title: '状态',
@@ -1170,86 +1154,128 @@ const TaskDetail: React.FC = () => {
             ]}
           />
         </ProCard>
-        <ProCard title="表单快照">
-          <ProTable<FormSnapshotItem>
-            rowKey="id"
-            columns={[
-              ...snapshotColumns,
-              {
-                title: '操作',
-                valueType: 'option',
-                render: (_, record) => (
-                  <Button type="link" onClick={() => setSnapshot(record)}>
-                    查看
-                  </Button>
-                ),
-              },
-            ]}
-            dataSource={data?.formSnapshots || []}
-            search={false}
-            pagination={false}
-            options={false}
-            locale={{
-              emptyText: (
-                <Empty
-                  description="暂无表单快照"
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                >
-                  {task ? (
-                    <Button
-                      onClick={() =>
-                        history.push(
-                          `/process-instances/${task.processInstanceId}`,
-                        )
-                      }
-                    >
-                      查看实例进度
-                    </Button>
-                  ) : null}
-                </Empty>
-              ),
-            }}
-            scroll={{ x: 1000 }}
-          />
-        </ProCard>
-        <ProCard title="处理意见">
-          <ProTable<TaskCommentItem>
-            rowKey="id"
-            columns={commentColumns}
-            dataSource={data?.comments || []}
-            search={false}
-            pagination={false}
-            options={false}
-            locale={{
-              emptyText: (
-                <Empty
-                  description="暂无处理意见"
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+      ) : null}
+
+      {canViewOperationalContext || showComments ? (
+        <Flex vertical gap={16}>
+          {canViewOperationalContext ? (
+            <>
+              <ProCard title="表单">
+                <ProDescriptions
+                  column={{ xs: 1, sm: 1, md: 2 }}
+                  dataSource={data?.formSchema}
+                  columns={[
+                    {
+                      title: '表单名称',
+                      dataIndex: 'formName',
+                      renderText: (value) => formSchemaNameLabel(value),
+                    },
+                    { title: '表单标识', dataIndex: 'formKey' },
+                    {
+                      title: '版本',
+                      dataIndex: 'version',
+                      renderText: (value) => `v${value || 1}`,
+                    },
+                    {
+                      title: '状态',
+                      dataIndex: 'status',
+                      render: (_, record) => (
+                        <KoravoStatusTag status={record.status} />
+                      ),
+                    },
+                  ]}
                 />
-              ),
-            }}
-          />
-        </ProCard>
-        <ProCard title="审计记录">
-          <ProTable<AuditLogItem>
-            rowKey="id"
-            columns={auditColumns}
-            dataSource={data?.auditLogs || []}
-            search={false}
-            pagination={false}
-            options={false}
-            locale={{
-              emptyText: (
-                <Empty
-                  description="暂无审计记录"
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+              </ProCard>
+              <ProCard title="表单快照">
+                <ProTable<FormSnapshotItem>
+                  rowKey="id"
+                  columns={[
+                    ...snapshotColumns,
+                    {
+                      title: '操作',
+                      valueType: 'option',
+                      render: (_, record) => (
+                        <Button
+                          type="link"
+                          onClick={() => setSnapshot(record)}
+                        >
+                          查看
+                        </Button>
+                      ),
+                    },
+                  ]}
+                  dataSource={data?.formSnapshots || []}
+                  search={false}
+                  pagination={false}
+                  options={false}
+                  locale={{
+                    emptyText: (
+                      <Empty
+                        description="暂无表单快照"
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      >
+                        {task ? (
+                          <Button
+                            onClick={() =>
+                              history.push(
+                                `/process-instances/${task.processInstanceId}`,
+                              )
+                            }
+                          >
+                            查看实例进度
+                          </Button>
+                        ) : null}
+                      </Empty>
+                    ),
+                  }}
+                  scroll={{ x: 1000 }}
                 />
-              ),
-            }}
-            scroll={{ x: 1000 }}
-          />
-        </ProCard>
-      </Flex>
+              </ProCard>
+            </>
+          ) : null}
+          {showComments ? (
+            <ProCard title="处理意见">
+              <ProTable<TaskCommentItem>
+                rowKey="id"
+                columns={commentColumns}
+                dataSource={data?.comments || []}
+                search={false}
+                pagination={false}
+                options={false}
+                locale={{
+                  emptyText: (
+                    <Empty
+                      description="暂无处理意见"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  ),
+                }}
+              />
+            </ProCard>
+          ) : null}
+          {canViewOperationalContext ? (
+            <ProCard title="审计记录">
+              <ProTable<AuditLogItem>
+                rowKey="id"
+                columns={auditColumns}
+                dataSource={data?.auditLogs || []}
+                search={false}
+                pagination={false}
+                options={false}
+                locale={{
+                  emptyText: (
+                    <Empty
+                      description="暂无审计记录"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  ),
+                }}
+                scroll={{ x: 1000 }}
+              />
+            </ProCard>
+          ) : null}
+        </Flex>
+      ) : null}
 
       <KoravoDrawer
         title="表单快照"
