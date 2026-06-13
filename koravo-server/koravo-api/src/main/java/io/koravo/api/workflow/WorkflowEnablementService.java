@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -400,11 +401,11 @@ public class WorkflowEnablementService {
             form.setFormName(WorkflowEnablementDefaults.FORM_NAME);
             changed = true;
         }
-        if (!StringUtils.hasText(form.getSchemaJson()) || !form.getSchemaJson().contains("事项内容")) {
+        if (needsDefaultFormSchemaMigration(form)) {
             form.setSchemaJson(WorkflowEnablementDefaults.businessRequestFormSchema());
             form.setUiSchemaJson(WorkflowEnablementDefaults.businessRequestFormUiSchema());
             form.setVersion(Math.max(1, form.getVersion() + 1));
-            actions.add("更新业务申请表");
+            actions.add("更新业务申请表为多人会签");
             changed = true;
         }
         if (!StringUtils.hasText(form.getUiSchemaJson()) || !form.getUiSchemaJson().contains("organizationProfile")) {
@@ -427,6 +428,20 @@ public class WorkflowEnablementService {
         }
     }
 
+    private boolean needsDefaultFormSchemaMigration(KoFormSchema form) {
+        String schemaJson = form.getSchemaJson();
+        String uiSchemaJson = form.getUiSchemaJson();
+        return !StringUtils.hasText(schemaJson)
+                || !schemaJson.contains("事项内容")
+                || !schemaJson.contains("\"approvalUsers\"")
+                || schemaJson.contains("\"managerApprover\"")
+                || schemaJson.contains("\"financeApprover\"")
+                || !StringUtils.hasText(uiSchemaJson)
+                || !uiSchemaJson.contains("\"approvalUsers\"")
+                || uiSchemaJson.contains("\"managerApprover\"")
+                || uiSchemaJson.contains("\"financeApprover\"");
+    }
+
     private KoFormBinding ensureBinding(
             String tenantId,
             String userId,
@@ -438,6 +453,11 @@ public class WorkflowEnablementService {
     ) {
         KoFormBinding binding = findMatchingBinding(tenantId, model, form, taskDefinitionKey);
         if (binding != null) {
+            if (binding.getFormSchemaVersion() != form.getVersion()
+                    || !Objects.equals(model.getId(), binding.getProcessModelId())
+                    || !Objects.equals(model.getFlowableDefinitionId(), binding.getProcessDefinitionId())) {
+                updateBinding(binding, userId, model, form, taskDefinitionKey, actions);
+            }
             return binding;
         }
         binding = findReusableBinding(tenantId, model, taskDefinitionKey);

@@ -223,6 +223,52 @@ class WorkflowEnablementServiceTest {
     }
 
     @Test
+    void initMigratesLegacyApprovalFieldsToApprovalUsers() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = deployedModel();
+        KoFormSchema form = activeForm();
+        form.setSchemaJson(legacyApprovalFormSchema());
+        form.setUiSchemaJson(legacyApprovalFormUiSchema());
+        KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        KoFormBinding approvalBinding = binding("approval-binding", "form-1", 2, WorkflowEnablementDefaults.PRIMARY_TASK_KEY);
+        when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                WorkflowEnablementDefaults.PROCESS_KEY
+        )).thenReturn(Optional.of(model));
+        when(formSchemaRepository.findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                WorkflowEnablementDefaults.FORM_KEY
+        )).thenReturn(Optional.of(form));
+        when(formSchemaRepository.save(form)).thenReturn(form);
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.START_FORM_TASK_KEY
+        )).thenReturn(Optional.of(startBinding));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "pd-1",
+                WorkflowEnablementDefaults.PRIMARY_TASK_KEY
+        )).thenReturn(Optional.of(approvalBinding));
+        when(formBindingRepository.save(any(KoFormBinding.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        WorkflowEnablementInitResponse response = service.init();
+
+        assertThat(form.getSchemaJson()).contains("\"approvalUsers\"");
+        assertThat(form.getSchemaJson()).doesNotContain("\"managerApprover\"", "\"financeApprover\"");
+        assertThat(form.getUiSchemaJson()).contains("\"approvalUsers\"");
+        assertThat(form.getVersion()).isEqualTo(3);
+        assertThat(startBinding.getFormSchemaVersion()).isEqualTo(3);
+        assertThat(approvalBinding.getFormSchemaVersion()).isEqualTo(3);
+        assertThat(response.actions()).contains(
+                "更新业务申请表为多人会签",
+                "更新启动表单绑定",
+                "更新审批任务表单绑定"
+        );
+    }
+
+    @Test
     void statusReturnsInitializedWhenWorkflowAssetsAreReady() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
@@ -388,6 +434,35 @@ class WorkflowEnablementServiceTest {
                     <endEvent id="end"/>
                   </process>
                 </definitions>
+                """;
+    }
+
+    private String legacyApprovalFormSchema() {
+        return """
+                {
+                  "type": "object",
+                  "required": ["applicant", "department", "subject", "businessDescription", "managerApprover", "financeApprover"],
+                  "properties": {
+                    "applicant": { "type": "string", "title": "申请人" },
+                    "department": { "type": "string", "title": "申请部门" },
+                    "subject": { "type": "string", "title": "申请主题" },
+                    "businessDescription": { "type": "string", "title": "事项内容", "ui:widget": "textarea" },
+                    "managerApprover": { "type": "string", "title": "业务审批人" },
+                    "financeApprover": { "type": "string", "title": "财务复核人" }
+                  }
+                }
+                """;
+    }
+
+    private String legacyApprovalFormUiSchema() {
+        return """
+                {
+                  "applicant": { "widget": "organizationProfile" },
+                  "department": { "widget": "organizationProfile" },
+                  "managerApprover": { "widget": "organizationMember" },
+                  "financeApprover": { "widget": "organizationMember" },
+                  "businessDescription": { "widget": "textarea" }
+                }
                 """;
     }
 

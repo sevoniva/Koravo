@@ -223,6 +223,27 @@ function defaultApprovalUsers(field: StartFormField) {
   return Array.from(new Set(values));
 }
 
+function approvalUserRules(field: StartFormField) {
+  const rules: Array<{
+    required?: boolean;
+    message?: string;
+    validator?: (_: unknown, value: unknown) => Promise<void>;
+  }> = [];
+  if (field.required) {
+    rules.push({ required: true, message: `请选择${field.title}` });
+  }
+  if (field.fieldKey === 'approvalUsers') {
+    rules.push({
+      validator: async (_: unknown, value: unknown) => {
+        const selected = Array.isArray(value) ? value.filter(Boolean) : [];
+        if (selected.length >= 2) return;
+        throw new Error('请选择至少两名审批人');
+      },
+    });
+  }
+  return rules;
+}
+
 function formSchemaLabel(schema?: FormSchemaItem, version?: number) {
   if (!schema) return version ? `表单版本 v${version}` : '已绑定表单';
   return formSchemaOptionLabel(schema, version)
@@ -479,6 +500,11 @@ const StartInstanceFields: React.FC<{
       }
     }
     const processDefinitionKey = form.getFieldValue('processDefinitionKey');
+    if (!processDefinitionKey && startableWorkflows.length === 1) {
+      const workflow = startableWorkflows[0];
+      setProcessContext(workflow.processDefinitionKey, workflow.processModelId);
+      return;
+    }
     if (processDefinitionKey && !form.getFieldValue('processModelId')) {
       setProcessContext(processDefinitionKey);
     }
@@ -602,16 +628,7 @@ const StartInstanceFields: React.FC<{
                               showSearch: true,
                               optionFilterProp: 'label',
                             }}
-                            rules={
-                              field.required
-                                ? [
-                                    {
-                                      required: true,
-                                      message: `请选择${field.title}`,
-                                    },
-                                  ]
-                                : []
-                            }
+                            rules={approvalUserRules(field)}
                           />
                         ) : isStartAssigneeField(field) ? (
                           <ProFormSelect

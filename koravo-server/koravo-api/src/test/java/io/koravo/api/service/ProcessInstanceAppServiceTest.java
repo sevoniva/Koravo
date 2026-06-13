@@ -216,6 +216,57 @@ class ProcessInstanceAppServiceTest {
     }
 
     @Test
+    void startRejectsCollaborativeApprovalWithSingleApprovalUser() {
+        Map<String, Object> submitted = Map.of(
+                "subject", "生产发布",
+                "approvalUsers", List.of("manager-1")
+        );
+        StartProcessRequest request = new StartProcessRequest(
+                WorkflowEnablementDefaults.PROCESS_KEY,
+                "REQ-001",
+                submitted,
+                null,
+                null
+        );
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUser("starter", UserContextHolder.ROLE_APPLICANT);
+        when(organizationMemberRepository.findByTenantIdAndUserIdAndDeletedFalse("tenant-a", "starter"))
+                .thenReturn(Optional.of(member("starter", "真实申请专员", "业务二部", UserContextHolder.ROLE_APPLICANT)));
+
+        assertThatThrownBy(() -> service.start(request))
+                .hasMessageContaining("协同审批至少选择两名审批人");
+    }
+
+    @Test
+    void startRejectsCollaborativeApprovalWhenDefaultApproversAreIncomplete() {
+        Map<String, Object> submitted = Map.of("subject", "生产发布");
+        StartProcessRequest request = new StartProcessRequest(
+                WorkflowEnablementDefaults.PROCESS_KEY,
+                "REQ-001",
+                submitted,
+                null,
+                null
+        );
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUser("starter", UserContextHolder.ROLE_APPLICANT);
+        when(organizationMemberRepository.findByTenantIdAndUserIdAndDeletedFalse("tenant-a", "starter"))
+                .thenReturn(Optional.of(member("starter", "真实申请专员", "业务二部", UserContextHolder.ROLE_APPLICANT)));
+        when(organizationMemberRepository.findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(
+                "tenant-a",
+                UserContextHolder.ROLE_MANAGER,
+                "ACTIVE"
+        )).thenReturn(Optional.of(member("manager-1", "业务负责人", "业务二部", UserContextHolder.ROLE_MANAGER)));
+        when(organizationMemberRepository.findFirstByTenantIdAndRoleAndStatusAndDeletedFalseOrderByNameAsc(
+                "tenant-a",
+                UserContextHolder.ROLE_FINANCE,
+                "ACTIVE"
+        )).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.start(request))
+                .hasMessageContaining("协同审批至少选择两名审批人");
+    }
+
+    @Test
     void getReturnsInstanceDetailWithAuditLogs() {
         TenantContextHolder.setTenantId("tenant-a");
         ProcessInstanceDetailDTO instance = new ProcessInstanceDetailDTO(

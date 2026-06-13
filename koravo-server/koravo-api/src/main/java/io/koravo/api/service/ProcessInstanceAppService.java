@@ -131,7 +131,11 @@ public class ProcessInstanceAppService {
                 .findByTenantIdAndUserIdAndDeletedFalse(tenantId, UserContextHolder.getUserId())
                 .filter(member -> ACTIVE.equals(member.getStatus()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "发起人未同步到当前租户组织"));
-        List<String> approvalUsers = trustedApprovalUsers(tenantId, submittedVariables);
+        List<String> approvalUsers = trustedApprovalUsers(
+                tenantId,
+                request.processDefinitionKey(),
+                submittedVariables
+        );
         return new TrustedStartIdentity(
                 starter.getName(),
                 starter.getDepartment(),
@@ -156,10 +160,13 @@ public class ProcessInstanceAppService {
         );
     }
 
-    private List<String> trustedApprovalUsers(String tenantId, Map<String, Object> submittedVariables) {
+    private List<String> trustedApprovalUsers(String tenantId, String processDefinitionKey, Map<String, Object> submittedVariables) {
         List<String> requestedUsers = requestedApprovalUsers(submittedVariables);
         if (requestedUsers.isEmpty()) {
             requestedUsers = defaultApprovalUsers(tenantId);
+        }
+        if (WorkflowEnablementDefaults.PROCESS_KEY.equals(processDefinitionKey) && requestedUsers.size() < 2) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "协同审批至少选择两名审批人");
         }
         List<KoOrganizationMember> activeMembers = organizationMemberRepository
                 .findByTenantIdAndUserIdInAndStatusAndDeletedFalse(tenantId, requestedUsers, ACTIVE);
