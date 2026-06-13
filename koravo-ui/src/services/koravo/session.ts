@@ -204,3 +204,15 @@ export function defaultRouteForRole(role?: SessionRole) {
   if (role === 'applicant') return '/process-start';
   return '/tasks';
 }
+
+export function loginSuccessRedirectPath(
+  role?: SessionRole,
+  search = typeof window === 'undefined' ? '' : window.location.search,
+) {
+  const fallback = defaultRouteForRole(role);
+  const redirect = new URLSearchParams(search).get('redirect');
+  if (!redirect) return fallback;
+  if (!redirect.startsWith('/') || redirect.startsWith('//')) return fallback;
+  if (redirect === '/login' || redirect.startsWith('/login?')) return fallback;
+  return redirect;
+}

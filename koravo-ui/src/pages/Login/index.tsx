@@ -4,7 +4,7 @@ import { createStyles } from 'antd-style';
 import React from 'react';
 import { login } from '@/services/koravo/api';
 import {
-  defaultRouteForRole,
+  loginSuccessRedirectPath,
   type SessionRole,
   setAuthSession,
 } from '@/services/koravo/session';
@@ -63,7 +63,7 @@ const Login: React.FC = () => {
         expiresAt: session.expiresAt,
       });
       message.success('登录成功');
-      window.location.href = defaultRouteForRole(session.role as SessionRole);
+      window.location.href = loginSuccessRedirectPath(session.role as SessionRole);
     } finally {
       setSubmitting(false);
     }

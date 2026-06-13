@@ -7,6 +7,7 @@ import {
   clearAuthSession,
   setLastRequestId,
   setRuntimeSessionContext,
+  loginSuccessRedirectPath,
 } from './session';
 
 describe('session context', () => {
@@ -107,5 +108,27 @@ describe('session context', () => {
     expect(defaultRouteForRole('applicant')).toBe('/process-start');
     expect(defaultRouteForRole('manager')).toBe('/tasks');
     expect(defaultRouteForRole('finance')).toBe('/tasks');
+  });
+
+  it('returns users to the protected page after login', () => {
+    expect(
+      loginSuccessRedirectPath(
+        'manager',
+        '?redirect=%2Ftasks%3Ftab%3Dtodo%23current',
+      ),
+    ).toBe('/tasks?tab=todo#current');
+    expect(loginSuccessRedirectPath('manager')).toBe('/tasks');
+  });
+
+  it('ignores unsafe login redirects', () => {
+    expect(loginSuccessRedirectPath('admin', '?redirect=https%3A%2F%2Fevil.test')).toBe(
+      '/dashboard',
+    );
+    expect(loginSuccessRedirectPath('admin', '?redirect=%2F%2Fevil.test')).toBe(
+      '/dashboard',
+    );
+    expect(loginSuccessRedirectPath('admin', '?redirect=%2Flogin')).toBe(
+      '/dashboard',
+    );
   });
 });
