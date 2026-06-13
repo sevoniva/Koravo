@@ -619,6 +619,7 @@ const Tasks: React.FC = () => {
           loading={previewTrace.isFetching}
           trace={previewTrace.data}
           activeTask={previewTarget?.activeTask}
+          currentUserId={session.userId}
           currentTasks={
             previewTrace.data?.currentTasks?.length
               ? previewTrace.data.currentTasks

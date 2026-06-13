@@ -263,18 +263,25 @@ function focusDiagramElement(
 }
 
 function readableZoom(elementCount: number) {
-  if (elementCount <= 5) return 1.45;
-  if (elementCount <= 10) return 1.28;
-  if (elementCount <= 18) return 1.12;
+  if (elementCount <= 5) return 1.18;
+  if (elementCount <= 10) return 1.08;
   return 1;
+}
+
+function fitDiagramViewport(
+  canvas: Canvas,
+  elementRegistry: ElementRegistry,
+) {
+  const elements = renderableDiagramElements(elementRegistry);
+  canvas.zoom('fit-viewport', 'auto');
+  return elements;
 }
 
 function applyReadableViewport(
   canvas: Canvas,
   elementRegistry: ElementRegistry,
 ) {
-  const elements = renderableDiagramElements(elementRegistry);
-  canvas.zoom('fit-viewport', 'auto');
+  const elements = fitDiagramViewport(canvas, elementRegistry);
   const zoom = readableZoom(elements.length);
   if (zoom > 1) {
     canvas.zoom(zoom, 'auto');
@@ -584,15 +591,10 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
         await viewerRef.current.importXML(renderableBpmnXml);
         const canvas = viewerRef.current.get('canvas') as Canvas;
         const elementRegistry = viewerRef.current.get('elementRegistry') as ElementRegistry;
-        const elements = applyReadableViewport(canvas, elementRegistry);
+        const elements = fitDiagramViewport(canvas, elementRegistry);
         if (!elements.length) {
           throw new Error('流程图没有可显示节点');
         }
-        focusDiagramElement(
-          canvas,
-          elementRegistry,
-          currentDiagramElementId(currentActivityIds, timeline),
-        );
         applyMarkers();
         setDiagramReady(true);
       } catch (err) {

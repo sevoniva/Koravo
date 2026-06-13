@@ -34,15 +34,23 @@ const useStyles = createStyles(({ css, token }) => ({
     align-items: start;
 
     @media (min-width: 1080px) {
-      grid-template-columns: minmax(520px, 1.35fr) minmax(300px, 0.65fr);
+      grid-template-columns: minmax(560px, 1.5fr) minmax(280px, 0.5fr);
     }
   `,
   side: css`
     min-width: 0;
   `,
   contextLine: css`
-    padding-bottom: 12px;
+    padding-bottom: 10px;
     border-bottom: 1px solid ${token.colorBorderSecondary};
+  `,
+  contextTitle: css`
+    display: block;
+    max-width: 280px;
+  `,
+  contextMeta: css`
+    display: block;
+    max-width: 280px;
   `,
   statusStrip: css`
     display: grid;
@@ -69,7 +77,7 @@ const useStyles = createStyles(({ css, token }) => ({
     word-break: break-word;
   `,
   timelineWrap: css`
-    max-height: 220px;
+    max-height: 190px;
     overflow: auto;
     padding-right: 4px;
   `,
@@ -117,10 +125,26 @@ function currentNodeText(
   activeNodes: ProcessTraceNode[],
 ) {
   if (activeTask?.taskDefinitionKey) {
-    return taskDefinitionLabel(activeTask.taskDefinitionKey);
+    const activeNode = activeNodes.find(
+      (node) => node.activityId === activeTask.taskDefinitionKey,
+    );
+    if (activeNode) {
+      return nodeLabel(
+        activeNode,
+        taskDefinitionLabel(activeTask.taskDefinitionKey, {
+          name: activeTask.name,
+        }),
+      );
+    }
   }
   const labels = uniqueText(activeNodes.map((node) => nodeLabel(node)));
-  return labels.length ? labels.join('、') : '-';
+  if (labels.length) return labels.join('、');
+  if (activeTask?.taskDefinitionKey) {
+    return taskDefinitionLabel(activeTask.taskDefinitionKey, {
+      name: activeTask.name,
+    });
+  }
+  return '-';
 }
 
 function handlerText(
@@ -269,7 +293,17 @@ function nextStepText(
     : '等待认领';
 }
 
-function pendingTaskGroups(tasks: TaskItem[]) {
+function taskNodeLabel(task: TaskItem, trace?: ProcessTrace) {
+  const node = (trace?.timeline || []).find(
+    (item) => item.activityId === task.taskDefinitionKey,
+  );
+  return nodeLabel(
+    node,
+    taskDefinitionLabel(task.taskDefinitionKey, { name: task.name }),
+  );
+}
+
+function pendingTaskGroups(tasks: TaskItem[], trace?: ProcessTrace) {
   const groups = new Map<
     string,
     { key: string; label: string; handlers: string[]; activeTaskIds: string[] }
@@ -277,7 +311,7 @@ function pendingTaskGroups(tasks: TaskItem[]) {
 
   tasks.forEach((task) => {
     const key = task.taskDefinitionKey || task.taskId;
-    const label = taskDefinitionLabel(task.taskDefinitionKey);
+    const label = taskNodeLabel(task, trace);
     const current = groups.get(key) || {
       key,
       label,
@@ -350,7 +384,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const nextStep = nextStepText(trace, pendingTasks, activeTask, currentUserId);
   const timeline = trace?.timeline || [];
   const hasTimeline = timeline.length > 0;
-  const taskGroups = pendingTaskGroups(pendingTasks);
+  const taskGroups = pendingTaskGroups(pendingTasks, trace);
 
   return (
     <ProCard
@@ -380,11 +414,19 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             wrap
           >
             <Space size={6} wrap>
-              <Typography.Text strong>
-                {businessKeyLabel(trace?.businessKey)}
-              </Typography.Text>
-              <Typography.Text type="secondary">
+              <Typography.Text
+                strong
+                className={styles.contextTitle}
+                ellipsis={{ tooltip: processDefinitionLabel(trace?.processDefinitionId) }}
+              >
                 {processDefinitionLabel(trace?.processDefinitionId)}
+              </Typography.Text>
+              <Typography.Text
+                type="secondary"
+                className={styles.contextMeta}
+                ellipsis={{ tooltip: businessKeyLabel(trace?.businessKey) }}
+              >
+                {businessKeyLabel(trace?.businessKey)}
               </Typography.Text>
             </Space>
             <Badge
@@ -393,10 +435,10 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             />
           </Flex>
           <div className={styles.statusStrip}>
-            <Metric label="当前节点" value={nodeText} />
+            <Metric label="节点" value={nodeText} />
             <Metric label="处理人" value={currentHandlerText} />
-            <Metric label="下一步" value={nextStep} />
-            <Metric label="最近完成" value={nodeLabel(latestDone)} />
+            <Metric label="动作" value={nextStep} />
+            <Metric label="上一步" value={nodeLabel(latestDone)} />
           </div>
           {taskGroups.length ? (
             <Flex vertical gap={8}>
@@ -411,7 +453,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
                         : 'default'
                     }
                   >
-                    {group.label}：{group.handlers.join('、')}
+                    {group.label} · {group.handlers.join('、')}
                   </Tag>
                 ))}
               </div>

@@ -935,6 +935,7 @@ const ProcessInstances: React.FC = () => {
         <ProcessProgressCard
           loading={previewTrace.isFetching}
           trace={previewTrace.data}
+          currentUserId={session.userId}
           currentTasks={
             previewTrace.data?.currentTasks?.length
               ? previewTrace.data.currentTasks

@@ -542,6 +542,7 @@ const ProcessInstanceDetail: React.FC = () => {
         <ProcessProgressCard
           trace={trace}
           currentTasks={currentTasks}
+          currentUserId={session.userId}
           loading={traceLoading}
         />
         <ProCard

@@ -417,11 +417,11 @@ export function taskDefinitionLabel(
     return generatedWorkflowNodeLabel(task?.name) || productCopy(task?.name) || '-';
   }
   const mapping: Record<string, string> = {
-    managerApprovalTask: '审批',
-    financeApprovalTask: '复核',
+    managerApprovalTask: '主管审批',
+    financeApprovalTask: '财务复核',
     jointApprovalTask: '多人会签',
-    businessReviewTask: '审批',
-    financeReviewTask: '复核',
+    businessReviewTask: '业务审批',
+    financeReviewTask: '财务复核',
     reviewTask: '审批',
     Task_1: '提交申请',
     approveTask: '处理任务',

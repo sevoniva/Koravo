@@ -91,6 +91,8 @@ describe('display helpers', () => {
   });
 
   it('normalizes generated workflow node names for product surfaces', () => {
+    expect(taskDefinitionLabel('businessReviewTask')).toBe('业务审批');
+    expect(taskDefinitionLabel('financeReviewTask')).toBe('财务复核');
     expect(taskDefinitionLabel('dept05_approval_01')).toBe('业务五部一审');
     expect(taskDefinitionLabel('dept05_approval_04')).toBe('业务五部四审');
     expect(taskDefinitionLabel('dept_05_sub_process')).toBe('业务五部流程');
