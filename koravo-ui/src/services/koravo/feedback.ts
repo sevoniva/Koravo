@@ -26,5 +26,8 @@ export function showErrorNotification(config: {
   message: string;
   description?: string;
 }) {
-  notificationApi?.error(config);
+  notificationApi?.error({
+    title: config.message,
+    description: config.description,
+  });
 }
