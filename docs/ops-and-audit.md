@@ -126,7 +126,7 @@ All calls should include:
 - optional `X-Request-Id`
 
 The audit record stores tenant, user, request ID, client IP, action, resource type, resource ID, and structured details. Detail fields are redacted before persistence and again when queried so common `password`, `token`, and `secret` fields are not exposed.
-The console `Audit Logs` page can open a single event to inspect metadata and formatted redacted details without copying raw payloads.
+The console `审计日志` page can open a single event to inspect metadata and formatted redacted details without copying raw payloads.
 
 ## Current Limits
 

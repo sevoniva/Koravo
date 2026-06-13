@@ -173,12 +173,12 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 1. Start PostgreSQL, Redis, and MinIO with Docker Compose.
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
 3. Start frontend, open `http://localhost:8000`, and log in as `applicant` / `Koravo@2026`.
-4. Open `Start Process`, choose `协同审批流程`, confirm applicant and department are filled from the current organization member, then submit a request with multiple approval users.
-5. Open `My Requests` or the process instance detail page to inspect the flow diagram, current node, parallel tasks, form snapshot, and timeline.
-6. Log in as `manager` and `finance` in turn, open `My Tasks`, and complete each parallel approval task. The task detail page shows the current node, required action, prior records, next step, and business form snapshot.
+4. Open `发起流程`, choose `协同审批流程`, confirm `发起人` and `所属部门` are filled from the current organization member, then submit a request with multiple approval users.
+5. Open `我的申请` or the process instance detail page to inspect the flow diagram, current node, parallel tasks, form snapshot, and timeline.
+6. Log in as `manager` and `finance` in turn, open `我的待办`, and complete each parallel approval task. The task detail page shows the current node, required action, prior records, next step, and business form snapshot.
 7. Return to the instance detail page to confirm the flow is completed and both approval records are retained.
-8. Open `Audit Logs` to review model, start, task, form, datasource, connector, and ops events.
-9. Create, update, test, and inspect datasource test logs in `Data Sources`; pool settings are edited with structured fields.
+8. Open `审计日志` to review model, start, task, form, datasource, connector, and ops events.
+9. Create, update, test, and inspect datasource test logs in `数据源管理`; pool settings are edited with structured fields.
 
 The same workflow can be started through the API with `processDefinitionKey = collaborativeApproval` and variables:
 
@@ -198,7 +198,7 @@ The same calls are available in [examples/http/koravo.http](examples/http/koravo
 
 ## API Workflow Loop
 
-Prepare the default collaborative approval model from the console, then run release check and deployment from `Process Models`. Direct BPMN import is still available for custom models:
+Prepare the default collaborative approval model from the console, then run release check and deployment from `流程模型`. Direct BPMN import is still available for custom models:
 
 Login first:
 
@@ -304,9 +304,9 @@ Apache License 2.0. See [LICENSE](LICENSE).
 
 ## Roadmap
 
-- Model Center richer property panels and version diff/merge UI.
-- Task Center copy, transfer, delegate, and richer assignment features.
-- Form Center advanced field widgets, nested groups, arrays, and conditional forms.
-- Data Hub external secret backends and query governance.
-- Connector Hub registry UI, config templates, retry policies, OAuth, and mTLS.
-- Ops Center dead-letter jobs, retries, migrations, and deeper operational search.
+- 流程设计：补充更完整的属性面板、版本对比和合并能力。
+- 任务中心：补充批量处理、更多委派策略和处理效率工具。
+- 表单管理：补充高级字段、分组、数组和条件显隐。
+- 数据源管理：补充外部密钥托管和查询治理。
+- 集成动作：补充连接器模板、OAuth、mTLS 和更细的重试策略。
+- 运维审计：补充迁移任务和更深的运行态检索。

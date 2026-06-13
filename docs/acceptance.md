@@ -65,15 +65,15 @@ The console workflow check is:
 1. Start dependencies with `docker compose up -d postgres redis minio`.
 2. Start `koravo-bootstrap`.
 3. Start `koravo-ui`.
-4. Log in as `admin`, open `System Status`, and check workflow readiness.
-5. Use `Process Models` or `Process Designer` to validate and deploy the collaborative approval process.
-6. Create or update the business request form in `Forms`.
-7. Bind the start form and `jointApprovalTask` in `Form Bindings`.
-8. Log in as `applicant`, open `Start Process`, and start `collaborativeApproval` with multiple `approvalUsers`.
-9. Open `My Requests` to confirm the applicant can see the flow diagram, current node, handlers, and status.
-10. Log in as each approver, complete parallel approval tasks from `My Tasks` with form data and comments.
-11. Inspect task detail, instance detail, form snapshots, trace, and audit logs. Operators can use `Ops` for failed jobs, dead-letter jobs, and runtime actions.
-12. Use `Data Sources` to create, update, test, and inspect datasource test logs.
+4. Log in as `admin`, open `系统设置`, and check workflow readiness.
+5. Use `流程模型` or `流程设计` to validate and deploy the collaborative approval process.
+6. Create or update the business request form in `表单管理`.
+7. Bind the start form and `jointApprovalTask` in `表单绑定`.
+8. Log in as `applicant`, open `发起流程`, and start `collaborativeApproval` with multiple `approvalUsers`.
+9. Open `我的申请` to confirm the applicant can see the flow diagram, current node, handlers, and status.
+10. Log in as each approver, complete parallel approval tasks from `我的待办` with form data and comments.
+11. Inspect task detail, instance detail, form snapshots, trace, and audit logs. Operators can use `运维中心` for failed jobs, dead-letter jobs, and runtime actions.
+12. Use `数据源管理` to create, update, test, and inspect datasource test logs.
 
 ## HTTP Connector Workflow Check
 

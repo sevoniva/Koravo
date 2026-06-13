@@ -1,8 +1,8 @@
-# Task Center
+# 任务中心
 
 Koravo task APIs expose platform DTOs through `/api/v1`; controllers do not access Flowable native services directly.
 
-## My Tasks
+## 我的待办
 
 ```http
 GET /api/v1/tasks/my?page=1&pageSize=20
@@ -10,7 +10,7 @@ GET /api/v1/tasks/my?page=1&pageSize=20
 
 The response contains the current user's assigned runtime tasks.
 
-## Candidate Tasks
+## 待认领
 
 ```http
 GET /api/v1/tasks/candidates?page=1&pageSize=20
@@ -18,7 +18,7 @@ GET /api/v1/tasks/candidates?page=1&pageSize=20
 
 The response contains tasks that the current user or role can claim before handling.
 
-## Done Tasks
+## 已办任务
 
 ```http
 GET /api/v1/tasks/done?page=1&pageSize=20
@@ -26,17 +26,17 @@ GET /api/v1/tasks/done?page=1&pageSize=20
 
 The response contains finished historic tasks assigned to the current user.
 
-## Started Instances
+## 我的申请
 
 ```http
 GET /api/v1/tasks/started?page=1&pageSize=20
 ```
 
-The response contains process instances started by the current user. The console shows these under the Started tab and links the user to the process instance detail page for tracing and operational inspection.
+The response contains process instances started by the current user. The console shows these under `我的申请` and links the user to the process instance detail page for tracing and operational inspection.
 
 The `/process-instances` console page loads deployed process models from `GET /api/v1/process-models?status=DEPLOYED`. Selecting a model fills the process definition key for start, while the key field remains editable for direct API calls.
 
-## Task Detail
+## 任务详情
 
 ```http
 GET /api/v1/tasks/{taskId}
@@ -61,7 +61,7 @@ Task audit logs are queried from `ko_audit_log` by `resourceType = TASK` and `re
 The console task detail page links directly to `/process-instances/{instanceId}` so approvers can move from a task to the BPMN trace, timeline, current tasks, variables, and saved form snapshots without switching through Ops first.
 For completed historic tasks, the console switches to review mode: comments, variables, snapshots, and audit logs remain visible, while the completion form is hidden.
 
-## Complete Task
+## 完成任务
 
 ```http
 POST /api/v1/tasks/{taskId}/complete
@@ -92,6 +92,6 @@ Completion behavior:
 - renders approval tasks with bound business fields, conclusion, and opinion controls
 - validates required business fields before submitting the request
 
-## Current Limits
+## 当前边界
 
 - Advanced form widgets, nested groups, and conditional fields remain roadmap items for the console.
