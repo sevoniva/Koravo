@@ -86,7 +86,7 @@ class ProcessOpsServiceTest {
     }
 
     @Test
-    void capabilitiesExposeAvailableAndPlannedOpsBoundaries() {
+    void capabilitiesExposeAvailableOpsBoundaries() {
         var capabilities = service.capabilities();
 
         org.assertj.core.api.Assertions.assertThat(capabilities)
@@ -96,9 +96,11 @@ class ProcessOpsServiceTest {
                         "CONNECTOR_EXECUTION_LOGS",
                         "FAILED_TASK_INSPECTION",
                         "DEAD_LETTER_TASKS",
-                        "JOB_RETRY",
-                        "PROCESS_MIGRATION"
+                        "JOB_RETRY"
                 );
+        org.assertj.core.api.Assertions.assertThat(capabilities)
+                .extracting("status")
+                .containsOnly("AVAILABLE");
         org.assertj.core.api.Assertions.assertThat(capabilities)
                 .filteredOn(capability -> capability.key().equals("PROCESS_INSTANCE_TRACE"))
                 .extracting("status")

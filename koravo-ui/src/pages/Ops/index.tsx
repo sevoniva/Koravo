@@ -33,8 +33,8 @@ import {
   deleteFailedJob,
   getDeadLetterJob,
   getFailedJob,
-  getOpsSummary,
   getOpsProcessTrace,
+  getOpsSummary,
   listDeadLetterJobs,
   listFailedJobs,
   listOpsCapabilities,
@@ -526,7 +526,7 @@ const Ops: React.FC = () => {
           },
           {
             key: 'capabilities',
-            label: '能力边界',
+            label: '运维能力',
             children: (
               <ProTable<OpsCapabilityItem>
                 rowKey="key"

@@ -135,12 +135,6 @@ public class ProcessOpsService {
                         "任务重试",
                         "AVAILABLE",
                         "重试失败任务和死信任务，并写入审计日志。"
-                ),
-                new OpsCapabilityResponse(
-                        "PROCESS_MIGRATION",
-                        "流程迁移",
-                        "PLANNED",
-                        "预留流程定义间实例迁移能力。"
                 )
         );
     }
