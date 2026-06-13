@@ -511,6 +511,8 @@ public class WorkflowEnablementService {
                 || !schemaJson.contains("\"approvalUsers\"")
                 || schemaJson.contains("\"managerApprover\"")
                 || schemaJson.contains("\"financeApprover\"")
+                || schemaJson.contains("\"approved\"")
+                || schemaJson.contains("\"reviewComment\"")
                 || !StringUtils.hasText(uiSchemaJson)
                 || !uiSchemaJson.contains("\"approvalUsers\"")
                 || !uiSchemaJson.contains("\"permission\": \"readonly\"")

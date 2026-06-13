@@ -99,15 +99,6 @@ public final class WorkflowEnablementDefaults {
                         "type": "string"
                       }
                     },
-                    "approved": {
-                      "type": "boolean",
-                      "title": "审批通过"
-                    },
-                    "reviewComment": {
-                      "type": "string",
-                      "title": "处理意见",
-                      "ui:widget": "textarea"
-                    },
                     "remark": {
                       "type": "string",
                       "title": "备注",
@@ -136,9 +127,6 @@ public final class WorkflowEnablementDefaults {
                     "widget": "textarea"
                   },
                   "expectedResult": {
-                    "widget": "textarea"
-                  },
-                  "reviewComment": {
                     "widget": "textarea"
                   },
                   "remark": {

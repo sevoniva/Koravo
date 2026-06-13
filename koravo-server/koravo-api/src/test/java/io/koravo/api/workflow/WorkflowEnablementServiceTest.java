@@ -263,7 +263,12 @@ class WorkflowEnablementServiceTest {
 
         assertThat(form.getSchemaJson()).contains("\"approvalUsers\"");
         assertThat(form.getSchemaJson()).contains("\"readOnly\": true");
-        assertThat(form.getSchemaJson()).doesNotContain("\"managerApprover\"", "\"financeApprover\"");
+        assertThat(form.getSchemaJson()).doesNotContain(
+                "\"managerApprover\"",
+                "\"financeApprover\"",
+                "\"approved\"",
+                "\"reviewComment\""
+        );
         assertThat(form.getUiSchemaJson()).contains("\"approvalUsers\"");
         assertThat(form.getUiSchemaJson()).contains("\"permission\": \"readonly\"");
         assertThat(form.getVersion()).isEqualTo(3);

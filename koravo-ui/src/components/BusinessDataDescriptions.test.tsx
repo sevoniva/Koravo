@@ -86,4 +86,29 @@ describe('BusinessDataDescriptions', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/"applicantName"/)).not.toBeInTheDocument();
   });
+
+  it('keeps task decision fields when they are outside the bound form schema', () => {
+    render(
+      <BusinessDataDescriptions
+        schemaJson={JSON.stringify({
+          type: 'object',
+          properties: {
+            subject: { type: 'string', title: '申请主题' },
+          },
+        })}
+        values={{
+          subject: '生产发布',
+          approved: true,
+          reviewComment: '同意发布',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('申请主题')).toBeInTheDocument();
+    expect(screen.getByText('生产发布')).toBeInTheDocument();
+    expect(screen.getByText('处理结论')).toBeInTheDocument();
+    expect(screen.getByText('是')).toBeInTheDocument();
+    expect(screen.getByText('处理意见')).toBeInTheDocument();
+    expect(screen.getByText('同意发布')).toBeInTheDocument();
+  });
 });

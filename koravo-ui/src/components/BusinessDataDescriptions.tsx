@@ -213,6 +213,17 @@ function isLongField(field: BusinessField, value: unknown) {
   );
 }
 
+function appendExtraFields(fields: BusinessField[], dataSource: JsonRecord) {
+  const knownKeys = new Set(fields.map((field) => field.key));
+  const extraFields = Object.keys(dataSource)
+    .filter((key) => !knownKeys.has(key))
+    .map((key) => ({
+      key,
+      title: businessFieldLabel(key),
+    }));
+  return [...fields, ...extraFields];
+}
+
 const BusinessDataDescriptions: React.FC<BusinessDataDescriptionsProps> = ({
   emptyText = '暂无业务数据',
   schemaJson,
@@ -222,7 +233,7 @@ const BusinessDataDescriptions: React.FC<BusinessDataDescriptionsProps> = ({
   const dataSource = (maskSecret(values || {}) || {}) as JsonRecord;
   const fieldsFromSchema = schemaFields(schemaJson, uiSchemaJson);
   const fields = fieldsFromSchema.length
-    ? fieldsFromSchema
+    ? appendExtraFields(fieldsFromSchema, dataSource)
     : Object.keys(dataSource).map((key) => ({
         key,
         title: businessFieldLabel(key),
