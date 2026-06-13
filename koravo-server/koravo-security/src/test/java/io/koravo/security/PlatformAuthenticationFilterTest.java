@@ -25,7 +25,7 @@ class PlatformAuthenticationFilterTest {
                 "default",
                 PlatformIdentityVerifier.allowAll()
         );
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/tasks/my");
         request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ID, "finance");
         request.addHeader(PlatformAuthenticationFilter.HEADER_USER_ROLE, "finance");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -48,7 +48,7 @@ class PlatformAuthenticationFilterTest {
                 "default",
                 PlatformIdentityVerifier.allowAll()
         );
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/tasks/my");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, (servletRequest, servletResponse) -> {
@@ -70,6 +70,25 @@ class PlatformAuthenticationFilterTest {
         );
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/v3/api-docs");
         request.setRequestURI("/v3/api-docs");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) ->
+                assertThat(UserContextHolder.getUserId()).isEqualTo(UserContextHolder.ANONYMOUS)
+        );
+
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void keepsBasicHealthPublicWithoutPlatformIdentity() throws Exception {
+        PlatformAuthenticationFilter filter = new PlatformAuthenticationFilter(
+                "",
+                false,
+                "default",
+                PlatformIdentityVerifier.allowAll()
+        );
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
+        request.setRequestURI("/api/v1/health");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, (servletRequest, servletResponse) ->

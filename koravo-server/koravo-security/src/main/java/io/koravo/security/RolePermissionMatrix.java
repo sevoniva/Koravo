@@ -136,6 +136,7 @@ public final class RolePermissionMatrix {
         return path.startsWith("/swagger-ui/")
                 || path.equals("/v3/api-docs")
                 || path.startsWith("/v3/api-docs/")
+                || path.equals("/api/v1/health")
                 || path.equals("/api/v1/auth/login");
     }
 

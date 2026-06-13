@@ -65,8 +65,9 @@ class RolePermissionFilterTest {
     }
 
     @Test
-    void anonymousRequestsAreDeniedByRoleMatrix() throws Exception {
-        assertThat(allows("GET", "/api/v1/health")).isFalse();
+    void anonymousRequestsCanReadBasicHealthOnly() throws Exception {
+        assertThat(allows("GET", "/api/v1/health")).isTrue();
+        assertThat(allows("GET", "/api/v1/system/health")).isFalse();
     }
 
     @Test
