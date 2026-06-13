@@ -21,6 +21,7 @@ import {
   getSessionContext,
   hasAuthSession,
   type SessionContext,
+  type SessionPermissions,
   type SessionRole,
   sessionRequestHeaders,
   setRuntimeSessionContext,
@@ -35,6 +36,7 @@ export interface KoravoCurrentUser {
   userid: string;
   access: SessionRole;
   tenantId: string;
+  permissions?: SessionPermissions;
 }
 
 interface HealthResponse {
@@ -44,6 +46,7 @@ interface HealthResponse {
     userId?: string;
     role?: SessionRole;
     requestId?: string;
+    permissions?: SessionPermissions;
   };
   requestId?: string;
 }
@@ -70,6 +73,7 @@ async function loadRuntimeSession() {
       userId: payload.data.userId,
       role: payload.data.role,
       requestId: payload.requestId || payload.data.requestId,
+      permissions: payload.data.permissions,
     });
   } catch {
     return getSessionContext();
@@ -106,6 +110,7 @@ export async function getInitialState(): Promise<{
           userid: session.userId,
           access: session.role,
           tenantId: session.tenantId,
+          permissions: session.permissions,
         }
       : undefined,
     session,

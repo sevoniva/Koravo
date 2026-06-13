@@ -52,4 +52,22 @@ describe('access rules', () => {
     expect(rules.canManageIntegration).toBe(false);
     expect(rules.canOperateSystem).toBe(true);
   });
+
+  it('uses server permissions before role fallback', () => {
+    const rules = access({
+      currentUser: {
+        access: 'admin',
+        permissions: {
+          canViewDashboard: false,
+          canConfigureWorkflow: false,
+          canOperateSystem: true,
+        },
+      },
+    });
+
+    expect(rules.canViewDashboard).toBe(false);
+    expect(rules.canConfigureWorkflow).toBe(false);
+    expect(rules.canOperateSystem).toBe(true);
+    expect(rules.canManageOrganization).toBe(true);
+  });
 });

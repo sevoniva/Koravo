@@ -5,10 +5,24 @@ export interface SessionContext {
   requestId: string;
   token?: string;
   expiresAt?: string;
+  permissions?: SessionPermissions;
   lastRequestId?: string;
 }
 
 export type SessionRole = 'admin' | 'applicant' | 'manager' | 'finance' | 'operator';
+export type SessionPermissionKey =
+  | 'canAdmin'
+  | 'canViewDashboard'
+  | 'canViewOwnWork'
+  | 'canStartProcess'
+  | 'canClaimTask'
+  | 'canHandleTask'
+  | 'canConfigureWorkflow'
+  | 'canManageOrganization'
+  | 'canManageIntegration'
+  | 'canManageSystem'
+  | 'canOperateSystem';
+export type SessionPermissions = Partial<Record<SessionPermissionKey, boolean>>;
 
 const LEGACY_SESSION_STORAGE_KEY = 'koravo.session';
 const AUTH_SESSION_STORAGE_KEY = 'koravo.auth';
@@ -97,6 +111,7 @@ export function setRuntimeSessionContext(value: Partial<SessionContext>) {
     requestId: value.requestId || runtimeSession.requestId,
     token: value.token ?? runtimeSession.token,
     expiresAt: value.expiresAt ?? runtimeSession.expiresAt,
+    permissions: value.permissions ?? runtimeSession.permissions,
   };
 }
 
@@ -137,6 +152,7 @@ function readStoredAuthSession() {
       requestId: parsed.requestId || '',
       token: parsed.token,
       expiresAt: parsed.expiresAt,
+      permissions: parsed.permissions,
     };
   } catch {
     return undefined;
@@ -160,6 +176,7 @@ export function setAuthSession(value: Partial<SessionContext> & { token: string 
         requestId: runtimeSession.requestId,
         token: runtimeSession.token,
         expiresAt: runtimeSession.expiresAt,
+        permissions: runtimeSession.permissions,
       }),
     );
   } catch {

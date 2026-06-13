@@ -1,6 +1,7 @@
 package io.koravo.api.web;
 
 import io.koravo.common.api.ApiResponse;
+import io.koravo.security.RolePermissionMatrix;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +24,8 @@ public class HealthController {
                 "time", Instant.now().toString(),
                 "tenantId", TenantContextHolder.getTenantId(),
                 "userId", UserContextHolder.getUserId(),
-                "role", UserContextHolder.getRole()
+                "role", UserContextHolder.getRole(),
+                "permissions", RolePermissionMatrix.capabilitiesForRole(UserContextHolder.getRole())
         ));
     }
 }

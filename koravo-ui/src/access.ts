@@ -1,13 +1,23 @@
-/**
- * @see https://umijs.org/docs/max/access#access
- * */
-export default function access(
-  initialState:
-    | { currentUser?: { access?: string } }
-    | undefined,
-) {
-  const { currentUser } = initialState ?? {};
-  const role = currentUser?.access;
+import type {
+  SessionPermissionKey,
+  SessionPermissions,
+} from './services/koravo/session';
+
+const permissionKeys: SessionPermissionKey[] = [
+  'canAdmin',
+  'canViewDashboard',
+  'canViewOwnWork',
+  'canStartProcess',
+  'canClaimTask',
+  'canHandleTask',
+  'canConfigureWorkflow',
+  'canManageOrganization',
+  'canManageIntegration',
+  'canManageSystem',
+  'canOperateSystem',
+];
+
+function fallbackPermissions(role?: string): Required<SessionPermissions> {
   const isAdmin = role === 'admin';
   const isApprover = role === 'manager' || role === 'finance';
   const isWorkflowUser = role === 'applicant' || isApprover;
@@ -25,4 +35,24 @@ export default function access(
     canManageSystem: isAdmin,
     canOperateSystem: isOperator,
   };
+}
+
+function normalizePermissions(role?: string, permissions?: SessionPermissions) {
+  const fallback = fallbackPermissions(role);
+  return permissionKeys.reduce<Required<SessionPermissions>>((result, key) => {
+    result[key] =
+      typeof permissions?.[key] === 'boolean'
+        ? permissions[key]
+        : fallback[key];
+    return result;
+  }, fallback);
+}
+
+export default function access(
+  initialState:
+    | { currentUser?: { access?: string; permissions?: SessionPermissions } }
+    | undefined,
+) {
+  const { currentUser } = initialState ?? {};
+  return normalizePermissions(currentUser?.access, currentUser?.permissions);
 }

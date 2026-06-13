@@ -1,4 +1,5 @@
 import { apiData, http } from './http'
+import type { SessionPermissions } from './session'
 import type {
   BpmnTaskDefinition,
   DashboardSummary,
@@ -26,6 +27,7 @@ export interface HealthInfo {
   tenantId: string
   userId: string
   role: string
+  permissions?: SessionPermissions
 }
 
 export interface WorkflowEnablementStatus {
