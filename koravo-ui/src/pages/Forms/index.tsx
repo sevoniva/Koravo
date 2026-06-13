@@ -156,19 +156,34 @@ const useStyles = createStyles(({ css, token }) => ({
   fieldGrid: css`
     display: grid;
     width: 100%;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 10px 12px;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 12px;
     align-items: start;
     padding: 2px 0;
 
     .ant-form-item {
+      width: 100%;
       min-width: 0;
       margin-bottom: 8px;
+    }
+
+    .ant-pro-field-xs,
+    .ant-pro-field-sm,
+    .ant-select,
+    .ant-input,
+    .ant-input-number,
+    .ant-picker {
+      width: 100%;
+      max-width: 100%;
     }
 
     .ant-form-item-label > label {
       color: ${token.colorTextSecondary};
       font-size: ${token.fontSizeSM}px;
+    }
+
+    @media (max-width: 960px) {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
     }
 
     @media (max-width: 760px) {
@@ -180,7 +195,7 @@ const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   fieldMain: css`
-    grid-column: span 3;
+    grid-column: span 6;
 
     .ant-form-item-control-input-content,
     .ant-input {
@@ -193,7 +208,7 @@ const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   fieldWide: css`
-    grid-column: span 3;
+    grid-column: span 6;
 
     .ant-form-item-control-input-content,
     .ant-select,
@@ -399,7 +414,7 @@ const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
   organizationMemberMulti: '组织成员多选',
 };
 
-const systemFieldTooltip = '系统字段由组织档案联动，保存时自动按系统带出处理。';
+const systemFieldTooltip = '由组织成员档案自动带出。';
 
 const parseJsonObject = (value?: string) => {
   if (!value) return {};
@@ -1353,7 +1368,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                   tooltip={
                     isSystemField
                       ? systemFieldTooltip
-                      : '用于流程变量和表单绑定，建议使用稳定英文名。'
+                      : '流程变量名，保存后用于绑定。'
                   }
                   rules={[
                     { required: true, message: '请输入业务字段' },
@@ -1435,7 +1450,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                   formItemProps={{ className: classNames.fieldWide }}
                   disabled={isSystemField}
                   placeholder={
-                    isSystemField ? '自动联动' : '例如：请输入事项说明'
+                    isSystemField ? '自动联动' : '请输入事项说明'
                   }
                 />
                 <ProFormSelect
@@ -1516,7 +1531,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                   name="pattern"
                   label="格式正则"
                   formItemProps={{ className: classNames.fieldWide }}
-                  placeholder="例如：^[A-Z0-9]+$"
+                  placeholder="^[A-Z0-9]+$"
                 />
               </>
             );
@@ -1532,13 +1547,13 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
           name="visibleWhenField"
           label="显示字段"
           formItemProps={{ className: classNames.fieldWide }}
-          placeholder="例如：type"
+          placeholder="字段名"
         />
         <ProFormText
           name="visibleWhenValue"
           label="显示值"
           formItemProps={{ className: classNames.fieldWide }}
-          placeholder="例如：合同"
+          placeholder="字段值"
         />
         <ProFormSwitch
           name="required"
@@ -1770,7 +1785,7 @@ const Forms: React.FC = () => {
         const nextAction = !fields.length
           ? {
               text: '编辑字段',
-              description: '补齐字段',
+              description: '完善字段',
               onClick: () => setEditing(record),
             }
           : willActivate
@@ -1946,13 +1961,16 @@ const Forms: React.FC = () => {
               </Button>
             }
             initialValues={{ fields: defaultFields }}
-            modalProps={{ destroyOnHidden: true, width: 920 }}
+            modalProps={{
+              destroyOnHidden: true,
+              width: 'min(1180px, calc(100vw - 48px))',
+            }}
             onFinish={(values) => saveFormSchema(values)}
           >
             <ProFormText
               name="formKey"
               label="表单标识"
-              tooltip="用于系统保存和表单绑定，建议使用英文、数字和下划线。"
+              tooltip="保存为表单标识，供流程绑定使用。"
               rules={[{ required: true, message: '请输入表单标识' }]}
             />
             <ProFormText
@@ -1985,7 +2003,7 @@ const Forms: React.FC = () => {
         }
         modalProps={{
           destroyOnHidden: true,
-          width: 920,
+          width: 'min(1180px, calc(100vw - 48px))',
           onCancel: () => setEditing(undefined),
         }}
         onOpenChange={(open) => {
@@ -2030,7 +2048,7 @@ const Forms: React.FC = () => {
         <ProFormText
           name="formKey"
           label="表单标识"
-          tooltip="用于系统保存和表单绑定，建议使用英文、数字和下划线。"
+          tooltip="保存为表单标识，供流程绑定使用。"
           rules={[{ required: true, message: '请输入表单标识' }]}
         />
         <ProFormText

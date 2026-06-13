@@ -430,7 +430,7 @@ const ProcessDesigner: React.FC = () => {
               <Alert
                 showIcon
                 type="warning"
-                title="先补齐发布条件"
+                title="先完善发布条件"
                 description="处理未通过项后再部署，避免发起后缺表单或缺办理人。"
               />
               {renderReleaseCheckItem(

@@ -245,7 +245,7 @@ function buildModelReadiness(
     invalidBindingCount === 0;
   const canStart = record.status === 'DEPLOYED' && deployReady;
   let statusText = '待配置';
-  let description = hasStartBinding ? '补齐任务表单后可发起' : '先绑定发起表单';
+  let description = hasStartBinding ? '完善任务表单后可发起' : '先绑定发起表单';
   const nextAction = resolveModelNextAction(
     record,
     hasStartBinding,
@@ -483,7 +483,7 @@ const ProcessModels: React.FC = () => {
           description={
             releaseReady
               ? '可发布。'
-              : '补齐未通过项后再发布。'
+              : '处理未通过项后再发布。'
           }
         />
         {renderCheckItem(
