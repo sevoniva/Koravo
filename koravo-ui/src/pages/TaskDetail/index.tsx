@@ -4,7 +4,12 @@ import {
   ProCard,
   type ProColumns,
   ProDescriptions,
+  ProFormDatePicker,
+  ProFormDependency,
+  ProFormDigit,
   ProFormSelect,
+  ProFormSwitch,
+  ProFormText,
   ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
@@ -27,6 +32,7 @@ import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
 import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
   type AuditLogItem,
@@ -44,7 +50,14 @@ import {
 import {
   applyOrganizationProfileValues,
   getOrganizationMembers,
+  isOrganizationAssigneeField,
+  isOrganizationProfileField,
+  organizationApprovalMemberSelectOptions,
+  organizationAssigneeFieldValue,
+  organizationAssigneeRole,
   organizationMemberName,
+  organizationMemberSelectOptions,
+  organizationProfileFieldValue,
 } from '@/services/koravo/organization';
 import { getSessionContext } from '@/services/koravo/session';
 import {
@@ -61,6 +74,7 @@ import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 import { taskActionAccess, taskHandlingInstruction } from '@/utils/taskAccess';
 import {
   filterWorkflowFormValues,
+  isWorkflowFieldVisible,
   parseWorkflowFormFields,
   visibleWorkflowFormFields,
   type WorkflowFormField,
@@ -80,6 +94,17 @@ interface TaskActionForm {
 }
 
 type SchemaField = WorkflowFormField;
+
+const taskDecisionFieldKeys = new Set([
+  'accepted',
+  'approved',
+  'reviewComment',
+  'approvalComment',
+  'decision',
+  'decisionText',
+  'opinion',
+  'comment',
+]);
 
 const commentColumns: ProColumns<TaskCommentItem>[] = [
   {
@@ -430,6 +455,9 @@ function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
   return parseWorkflowFormFields(
     formSchema?.schemaJson,
     formSchema?.uiSchemaJson,
+    {
+      excludeKeys: taskDecisionFieldKeys,
+    },
   );
 }
 
@@ -527,25 +555,251 @@ function snapshotSummary(record: FormSnapshotItem) {
   );
 }
 
+function isCompletionProfileField(field: SchemaField) {
+  return (
+    field.widget === 'organizationProfile' ||
+    isOrganizationProfileField(field.fieldKey, field.title)
+  );
+}
+
+function isCompletionAssigneeField(field: SchemaField) {
+  return (
+    field.widget === 'organizationMember' ||
+    isOrganizationAssigneeField(field.fieldKey, field.title)
+  );
+}
+
+function isCompletionAssigneeMultiField(field: SchemaField) {
+  return (
+    field.widget === 'organizationMemberMulti' ||
+    (field.type === 'array' &&
+      isOrganizationAssigneeField(field.fieldKey, field.title))
+  );
+}
+
+function completionFieldRules(field: SchemaField, messagePrefix = '请输入') {
+  return field.required
+    ? [{ required: true, message: `${messagePrefix}${field.title}` }]
+    : [];
+}
+
+function completionFieldInitialValue(field: SchemaField, values?: JsonRecord) {
+  const rawValue = values?.[field.fieldKey];
+  if (isCompletionAssigneeMultiField(field)) {
+    if (Array.isArray(rawValue)) return rawValue.map(String).filter(Boolean);
+    if (typeof rawValue === 'string' && rawValue.trim()) {
+      return [rawValue.trim()];
+    }
+    return [];
+  }
+  if (rawValue !== undefined && rawValue !== null) return rawValue;
+  if (isCompletionAssigneeField(field)) {
+    return organizationAssigneeFieldValue(
+      field.fieldKey,
+      values,
+      field.title,
+    );
+  }
+  return undefined;
+}
+
+function completionFieldReadOnly(field: SchemaField, values?: JsonRecord) {
+  if (field.permission === 'readonly') return true;
+  if (!values || !Object.hasOwn(values, field.fieldKey)) return false;
+  const value = values[field.fieldKey];
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return Boolean(value.trim());
+  return true;
+}
+
+function renderCompletionField(
+  field: SchemaField,
+  values?: JsonRecord,
+  sourceValues?: JsonRecord,
+) {
+  if (!isWorkflowFieldVisible(field, values)) return null;
+
+  const name = ['formValues', field.fieldKey];
+  const readOnly = completionFieldReadOnly(field, sourceValues);
+  const formItemProps = { preserve: false };
+  const initialValue = completionFieldInitialValue(field, sourceValues);
+
+  if (isCompletionAssigneeMultiField(field)) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={initialValue}
+        options={organizationApprovalMemberSelectOptions()}
+        disabled
+        fieldProps={{ mode: 'multiple', maxTagCount: 'responsive' }}
+        formItemProps={formItemProps}
+        rules={completionFieldRules(field, '请选择')}
+      />
+    );
+  }
+
+  if (isCompletionAssigneeField(field)) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={initialValue}
+        options={organizationMemberSelectOptions(
+          organizationAssigneeRole(field.fieldKey, field.title),
+        )}
+        disabled
+        formItemProps={formItemProps}
+        rules={completionFieldRules(field, '请选择')}
+      />
+    );
+  }
+
+  if (isCompletionProfileField(field)) {
+    return (
+      <OrganizationProfileFormItem
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        value={organizationProfileFieldValue(
+          field.fieldKey,
+          sourceValues,
+          undefined,
+          field.title,
+        )}
+        required={field.required}
+        preserve={false}
+      />
+    );
+  }
+
+  if (field.type === 'number') {
+    return (
+      <ProFormDigit
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={initialValue}
+        placeholder={field.placeholder}
+        fieldProps={{ precision: 2, disabled: readOnly }}
+        formItemProps={formItemProps}
+        rules={completionFieldRules(field)}
+      />
+    );
+  }
+
+  if (field.options?.length) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={initialValue}
+        options={field.options}
+        placeholder={field.placeholder}
+        disabled={readOnly}
+        formItemProps={formItemProps}
+        rules={completionFieldRules(field, '请选择')}
+      />
+    );
+  }
+
+  if (field.format === 'date') {
+    return (
+      <ProFormDatePicker
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={initialValue}
+        placeholder={field.placeholder}
+        fieldProps={{ format: 'YYYY-MM-DD', disabled: readOnly }}
+        formItemProps={formItemProps}
+        rules={completionFieldRules(field, '请选择')}
+      />
+    );
+  }
+
+  if (field.type === 'boolean') {
+    return (
+      <ProFormSwitch
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={initialValue}
+        fieldProps={{ disabled: readOnly }}
+        formItemProps={formItemProps}
+      />
+    );
+  }
+
+  if (field.widget === 'textarea') {
+    return (
+      <ProFormTextArea
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={initialValue}
+        placeholder={field.placeholder}
+        fieldProps={{ rows: 3, disabled: readOnly }}
+        formItemProps={formItemProps}
+        rules={completionFieldRules(field)}
+      />
+    );
+  }
+
+  return (
+    <ProFormText
+      key={field.fieldKey}
+      name={name}
+      label={field.title}
+      initialValue={initialValue}
+      placeholder={field.placeholder}
+      fieldProps={{ disabled: readOnly }}
+      formItemProps={formItemProps}
+      rules={completionFieldRules(field)}
+    />
+  );
+}
+
 const CompleteTaskFields: React.FC<{
   formSchema?: FormSchemaItem;
   values?: JsonRecord;
-}> = () => (
-  <>
-    <ProFormSelect
-      name="decision"
-      label="处理结论"
-      initialValue="APPROVED"
-      options={[
-        { label: '同意', value: 'APPROVED' },
-        { label: '不同意', value: 'REJECTED' },
-        { label: '退回补充', value: 'RETURNED' },
-      ]}
-      rules={[{ required: true, message: '请选择处理结论' }]}
-    />
-    <ProFormTextArea name="comment" label="处理意见" fieldProps={{ rows: 4 }} />
-  </>
-);
+}> = ({ formSchema, values }) => {
+  const fields = schemaToFields(formSchema);
+  return (
+    <>
+      {fields.map((field) => (
+        <ProFormDependency key={field.fieldKey} name={['formValues']}>
+          {({ formValues }) =>
+            renderCompletionField(
+              field,
+              { ...(values || {}), ...((formValues as JsonRecord) || {}) },
+              values,
+            )
+          }
+        </ProFormDependency>
+      ))}
+      <ProFormSelect
+        name="decision"
+        label="处理结论"
+        initialValue="APPROVED"
+        options={[
+          { label: '同意', value: 'APPROVED' },
+          { label: '不同意', value: 'REJECTED' },
+          { label: '退回补充', value: 'RETURNED' },
+        ]}
+        rules={[{ required: true, message: '请选择处理结论' }]}
+      />
+      <ProFormTextArea
+        name="comment"
+        label="处理意见"
+        fieldProps={{ rows: 4 }}
+      />
+    </>
+  );
+};
 
 function taskActionTargetOptions() {
   return getOrganizationMembers()
