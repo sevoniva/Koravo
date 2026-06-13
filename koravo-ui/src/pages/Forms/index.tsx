@@ -375,6 +375,45 @@ const normalizeOptionValues = (options?: string[]) => {
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };
 
+function fieldDisplayName(field: Pick<FormFieldConfig, 'fieldKey' | 'title'>) {
+  return field.title?.trim() || field.fieldKey;
+}
+
+function comparableField(field: FormFieldConfig) {
+  return {
+    title: field.title?.trim() || '',
+    type: field.type,
+    widget: field.widget || normalizeWidget(undefined, field.type),
+    placeholder: field.placeholder?.trim() || '',
+    options: normalizeOptionValues(field.options) || [],
+    format: field.format || '',
+    required: Boolean(field.required),
+  };
+}
+
+function fieldChanged(before: FormFieldConfig, after: FormFieldConfig) {
+  return JSON.stringify(comparableField(before)) !== JSON.stringify(comparableField(after));
+}
+
+function fieldChangeSummary(
+  originalFields: FormFieldConfig[],
+  currentFields?: FormFieldConfig[],
+) {
+  const original = originalFields.filter((field) => field.fieldKey?.trim());
+  const current = (currentFields || []).filter((field) => field.fieldKey?.trim());
+  const originalByKey = new Map(original.map((field) => [field.fieldKey, field]));
+  const currentByKey = new Map(current.map((field) => [field.fieldKey, field]));
+
+  return {
+    added: current.filter((field) => !originalByKey.has(field.fieldKey)),
+    removed: original.filter((field) => !currentByKey.has(field.fieldKey)),
+    changed: current.filter((field) => {
+      const before = originalByKey.get(field.fieldKey);
+      return before ? fieldChanged(before, field) : false;
+    }),
+  };
+}
+
 const schemaToFields = (
   schemaJson?: string,
   uiSchemaJson?: string,
@@ -855,6 +894,61 @@ const renderFormFieldsEditor = (
   </div>
 );
 
+const ChangeTagList: React.FC<{
+  label: string;
+  fields: FormFieldConfig[];
+  color: string;
+}> = ({ label, fields, color }) => {
+  if (!fields.length) return null;
+  return (
+    <Space size={[4, 4]} wrap>
+      <Tag color={color}>
+        {label} {fields.length}
+      </Tag>
+      {fields.slice(0, 4).map((field) => (
+        <Tag key={`${label}-${field.fieldKey}`}>{fieldDisplayName(field)}</Tag>
+      ))}
+      {fields.length > 4 ? <Tag>还有 {fields.length - 4} 个</Tag> : null}
+    </Space>
+  );
+};
+
+const FieldChangeSummary: React.FC<{
+  originalFields: FormFieldConfig[];
+  currentFields?: FormFieldConfig[];
+}> = ({ originalFields, currentFields }) => {
+  const summary = fieldChangeSummary(originalFields, currentFields);
+  const changedCount =
+    summary.added.length + summary.removed.length + summary.changed.length;
+
+  if (!changedCount) {
+    return (
+      <Alert
+        showIcon
+        type="success"
+        title="字段未变更"
+        style={{ marginBottom: 16 }}
+      />
+    );
+  }
+
+  return (
+    <Alert
+      showIcon
+      type="warning"
+      title="字段变更预览"
+      description={
+        <Flex vertical gap={8}>
+          <ChangeTagList label="新增" fields={summary.added} color="green" />
+          <ChangeTagList label="删除" fields={summary.removed} color="red" />
+          <ChangeTagList label="修改" fields={summary.changed} color="gold" />
+        </Flex>
+      }
+      style={{ marginBottom: 16 }}
+    />
+  );
+};
+
 const Forms: React.FC = () => {
   const { message } = App.useApp();
   const { styles } = useStyles();
@@ -1112,6 +1206,20 @@ const Forms: React.FC = () => {
         }}
       >
         <BindingImpactSummary impact={editingImpact} />
+        {editing ? (
+          <ProFormDependency name={['fields']}>
+            {({ fields }) => (
+              <FieldChangeSummary
+                originalFields={schemaToFields(
+                  editing.schemaJson,
+                  editing.uiSchemaJson,
+                  defaultFields,
+                )}
+                currentFields={fields as FormFieldConfig[] | undefined}
+              />
+            )}
+          </ProFormDependency>
+        ) : null}
         {editingImpact.total ? (
           <Form.Item
             name="confirmBindingImpact"
