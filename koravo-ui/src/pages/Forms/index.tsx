@@ -88,6 +88,9 @@ interface FormFieldConfig {
   options?: string[];
   format?: string;
   required?: boolean;
+  permission?: 'editable' | 'readonly' | 'hidden';
+  visibleWhenField?: string;
+  visibleWhenValue?: string;
 }
 
 interface JsonSchemaProperty {
@@ -191,6 +194,12 @@ const widgetOptions = [
 ];
 
 const formatOptions = [{ label: '日期', value: 'date' }];
+
+const permissionOptions = [
+  { label: '可填写', value: 'editable' },
+  { label: '只读', value: 'readonly' },
+  { label: '隐藏', value: 'hidden' },
+];
 
 const fieldTypeText: Record<FormFieldConfig['type'], string> = {
   string: '文本',
@@ -375,6 +384,14 @@ const normalizeOptionValues = (options?: string[]) => {
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };
 
+const normalizePermission = (
+  permission?: unknown,
+): NonNullable<FormFieldConfig['permission']> => {
+  return permission === 'readonly' || permission === 'hidden'
+    ? permission
+    : 'editable';
+};
+
 function fieldDisplayName(field: Pick<FormFieldConfig, 'fieldKey' | 'title'>) {
   return field.title?.trim() || field.fieldKey;
 }
@@ -388,6 +405,9 @@ function comparableField(field: FormFieldConfig) {
     options: normalizeOptionValues(field.options) || [],
     format: field.format || '',
     required: Boolean(field.required),
+    permission: field.permission || 'editable',
+    visibleWhenField: field.visibleWhenField?.trim() || '',
+    visibleWhenValue: field.visibleWhenValue?.trim() || '',
   };
 }
 
@@ -475,6 +495,15 @@ const schemaToFields = (
       options: isProfileField || isAssigneeField ? undefined : options,
       format: isProfileField || isAssigneeField ? undefined : property?.format,
       required: required.includes(fieldKey),
+      permission: normalizePermission(uiField?.permission),
+      visibleWhenField:
+        typeof uiField?.visibleWhenField === 'string'
+          ? uiField.visibleWhenField
+          : undefined,
+      visibleWhenValue:
+        typeof uiField?.visibleWhenValue === 'string'
+          ? uiField.visibleWhenValue
+          : undefined,
     };
   });
 };
@@ -540,10 +569,28 @@ const buildPayload = (values: FormSchemaForm) => {
     return result;
   }, {});
   const uiSchema = fields.reduce<
-    Record<string, { 'ui:widget': string; 'ui:placeholder'?: string }>
+    Record<
+      string,
+      {
+        'ui:widget': string;
+        'ui:placeholder'?: string;
+        permission?: string;
+        visibleWhenField?: string;
+        visibleWhenValue?: string;
+      }
+    >
   >((result, field) => {
     result[field.fieldKey] = {
       'ui:widget': field.widget || normalizeWidget(undefined, field.type),
+      ...(field.permission && field.permission !== 'editable'
+        ? { permission: field.permission }
+        : {}),
+      ...(field.visibleWhenField?.trim() && field.visibleWhenValue?.trim()
+        ? {
+            visibleWhenField: field.visibleWhenField.trim(),
+            visibleWhenValue: field.visibleWhenValue.trim(),
+          }
+        : {}),
       ...(field.placeholder?.trim()
         ? { 'ui:placeholder': field.placeholder.trim() }
         : {}),
@@ -625,9 +672,29 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
     render: (_, record) =>
       record.required ? <Tag color="red">必填</Tag> : <Tag>选填</Tag>,
   },
+  {
+    title: '权限',
+    dataIndex: 'permission',
+    width: 96,
+    render: (_, record) => {
+      if (record.permission === 'readonly') return <Tag color="blue">只读</Tag>;
+      if (record.permission === 'hidden') return <Tag color="default">隐藏</Tag>;
+      return <Tag color="success">可填写</Tag>;
+    },
+  },
+  {
+    title: '显示条件',
+    key: 'visibleWhen',
+    width: 180,
+    renderText: (_, record) =>
+      record.visibleWhenField && record.visibleWhenValue
+        ? `${record.visibleWhenField} = ${record.visibleWhenValue}`
+        : '-',
+  },
 ];
 
 const renderPreviewField = (field: FormFieldConfig) => {
+  if (field.permission === 'hidden') return null;
   const rules = field.required
     ? [{ required: true, message: `请填写${field.title}` }]
     : undefined;
@@ -888,6 +955,25 @@ const renderFormFieldsEditor = (
             );
           }}
         </ProFormDependency>
+        <ProFormSelect
+          name="permission"
+          label="权限"
+          width="xs"
+          options={permissionOptions}
+          initialValue="editable"
+        />
+        <ProFormText
+          name="visibleWhenField"
+          label="显示字段"
+          width="sm"
+          placeholder="例如：type"
+        />
+        <ProFormText
+          name="visibleWhenValue"
+          label="显示值"
+          width="sm"
+          placeholder="例如：合同"
+        />
         <ProFormSwitch name="required" label="必填" />
       </div>
     </ProFormList>
@@ -1275,7 +1361,7 @@ const Forms: React.FC = () => {
                     search={false}
                     pagination={false}
                     options={false}
-                    scroll={{ x: 760 }}
+                    scroll={{ x: 1040 }}
                   />
                 ),
               },
