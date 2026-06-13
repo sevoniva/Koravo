@@ -80,6 +80,32 @@ const CONNECTOR_TYPE_LABELS: Record<string, string> = {
   JDBC: 'JDBC',
 };
 
+const GENERATED_DEPARTMENT_NAMES = [
+  '一',
+  '二',
+  '三',
+  '四',
+  '五',
+  '六',
+  '七',
+  '八',
+  '九',
+  '十',
+];
+
+const APPROVAL_STAGE_NAMES = [
+  '一审',
+  '二审',
+  '三审',
+  '四审',
+  '五审',
+  '六审',
+  '七审',
+  '八审',
+  '九审',
+  '十审',
+];
+
 export const ASSET_ORIGIN_LABELS: Record<string, string> = {
   SYSTEM_TEMPLATE: '系统模板',
   USER_FLOW: '用户流程',
@@ -300,11 +326,58 @@ export function processDefinitionLabel(value?: string) {
   return version ? `${name} v${version}` : name;
 }
 
+function generatedDepartmentLabel(value: string) {
+  const index = Number(value);
+  if (Number.isInteger(index) && index >= 1) {
+    return `业务${GENERATED_DEPARTMENT_NAMES[index - 1] || index}部`;
+  }
+  return '业务部门';
+}
+
+function approvalStageLabel(value: string) {
+  const index = Number(value);
+  if (Number.isInteger(index) && index >= 1) {
+    return APPROVAL_STAGE_NAMES[index - 1] || `第${index}轮审批`;
+  }
+  return '审批';
+}
+
+function generatedWorkflowNodeLabel(value?: string | null) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+
+  const departmentApproval =
+    text.match(/^dept[-_]?(\d+)[-_]approval[-_]?(\d+)$/i) ||
+    text.match(/^部门(\d+)审批节点(\d+)$/);
+  if (departmentApproval) {
+    return `${generatedDepartmentLabel(departmentApproval[1])}${approvalStageLabel(departmentApproval[2])}`;
+  }
+
+  const departmentSubProcess =
+    text.match(/^dept[-_]?(\d+)[-_]sub[-_]?process(?:[-_](start|end))?$/i) ||
+    text.match(/^dept[-_]?(\d+)子流程$/i) ||
+    text.match(/^部门(\d+)子流程$/);
+  if (departmentSubProcess) {
+    const department = generatedDepartmentLabel(departmentSubProcess[1]);
+    if (departmentSubProcess[2]?.toLowerCase() === 'start') {
+      return `进入${department}流程`;
+    }
+    if (departmentSubProcess[2]?.toLowerCase() === 'end') {
+      return `${department}流程完成`;
+    }
+    return `${department}流程`;
+  }
+
+  return '';
+}
+
 export function taskDefinitionLabel(
   key?: string,
   task?: Pick<BpmnTaskDefinition, 'name'>,
 ) {
-  if (!key) return '-';
+  if (!key) {
+    return generatedWorkflowNodeLabel(task?.name) || productCopy(task?.name) || '-';
+  }
   const mapping: Record<string, string> = {
     managerApprovalTask: '审批',
     financeApprovalTask: '复核',
@@ -315,13 +388,35 @@ export function taskDefinitionLabel(
     Task_1: '提交申请',
     approveTask: '处理任务',
   };
-  const departmentApproval = key.match(/^dept(\d+)_approval_(\d+)$/i);
-  if (departmentApproval) {
-    return `部门${departmentApproval[1]}审批节点${departmentApproval[2]}`;
-  }
+  const generatedKeyLabel = generatedWorkflowNodeLabel(key);
+  if (generatedKeyLabel) return generatedKeyLabel;
+  const generatedNameLabel = generatedWorkflowNodeLabel(task?.name);
+  if (generatedNameLabel) return generatedNameLabel;
   const roleApproval = key.match(/^role[-_]?(\d+)(?:Task|Approval)?$/i);
-  if (roleApproval) return `流程角色 ${roleApproval[1]}`;
+  if (roleApproval) return `审批角色 ${Number(roleApproval[1])}`;
   return mapping[key] || productCopy(task?.name) || readableIdentifier(key);
+}
+
+export function normalizeBpmnXmlLabels(bpmnXml?: string) {
+  if (!bpmnXml) return '';
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    return bpmnXml;
+  }
+  try {
+    const document = new DOMParser().parseFromString(bpmnXml, 'application/xml');
+    if (document.querySelector('parsererror')) return bpmnXml;
+    Array.from(document.getElementsByTagName('*')).forEach((element) => {
+      const label =
+        generatedWorkflowNodeLabel(element.getAttribute('id')) ||
+        generatedWorkflowNodeLabel(element.getAttribute('name'));
+      if (label) {
+        element.setAttribute('name', label);
+      }
+    });
+    return new XMLSerializer().serializeToString(document);
+  } catch {
+    return bpmnXml;
+  }
 }
 
 export function taskNameLabel(task?: {

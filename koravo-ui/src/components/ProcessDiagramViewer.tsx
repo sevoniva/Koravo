@@ -12,7 +12,11 @@ import { Alert, Badge, Button, Empty, Flex, Space, Spin, Tag, Tooltip, Typograph
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTraceNode } from '@/services/koravo/api';
-import { processStatusLabel, taskDefinitionLabel } from '@/utils/display';
+import {
+  normalizeBpmnXmlLabels,
+  processStatusLabel,
+  taskDefinitionLabel,
+} from '@/utils/display';
 
 type BpmnAutoLayoutModule = {
   layoutProcess: (xml: string) => Promise<string>;
@@ -63,6 +67,13 @@ const useStyles = createStyles(({ css, token }) => ({
 
     .djs-container {
       background: ${token.colorBgContainer};
+    }
+
+    .djs-element .djs-visual text,
+    .djs-label text {
+      fill: ${token.colorText} !important;
+      font-weight: ${token.fontWeightStrong};
+      font-size: 13px !important;
     }
 
     .bjs-powered-by {
@@ -289,7 +300,21 @@ function currentDiagramElementId(
   const active = (timeline || []).find((node) =>
     ['ACTIVE', 'RUNNING'].includes(String(node.status || '').toUpperCase()),
   );
-  return active?.activityId;
+  if (active?.activityId) return active.activityId;
+  const completed = (timeline || []).filter(
+    (node) =>
+      node.activityId &&
+      node.activityType !== 'sequenceFlow' &&
+      String(node.status || '').toUpperCase() === 'COMPLETED',
+  );
+  const businessNodes = completed.filter((node) => node.activityType !== 'startEvent');
+  return [...(businessNodes.length ? businessNodes : completed)]
+    .sort((left, right) => activityTime(right) - activityTime(left))[0]
+    ?.activityId;
+}
+
+function activityTime(node: ProcessTraceNode) {
+  return Date.parse(node.endTime || node.startTime || '') || 0;
 }
 
 function focusDiagramElement(
@@ -305,10 +330,10 @@ function focusDiagramElement(
 }
 
 function readableZoom(elementCount: number) {
-  if (elementCount > 36) return 0.64;
-  if (elementCount > 24) return 0.72;
-  if (elementCount > 18) return 0.82;
-  return 0.9;
+  if (elementCount > 36) return 0.88;
+  if (elementCount > 24) return 0.92;
+  if (elementCount > 18) return 0.96;
+  return 1;
 }
 
 function visibleFlowNodes(timeline: ProcessTraceNode[]) {
@@ -555,12 +580,16 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   height = 360,
 }) => {
   const { styles } = useStyles();
+  const normalizedBpmnXml = React.useMemo(
+    () => normalizeBpmnXmlLabels(bpmnXml),
+    [bpmnXml],
+  );
   const mountRef = React.useRef<HTMLDivElement>(null);
   const viewerRef = React.useRef<BpmnViewer | undefined>(undefined);
-  const [loading, setLoading] = React.useState(Boolean(bpmnXml));
+  const [loading, setLoading] = React.useState(Boolean(normalizedBpmnXml));
   const [error, setError] = React.useState<string>();
   const [diagramReady, setDiagramReady] = React.useState(false);
-  const hasXml = Boolean(bpmnXml?.trim());
+  const hasXml = Boolean(normalizedBpmnXml.trim());
 
   const applyMarkers = React.useCallback(() => {
     const viewer = viewerRef.current;
@@ -633,7 +662,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     let disposed = false;
 
     async function importDiagram() {
-      if (!hasXml || !bpmnXml) return;
+      if (!hasXml || !normalizedBpmnXml) return;
       if (!viewerRef.current) {
         const module = await import('bpmn-js/lib/Viewer');
         if (disposed || !mountRef.current) return;
@@ -646,7 +675,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
       setError(undefined);
       setDiagramReady(false);
       try {
-        const renderableBpmnXml = await ensureBpmnDiagramLayout(bpmnXml);
+        const renderableBpmnXml = await ensureBpmnDiagramLayout(normalizedBpmnXml);
         if (disposed) return;
         await viewerRef.current.importXML(renderableBpmnXml);
         const canvas = viewerRef.current.get('canvas') as Canvas;
@@ -679,7 +708,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     return () => {
       disposed = true;
     };
-  }, [applyMarkers, bpmnXml, currentActivityIds, hasXml, timeline]);
+  }, [applyMarkers, currentActivityIds, hasXml, normalizedBpmnXml, timeline]);
 
   React.useEffect(() => {
     applyMarkers();
@@ -689,7 +718,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     if (timeline.length) {
       return (
         <GeneratedFlow
-          bpmnXml={bpmnXml}
+          bpmnXml={normalizedBpmnXml}
           timeline={timeline}
           currentActivityIds={currentActivityIds}
           height={height}
@@ -706,7 +735,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   if (error && timeline.length) {
     return (
       <GeneratedFlow
-        bpmnXml={bpmnXml}
+        bpmnXml={normalizedBpmnXml}
         timeline={timeline}
         currentActivityIds={currentActivityIds}
         height={height}

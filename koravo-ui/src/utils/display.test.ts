@@ -9,6 +9,7 @@ import {
   businessKeyLabel,
   connectionAddressLabel,
   isBusinessProcessModel,
+  normalizeBpmnXmlLabels,
   processDescriptionLabel,
   processDefinitionLabel,
   processDisplayName,
@@ -16,6 +17,7 @@ import {
   processNameLabel,
   productCopy,
   shortTraceLabel,
+  taskDefinitionLabel,
 } from './display';
 
 describe('display helpers', () => {
@@ -84,6 +86,48 @@ describe('display helpers', () => {
     expect(businessFieldLabel('executionId')).toBe('执行编号');
     expect(businessFieldLabel('delegateExpression')).toBe('执行表达式');
     expect(businessFieldLabel('X-Koravo-User-Role')).toBe('职责');
+  });
+
+  it('normalizes generated workflow node names for product surfaces', () => {
+    expect(taskDefinitionLabel('dept05_approval_01')).toBe('业务五部一审');
+    expect(taskDefinitionLabel('dept05_approval_04')).toBe('业务五部四审');
+    expect(taskDefinitionLabel('dept_05_sub_process')).toBe('业务五部流程');
+    expect(taskDefinitionLabel('dept_05_sub_process_start')).toBe(
+      '进入业务五部流程',
+    );
+    expect(taskDefinitionLabel('dept_05_sub_process_end')).toBe(
+      '业务五部流程完成',
+    );
+    expect(
+      taskDefinitionLabel('legacyTask', { name: '部门03审批节点02' }),
+    ).toBe('业务三部二审');
+    expect(
+      taskDefinitionLabel('legacySubProcess', { name: 'dept-07子流程' }),
+    ).toBe('业务七部流程');
+    expect(taskDefinitionLabel(undefined, { name: 'dept-09子流程' })).toBe(
+      '业务九部流程',
+    );
+  });
+
+  it('normalizes generated labels inside bpmn xml before rendering', () => {
+    const normalized = normalizeBpmnXmlLabels(`
+      <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+        <process id="collaborativeApproval">
+          <subProcess id="dept_05_sub_process" name="dept-05子流程">
+            <startEvent id="dept_05_sub_process_start" name="进入子流程"/>
+            <userTask id="dept05_approval_01" name="部门05审批节点01"/>
+            <endEvent id="dept_05_sub_process_end" name="子流程完成"/>
+          </subProcess>
+        </process>
+      </definitions>
+    `);
+
+    expect(normalized).toContain('name="业务五部流程"');
+    expect(normalized).toContain('name="进入业务五部流程"');
+    expect(normalized).toContain('name="业务五部一审"');
+    expect(normalized).toContain('name="业务五部流程完成"');
+    expect(normalized).not.toContain('dept-05子流程');
+    expect(normalized).not.toContain('部门05审批节点01');
   });
 
   it('uses product labels for authentication audit records', () => {

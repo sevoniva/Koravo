@@ -81,13 +81,19 @@ function currentNodes(trace?: ProcessTrace, currentTasks: TaskItem[] = []) {
 }
 
 function latestCompletedNode(trace?: ProcessTrace) {
-  return [...(trace?.timeline || [])]
-    .reverse()
-    .find(
-      (node) =>
-        node.activityType !== 'sequenceFlow' &&
-        String(node.status || '').toUpperCase() === 'COMPLETED',
-    );
+  const completed = (trace?.timeline || []).filter(
+    (node) =>
+      node.activityType !== 'sequenceFlow' &&
+      String(node.status || '').toUpperCase() === 'COMPLETED',
+  );
+  const businessNodes = completed.filter((node) => node.activityType !== 'startEvent');
+  return [...(businessNodes.length ? businessNodes : completed)].sort(
+    (left, right) => activityTime(right) - activityTime(left),
+  )[0];
+}
+
+function activityTime(node: ProcessTraceNode) {
+  return Date.parse(node.endTime || node.startTime || '') || 0;
 }
 
 function visibleTimelineNodes(timeline: ProcessTraceNode[]) {
