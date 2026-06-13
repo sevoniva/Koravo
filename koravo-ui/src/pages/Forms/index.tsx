@@ -118,6 +118,19 @@ const useStyles = createStyles(({ css, token }) => ({
       min-width: 0;
     }
 
+    .ant-pro-form-list-container {
+      display: grid;
+      gap: 12px;
+    }
+
+    .ant-pro-form-list-row {
+      align-items: flex-start;
+      padding: 12px 14px;
+      border: 1px solid ${token.colorBorderSecondary};
+      border-radius: ${token.borderRadius}px;
+      background: ${token.colorFillAlter};
+    }
+
     .ant-pro-form-list-action {
       align-self: flex-start;
       padding-top: 30px;
@@ -126,10 +139,14 @@ const useStyles = createStyles(({ css, token }) => ({
   fieldGrid: css`
     display: grid;
     width: 100%;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px 12px;
+    grid-template-columns:
+      minmax(180px, 1.15fr)
+      minmax(180px, 1.15fr)
+      minmax(126px, 0.75fr)
+      minmax(160px, 0.95fr);
+    gap: 10px 12px;
     align-items: start;
-    padding: 8px 0;
+    padding: 2px 0;
 
     .ant-form-item {
       min-width: 0;
@@ -142,11 +159,32 @@ const useStyles = createStyles(({ css, token }) => ({
     }
 
     @media (max-width: 760px) {
-      grid-template-columns: repeat(2, minmax(160px, 1fr));
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
     }
 
     @media (max-width: 560px) {
       grid-template-columns: minmax(0, 1fr);
+    }
+  `,
+  fieldWide: css`
+    grid-column: span 2;
+
+    .ant-form-item-control-input-content,
+    .ant-select,
+    .ant-input,
+    .ant-input-number,
+    .ant-picker {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    @media (max-width: 560px) {
+      grid-column: span 1;
+    }
+  `,
+  fieldSwitch: css`
+    .ant-form-item-control-input {
+      min-height: 34px;
     }
   `,
 }));
@@ -182,6 +220,14 @@ const defaultFields: FormFieldConfig[] = [
   },
   { fieldKey: 'remark', title: '备注', type: 'string', widget: 'textarea' },
 ];
+
+const defaultNewField: FormFieldConfig = {
+  fieldKey: '',
+  title: '',
+  type: 'string',
+  widget: 'input',
+  permission: 'editable',
+};
 
 const fieldTypeOptions = [
   { label: '文本', value: 'string' },
@@ -250,7 +296,7 @@ function bindingImpactText(impact: FormBindingImpact) {
     impact.task ? `${impact.task} 个任务节点` : '',
   ].filter(Boolean);
   const versionText = impact.versions.length
-    ? `，绑定版本 ${impact.versions.map((version) => `v${version}`).join('、')}`
+    ? `，版本 ${impact.versions.map((version) => `v${version}`).join('、')}`
     : '';
   return `${parts.join('、')}${versionText}`;
 }
@@ -266,8 +312,8 @@ const BindingImpactSummary: React.FC<{
       <Alert
         showIcon
         type="info"
-        title="当前表单尚未绑定流程节点"
-        description="保存字段后，可从表单绑定页把它设置为启动表单或任务表单。"
+        title="尚未绑定流程节点"
+        description="可在表单绑定页设置启动表单或任务表单。"
       />
     );
   }
@@ -286,12 +332,11 @@ const BindingImpactSummary: React.FC<{
     <Alert
       showIcon
       type="warning"
-      title={`当前表单已被 ${impact.total} 处流程配置使用`}
+      title={`已绑定 ${impact.total} 处流程配置`}
       description={
         <Flex vertical gap={8}>
           <Typography.Text type="secondary">
-            {bindingImpactText(impact)}
-            。保存字段变更后，后续发起和办理会按新字段展示；已提交的历史快照不受影响。
+            {bindingImpactText(impact)}，历史快照不变。
           </Typography.Text>
           <Space wrap>
             {impact.start ? (
@@ -1015,19 +1060,26 @@ const FormReadiness: React.FC<{
   );
 };
 
-const renderFormFieldsEditor = (
-  fieldListClassName: string,
-  fieldGridClassName: string,
-) => (
-  <div className={fieldListClassName}>
+interface FormFieldsEditorClassNames {
+  fieldList: string;
+  fieldGrid: string;
+  fieldWide: string;
+  fieldSwitch: string;
+}
+
+const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
+  <div className={classNames.fieldList}>
     <ProFormList
       name="fields"
       label="字段清单"
       creatorButtonProps={{ creatorButtonText: '添加字段' }}
+      creatorRecord={defaultNewField}
       copyIconProps={false}
+      arrowSort
+      alwaysShowItemLabel
       min={1}
     >
-      <div className={fieldGridClassName}>
+      <div className={classNames.fieldGrid}>
         <ProFormDependency name={['fieldKey', 'title', 'widget']}>
           {({ fieldKey, title, widget }) => {
             const isSystemField =
@@ -1122,7 +1174,7 @@ const renderFormFieldsEditor = (
                 <ProFormText
                   name="placeholder"
                   label="输入提示"
-                  width="sm"
+                  className={classNames.fieldWide}
                   disabled={isSystemField}
                   placeholder={
                     isSystemField ? '自动联动' : '例如：请输入事项说明'
@@ -1140,7 +1192,7 @@ const renderFormFieldsEditor = (
                 <ProFormSelect
                   name="options"
                   label="选项"
-                  width="sm"
+                  className={classNames.fieldWide}
                   disabled={isSystemField}
                   placeholder={isSystemField ? '自动联动' : '输入选项后回车'}
                   tooltip="配置后在发起和办理表单中显示为下拉选择。"
@@ -1158,21 +1210,24 @@ const renderFormFieldsEditor = (
           label="权限"
           width="xs"
           options={permissionOptions}
-          initialValue="editable"
         />
         <ProFormText
           name="visibleWhenField"
           label="显示字段"
-          width="sm"
+          className={classNames.fieldWide}
           placeholder="例如：type"
         />
         <ProFormText
           name="visibleWhenValue"
           label="显示值"
-          width="sm"
+          className={classNames.fieldWide}
           placeholder="例如：合同"
         />
-        <ProFormSwitch name="required" label="必填" />
+        <ProFormSwitch
+          name="required"
+          label="必填"
+          className={classNames.fieldSwitch}
+        />
       </div>
     </ProFormList>
   </div>
@@ -1529,7 +1584,7 @@ const Forms: React.FC = () => {
               label="表单名称"
               rules={[{ required: true, message: '请输入表单名称' }]}
             />
-            {renderFormFieldsEditor(styles.fieldList, styles.fieldGrid)}
+            {renderFormFieldsEditor(styles)}
           </ModalForm>,
         ]}
       />
@@ -1607,7 +1662,7 @@ const Forms: React.FC = () => {
           label="表单名称"
           rules={[{ required: true, message: '请输入表单名称' }]}
         />
-        {renderFormFieldsEditor(styles.fieldList, styles.fieldGrid)}
+        {renderFormFieldsEditor(styles)}
       </ModalForm>
 
       <KoravoDrawer
