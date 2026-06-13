@@ -22,6 +22,8 @@ import {
   Badge,
   Button,
   Checkbox,
+  Collapse,
+  Descriptions,
   Drawer,
   Empty,
   Flex,
@@ -319,6 +321,15 @@ const parseJsonObject = (value?: string) => {
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch {
     return {};
+  }
+};
+
+const formatDebugJson = (value?: string) => {
+  if (!value?.trim()) return '{}';
+  try {
+    return JSON.stringify(JSON.parse(value), null, 2);
+  } catch {
+    return value;
   }
 };
 
@@ -825,6 +836,78 @@ const renderFormPreview = (fields: FormFieldConfig[]) =>
     <Empty description="暂无字段配置" />
   );
 
+const DebugJsonBlock: React.FC<{ value?: string }> = ({ value }) => {
+  const text = formatDebugJson(value);
+  return (
+    <Typography.Paragraph
+      copyable={{ text }}
+      style={{
+        marginBottom: 0,
+        maxHeight: 360,
+        overflow: 'auto',
+        whiteSpace: 'pre-wrap',
+        fontFamily:
+          'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        fontSize: 12,
+      }}
+    >
+      {text}
+    </Typography.Paragraph>
+  );
+};
+
+const renderFormVersionSummary = (
+  record: FormSchemaItem,
+  fields: FormFieldConfig[],
+  impact: FormBindingImpact,
+) => (
+  <Descriptions
+    size="small"
+    column={{ xs: 1, sm: 2 }}
+    items={[
+      {
+        key: 'formKey',
+        label: '表单标识',
+        children: (
+          <CopyableText
+            value={record.formKey}
+            displayValue={formSchemaKeyLabel(record.formKey)}
+          />
+        ),
+      },
+      {
+        key: 'version',
+        label: '当前版本',
+        children: <Tag color="blue">v{record.version || 1}</Tag>,
+      },
+      {
+        key: 'status',
+        label: '状态',
+        children: <KoravoStatusTag status={record.status} />,
+      },
+      {
+        key: 'origin',
+        label: '来源',
+        children: (
+          <Tag color={assetOriginColor(record.assetOrigin)}>
+            {assetOriginLabel(record.assetOrigin)}
+          </Tag>
+        ),
+      },
+      {
+        key: 'fieldCount',
+        label: '字段数',
+        children: fields.length,
+      },
+      {
+        key: 'impact',
+        label: '绑定影响',
+        children: <BindingImpactSummary compact impact={impact} />,
+      },
+    ]}
+  />
+);
+
 const renderFormFieldsEditor = (
   fieldListClassName: string,
   fieldGridClassName: string,
@@ -1047,6 +1130,7 @@ const Forms: React.FC = () => {
     preview?.uiSchemaJson,
   );
   const editingImpact = bindingImpact(editing?.id, formBindings);
+  const previewImpact = bindingImpact(preview?.id, formBindings);
 
   const saveFormSchema = async (
     values: FormSchemaForm,
@@ -1340,36 +1424,98 @@ const Forms: React.FC = () => {
         title={formSchemaNameLabel(preview?.formName)}
         size={720}
         open={Boolean(preview)}
+        destroyOnHidden
+        styles={
+          preview
+            ? {
+                root: { pointerEvents: 'auto' },
+                wrapper: { transform: 'none' },
+              }
+            : undefined
+        }
+        extra={
+          preview ? (
+            <Space>
+              <Button
+                onClick={() => {
+                  setEditing(preview);
+                  setPreview(undefined);
+                }}
+              >
+                以当前版本编辑
+              </Button>
+              <Button
+                disabled={preview.status === 'DISABLED'}
+                onClick={() =>
+                  history.push(`/form-bindings?formSchemaId=${preview.id}`)
+                }
+              >
+                绑定节点
+              </Button>
+            </Space>
+          ) : undefined
+        }
         onClose={() => setPreview(undefined)}
       >
-        {previewFields.length ? (
-          <Tabs
-            items={[
-              {
-                key: 'preview',
-                label: '填写预览',
-                children: renderFormPreview(previewFields),
-              },
-              {
-                key: 'fields',
-                label: '字段配置',
-                children: (
-                  <ProTable<FormFieldConfig>
-                    rowKey="fieldKey"
-                    columns={fieldColumns}
-                    dataSource={previewFields}
-                    search={false}
-                    pagination={false}
-                    options={false}
-                    scroll={{ x: 1040 }}
-                  />
-                ),
-              },
-            ]}
-          />
-        ) : (
-          <Empty description="暂无字段配置" />
-        )}
+        {preview ? (
+          <Flex vertical gap={16}>
+            {renderFormVersionSummary(preview, previewFields, previewImpact)}
+            {previewFields.length ? (
+              <Tabs
+                items={[
+                  {
+                    key: 'preview',
+                    label: '填写预览',
+                    children: renderFormPreview(previewFields),
+                  },
+                  {
+                    key: 'fields',
+                    label: '字段配置',
+                    children: (
+                      <ProTable<FormFieldConfig>
+                        rowKey="fieldKey"
+                        columns={fieldColumns}
+                        dataSource={previewFields}
+                        search={false}
+                        pagination={false}
+                        options={false}
+                        scroll={{ x: 1040 }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'debug',
+                    label: '高级调试',
+                    children: (
+                      <Collapse
+                        size="small"
+                        ghost
+                        items={[
+                          {
+                            key: 'schema',
+                            label: '字段结构',
+                            children: (
+                              <DebugJsonBlock value={preview.schemaJson} />
+                            ),
+                          },
+                          {
+                            key: 'uiSchema',
+                            label: '展示规则',
+                            children: (
+                              <DebugJsonBlock value={preview.uiSchemaJson} />
+                            ),
+                          },
+                        ]}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            ) : (
+              <Empty description="暂无字段配置" />
+            )}
+          </Flex>
+        ) : null}
       </Drawer>
     </PageContainer>
   );
