@@ -41,19 +41,92 @@ public class ProcessInstanceAppService {
     private static final String APPROVAL_USERS_FIELD = "approvalUsers";
     private static final List<String> APPLICANT_FIELD_ALIASES = List.of(
             APPLICANT_FIELD,
+            "applicantName",
+            "applicantUser",
+            "applicantUserId",
+            "applicantUsername",
+            "requesterName",
+            "requesterUser",
+            "requesterUserId",
+            "requesterUsername",
             "requester",
             "applyUser",
+            "applyUserId",
+            "applyUsername",
+            "applyEmployee",
+            "applyEmployeeName",
+            "submitUser",
+            "submitUserId",
+            "submitUsername",
             "submitter",
+            "startUser",
+            "startUserId",
+            "startUsername",
             "initiator",
+            "initiatorName",
+            "createdBy",
+            "creatorName",
             "creator"
     );
     private static final List<String> DEPARTMENT_FIELD_ALIASES = List.of(
             DEPARTMENT_FIELD,
+            "departmentName",
             "dept",
+            "deptName",
+            "orgDepartment",
+            "orgDept",
             "applyDept",
+            "applyDeptName",
+            "applyDepartment",
+            "applyDepartmentName",
+            "applicantDepartment",
+            "applicantDept",
+            "applicantDepartmentName",
+            "requesterDept",
             "requesterDepartment",
+            "requesterDepartmentName",
+            "submitDept",
             "submitDepartment",
+            "submitDepartmentName",
+            "startDept",
+            "startDepartment",
+            "startDepartmentName",
+            "applyUnit",
+            "applyUnitName",
+            "applicantUnit",
+            "applicantUnitName",
+            "requesterUnit",
+            "requesterUnitName",
+            "submitUnit",
+            "submitUnitName",
             "organizationUnit"
+    );
+    private static final List<String> APPROVAL_USER_FIELDS = List.of(
+            APPROVAL_USERS_FIELD,
+            MANAGER_APPROVER_FIELD,
+            FINANCE_APPROVER_FIELD,
+            "approvalUser",
+            "approvalUserId",
+            "approver",
+            "approverUser",
+            "approverUserId",
+            "approvers",
+            "reviewer",
+            "reviewerUser",
+            "reviewerUserId",
+            "reviewers",
+            "assignee",
+            "assigneeUser",
+            "assigneeUserId",
+            "assignees",
+            "handler",
+            "handlerUser",
+            "handlerUserId",
+            "handlers",
+            "processor",
+            "processorUser",
+            "processorUserId",
+            "processors"
     );
 
     private final ProcessFacade processFacade;
@@ -172,9 +245,7 @@ public class ProcessInstanceAppService {
         return data != null && (
                 containsAnyField(data, APPLICANT_FIELD_ALIASES)
                         || containsAnyField(data, DEPARTMENT_FIELD_ALIASES)
-                        || data.containsKey(MANAGER_APPROVER_FIELD)
-                        || data.containsKey(FINANCE_APPROVER_FIELD)
-                        || data.containsKey(APPROVAL_USERS_FIELD)
+                        || containsAnyField(data, APPROVAL_USER_FIELDS)
         );
     }
 
@@ -209,9 +280,7 @@ public class ProcessInstanceAppService {
             return List.of();
         }
         Set<String> users = new LinkedHashSet<>();
-        addApprovalUsers(users, submittedVariables.get(APPROVAL_USERS_FIELD));
-        addApprovalUsers(users, submittedVariables.get(MANAGER_APPROVER_FIELD));
-        addApprovalUsers(users, submittedVariables.get(FINANCE_APPROVER_FIELD));
+        APPROVAL_USER_FIELDS.forEach(field -> addApprovalUsers(users, submittedVariables.get(field)));
         return new ArrayList<>(users);
     }
 
@@ -254,6 +323,7 @@ public class ProcessInstanceAppService {
         result.put(DEPARTMENT_FIELD, identity.department());
         applyIdentityAliases(source, result, APPLICANT_FIELD_ALIASES, identity.applicantName());
         applyIdentityAliases(source, result, DEPARTMENT_FIELD_ALIASES, identity.department());
+        applyApprovalAliases(source, result, identity.approvalUsers());
         result.put(APPROVAL_USERS_FIELD, identity.approvalUsers());
         result.remove(MANAGER_APPROVER_FIELD);
         result.remove(FINANCE_APPROVER_FIELD);
@@ -269,6 +339,25 @@ public class ProcessInstanceAppService {
         aliases.stream()
                 .filter(source::containsKey)
                 .forEach(alias -> result.put(alias, value));
+    }
+
+    private void applyApprovalAliases(
+            Map<String, Object> source,
+            Map<String, Object> result,
+            List<String> approvalUsers
+    ) {
+        APPROVAL_USER_FIELDS.stream()
+                .filter(field -> !MANAGER_APPROVER_FIELD.equals(field))
+                .filter(field -> !FINANCE_APPROVER_FIELD.equals(field))
+                .filter(source::containsKey)
+                .forEach(field -> result.put(field, approvalValueForShape(source.get(field), approvalUsers)));
+    }
+
+    private Object approvalValueForShape(Object sourceValue, List<String> approvalUsers) {
+        if (sourceValue instanceof Iterable<?>) {
+            return approvalUsers;
+        }
+        return approvalUsers.isEmpty() ? "" : approvalUsers.getFirst();
     }
 
     private record TrustedStartIdentity(
