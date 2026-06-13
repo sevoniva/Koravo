@@ -27,7 +27,7 @@ import {
   setRuntimeSessionContext,
 } from '@/services/koravo/session';
 import defaultSettings from '../config/defaultSettings';
-import { errorConfig } from './requestErrorConfig';
+import { errorConfig, loginRedirectPath } from './requestErrorConfig';
 
 dayjs.extend(relativeTime);
 
@@ -87,7 +87,10 @@ async function loadOrganizationDirectory() {
     const response = await fetch('/api/v1/organization/members', {
       headers: sessionRequestHeaders(),
     });
-    if (!response.ok) return;
+    if (!response.ok) {
+      if (response.status === 401) clearAuthSession();
+      return;
+    }
     const payload = (await response.json()) as OrganizationMembersResponse;
     if (payload.success === false || !Array.isArray(payload.data)) return;
     setOrganizationMembers(payload.data);
@@ -125,7 +128,7 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
     onPageChange: () => {
       const { location } = history;
       if (!initialState?.currentUser && location.pathname !== '/login') {
-        history.replace('/login');
+        history.replace(loginRedirectPath(location));
       }
       if (initialState?.currentUser && location.pathname === '/login') {
         history.replace(defaultRouteForRole(initialState.currentUser.access));

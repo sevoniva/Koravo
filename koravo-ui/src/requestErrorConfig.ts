@@ -1,17 +1,50 @@
 import type { RequestOptions } from '@@/plugin-request/request';
 import type { RequestConfig } from '@umijs/max';
+import { history } from '@umijs/max';
 import {
   showErrorMessage,
   showErrorNotification,
 } from './services/koravo/feedback';
-import { history } from '@umijs/max';
-import { clearAuthSession, getSessionContext, setLastRequestId } from './services/koravo/session';
+import {
+  clearAuthSession,
+  getSessionContext,
+  setLastRequestId,
+} from './services/koravo/session';
 
 interface KoravoResponse {
   success?: boolean;
   code?: string;
   message?: string;
   requestId?: string;
+}
+
+interface RouteLocation {
+  pathname?: string;
+  search?: string;
+  hash?: string;
+}
+
+function requestIdSuffix(requestId?: string) {
+  return requestId ? `（追踪号 ${requestId}）` : '';
+}
+
+export function loginRedirectPath(location: RouteLocation = history.location) {
+  const currentPath = `${location.pathname || '/'}${location.search || ''}${location.hash || ''}`;
+  if (!currentPath || location.pathname === '/login') return '/login';
+  return `/login?redirect=${encodeURIComponent(currentPath)}`;
+}
+
+export function handleAuthExpired() {
+  clearAuthSession();
+  showErrorMessage('登录已过期，请重新登录');
+  history.replace(loginRedirectPath());
+}
+
+function handleForbidden(requestId?: string) {
+  showErrorNotification({
+    message: '无权访问',
+    description: `当前账号没有此操作权限${requestIdSuffix(requestId)}`,
+  });
 }
 
 export const errorConfig: RequestConfig = {
@@ -30,8 +63,7 @@ export const errorConfig: RequestConfig = {
 
       if (error.name === 'KoravoBizError') {
         const info = error.info as KoravoResponse;
-        const suffix = info.requestId ? `（追踪号 ${info.requestId}）` : '';
-        showErrorMessage(`${info.message || '请求失败'}${suffix}`);
+        showErrorMessage(`${info.message || '请求失败'}${requestIdSuffix(info.requestId)}`);
         return;
       }
 
@@ -39,15 +71,16 @@ export const errorConfig: RequestConfig = {
         const requestId =
           error.response?.data?.requestId || error.response?.headers?.['x-request-id'];
         if (error.response.status === 401 && history.location.pathname !== '/login') {
-          clearAuthSession();
-          showErrorMessage('登录状态已过期，请重新登录');
-          history.replace('/login');
+          handleAuthExpired();
           return;
         }
-        const suffix = requestId ? `（追踪号 ${requestId}）` : '';
+        if (error.response.status === 403) {
+          handleForbidden(requestId);
+          return;
+        }
         showErrorNotification({
           message: `HTTP ${error.response.status}`,
-          description: `后端请求失败${suffix}`,
+          description: `后端请求失败${requestIdSuffix(requestId)}`,
         });
         return;
       }
