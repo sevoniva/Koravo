@@ -8,6 +8,8 @@ Run these before cutting a feature branch or pull request:
 
 ```bash
 cd koravo-ui
+npm run lint
+npm exec --package @ant-design/cli -- antd lint ./src --format json --lang zh
 npm run build
 ```
 
@@ -17,7 +19,7 @@ mvn -pl koravo-bootstrap -am test
 ```
 
 ```bash
-docker compose config
+node --check scripts/verify-enterprise-approval.mjs
 git diff --check
 ```
 
@@ -47,6 +49,15 @@ node scripts/verify-enterprise-approval.mjs
 
 This check uses the running backend API. It logs in as admin, creates or updates 20 approver accounts across 10 departments, deploys the enterprise BPMN through `/api/v1/process-models/deploy`, starts `enterpriseApproval30` as applicant, completes all 34 tasks through assigned and candidate task APIs, then checks process trace, failed jobs, and dead-letter jobs.
 
+Useful environment overrides:
+
+```bash
+KORAVO_BASE_URL=http://localhost:8080/api/v1 \
+KORAVO_TENANT_ID=default \
+KORAVO_PASSWORD='Koravo@2026' \
+node scripts/verify-enterprise-approval.mjs
+```
+
 ## Console Workflow Check
 
 The console workflow check is:
@@ -54,13 +65,14 @@ The console workflow check is:
 1. Start dependencies with `docker compose up -d postgres redis minio`.
 2. Start `koravo-bootstrap`.
 3. Start `koravo-ui`.
-4. Use `Process Designer` or `Process Models` to validate and deploy the collaborative approval process.
-5. Create or update the business request form schema in `Forms`.
-6. Bind the start form and `jointApprovalTask` in `Form Bindings`.
-7. Start `collaborativeApproval` from `Start Process` with multiple `approvalUsers`.
-8. Complete every parallel approval task from `My Tasks` or task detail with form data and comments.
-9. Inspect `Process Instance` / `Ops` trace, current and completed activities, variables, task detail, form snapshots, and audit logs.
-10. Use `Data Sources` to create, update, test, and inspect datasource test logs.
+4. Open `System Status` and check `Workflow Readiness`.
+5. Use `Process Designer` or `Process Models` to validate and deploy the collaborative approval process.
+6. Create or update the business request form schema in `Forms`.
+7. Bind the start form and `jointApprovalTask` in `Form Bindings`.
+8. Start `collaborativeApproval` from `Start Process` with multiple `approvalUsers`.
+9. Complete every parallel approval task from `My Tasks` or task detail with form data and comments.
+10. Inspect `Process Instance` / `Ops` trace, current and completed activities, variables, task detail, form snapshots, and audit logs.
+11. Use `Data Sources` to create, update, test, and inspect datasource test logs.
 
 ## HTTP Connector Workflow Check
 

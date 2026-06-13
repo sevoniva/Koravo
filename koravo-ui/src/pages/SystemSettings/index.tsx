@@ -28,10 +28,14 @@ import {
   disableOrganizationMember,
   enableOrganizationMember,
   getSystemHealth,
+  getWorkflowEnablementStatus,
+  initializeWorkflowAssets,
   listOrganizationMembers,
   resetOrganizationMemberPassword,
   type SystemHealthItem,
   updateOrganizationMember,
+  type WorkflowEnablementStatus,
+  type WorkflowEnablementStepStatus,
 } from '@/services/koravo/api';
 import {
   getOrganizationMembers,
@@ -92,6 +96,17 @@ interface OrganizationMemberFormValues {
 
 interface ResetPasswordFormValues {
   password: string;
+}
+
+interface WorkflowReadinessRow {
+  key: keyof Pick<
+    WorkflowEnablementStatus,
+    'process' | 'form' | 'binding' | 'todo' | 'audit' | 'connector'
+  >;
+  name: string;
+  step?: WorkflowEnablementStepStatus;
+  path: string;
+  action: string;
 }
 
 const roleOptions: RoleOption[] = [
@@ -201,12 +216,30 @@ const permissionMatrix: PermissionMatrixItem[] = permissionScopes.map((item) => 
   operator: permissionsForRole('operator')[item.permission],
 }));
 
+const workflowStepMeta: Array<Omit<WorkflowReadinessRow, 'step'>> = [
+  { key: 'process', name: '流程发布', path: '/process-models', action: '流程模型' },
+  { key: 'form', name: '启动表单', path: '/forms', action: '表单管理' },
+  { key: 'binding', name: '表单绑定', path: '/form-bindings', action: '表单绑定' },
+  { key: 'todo', name: '待办流转', path: '/tasks', action: '任务中心' },
+  { key: 'audit', name: '审计记录', path: '/audit-logs', action: '审计日志' },
+  { key: 'connector', name: '集成动作', path: '/http-connector', action: '集成动作' },
+];
+
 function permissionTag(allowed: boolean, action: string) {
   return (
     <Tag color={allowed ? 'success' : 'default'}>
       {allowed ? action : '不可用'}
     </Tag>
   );
+}
+
+function workflowReadinessRows(
+  status?: WorkflowEnablementStatus,
+): WorkflowReadinessRow[] {
+  return workflowStepMeta.map((item) => ({
+    ...item,
+    step: status?.[item.key],
+  }));
 }
 
 const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
@@ -322,6 +355,15 @@ const SystemSettings: React.FC = () => {
     queryFn: getSystemHealth,
     enabled: !isOrganizationPage,
   });
+  const {
+    data: workflowStatus,
+    isLoading: workflowLoading,
+    refetch: refetchWorkflowStatus,
+  } = useQuery({
+    queryKey: ['workflow-enablement-status'],
+    queryFn: getWorkflowEnablementStatus,
+    enabled: !isOrganizationPage,
+  });
   const { data: organizationMembers, refetch: refetchOrganizationMembers } =
     useQuery({
       queryKey: ['organization-members'],
@@ -391,6 +433,57 @@ const SystemSettings: React.FC = () => {
     if (isLastActiveAdmin(record)) return '至少保留一名启用的管理员';
     return undefined;
   };
+  const canConfigureWorkflow = permissionsForRole(session.role).canConfigureWorkflow;
+  const workflowRows = useMemo(
+    () => workflowReadinessRows(workflowStatus),
+    [workflowStatus],
+  );
+
+  const refreshWorkflowStatus = async () => {
+    await Promise.all([refetch(), refetchWorkflowStatus()]);
+  };
+
+  const initializeWorkflow = async () => {
+    const result = await initializeWorkflowAssets();
+    message.success(result.initialized ? '配置已就绪' : '配置已检查');
+    await refreshWorkflowStatus();
+  };
+
+  const workflowColumns: ProColumns<WorkflowReadinessRow>[] = [
+    { title: '检查项', dataIndex: 'name', width: 140 },
+    {
+      title: '状态',
+      key: 'status',
+      width: 120,
+      render: (_, record) => (
+        <Tag color={record.step?.ready ? 'success' : 'warning'}>
+          {record.step?.ready ? '就绪' : '待处理'}
+        </Tag>
+      ),
+    },
+    {
+      title: '说明',
+      key: 'message',
+      renderText: (_, record) => productCopy(record.step?.message || '-'),
+    },
+    {
+      title: '数量',
+      key: 'count',
+      width: 88,
+      search: false,
+      renderText: (_, record) => record.step?.count ?? '-',
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 112,
+      render: (_, record) => (
+        <Button type="link" onClick={() => history.push(record.path)}>
+          {record.action}
+        </Button>
+      ),
+    },
+  ];
 
   const memberColumns: ProColumns<OrganizationMember>[] = [
     {
@@ -669,6 +762,78 @@ const SystemSettings: React.FC = () => {
         }
         style={{ marginBottom: 16 }}
       />
+
+      <ProCard
+        title="工作流就绪度"
+        style={{ marginBottom: 16 }}
+        extra={
+          <Space wrap>
+            <Button loading={workflowLoading} onClick={refreshWorkflowStatus}>
+              刷新
+            </Button>
+            <Button
+              type={workflowStatus?.initialized ? 'default' : 'primary'}
+              disabled={!canConfigureWorkflow}
+              onClick={initializeWorkflow}
+            >
+              补齐配置
+            </Button>
+            <Button
+              type="primary"
+              disabled={!workflowStatus?.initialized}
+              onClick={() =>
+                history.push(
+                  workflowStatus?.processModelId
+                    ? `/process-start?processModelId=${workflowStatus.processModelId}`
+                    : '/process-start',
+                )
+              }
+            >
+              发起流程
+            </Button>
+            <Button onClick={() => history.push('/ops')}>运维中心</Button>
+          </Space>
+        }
+      >
+        <Alert
+          showIcon
+          type={workflowStatus?.initialized ? 'success' : 'warning'}
+          title={workflowStatus?.message || '读取工作流状态'}
+          description={
+            <Space wrap>
+              <Tag>流程：{workflowStatus?.processDefinitionKey || '-'}</Tag>
+              <Tag>组织：{tenantDisplayName(workflowStatus?.tenantId || session.tenantId)}</Tag>
+              <Button
+                type="link"
+                disabled={!workflowStatus?.processModelId}
+                onClick={() =>
+                  workflowStatus?.processModelId
+                    ? history.push(
+                        `/process-designer?modelId=${workflowStatus.processModelId}`,
+                      )
+                    : undefined
+                }
+              >
+                查看设计
+              </Button>
+              <Button type="link" onClick={() => history.push('/audit-logs')}>
+                查审计
+              </Button>
+            </Space>
+          }
+          style={{ marginBottom: 16 }}
+        />
+        <ProTable<WorkflowReadinessRow>
+          rowKey="key"
+          columns={workflowColumns}
+          dataSource={workflowRows}
+          search={false}
+          pagination={false}
+          options={false}
+          size="small"
+          scroll={{ x: 720 }}
+        />
+      </ProCard>
 
       <ProCard split="vertical" gutter={16} wrap>
         <ProCard title="权限档案" colSpan={{ xs: 24, xl: 10 }}>
