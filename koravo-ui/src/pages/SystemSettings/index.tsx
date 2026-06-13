@@ -56,6 +56,7 @@ import {
 import { permissionsForRole } from '@/access';
 import { buildVersionLabel, productCopy } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+import { passwordPolicyRules } from '@/utils/passwordPolicy';
 
 const dependencyColumns: ProColumns<SystemHealthItem>[] = [
   { title: '依赖', dataIndex: 'name' },
@@ -316,14 +317,6 @@ const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
 function roleLabel(role: SessionRole) {
   return organizationRoleLabel(role);
 }
-
-const passwordPolicyRules = [
-  { min: 10, message: '密码至少 10 位' },
-  {
-    pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/,
-    message: '密码需包含大小写字母、数字和特殊字符',
-  },
-];
 
 const MemberFormFields: React.FC<{
   passwordRequired?: boolean;
