@@ -1,8 +1,4 @@
-import {
-  DeploymentUnitOutlined,
-  DownOutlined,
-  PlayCircleOutlined,
-} from '@ant-design/icons';
+import { DeploymentUnitOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import {
   PageContainer,
   ProCard,
@@ -23,7 +19,6 @@ import {
   Alert,
   App,
   Button,
-  Dropdown,
   Empty,
   Flex,
   Form,
@@ -61,12 +56,12 @@ import {
   organizationMemberSelectOptions,
   organizationProfileFieldValue,
 } from '@/services/koravo/organization';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   businessKeyLabel,
   formSchemaOptionLabel,
   processDefinitionLabel,
   shortTraceLabel,
-  taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 import {
@@ -325,7 +320,6 @@ function renderCurrentTasks(record: OpsProcessInstance) {
 }
 
 function buildColumns(
-  openTask: (task: TaskItem) => void,
   openPreview: (instance: OpsProcessInstance) => void,
 ): ProColumns<OpsProcessInstance>[] {
   return [
@@ -398,57 +392,26 @@ function buildColumns(
     {
       title: '操作',
       valueType: 'option',
-      width: 240,
-      render: (_, record) => {
-        const tasks = record.currentTasks || [];
-        return (
-          <Space size={4}>
-            <Button
-              type="link"
-              icon={<DeploymentUnitOutlined />}
-              onClick={() => openPreview(record)}
-            >
-              流程
-            </Button>
-            {tasks.length === 1 ? (
-              <Button type="link" onClick={() => openTask(tasks[0])}>
-                处理任务
-              </Button>
-            ) : null}
-            {tasks.length > 1 ? (
-              <Dropdown
-                trigger={['click']}
-                menu={{
-                  items: tasks.map((task) => ({
-                    key: task.taskId,
-                    label: `${taskDefinitionLabel(task.taskDefinitionKey)}：${
-                      task.assignee
-                        ? organizationMemberName(task.assignee)
-                        : '未分配'
-                    }`,
-                  })),
-                  onClick: ({ key }) => {
-                    const task = tasks.find((item) => item.taskId === key);
-                    if (task) openTask(task);
-                  },
-                }}
-              >
-                <Button type="link">
-                  处理任务 <DownOutlined />
-                </Button>
-              </Dropdown>
-            ) : null}
-            <Button
-              type="link"
-              onClick={() =>
-                history.push(`/process-instances/${record.instanceId}`)
-              }
-            >
-              查看实例
-            </Button>
-          </Space>
-        );
-      },
+      width: 160,
+      render: (_, record) => (
+        <Space size={4}>
+          <Button
+            type="link"
+            icon={<DeploymentUnitOutlined />}
+            onClick={() => openPreview(record)}
+          >
+            流程
+          </Button>
+          <Button
+            type="link"
+            onClick={() =>
+              history.push(`/process-instances/${record.instanceId}`)
+            }
+          >
+            查看实例
+          </Button>
+        </Space>
+      ),
     },
   ];
 }
@@ -815,15 +778,17 @@ const ProcessInstances: React.FC = () => {
   const location = useLocation();
   const queryProcessModelId = useQueryProcessModelId();
   const isStartEntry = location.pathname === '/process-start';
+  const session = getSessionContext();
+  const canStartProcess =
+    session.permissions?.canStartProcess ?? session.role === 'applicant';
+  const canConfigureWorkflow =
+    session.permissions?.canConfigureWorkflow ?? session.role === 'admin';
   const { data: startableWorkflows = [] } = useQuery({
     queryKey: ['startable-workflows'],
     queryFn: listStartableWorkflows,
     enabled: isStartEntry || Boolean(queryProcessModelId),
   });
 
-  const openTask = React.useCallback((task: TaskItem) => {
-    history.push(`/tasks/${task.taskId}`);
-  }, []);
   const [previewTarget, setPreviewTarget] =
     React.useState<ProcessPreviewTarget>();
   const previewTrace = useQuery({
@@ -841,10 +806,27 @@ const ProcessInstances: React.FC = () => {
     });
   }, []);
 
-  const columns = React.useMemo(
-    () => buildColumns(openTask, openPreview),
-    [openPreview, openTask],
-  );
+  const columns = React.useMemo(() => buildColumns(openPreview), [openPreview]);
+  const emptyActions = [
+    canStartProcess ? (
+      <Button
+        key="start"
+        type="primary"
+        icon={<PlayCircleOutlined />}
+        onClick={() => history.push('/process-start')}
+      >
+        发起流程
+      </Button>
+    ) : null,
+    canConfigureWorkflow ? (
+      <Button
+        key="create-model"
+        onClick={() => history.push('/process-models')}
+      >
+        创建流程模型
+      </Button>
+    ) : null,
+  ].filter(Boolean);
 
   if (isStartEntry || queryProcessModelId) {
     return (
@@ -922,30 +904,25 @@ const ProcessInstances: React.FC = () => {
               description="暂无流程实例"
             >
               <Flex gap={8} justify="center" wrap>
+                {emptyActions}
+              </Flex>
+            </Empty>
+          ),
+        }}
+        toolBarRender={() =>
+          canStartProcess
+            ? [
                 <Button
+                  key="start"
                   type="primary"
                   icon={<PlayCircleOutlined />}
                   onClick={() => history.push('/process-start')}
                 >
                   发起流程
-                </Button>
-                <Button onClick={() => history.push('/process-models')}>
-                  创建流程模型
-                </Button>
-              </Flex>
-            </Empty>
-          ),
-        }}
-        toolBarRender={() => [
-          <Button
-            key="start"
-            type="primary"
-            icon={<PlayCircleOutlined />}
-            onClick={() => history.push('/process-start')}
-          >
-            发起流程
-          </Button>,
-        ]}
+                </Button>,
+              ]
+            : []
+        }
       />
       <KoravoDrawer
         title={previewTarget?.title || '流程预览'}
