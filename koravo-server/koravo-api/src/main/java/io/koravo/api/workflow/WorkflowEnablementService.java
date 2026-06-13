@@ -160,7 +160,7 @@ public class WorkflowEnablementService {
                         true,
                         "READY",
                         "集成动作可在集成管理中配置并运行",
-                        "httpHealthCheck",
+                        "connectorOperations",
                         0
                 ),
                 defaultStartVariables()

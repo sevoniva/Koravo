@@ -255,7 +255,7 @@ function readableIdentifier(value?: string | null) {
 export function processDisplayName(modelKey?: string, fallback?: string) {
   const mapping: Record<string, string> = {
     collaborativeApproval: '协同审批流程',
-    httpHealthCheck: '接口巡检流程',
+    connectorOperations: '集成动作流程',
   };
   if (/^enterpriseApproval\d*$/i.test(modelKey || '')) {
     return '企业级审批流程';
@@ -352,7 +352,7 @@ export function formSchemaOptionLabel(
 export function processKindLabel(modelKey?: string) {
   const mapping: Record<string, string> = {
     collaborativeApproval: '协同审批流程',
-    httpHealthCheck: '接口巡检流程',
+    connectorOperations: '集成动作流程',
   };
   return mapping[modelKey || ''] || '流程模型';
 }

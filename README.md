@@ -264,10 +264,10 @@ For connector-enabled workflows, inspect the process instance, trace, connector 
 GET /api/v1/process-instances/{instanceId}
 GET /api/v1/ops/process-instances/{instanceId}/trace
 GET /api/v1/connector-execution-logs?connectorType=http&page=1&pageSize=20
-GET /api/v1/connector-execution-logs?connectorType=http&requestId=health-check-request-1&page=1&pageSize=20
+GET /api/v1/connector-execution-logs?connectorType=http&requestId=connector-request-1&page=1&pageSize=20
 GET /api/v1/connector-execution-logs/summary?connectorType=http
 GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
-GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&requestId=health-check-request-1&page=1&pageSize=20
+GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&requestId=connector-request-1&page=1&pageSize=20
 ```
 
 ## Tests
