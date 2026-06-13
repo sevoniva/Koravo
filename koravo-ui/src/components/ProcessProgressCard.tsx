@@ -23,12 +23,8 @@ interface ProcessProgressCardProps {
 const useStyles = createStyles(({ css, token }) => ({
   content: css`
     display: grid;
-    grid-template-columns: minmax(0, 1.75fr) minmax(280px, 0.65fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
-
-    @media (max-width: 960px) {
-      grid-template-columns: minmax(0, 1fr);
-    }
   `,
   side: css`
     min-width: 0;

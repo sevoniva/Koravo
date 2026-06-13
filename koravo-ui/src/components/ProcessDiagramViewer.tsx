@@ -380,19 +380,6 @@ function nodeTitle(node: ProcessTraceNode) {
   return taskDefinitionLabel(node.activityId, { name: node.activityName }) || node.activityId;
 }
 
-function activityTypeLabel(activityType?: string) {
-  const mapping: Record<string, string> = {
-    startEvent: '开始',
-    endEvent: '结束',
-    userTask: '人工任务',
-    serviceTask: '系统任务',
-    exclusiveGateway: '条件分支',
-    parallelGateway: '并行分支',
-    inclusiveGateway: '包容分支',
-  };
-  return mapping[activityType || ''] || activityType || '-';
-}
-
 function generatedCurrentText(nodes: ProcessTraceNode[], currentIndex: number) {
   const currentNode = nodes[currentIndex];
   return currentNode ? nodeTitle(currentNode) : '-';
@@ -411,14 +398,9 @@ function generatedStepItems(
         </Typography.Text>
       ),
       description: (
-        <Space size={4} wrap>
-          <Tag color={generatedStatusColor(status)}>
-            {processStatusLabel(node.status)}
-          </Tag>
-          <Typography.Text type="secondary">
-            {activityTypeLabel(node.activityType)}
-          </Typography.Text>
-        </Space>
+        <Tag color={generatedStatusColor(status)}>
+          {processStatusLabel(node.status)}
+        </Tag>
       ),
       status,
     };
