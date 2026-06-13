@@ -40,9 +40,11 @@ import {
   deployProcessModelDraft,
   disableProcessModel,
   exportProcessModel,
+  type FormSchemaItem,
   type FormBindingItem,
   importProcessModel,
   listFormBindings,
+  listFormSchemas,
   listProcessModels,
   listProcessModelTaskDefinitions,
   type ProcessModelItem,
@@ -81,6 +83,8 @@ interface ModelReadiness {
   boundTaskCount: number;
   missingTaskKeys: string[];
   variableExpressions: string[];
+  invalidBindingCount: number;
+  outdatedBindingCount: number;
   deployReady: boolean;
   canStart: boolean;
   statusText: string;
@@ -194,13 +198,37 @@ function buildModelReadiness(
   record: ProcessModelItem,
   bindings: FormBindingItem[],
   tasks: BpmnTaskDefinition[],
+  schemas: FormSchemaItem[],
 ): ModelReadiness {
-  const hasStartBinding = bindings.some(
-    (binding) => binding.taskDefinitionKey === START_FORM_TASK_KEY,
+  const schemaMap = new Map(schemas.map((schema) => [schema.id, schema]));
+  const taskKeys = new Set(tasks.map((task) => task.taskDefinitionKey));
+  const relevantBindings = bindings.filter(
+    (binding) =>
+      binding.taskDefinitionKey === START_FORM_TASK_KEY ||
+      taskKeys.has(binding.taskDefinitionKey),
   );
-  const taskBindings = bindings.filter(
-    (binding) => binding.taskDefinitionKey !== START_FORM_TASK_KEY,
+  const hasActiveSchema = (binding: FormBindingItem) =>
+    schemaMap.get(binding.formSchemaId)?.status === 'ACTIVE';
+  const hasStartBinding = relevantBindings.some(
+    (binding) =>
+      binding.taskDefinitionKey === START_FORM_TASK_KEY &&
+      hasActiveSchema(binding),
   );
+  const taskBindings = relevantBindings.filter(
+    (binding) =>
+      binding.taskDefinitionKey !== START_FORM_TASK_KEY &&
+      hasActiveSchema(binding),
+  );
+  const invalidBindingCount = relevantBindings.filter(
+    (binding) => !hasActiveSchema(binding),
+  ).length;
+  const outdatedBindingCount = relevantBindings.filter((binding) => {
+    const schema = schemaMap.get(binding.formSchemaId);
+    return (
+      schema?.status === 'ACTIVE' &&
+      binding.formSchemaVersion !== schema.version
+    );
+  }).length;
   const missingTaskKeys = tasks
     .filter(
       (task) =>
@@ -210,7 +238,10 @@ function buildModelReadiness(
     )
     .map((task) => taskDefinitionLabel(task.taskDefinitionKey, task));
   const boundTaskCount = tasks.length - missingTaskKeys.length;
-  const deployReady = hasStartBinding && missingTaskKeys.length === 0;
+  const deployReady =
+    hasStartBinding &&
+    missingTaskKeys.length === 0 &&
+    invalidBindingCount === 0;
   const canStart = record.status === 'DEPLOYED' && deployReady;
   let statusText = '待配置';
   let description = hasStartBinding ? '补齐任务表单后可发起' : '先绑定启动表单';
@@ -233,7 +264,11 @@ function buildModelReadiness(
     description = deployReady ? '发布检查通过后可部署' : '部署前需完成发布检查';
   } else if (canStart) {
     statusText = '可发起';
-    description = `启动表单和 ${tasks.length} 个任务表单已就绪`;
+    description = outdatedBindingCount
+      ? `有 ${outdatedBindingCount} 个绑定版本待同步`
+      : `启动表单和 ${tasks.length} 个任务表单已就绪`;
+  } else if (invalidBindingCount > 0) {
+    description = `有 ${invalidBindingCount} 个表单绑定失效`;
   } else if (missingTaskKeys.length > 0) {
     description = `缺 ${missingTaskKeys.length} 个任务表单`;
   }
@@ -244,6 +279,8 @@ function buildModelReadiness(
     boundTaskCount,
     missingTaskKeys,
     variableExpressions: extractVariableExpressions(record.bpmnXml),
+    invalidBindingCount,
+    outdatedBindingCount,
     deployReady,
     canStart,
     statusText,
@@ -413,6 +450,19 @@ const ProcessModels: React.FC = () => {
           <Typography.Text type="secondary">
             未绑定节点：{record.readiness.missingTaskKeys.join('、')}
           </Typography.Text>
+        )}
+        {renderCheckItem(
+          '表单状态',
+          record.readiness.invalidBindingCount
+            ? 'error'
+            : record.readiness.outdatedBindingCount
+              ? 'warning'
+              : 'success',
+          record.readiness.invalidBindingCount
+            ? `有 ${record.readiness.invalidBindingCount} 个绑定表单不可用`
+            : record.readiness.outdatedBindingCount
+              ? `有 ${record.readiness.outdatedBindingCount} 个绑定版本待同步`
+              : '绑定表单均可用',
         )}
         {renderCheckItem(
           '变量表达式',
@@ -712,9 +762,10 @@ const ProcessModels: React.FC = () => {
         scroll={{ x: 1440 }}
         params={{ viewMode }}
         request={async (params) => {
-          const [models, bindings] = await Promise.all([
+          const [models, bindings, schemas] = await Promise.all([
             listProcessModels(params.status as string | undefined),
             listFormBindings(),
+            listFormSchemas(),
           ]);
           const visibleModels =
             viewMode === 'business'
@@ -742,7 +793,12 @@ const ProcessModels: React.FC = () => {
               return {
                 ...model,
                 formBindingCount: modelBindings.length,
-                readiness: buildModelReadiness(model, modelBindings, tasks),
+                readiness: buildModelReadiness(
+                  model,
+                  modelBindings,
+                  tasks,
+                  schemas,
+                ),
               };
             }),
           );
