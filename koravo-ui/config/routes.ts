@@ -162,18 +162,20 @@ export default [
     key: 'ops',
     name: '运维审计',
     icon: 'control',
-    access: 'canOperateSystem',
+    access: 'canViewAudit',
     routes: [
       {
         path: '/ops',
         name: '运维中心',
         icon: 'control',
+        access: 'canOperateSystem',
         component: './Ops',
       },
       {
         path: '/audit-logs',
         name: '审计日志',
         icon: 'fileSearch',
+        access: 'canViewAudit',
         component: './AuditLogs',
       },
     ],

@@ -1,5 +1,5 @@
 import { type ProColumns, ProTable } from '@ant-design/pro-components';
-import { Empty, Tag, Typography } from 'antd';
+import { Empty, Space, Tag, Typography } from 'antd';
 import React from 'react';
 import {
   organizationMemberName,
@@ -124,12 +124,24 @@ function isMemberListField(rowKey: string) {
   return field === 'approvalUsers' || field === 'candidateUsers';
 }
 
+function isRoleListField(rowKey: string) {
+  const field = rowKey.split('.').pop();
+  return field === 'candidateGroups' || field === 'roles';
+}
+
+function roleGroupLabel(value: string) {
+  const match = /^role[-_]?(\d+)$/i.exec(value);
+  if (match) return `审批角色 ${Number(match[1])}`;
+  return organizationRoleLabel(value as SessionRole);
+}
+
 function domainText(rowKey: string, value: unknown) {
   if (typeof value !== 'string') return undefined;
   const field = rowKey.split('.').pop();
   if (field === 'action') return auditActionLabel(value);
   if (field === 'resourceType') return auditResourceLabel(value);
   if (field === 'role') return organizationRoleLabel(value as SessionRole);
+  if (field === 'candidateGroup') return roleGroupLabel(value);
   if (isMemberField(rowKey)) return organizationMemberName(value);
   if (field === 'businessKey') return businessKeyLabel(value);
   if (field === 'resourceId') {
@@ -169,6 +181,13 @@ function valueToText(value: unknown, rowKey = ''): string {
         )
         .join('、');
     }
+    if (isRoleListField(rowKey)) {
+      return value
+        .map((item) =>
+          typeof item === 'string' ? roleGroupLabel(item) : valueToText(item),
+        )
+        .join('、');
+    }
     return value
       .map((item, index) => valueToText(item, `${rowKey}.${index + 1}`))
       .join('、');
@@ -184,6 +203,37 @@ function valueToText(value: unknown, rowKey = ''): string {
   return String(value);
 }
 
+function tagList(items: string[]) {
+  const counts = new Map<string, number>();
+  return (
+    <Space size={[0, 6]} wrap>
+      {items.map((item) => {
+        const count = (counts.get(item) || 0) + 1;
+        counts.set(item, count);
+        return <Tag key={`${item}-${count}`}>{item}</Tag>;
+      })}
+    </Space>
+  );
+}
+
+function arrayValueItems(value: unknown[], rowKey: string) {
+  if (isMemberListField(rowKey)) {
+    return value.map((item) =>
+      typeof item === 'string' ? organizationMemberName(item) : valueToText(item),
+    );
+  }
+  if (isRoleListField(rowKey)) {
+    return value.map((item) =>
+      typeof item === 'string' ? roleGroupLabel(item) : valueToText(item),
+    );
+  }
+  return value.map((item, index) => valueToText(item, `${rowKey}.${index + 1}`));
+}
+
+function isLongText(value: string) {
+  return value.length > 56 || value.includes('\n');
+}
+
 function formatValue(value: unknown, rowKey = ''): React.ReactNode {
   if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'boolean') {
@@ -192,16 +242,30 @@ function formatValue(value: unknown, rowKey = ''): React.ReactNode {
   if (typeof value === 'number') return value;
   if (Array.isArray(value)) {
     if (!value.length) return '无';
-    return value
-      .map((item, index) => valueToText(item, `${rowKey}.${index + 1}`))
-      .join('、');
+    return tagList(arrayValueItems(value, rowKey).filter(Boolean));
+  }
+  const text = valueToText(value, rowKey);
+  if (isLongText(text)) {
+    return (
+      <Typography.Paragraph
+        copyable={{ text }}
+        ellipsis={{
+          rows: 3,
+          expandable: 'collapsible',
+          symbol: (expanded) => (expanded ? '收起' : '展开'),
+        }}
+        style={{ marginBottom: 0 }}
+      >
+        {text}
+      </Typography.Paragraph>
+    );
   }
   return (
     <Typography.Text
-      copyable
-      ellipsis={{ tooltip: valueToText(value, rowKey) }}
+      copyable={{ text }}
+      ellipsis={{ tooltip: text }}
     >
-      {valueToText(value, rowKey)}
+      {text}
     </Typography.Text>
   );
 }

@@ -30,6 +30,7 @@ public final class RolePermissionMatrix {
     private static final List<String> ADMIN_ROLES = List.of(UserContextHolder.ROLE_ADMIN);
     private static final List<String> OPS_ROLES = List.of(UserContextHolder.ROLE_OPERATOR);
     private static final List<String> SYSTEM_ROLES = List.of(UserContextHolder.ROLE_ADMIN, UserContextHolder.ROLE_OPERATOR);
+    private static final List<String> AUDIT_ROLES = SYSTEM_ROLES;
     private static final Map<String, List<EndpointRule>> RULES = Map.of(
             "GET", List.of(
                     rule("/api/v1/health", ALL_BUSINESS_ROLES),
@@ -51,8 +52,8 @@ public final class RolePermissionMatrix {
                     prefix("/api/v1/form-bindings", ADMIN_ROLES),
                     prefix("/api/v1/datasources", ADMIN_ROLES),
                     prefix("/api/v1/ops", OPS_ROLES),
-                    prefix("/api/v1/audit-logs", OPS_ROLES),
-                    prefix("/api/v1/connector-execution-logs", OPS_ROLES)
+                    prefix("/api/v1/audit-logs", AUDIT_ROLES),
+                    prefix("/api/v1/connector-execution-logs", AUDIT_ROLES)
             ),
             "POST", List.of(
                     rule("/api/v1/auth/login", ALL_BUSINESS_ROLES),
@@ -123,6 +124,7 @@ public final class RolePermissionMatrix {
         capabilities.put("canManageOrganization", isAdmin);
         capabilities.put("canManageIntegration", isAdmin);
         capabilities.put("canManageSystem", isAdmin);
+        capabilities.put("canViewAudit", isAdmin || isOperator);
         capabilities.put("canOperateSystem", isOperator);
         return capabilities;
     }

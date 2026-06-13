@@ -15,6 +15,7 @@ const permissionKeys: SessionPermissionKey[] = [
   'canManageOrganization',
   'canManageIntegration',
   'canManageSystem',
+  'canViewAudit',
   'canOperateSystem',
 ];
 
@@ -35,6 +36,7 @@ function fallbackPermissions(role?: string): Required<SessionPermissions> {
     canManageOrganization: isAdmin,
     canManageIntegration: isAdmin,
     canManageSystem: isAdmin,
+    canViewAudit: isAdmin || isOperator,
     canOperateSystem: isOperator,
   };
 }

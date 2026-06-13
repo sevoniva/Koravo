@@ -34,6 +34,7 @@ class HealthControllerTest {
                 .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
                 .containsEntry("canConfigureWorkflow", true)
                 .containsEntry("canViewProcessContext", false)
+                .containsEntry("canViewAudit", true)
                 .containsEntry("canOperateSystem", false);
         assertThat(response.requestId()).isEqualTo("req-health");
     }

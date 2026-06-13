@@ -1,0 +1,57 @@
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import StructuredDetailTable from './StructuredDetailTable';
+
+vi.mock('@ant-design/pro-components', async () => {
+  const React = await import('react');
+  return {
+    ProTable: ({ columns, dataSource }: { columns: any[]; dataSource: any[] }) =>
+      React.createElement(
+        'table',
+        {},
+        React.createElement(
+          'tbody',
+          {},
+          dataSource.map((record) =>
+            React.createElement(
+              'tr',
+              { key: record.key },
+              columns.map((column) =>
+                React.createElement(
+                  'td',
+                  { key: column.dataIndex || column.title },
+                  record[column.dataIndex],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+  };
+});
+
+describe('StructuredDetailTable', () => {
+  it('renders workflow audit details as business labels', async () => {
+    render(
+      <StructuredDetailTable
+        value={{
+          approvalUsers: ['manager', 'finance'],
+          candidateGroups: ['role-01', 'role-02'],
+          password: 'plain-password',
+          comment:
+            '这是一段用于验证长文本收起展示的处理意见，内容需要保持业务可读，但不能把整段明细压成难以扫描的一行。',
+        }}
+      />,
+    );
+
+    expect(await screen.findByText('审批人')).toBeInTheDocument();
+    expect(screen.getByText('审批主管')).toBeInTheDocument();
+    expect(screen.getByText('复核专员')).toBeInTheDocument();
+    expect(screen.getByText('候选角色')).toBeInTheDocument();
+    expect(screen.getByText('审批角色 1')).toBeInTheDocument();
+    expect(screen.getByText('审批角色 2')).toBeInTheDocument();
+    expect(screen.getByText('******')).toBeInTheDocument();
+    expect(screen.queryByText('plain-password')).not.toBeInTheDocument();
+    expect(screen.queryByText('role-01')).not.toBeInTheDocument();
+  });
+});

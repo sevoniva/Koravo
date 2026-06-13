@@ -12,6 +12,7 @@ describe('access rules', () => {
     expect(rules.canClaimTask).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(false);
     expect(rules.canManageIntegration).toBe(false);
+    expect(rules.canViewAudit).toBe(false);
     expect(rules.canOperateSystem).toBe(false);
     expect(rules.canViewDashboard).toBe(false);
   });
@@ -24,6 +25,7 @@ describe('access rules', () => {
     expect(rules.canClaimTask).toBe(true);
     expect(rules.canStartProcess).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(false);
+    expect(rules.canViewAudit).toBe(false);
     expect(rules.canOperateSystem).toBe(false);
   });
 
@@ -40,6 +42,7 @@ describe('access rules', () => {
     expect(rules.canManageOrganization).toBe(true);
     expect(rules.canManageIntegration).toBe(true);
     expect(rules.canManageSystem).toBe(true);
+    expect(rules.canViewAudit).toBe(true);
     expect(rules.canOperateSystem).toBe(false);
   });
 
@@ -54,6 +57,7 @@ describe('access rules', () => {
     expect(rules.canConfigureWorkflow).toBe(false);
     expect(rules.canManageOrganization).toBe(false);
     expect(rules.canManageIntegration).toBe(false);
+    expect(rules.canViewAudit).toBe(true);
     expect(rules.canOperateSystem).toBe(true);
   });
 
@@ -64,6 +68,7 @@ describe('access rules', () => {
         permissions: {
           canViewDashboard: false,
           canConfigureWorkflow: false,
+          canViewAudit: false,
           canOperateSystem: true,
         },
       },
@@ -71,6 +76,7 @@ describe('access rules', () => {
 
     expect(rules.canViewDashboard).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(false);
+    expect(rules.canViewAudit).toBe(false);
     expect(rules.canOperateSystem).toBe(true);
     expect(rules.canManageOrganization).toBe(true);
   });

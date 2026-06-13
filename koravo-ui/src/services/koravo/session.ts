@@ -22,6 +22,7 @@ export type SessionPermissionKey =
   | 'canManageOrganization'
   | 'canManageIntegration'
   | 'canManageSystem'
+  | 'canViewAudit'
   | 'canOperateSystem';
 export type SessionPermissions = Partial<Record<SessionPermissionKey, boolean>>;
 
