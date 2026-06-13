@@ -8,11 +8,12 @@ interface OrganizationProfileFormItemProps {
   value?: string;
   required?: boolean;
   sourceText?: string;
+  preserve?: boolean;
 }
 
 const OrganizationProfileFormItem: React.FC<
   OrganizationProfileFormItemProps
-> = ({ name, label, value, required, sourceText = '组织档案' }) => {
+> = ({ name, label, value, required, sourceText = '组织档案', preserve = true }) => {
   const form = Form.useFormInstance();
   const displayValue = value || '-';
   const namePathKey = Array.isArray(name) ? name.join('.') : name;
@@ -24,7 +25,12 @@ const OrganizationProfileFormItem: React.FC<
 
   return (
     <>
-      <Form.Item name={namePath} initialValue={displayValue} hidden>
+      <Form.Item
+        name={namePath}
+        initialValue={displayValue}
+        hidden
+        preserve={preserve}
+      >
         <Input type="hidden" />
       </Form.Item>
       <Form.Item label={label} required={required}>

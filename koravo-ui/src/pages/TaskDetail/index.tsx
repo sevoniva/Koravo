@@ -5,6 +5,7 @@ import {
   type ProColumns,
   ProDescriptions,
   ProFormDatePicker,
+  ProFormDependency,
   ProFormDigit,
   ProFormSelect,
   ProFormSwitch,
@@ -64,12 +65,18 @@ import {
   businessKeyLabel,
   formSchemaNameLabel,
   processDefinitionLabel,
-  productCopy,
   shortTraceLabel,
   taskDefinitionLabel,
   taskNameLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
+import {
+  filterWorkflowFormValues,
+  isWorkflowFieldVisible,
+  parseWorkflowFormFields,
+  visibleWorkflowFormFields,
+  type WorkflowFormField,
+} from '@/utils/workflowForm';
 
 interface CompleteTaskForm {
   decision?: 'APPROVED' | 'REJECTED' | 'RETURNED';
@@ -84,16 +91,7 @@ interface TaskActionForm {
   comment?: string;
 }
 
-interface SchemaField {
-  fieldKey: string;
-  title: string;
-  type: 'string' | 'number' | 'boolean' | 'array';
-  format?: string;
-  widget?: string;
-  placeholder?: string;
-  required?: boolean;
-  options?: Array<{ label: string; value: string }>;
-}
+type SchemaField = WorkflowFormField;
 
 const commentColumns: ProColumns<TaskCommentItem>[] = [
   {
@@ -176,15 +174,6 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     render: (_, record) => <CopyableText value={record.requestId} />,
   },
 ];
-
-function parseJsonObject(value?: string): JsonRecord {
-  if (!value?.trim()) return {};
-  try {
-    return JSON.parse(value) as JsonRecord;
-  } catch {
-    return {};
-  }
-}
 
 function nextPendingTask(currentTask: TaskItem, tasks: TaskItem[]) {
   return tasks.find(
@@ -415,52 +404,8 @@ function renderParallelTasks(
   );
 }
 
-function normalizeSchemaType(type?: string): SchemaField['type'] {
-  if (type === 'array') return 'array';
-  if (type === 'number' || type === 'integer') return 'number';
-  if (type === 'boolean') return 'boolean';
-  return 'string';
-}
-
 function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
-  const schema = parseJsonObject(formSchema?.schemaJson);
-  const uiSchema = parseJsonObject(formSchema?.uiSchemaJson);
-  const properties = schema.properties as
-    | Record<string, JsonRecord>
-    | undefined;
-  if (!properties || typeof properties !== 'object') return [];
-  const required = Array.isArray(schema.required)
-    ? schema.required.map(String)
-    : [];
-
-  return Object.entries(properties).map(([fieldKey, property]) => {
-    const type = normalizeSchemaType(String(property.type || 'string'));
-    const uiField = uiSchema[fieldKey] as JsonRecord | undefined;
-    const placeholder =
-      uiField?.['ui:placeholder'] ||
-      uiField?.placeholder ||
-      property['ui:placeholder'];
-    return {
-      fieldKey,
-      title: productCopy(String(property.title || '')) || fieldKey,
-      type,
-      format: typeof property.format === 'string' ? property.format : undefined,
-      widget: String(
-        property['ui:widget'] ||
-          uiField?.['ui:widget'] ||
-          uiField?.widget ||
-          '',
-      ),
-      placeholder: typeof placeholder === 'string' ? placeholder : undefined,
-      required: required.includes(fieldKey),
-      options: Array.isArray(property.enum)
-        ? property.enum.map((item) => ({
-            label: String(item),
-            value: String(item),
-          }))
-        : undefined,
-    };
-  });
+  return parseWorkflowFormFields(formSchema?.schemaJson, formSchema?.uiSchemaJson);
 }
 
 function isTaskProfileField(field: SchemaField) {
@@ -516,13 +461,21 @@ function buildCompletePayload(
       ? '同意'
       : decision === 'REJECTED'
         ? '不同意'
-        : '退回补充';
+      : '退回补充';
   const schemaFields = schemaToFields(formSchema);
-  const formValues = applyOrganizationProfileValues(
+  const normalizedValues = normalizeFormValues(values.formValues);
+  const valuesWithProfile = applyOrganizationProfileValues(
     schemaFields,
-    normalizeFormValues(values.formValues),
+    { ...(processValues || {}), ...normalizedValues },
     processValues,
+  ) as JsonRecord;
+  const visibleFields = visibleWorkflowFormFields(
+    schemaFields,
+    valuesWithProfile,
   );
+  const formValues = schemaFields.length
+    ? filterWorkflowFormValues(visibleFields, valuesWithProfile)
+    : normalizedValues;
   const formData = {
     ...formValues,
     decision,
@@ -563,6 +516,173 @@ function snapshotSummary(record: FormSnapshotItem) {
   );
 }
 
+function taskFieldRules(field: SchemaField, messagePrefix = '请输入') {
+  return field.required
+    ? [{ required: true, message: `${messagePrefix}${field.title}` }]
+    : undefined;
+}
+
+function renderTaskField(
+  field: SchemaField,
+  processValues?: JsonRecord,
+  formValues?: JsonRecord,
+) {
+  const visibilityValues = { ...(processValues || {}), ...(formValues || {}) };
+  if (!isWorkflowFieldVisible(field, visibilityValues)) return null;
+
+  const name = ['formValues', field.fieldKey];
+  const readOnly = field.permission === 'readonly';
+  const formItemProps = { preserve: false };
+
+  if (isTaskAssigneeMultiField(field)) {
+    const value = processValues?.[field.fieldKey];
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={Array.isArray(value) ? value.map(String) : []}
+        options={organizationMemberSelectOptions()}
+        tooltip="由发起环节选择的组织成员带出。"
+        disabled
+        fieldProps={{ mode: 'multiple', maxTagCount: 'responsive' }}
+        formItemProps={formItemProps}
+        rules={
+          field.required
+            ? [{ required: true, message: `${field.title}会自动带出` }]
+            : undefined
+        }
+      />
+    );
+  }
+
+  if (isTaskAssigneeField(field)) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={organizationAssigneeFieldValue(
+          field.fieldKey,
+          processValues,
+          field.title,
+        )}
+        options={organizationMemberSelectOptions(
+          organizationAssigneeRole(field.fieldKey, field.title),
+        )}
+        tooltip="由发起环节选择的组织成员带出。"
+        disabled
+        formItemProps={formItemProps}
+        rules={
+          field.required
+            ? [{ required: true, message: `${field.title}会自动带出` }]
+            : undefined
+        }
+      />
+    );
+  }
+
+  if (isTaskProfileField(field)) {
+    return (
+      <OrganizationProfileFormItem
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        value={organizationProfileFieldValue(
+          field.fieldKey,
+          processValues,
+          undefined,
+          field.title,
+        )}
+        required={field.required}
+        sourceText="流程档案"
+        preserve={false}
+      />
+    );
+  }
+
+  if (field.type === 'number') {
+    return (
+      <ProFormDigit
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        fieldProps={{ precision: 2, disabled: readOnly }}
+        formItemProps={formItemProps}
+        rules={taskFieldRules(field)}
+      />
+    );
+  }
+
+  if (field.options?.length) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        options={field.options}
+        placeholder={field.placeholder}
+        disabled={readOnly}
+        formItemProps={formItemProps}
+        rules={taskFieldRules(field, '请选择')}
+      />
+    );
+  }
+
+  if (field.format === 'date') {
+    return (
+      <ProFormDatePicker
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        fieldProps={{ format: 'YYYY-MM-DD', disabled: readOnly }}
+        formItemProps={formItemProps}
+        rules={taskFieldRules(field, '请选择')}
+      />
+    );
+  }
+
+  if (field.type === 'boolean') {
+    return (
+      <ProFormSwitch
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        fieldProps={{ disabled: readOnly }}
+        formItemProps={formItemProps}
+      />
+    );
+  }
+
+  if (field.widget === 'textarea') {
+    return (
+      <ProFormTextArea
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        fieldProps={{ rows: 4, disabled: readOnly }}
+        formItemProps={formItemProps}
+        rules={taskFieldRules(field)}
+      />
+    );
+  }
+
+  return (
+    <ProFormText
+      key={field.fieldKey}
+      name={name}
+      label={field.title}
+      placeholder={field.placeholder}
+      fieldProps={{ disabled: readOnly }}
+      formItemProps={formItemProps}
+      rules={taskFieldRules(field)}
+    />
+  );
+}
+
 const SchemaDrivenFields: React.FC<{
   formSchema?: FormSchemaItem;
   values?: JsonRecord;
@@ -586,147 +706,13 @@ const SchemaDrivenFields: React.FC<{
 
   return (
     <>
-      {fields.map((field) => {
-        const rules = field.required
-          ? [{ required: true, message: `请输入${field.title}` }]
-          : undefined;
-        const name = ['formValues', field.fieldKey];
-        if (isTaskAssigneeMultiField(field)) {
-          const value = values?.[field.fieldKey];
-          return (
-            <ProFormSelect
-              key={field.fieldKey}
-              name={name}
-              label={field.title}
-              initialValue={Array.isArray(value) ? value.map(String) : []}
-              options={organizationMemberSelectOptions()}
-              tooltip="由发起环节选择的组织成员带出。"
-              disabled
-              fieldProps={{ mode: 'multiple', maxTagCount: 'responsive' }}
-              rules={
-                field.required
-                  ? [{ required: true, message: `${field.title}会自动带出` }]
-                  : undefined
-              }
-            />
-          );
-        }
-        if (isTaskAssigneeField(field)) {
-          return (
-            <ProFormSelect
-              key={field.fieldKey}
-              name={name}
-              label={field.title}
-              initialValue={organizationAssigneeFieldValue(
-                field.fieldKey,
-                values,
-                field.title,
-              )}
-              options={organizationMemberSelectOptions(
-                organizationAssigneeRole(field.fieldKey, field.title),
-              )}
-              tooltip="由发起环节选择的组织成员带出。"
-              disabled
-              rules={
-                field.required
-                  ? [{ required: true, message: `${field.title}会自动带出` }]
-                  : undefined
-              }
-            />
-          );
-        }
-        if (isTaskProfileField(field)) {
-          return (
-            <OrganizationProfileFormItem
-              key={field.fieldKey}
-              name={name}
-              label={field.title}
-              value={organizationProfileFieldValue(
-                field.fieldKey,
-                values,
-                undefined,
-                field.title,
-              )}
-              required={field.required}
-              sourceText="流程档案"
-            />
-          );
-        }
-        if (field.type === 'number') {
-          return (
-            <ProFormDigit
-              key={field.fieldKey}
-              name={name}
-              label={field.title}
-              placeholder={field.placeholder}
-              fieldProps={{ precision: 2 }}
-              rules={rules}
-            />
-          );
-        }
-        if (field.options?.length) {
-          return (
-            <ProFormSelect
-              key={field.fieldKey}
-              name={name}
-              label={field.title}
-              options={field.options}
-              placeholder={field.placeholder}
-              rules={
-                field.required
-                  ? [{ required: true, message: `请选择${field.title}` }]
-                  : undefined
-              }
-            />
-          );
-        }
-        if (field.format === 'date') {
-          return (
-            <ProFormDatePicker
-              key={field.fieldKey}
-              name={name}
-              label={field.title}
-              placeholder={field.placeholder}
-              fieldProps={{ format: 'YYYY-MM-DD' }}
-              rules={
-                field.required
-                  ? [{ required: true, message: `请选择${field.title}` }]
-                  : undefined
-              }
-            />
-          );
-        }
-        if (field.type === 'boolean') {
-          return (
-            <ProFormSwitch
-              key={field.fieldKey}
-              name={name}
-              label={field.title}
-            />
-          );
-        }
-        if (field.widget === 'textarea') {
-          return (
-            <ProFormTextArea
-              key={field.fieldKey}
-              name={name}
-              label={field.title}
-              placeholder={field.placeholder}
-              fieldProps={{ rows: 4 }}
-              rules={rules}
-            />
-          );
-        }
-        return (
-          <ProFormText
-            key={field.fieldKey}
-            name={name}
-            label={field.title}
-            placeholder={field.placeholder}
-            rules={rules}
-          />
-        );
-      })}
+      {fields.map((field) => (
+        <ProFormDependency key={field.fieldKey} name={['formValues']}>
+          {({ formValues }) =>
+            renderTaskField(field, values, formValues as JsonRecord)
+          }
+        </ProFormDependency>
+      ))}
     </>
   );
 };

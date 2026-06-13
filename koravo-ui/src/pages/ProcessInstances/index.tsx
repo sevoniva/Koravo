@@ -12,6 +12,7 @@ import {
   ProFormDependency,
   ProFormDigit,
   ProFormSelect,
+  ProFormSwitch,
   ProFormText,
   ProFormTextArea,
   ProTable,
@@ -64,11 +65,17 @@ import {
   businessKeyLabel,
   formSchemaOptionLabel,
   processDefinitionLabel,
-  productCopy,
   shortTraceLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+import {
+  filterWorkflowFormValues,
+  isWorkflowFieldVisible,
+  parseWorkflowFormFields,
+  visibleWorkflowFormFields,
+  type WorkflowFormField,
+} from '@/utils/workflowForm';
 
 interface StartInstanceForm {
   processDefinitionKey: string;
@@ -79,26 +86,7 @@ interface StartInstanceForm {
   formValues?: JsonRecord;
 }
 
-interface StartFormField {
-  fieldKey: string;
-  title: string;
-  type: string;
-  format?: string;
-  widget?: string;
-  placeholder?: string;
-  required: boolean;
-  options?: Array<{ label: string; value: string }>;
-}
-
-interface JsonSchemaProperty {
-  title?: string;
-  type?: string;
-  format?: string;
-  widget?: string;
-  enum?: string[];
-  'ui:placeholder'?: string;
-  'ui:widget'?: string;
-}
+type StartFormField = WorkflowFormField;
 
 interface ProcessPreviewTarget {
   instanceId: string;
@@ -139,57 +127,10 @@ function businessKeyPrefix(modelKey?: string) {
   return normalized || 'REQ';
 }
 
-function parseJsonObject(value?: string): JsonRecord {
-  if (!value?.trim()) return {};
-  try {
-    const parsed = JSON.parse(value) as JsonRecord;
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed
-      : {};
-  } catch {
-    return {};
-  }
-}
-
 function schemaToStartFields(formSchema?: FormSchemaItem): StartFormField[] {
-  const schema = parseJsonObject(formSchema?.schemaJson);
-  const uiSchema = parseJsonObject(formSchema?.uiSchemaJson);
-  const properties = schema.properties as
-    | Record<string, JsonSchemaProperty>
-    | undefined;
-  const required = Array.isArray(schema.required)
-    ? schema.required.map(String)
-    : [];
-
-  return Object.entries(properties || {})
-    .filter(([fieldKey]) => !taskDecisionFieldKeys.has(fieldKey))
-    .map(([fieldKey, property]) => {
-      const uiField = uiSchema[fieldKey] as JsonRecord | undefined;
-      const widget =
-        uiField?.['ui:widget'] ||
-        uiField?.widget ||
-        property['ui:widget'] ||
-        property.widget;
-      const placeholder =
-        uiField?.['ui:placeholder'] ||
-        uiField?.placeholder ||
-        property['ui:placeholder'];
-      return {
-        fieldKey,
-        title: productCopy(property.title) || fieldKey,
-        type: property.type || 'string',
-        format: property.format,
-        widget: String(widget || ''),
-        placeholder: typeof placeholder === 'string' ? placeholder : undefined,
-        required: required.includes(fieldKey),
-        options: Array.isArray(property.enum)
-          ? property.enum.map((value) => ({
-              label: String(value),
-              value: String(value),
-            }))
-          : undefined,
-      };
-    });
+  return parseWorkflowFormFields(formSchema?.schemaJson, formSchema?.uiSchemaJson, {
+    excludeKeys: taskDecisionFieldKeys,
+  });
 }
 
 function isStartProfileField(field: StartFormField) {
@@ -452,10 +393,177 @@ function buildStartVariables(
 ): JsonRecord {
   const formValues = normalizeStartVariables(values.formValues);
   const schemaFields = schemaToStartFields(formSchema);
-  const fields = schemaFields.length
-    ? schemaFields
-    : Object.keys(formValues).map((fieldKey) => ({ fieldKey }));
-  return applyOrganizationProfileValues(fields, formValues) as JsonRecord;
+  if (!schemaFields.length) return formValues;
+  const valuesWithProfile = applyOrganizationProfileValues(
+    schemaFields,
+    formValues,
+  ) as JsonRecord;
+  const visibleFields = visibleWorkflowFormFields(
+    schemaFields,
+    valuesWithProfile,
+  );
+  return filterWorkflowFormValues(visibleFields, valuesWithProfile);
+}
+
+function startFieldRules(field: StartFormField, messagePrefix = '请输入') {
+  return field.required
+    ? [{ required: true, message: `${messagePrefix}${field.title}` }]
+    : [];
+}
+
+function renderStartField(field: StartFormField, values?: JsonRecord) {
+  if (!isWorkflowFieldVisible(field, values)) return null;
+
+  const name = ['formValues', field.fieldKey];
+  const readOnly = field.permission === 'readonly';
+  const formItemProps = { preserve: false };
+
+  if (isStartAssigneeMultiField(field)) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={defaultApprovalUsers(field)}
+        options={organizationApprovalMemberSelectOptions()}
+        placeholder="请选择一个或多个审批人"
+        disabled={readOnly}
+        fieldProps={{
+          mode: 'multiple',
+          maxTagCount: 'responsive',
+          showSearch: true,
+          optionFilterProp: 'label',
+        }}
+        formItemProps={formItemProps}
+        rules={approvalUserRules(field)}
+      />
+    );
+  }
+
+  if (isStartAssigneeField(field)) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        initialValue={organizationAssigneeFieldValue(
+          field.fieldKey,
+          undefined,
+          field.title,
+        )}
+        options={organizationMemberSelectOptions(
+          organizationAssigneeRole(field.fieldKey, field.title),
+        )}
+        placeholder="请选择组织成员"
+        disabled={readOnly}
+        fieldProps={{
+          showSearch: true,
+          optionFilterProp: 'label',
+        }}
+        formItemProps={formItemProps}
+        rules={startFieldRules(field, '请选择')}
+      />
+    );
+  }
+
+  if (isStartProfileField(field)) {
+    return (
+      <OrganizationProfileFormItem
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        value={organizationProfileFieldValue(
+          field.fieldKey,
+          undefined,
+          undefined,
+          field.title,
+        )}
+        required={field.required}
+        preserve={false}
+      />
+    );
+  }
+
+  if (field.type === 'number') {
+    return (
+      <ProFormDigit
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        fieldProps={{ disabled: readOnly }}
+        formItemProps={formItemProps}
+        rules={startFieldRules(field)}
+      />
+    );
+  }
+
+  if (field.options?.length) {
+    return (
+      <ProFormSelect
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        options={field.options}
+        placeholder={field.placeholder}
+        disabled={readOnly}
+        formItemProps={formItemProps}
+        rules={startFieldRules(field, '请选择')}
+      />
+    );
+  }
+
+  if (field.format === 'date') {
+    return (
+      <ProFormDatePicker
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        fieldProps={{ format: 'YYYY-MM-DD', disabled: readOnly }}
+        formItemProps={formItemProps}
+        rules={startFieldRules(field, '请选择')}
+      />
+    );
+  }
+
+  if (field.type === 'boolean') {
+    return (
+      <ProFormSwitch
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        fieldProps={{ disabled: readOnly }}
+        formItemProps={formItemProps}
+      />
+    );
+  }
+
+  if (field.widget === 'textarea') {
+    return (
+      <ProFormTextArea
+        key={field.fieldKey}
+        name={name}
+        label={field.title}
+        placeholder={field.placeholder}
+        fieldProps={{ rows: 3, disabled: readOnly }}
+        formItemProps={formItemProps}
+        rules={startFieldRules(field)}
+      />
+    );
+  }
+
+  return (
+    <ProFormText
+      key={field.fieldKey}
+      name={name}
+      label={field.title}
+      placeholder={field.placeholder}
+      fieldProps={{ disabled: readOnly }}
+      formItemProps={formItemProps}
+      rules={startFieldRules(field)}
+    />
+  );
 }
 
 const StartInstanceFields: React.FC<{
@@ -613,159 +721,16 @@ const StartInstanceFields: React.FC<{
                   }
                   return (
                     <Flex vertical gap={4}>
-                      {fields.map((field) =>
-                        isStartAssigneeMultiField(field) ? (
-                          <ProFormSelect
-                            key={field.fieldKey}
-                            name={['formValues', field.fieldKey]}
-                            label={field.title}
-                            initialValue={defaultApprovalUsers(field)}
-                            options={organizationApprovalMemberSelectOptions()}
-                            placeholder="请选择一个或多个审批人"
-                            fieldProps={{
-                              mode: 'multiple',
-                              maxTagCount: 'responsive',
-                              showSearch: true,
-                              optionFilterProp: 'label',
-                            }}
-                            rules={approvalUserRules(field)}
-                          />
-                        ) : isStartAssigneeField(field) ? (
-                          <ProFormSelect
-                            key={field.fieldKey}
-                            name={['formValues', field.fieldKey]}
-                            label={field.title}
-                            initialValue={organizationAssigneeFieldValue(
-                              field.fieldKey,
-                              undefined,
-                              field.title,
-                            )}
-                            options={organizationMemberSelectOptions(
-                              organizationAssigneeRole(
-                                field.fieldKey,
-                                field.title,
-                              ),
-                            )}
-                            placeholder="请选择组织成员"
-                            fieldProps={{
-                              showSearch: true,
-                              optionFilterProp: 'label',
-                            }}
-                            rules={
-                              field.required
-                                ? [
-                                    {
-                                      required: true,
-                                      message: `请选择${field.title}`,
-                                    },
-                                  ]
-                                : []
-                            }
-                          />
-                        ) : isStartProfileField(field) ? (
-                          <OrganizationProfileFormItem
-                            key={field.fieldKey}
-                            name={['formValues', field.fieldKey]}
-                            label={field.title}
-                            value={organizationProfileFieldValue(
-                              field.fieldKey,
-                              undefined,
-                              undefined,
-                              field.title,
-                            )}
-                            required={field.required}
-                          />
-                        ) : field.type === 'number' ||
-                          field.type === 'integer' ? (
-                          <ProFormDigit
-                            key={field.fieldKey}
-                            name={['formValues', field.fieldKey]}
-                            label={field.title}
-                            placeholder={field.placeholder}
-                            rules={
-                              field.required
-                                ? [
-                                    {
-                                      required: true,
-                                      message: `请输入${field.title}`,
-                                    },
-                                  ]
-                                : []
-                            }
-                          />
-                        ) : field.options?.length ? (
-                          <ProFormSelect
-                            key={field.fieldKey}
-                            name={['formValues', field.fieldKey]}
-                            label={field.title}
-                            options={field.options}
-                            placeholder={field.placeholder}
-                            rules={
-                              field.required
-                                ? [
-                                    {
-                                      required: true,
-                                      message: `请选择${field.title}`,
-                                    },
-                                  ]
-                                : []
-                            }
-                          />
-                        ) : field.format === 'date' ? (
-                          <ProFormDatePicker
-                            key={field.fieldKey}
-                            name={['formValues', field.fieldKey]}
-                            label={field.title}
-                            placeholder={field.placeholder}
-                            fieldProps={{ format: 'YYYY-MM-DD' }}
-                            rules={
-                              field.required
-                                ? [
-                                    {
-                                      required: true,
-                                      message: `请选择${field.title}`,
-                                    },
-                                  ]
-                                : []
-                            }
-                          />
-                        ) : field.widget === 'textarea' ? (
-                          <ProFormTextArea
-                            key={field.fieldKey}
-                            name={['formValues', field.fieldKey]}
-                            label={field.title}
-                            placeholder={field.placeholder}
-                            fieldProps={{ rows: 3 }}
-                            rules={
-                              field.required
-                                ? [
-                                    {
-                                      required: true,
-                                      message: `请输入${field.title}`,
-                                    },
-                                  ]
-                                : []
-                            }
-                          />
-                        ) : (
-                          <ProFormText
-                            key={field.fieldKey}
-                            name={['formValues', field.fieldKey]}
-                            label={field.title}
-                            placeholder={field.placeholder}
-                            rules={
-                              field.required
-                                ? [
-                                    {
-                                      required: true,
-                                      message: `请输入${field.title}`,
-                                    },
-                                  ]
-                                : []
-                            }
-                          />
-                        ),
-                      )}
+                      {fields.map((field) => (
+                        <ProFormDependency
+                          key={field.fieldKey}
+                          name={['formValues']}
+                        >
+                          {({ formValues }) =>
+                            renderStartField(field, formValues as JsonRecord)
+                          }
+                        </ProFormDependency>
+                      ))}
                     </Flex>
                   );
                 }}
