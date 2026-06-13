@@ -15,6 +15,7 @@ import {
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { history, useLocation } from '@umijs/max';
+import { createStyles } from 'antd-style';
 import {
   Alert,
   App,
@@ -90,6 +91,42 @@ interface ProcessPreviewTarget {
   title: string;
   currentTasks?: TaskItem[];
 }
+
+const useStyles = createStyles(({ css, token }) => ({
+  startGrid: css`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    gap: 24px;
+    align-items: start;
+
+    @media (max-width: 1080px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `,
+  startMain: css`
+    min-width: 0;
+    max-width: 760px;
+  `,
+  startAside: css`
+    position: sticky;
+    top: 16px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-left: 20px;
+    border-left: 1px solid ${token.colorBorderSecondary};
+
+    @media (max-width: 1080px) {
+      position: static;
+      padding-left: 0;
+      border-left: 0;
+    }
+  `,
+  startPreview: css`
+    min-width: 0;
+  `,
+}));
 
 const taskDecisionFieldKeys = new Set([
   'accepted',
@@ -289,10 +326,11 @@ function normalizeStartVariables(values?: JsonRecord): JsonRecord {
 const ProcessStartReadiness: React.FC<{
   workflow?: StartableWorkflowItem;
 }> = ({ workflow }) => {
+  const { styles } = useStyles();
   if (!workflow) return null;
 
   return (
-    <Flex vertical gap={8} style={{ marginBottom: 16 }}>
+    <Flex vertical gap={8} className={styles.startPreview}>
       <Flex align="center" justify="space-between" gap={8} wrap>
         <Typography.Text strong>流程预览</Typography.Text>
         <Tag color="success" variant="outlined">
@@ -462,7 +500,6 @@ function renderStartField(field: StartFormField, values?: JsonRecord) {
         disabled={readOnly}
         fieldProps={{
           mode: 'multiple',
-          maxTagCount: 'responsive',
           showSearch: true,
           optionFilterProp: 'label',
         }}
@@ -602,6 +639,7 @@ const StartInstanceFields: React.FC<{
   initialProcessModelId?: string;
   startableWorkflows: StartableWorkflowItem[];
 }> = ({ initialProcessModelId, startableWorkflows }) => {
+  const { styles } = useStyles();
   const form = Form.useFormInstance();
 
   const setProcessContext = React.useCallback(
@@ -668,82 +706,97 @@ const StartInstanceFields: React.FC<{
           style={{ marginBottom: 16 }}
         />
       ) : null}
-      <ProFormSelect
-        name="processDefinitionKey"
-        label="流程"
-        disabled={!startableWorkflows.length}
-        rules={[{ required: true, message: '请选择流程' }]}
-        fieldProps={{
-          showSearch: true,
-          optionFilterProp: 'label',
-          onChange: (value) => {
-            setProcessContext(String(value));
-          },
-        }}
-        options={startableWorkflows.map((item) => ({
-          label: item.processName,
-          value: item.processDefinitionKey,
-        }))}
-      />
-      <ProFormText
-        name="businessKey"
-        label="业务编号"
-        fieldProps={{ readOnly: true, allowClear: false }}
-        rules={[{ required: true, message: '请输入业务编号' }]}
-      />
-      <ProFormDependency name={['processModelId']}>
-        {({ processModelId }) => {
-          const selectedWorkflow = startableWorkflows.find(
-            (item) => item.processModelId === processModelId,
-          );
-          return <ProcessStartReadiness workflow={selectedWorkflow} />;
-        }}
-      </ProFormDependency>
-      <ProFormText name="processModelId" hidden />
-      <ProFormText name="processDefinitionId" hidden />
-      <ProFormText name="startFormSchemaId" hidden />
-      <ProFormDependency name={['processDefinitionKey']}>
-        {({ processDefinitionKey }) => {
-          if (!processDefinitionKey) {
-            return <Alert showIcon type="info" title="选择流程" />;
-          }
+      <div className={styles.startGrid}>
+        <div className={styles.startMain}>
+          <ProFormSelect
+            name="processDefinitionKey"
+            label="流程"
+            disabled={!startableWorkflows.length}
+            rules={[{ required: true, message: '请选择流程' }]}
+            fieldProps={{
+              showSearch: true,
+              optionFilterProp: 'label',
+              onChange: (value) => {
+                setProcessContext(String(value));
+              },
+            }}
+            options={startableWorkflows.map((item) => ({
+              label: item.processName,
+              value: item.processDefinitionKey,
+            }))}
+          />
+          <ProFormText
+            name="businessKey"
+            label="业务编号"
+            fieldProps={{ readOnly: true, allowClear: false }}
+            rules={[{ required: true, message: '请输入业务编号' }]}
+          />
+          <ProFormText name="processModelId" hidden />
+          <ProFormText name="processDefinitionId" hidden />
+          <ProFormText name="startFormSchemaId" hidden />
+          <ProFormDependency name={['processDefinitionKey']}>
+            {({ processDefinitionKey }) => {
+              if (!processDefinitionKey) {
+                return <Alert showIcon type="info" title="选择流程" />;
+              }
 
-          return (
-            <ProFormDependency name={['startFormSchemaId']}>
-              {({ startFormSchemaId }) => {
-                const formSchema = startableWorkflows.find(
-                  (item) => item.startFormSchema.id === startFormSchemaId,
-                )?.startFormSchema;
-                const fields = schemaToStartFields(formSchema);
-                if (!fields.length) {
-                  return (
-                    <Alert
-                      showIcon
-                      type="warning"
-                      title="当前表单没有可填写字段"
-                    />
-                  );
-                }
-                return (
-                  <Flex vertical gap={4}>
-                    {fields.map((field) => (
-                      <ProFormDependency
-                        key={field.fieldKey}
-                        name={['formValues']}
-                      >
-                        {({ formValues }) =>
-                          renderStartField(field, formValues as JsonRecord)
-                        }
-                      </ProFormDependency>
-                    ))}
-                    <StartApprovalSummary fields={fields} />
-                  </Flex>
-                );
-              }}
-            </ProFormDependency>
-          );
-        }}
-      </ProFormDependency>
+              return (
+                <ProFormDependency name={['startFormSchemaId']}>
+                  {({ startFormSchemaId }) => {
+                    const formSchema = startableWorkflows.find(
+                      (item) => item.startFormSchema.id === startFormSchemaId,
+                    )?.startFormSchema;
+                    const fields = schemaToStartFields(formSchema);
+                    if (!fields.length) {
+                      return (
+                        <Alert
+                          showIcon
+                          type="warning"
+                          title="当前表单没有可填写字段"
+                        />
+                      );
+                    }
+                    return (
+                      <Flex vertical gap={4}>
+                        {fields.map((field) => (
+                          <ProFormDependency
+                            key={field.fieldKey}
+                            name={['formValues']}
+                          >
+                            {({ formValues }) =>
+                              renderStartField(field, formValues as JsonRecord)
+                            }
+                          </ProFormDependency>
+                        ))}
+                      </Flex>
+                    );
+                  }}
+                </ProFormDependency>
+              );
+            }}
+          </ProFormDependency>
+        </div>
+        <div className={styles.startAside}>
+          <ProFormDependency name={['processModelId', 'startFormSchemaId']}>
+            {({ processModelId, startFormSchemaId }) => {
+              const selectedWorkflow = startableWorkflows.find(
+                (item) =>
+                  item.processModelId === processModelId ||
+                  item.startFormSchema.id === startFormSchemaId,
+              );
+              const fields = schemaToStartFields(
+                selectedWorkflow?.startFormSchema,
+              );
+              return (
+                <>
+                  <ProcessStartReadiness workflow={selectedWorkflow} />
+                  <StartApprovalSummary fields={fields} />
+                </>
+              );
+            }}
+          </ProFormDependency>
+        </div>
+      </div>
     </>
   );
 };
