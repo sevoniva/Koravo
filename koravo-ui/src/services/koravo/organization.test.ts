@@ -207,6 +207,51 @@ describe('organization display helpers', () => {
     expect(organizationAssigneeFieldValue('financeApprover')).toBe('finance');
   });
 
+  it('prefers core approval accounts when acceptance users exist', () => {
+    setOrganizationMembers([
+      {
+        key: 'user-role-01',
+        name: 'Department 01 role-01 approver',
+        userId: 'user-role-01',
+        department: 'Department 01',
+        role: 'manager',
+        status: 'ACTIVE',
+      },
+      {
+        key: 'user-role-02',
+        name: 'Department 01 role-02 approver',
+        userId: 'user-role-02',
+        department: 'Department 01',
+        role: 'finance',
+        status: 'ACTIVE',
+      },
+      {
+        key: 'manager',
+        name: '业务审批主管',
+        userId: 'manager',
+        department: '业务一部',
+        role: 'manager',
+        status: 'ACTIVE',
+      },
+      {
+        key: 'finance',
+        name: '财务复核专员',
+        userId: 'finance',
+        department: '财务部门',
+        role: 'finance',
+        status: 'ACTIVE',
+      },
+    ]);
+
+    expect(organizationMemberName('user-role-01')).toBe('业务一部审批主管');
+    expect(organizationApprovalMemberSelectOptions()).toContainEqual({
+      label: '业务一部审批主管（业务一部）',
+      value: 'user-role-01',
+    });
+    expect(organizationAssigneeFieldValue('managerApprover')).toBe('manager');
+    expect(organizationAssigneeFieldValue('financeApprover')).toBe('finance');
+  });
+
   it('keeps default approval picker focused on approval roles', () => {
     const values = organizationApprovalMemberSelectOptions().map((item) => item.value);
 

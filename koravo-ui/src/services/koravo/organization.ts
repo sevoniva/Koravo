@@ -14,6 +14,18 @@ export interface OrganizationMember {
 }
 
 const expression = (name: string) => '$' + `{${name}}`;
+const generatedDepartmentNames = [
+  '一',
+  '二',
+  '三',
+  '四',
+  '五',
+  '六',
+  '七',
+  '八',
+  '九',
+  '十',
+];
 
 export const defaultOrganizationMembers: OrganizationMember[] = [
   {
@@ -93,13 +105,45 @@ function normalizeMemberStatus(status?: string | null) {
   return status || '启用';
 }
 
+function legacyGeneratedApprovalMember(
+  userId?: string | null,
+  name?: string | null,
+  department?: string | null,
+) {
+  const match = /^user-role-(\d{2})$/.exec(String(userId || ''));
+  if (!match) return undefined;
+  const roleIndex = Number(match[1]);
+  if (!Number.isInteger(roleIndex) || roleIndex < 1 || roleIndex > 20) {
+    return undefined;
+  }
+  const hasLegacyCopy =
+    /^Department \d{2} role-\d{2} approver$/.test(String(name || '')) ||
+    /^Department \d{2}$/.test(String(department || ''));
+  if (!hasLegacyCopy) return undefined;
+
+  const departmentIndex = Math.ceil(roleIndex / 2);
+  const departmentName = `业务${generatedDepartmentNames[departmentIndex - 1]}部`;
+  return {
+    name:
+      roleIndex % 2 === 0
+        ? `${departmentName}复核专员`
+        : `${departmentName}审批主管`,
+    department: departmentName,
+  };
+}
+
 export function normalizeOrganizationMember(member: OrganizationMemberItem | OrganizationMember): OrganizationMember {
+  const legacyMember = legacyGeneratedApprovalMember(
+    member.userId,
+    member.name,
+    member.department,
+  );
   return {
     key: member.key || member.userId,
     tenantId: member.tenantId,
-    name: member.name,
+    name: legacyMember?.name || member.name,
     userId: member.userId,
-    department: member.department,
+    department: legacyMember?.department || member.department,
     role: normalizeRole(member.role),
     status: normalizeMemberStatus(member.status),
     passwordConfigured: 'passwordConfigured' in member ? member.passwordConfigured : undefined,
@@ -395,7 +439,17 @@ export function organizationAssigneeFieldValue(
   const existing = fieldKey ? readableOrganizationValue(values?.[fieldKey]) : undefined;
   if (existing) return existing;
   const role = organizationAssigneeRole(fieldKey, fieldTitle);
-  return getOrganizationMembers().find((member) => member.status === '启用' && member.role === role)?.userId;
+  const activeRoleMembers = getOrganizationMembers().filter(
+    (member) => member.status === '启用' && member.role === role,
+  );
+  const preferredUserId: Partial<Record<SessionRole, string>> = {
+    manager: 'manager',
+    finance: 'finance',
+  };
+  return (
+    activeRoleMembers.find((member) => member.userId === preferredUserId[member.role])
+      ?.userId || activeRoleMembers[0]?.userId
+  );
 }
 
 export function organizationRoleLabel(role?: SessionRole | null) {

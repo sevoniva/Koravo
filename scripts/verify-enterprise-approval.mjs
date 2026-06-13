@@ -14,7 +14,8 @@ const bpmnFile = process.env.KORAVO_BPMN_FILE
   : path.join(repoRoot, "examples/bpmn/enterprise-approval-30-node.bpmn20.xml");
 
 const processKey = "enterpriseApproval30";
-const modelName = "Enterprise approval 30 node check";
+const modelName = "企业级审批链路验收";
+const departmentNumbers = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
 
 async function main() {
   const admin = await login("admin", "admin");
@@ -104,8 +105,8 @@ async function ensureApprovalMembers(admin) {
     const role = roleIndex % 2 === 0 ? "finance" : "manager";
     const payload = {
       userId,
-      name: `Department ${pad(departmentIndex)} ${roleName(roleIndex)} approver`,
-      department: `Department ${pad(departmentIndex)}`,
+      name: approvalMemberName(roleIndex),
+      department: approvalDepartmentName(departmentIndex),
       role,
       status: "ACTIVE",
       password,
@@ -157,9 +158,9 @@ async function startProcess(applicant, definition, businessKey) {
       processDefinitionKey: processKey,
       businessKey,
       variables: {
-        subject: "Enterprise approval runtime check",
-        businessDescription: "Runtime acceptance path for multi-department approval.",
-        expectedResult: "All approval nodes complete without failed jobs.",
+        subject: "企业级审批链路验收",
+        businessDescription: "覆盖多部门、多角色、并行认领和连续审批的运行链路。",
+        expectedResult: "全部审批节点正常完成，运维队列无失败任务。",
         departmentCount: definition.departments.length,
         roleCount: definition.roles.length,
         approvalNodeCount: definition.steps.length,
@@ -181,10 +182,10 @@ async function completeStep(sessions, step, instanceId, sequence) {
       variables: { [`${step.taskDefinitionKey}Decision`]: "APPROVED" },
       formData: {
         decision: "APPROVED",
-        opinion: `${step.name} approved`,
+        opinion: `${step.name}已通过`,
         sequence,
       },
-      comment: `${step.name} approved`,
+      comment: `${step.name}已通过`,
     },
   });
 }
@@ -194,7 +195,7 @@ async function claimPooledTask(session, step, instanceId) {
   return api(`/tasks/${task.taskId}/actions`, {
     method: "POST",
     token: session.token,
-    body: { action: "CLAIM", comment: `${step.name} claimed` },
+    body: { action: "CLAIM", comment: `${step.name}已认领` },
   });
 }
 
@@ -309,7 +310,8 @@ function enterpriseDefinition() {
   }
 
   for (let departmentIndex = 1; departmentIndex <= 10; departmentIndex += 1) {
-    departments.push(`Department ${pad(departmentIndex)}`);
+    const departmentName = approvalDepartmentName(departmentIndex);
+    departments.push(departmentName);
     const roleA = departmentIndex * 2 - 1;
     const roleB = departmentIndex * 2;
     const inSubProcess = [3, 5, 7, 9].includes(departmentIndex);
@@ -319,7 +321,7 @@ function enterpriseDefinition() {
       const roleIndex = taskIndex % 2 === 0 ? roleB : roleA;
       steps.push({
         taskDefinitionKey: `dept${pad(departmentIndex)}_approval_${pad(taskIndex)}`,
-        name: `Department ${pad(departmentIndex)} approval ${pad(taskIndex)}`,
+        name: `${departmentName}审批${pad(taskIndex)}`,
         pooled,
         candidateGroup: pooled ? roleName(roleIndex) : null,
         approverUser: approverUser(roleIndex),
@@ -337,6 +339,15 @@ function roleName(roleIndex) {
 
 function approverUser(roleIndex) {
   return `user-role-${pad(roleIndex)}`;
+}
+
+function approvalMemberName(roleIndex) {
+  const departmentName = approvalDepartmentName(Math.ceil(roleIndex / 2));
+  return roleIndex % 2 === 0 ? `${departmentName}复核专员` : `${departmentName}审批主管`;
+}
+
+function approvalDepartmentName(departmentIndex) {
+  return `业务${departmentNumbers[departmentIndex - 1]}部`;
 }
 
 function pad(value) {
