@@ -262,7 +262,7 @@ function buildModelReadiness(
     description = '恢复后才可继续使用';
   } else if (record.status !== 'DEPLOYED' || !record.flowableDefinitionId) {
     statusText = '草稿';
-    description = deployReady ? '发布检查通过' : '发布前需补齐配置';
+    description = deployReady ? '发布检查通过' : '发布前需完善配置';
   } else if (canStart) {
     statusText = '可发起';
     description = outdatedBindingCount

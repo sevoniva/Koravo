@@ -848,7 +848,7 @@ const SystemSettings: React.FC = () => {
               disabled={!canConfigureWorkflow}
               onClick={initializeWorkflow}
             >
-              补齐配置
+              完善配置
             </Button>
             {permissions.canStartProcess ? (
               <Button

@@ -120,7 +120,7 @@ public class WorkflowEnablementService {
                 model == null ? WorkflowEnablementDefaults.PROCESS_KEY : model.getModelKey(),
                 form == null ? null : form.getId(),
                 startBinding == null ? null : startBinding.getId(),
-                initialized ? "流程配置已就绪" : "流程配置未初始化",
+                initialized ? "流程配置已就绪" : "流程配置未就绪",
                 new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         model != null && model.getStatus() == ProcessModelStatus.DEPLOYED && StringUtils.hasText(model.getFlowableDefinitionId()),
                         model == null ? "MISSING" : model.getStatus().name(),

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Tag(name = "流程配置检查", description = "检查并补齐 Koravo 基础流程配置")
+@Tag(name = "流程配置检查", description = "检查 Koravo 基础流程配置")
 @RestController
 public class WorkflowEnablementController {
     private final WorkflowEnablementService workflowEnablementService;
@@ -18,7 +18,7 @@ public class WorkflowEnablementController {
         this.workflowEnablementService = workflowEnablementService;
     }
 
-    @Operation(summary = "补齐基础流程配置", description = "幂等创建并部署协同审批流程、业务申请表和任务表单绑定。")
+    @Operation(summary = "完善基础流程配置", description = "幂等创建并部署协同审批流程、业务申请表和任务表单绑定。")
     @PostMapping("/api/v1/workflow-enablement/init")
     public ApiResponse<WorkflowEnablementInitResponse> init() {
         return ApiResponse.success(workflowEnablementService.init());
