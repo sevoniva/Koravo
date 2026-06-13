@@ -807,6 +807,7 @@ const ProcessInstances: React.FC = () => {
                 businessKey: values.businessKey,
                 variables: formData,
                 formSchemaId: values.startFormSchemaId,
+                formSchemaVersion: startFormSchema?.version,
                 formData,
               });
               message.success('已发起');

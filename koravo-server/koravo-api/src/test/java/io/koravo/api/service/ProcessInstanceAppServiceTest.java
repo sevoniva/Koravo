@@ -59,7 +59,7 @@ class ProcessInstanceAppServiceTest {
     @Test
     void startPassesRuntimeContextAndWritesInstanceAudit() {
         Map<String, Object> variables = Map.of("subject", "合同审批");
-        StartProcessRequest request = new StartProcessRequest("generalApproval", "PO-001", variables, null, null);
+        StartProcessRequest request = new StartProcessRequest("generalApproval", "PO-001", variables, null, null, null);
         ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-1", "pd-1", "PO-001", "RUNNING");
         RequestContextHolder.set("req-1", "127.0.0.1");
         TenantContextHolder.setTenantId("tenant-a");
@@ -87,7 +87,7 @@ class ProcessInstanceAppServiceTest {
     @Test
     void startSavesStartFormSnapshotWhenFormDataProvided() {
         Map<String, Object> formData = Map.of("subject", "合同审批", "amount", 1200);
-        StartProcessRequest request = new StartProcessRequest("generalApproval", "REQ-001", formData, "form-1", formData);
+        StartProcessRequest request = new StartProcessRequest("generalApproval", "REQ-001", formData, "form-1", formData, 2);
         ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-1", "pd-1", "REQ-001", "RUNNING");
         FormSchemaResponse formSchema = new FormSchemaResponse(
                 "form-1",
@@ -102,7 +102,7 @@ class ProcessInstanceAppServiceTest {
         RequestContextHolder.set("req-1", "127.0.0.1");
         TenantContextHolder.setTenantId("tenant-a");
         UserContextHolder.setUserId("starter");
-        when(formSchemaService.get("form-1")).thenReturn(formSchema);
+        when(formSchemaService.get("form-1", 2)).thenReturn(formSchema);
         when(processFacade.start(new StartProcessCommand(
                 "tenant-a",
                 "starter",
@@ -144,7 +144,8 @@ class ProcessInstanceAppServiceTest {
                 "REQ-001",
                 submitted,
                 "form-1",
-                submitted
+                submitted,
+                2
         );
         ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-1", "pd-1", "REQ-001", "RUNNING");
         FormSchemaResponse formSchema = new FormSchemaResponse(
@@ -160,7 +161,7 @@ class ProcessInstanceAppServiceTest {
         RequestContextHolder.set("req-1", "127.0.0.1");
         TenantContextHolder.setTenantId("tenant-a");
         UserContextHolder.setUser("starter", UserContextHolder.ROLE_APPLICANT);
-        when(formSchemaService.get("form-1")).thenReturn(formSchema);
+        when(formSchemaService.get("form-1", 2)).thenReturn(formSchema);
         when(organizationMemberRepository.findByTenantIdAndUserIdAndDeletedFalse("tenant-a", "starter"))
                 .thenReturn(Optional.of(member("starter", "真实申请专员", "业务二部", UserContextHolder.ROLE_APPLICANT)));
         when(organizationMemberRepository.findByTenantIdAndUserIdInAndStatusAndDeletedFalse(
@@ -199,6 +200,7 @@ class ProcessInstanceAppServiceTest {
                 "REQ-001",
                 submitted,
                 null,
+                null,
                 null
         );
         TenantContextHolder.setTenantId("tenant-a");
@@ -226,6 +228,7 @@ class ProcessInstanceAppServiceTest {
                 "REQ-001",
                 submitted,
                 null,
+                null,
                 null
         );
         TenantContextHolder.setTenantId("tenant-a");
@@ -244,6 +247,7 @@ class ProcessInstanceAppServiceTest {
                 WorkflowEnablementDefaults.PROCESS_KEY,
                 "REQ-001",
                 submitted,
+                null,
                 null,
                 null
         );

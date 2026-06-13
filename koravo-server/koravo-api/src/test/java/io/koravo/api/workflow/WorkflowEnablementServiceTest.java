@@ -10,6 +10,8 @@ import io.koravo.form.domain.KoFormBinding;
 import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.form.repo.FormSchemaRepository;
+import io.koravo.form.service.FormSchemaService;
+import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
 import io.koravo.model.repo.ProcessModelRepository;
@@ -38,6 +40,7 @@ class WorkflowEnablementServiceTest {
     private final ProcessModelRepository processModelRepository = mock(ProcessModelRepository.class);
     private final FormSchemaRepository formSchemaRepository = mock(FormSchemaRepository.class);
     private final FormBindingRepository formBindingRepository = mock(FormBindingRepository.class);
+    private final FormSchemaService formSchemaService = mock(FormSchemaService.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
     private final AuditLogQueryService auditLogQueryService = mock(AuditLogQueryService.class);
     private final WorkflowEnablementService service = new WorkflowEnablementService(
@@ -45,6 +48,7 @@ class WorkflowEnablementServiceTest {
             processModelRepository,
             formSchemaRepository,
             formBindingRepository,
+            formSchemaService,
             auditLogService,
             auditLogQueryService
     );
@@ -331,6 +335,7 @@ class WorkflowEnablementServiceTest {
                 .thenReturn(List.of(startBinding, retiredBinding));
         when(formSchemaRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
                 .thenReturn(List.of(form));
+        when(formSchemaService.get("form-1", 2)).thenReturn(formResponse(form));
 
         List<StartableWorkflowResponse> response = service.startableProcesses();
 
@@ -497,5 +502,18 @@ class WorkflowEnablementServiceTest {
         binding.setFormSchemaId(formSchemaId);
         binding.setFormSchemaVersion(version);
         return binding;
+    }
+
+    private FormSchemaResponse formResponse(KoFormSchema form) {
+        return new FormSchemaResponse(
+                form.getId(),
+                form.getFormKey(),
+                form.getFormName(),
+                form.getVersion(),
+                form.getSchemaJson(),
+                form.getUiSchemaJson(),
+                form.getStatus().name(),
+                "SYSTEM_TEMPLATE"
+        );
     }
 }

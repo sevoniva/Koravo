@@ -141,7 +141,7 @@ public class TaskAppService {
         TaskDTO task = processFacade.getTaskForDetail(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
         Optional<FormBindingResponse> binding = resolveFormBinding(task);
         FormSchemaResponse schema = binding
-                .map(value -> formSchemaService.get(value.formSchemaId()))
+                .map(this::resolveBoundSchema)
                 .orElse(null);
         return new TaskDetailResponse(
                 task,
@@ -159,8 +159,9 @@ public class TaskAppService {
     public void completeTask(String taskId, CompleteTaskRequest request) {
         CompleteTaskRequest safeRequest = request == null ? new CompleteTaskRequest(Map.of(), null, null, null) : request;
         TaskDTO task = processFacade.getTask(TenantContextHolder.getTenantId(), UserContextHolder.getUserId(), taskId);
-        String formSchemaId = resolveFormSchemaId(task, safeRequest);
-        FormSchemaResponse formSchema = StringUtils.hasText(formSchemaId) ? formSchemaService.get(formSchemaId) : null;
+        Optional<FormBindingResponse> binding = resolveFormBinding(task);
+        String formSchemaId = resolveFormSchemaId(binding, safeRequest);
+        FormSchemaResponse formSchema = resolveFormSchema(formSchemaId, binding);
         if (safeRequest.formData() != null && StringUtils.hasText(formSchemaId)) {
             formSnapshotService.saveSnapshot(task.processInstanceId(), taskId, formSchemaId, formSchema, safeRequest.formData());
         }
@@ -211,13 +212,27 @@ public class TaskAppService {
         return request.targetUserId().trim();
     }
 
-    private String resolveFormSchemaId(TaskDTO task, CompleteTaskRequest request) {
+    private String resolveFormSchemaId(Optional<FormBindingResponse> binding, CompleteTaskRequest request) {
         if (StringUtils.hasText(request.formSchemaId())) {
             return request.formSchemaId();
         }
-        return resolveFormBinding(task)
+        return binding
                 .map(FormBindingResponse::formSchemaId)
                 .orElse(null);
+    }
+
+    private FormSchemaResponse resolveFormSchema(String formSchemaId, Optional<FormBindingResponse> binding) {
+        if (!StringUtils.hasText(formSchemaId)) {
+            return null;
+        }
+        if (binding.isPresent() && formSchemaId.equals(binding.get().formSchemaId())) {
+            return resolveBoundSchema(binding.get());
+        }
+        return formSchemaService.get(formSchemaId);
+    }
+
+    private FormSchemaResponse resolveBoundSchema(FormBindingResponse binding) {
+        return formSchemaService.get(binding.formSchemaId(), binding.formSchemaVersion());
     }
 
     private Optional<FormBindingResponse> resolveFormBinding(TaskDTO task) {
@@ -225,14 +240,19 @@ public class TaskAppService {
                 task.processDefinitionId(),
                 task.taskDefinitionKey()
         );
-        if (definitionBinding.isPresent()) {
+        if (definitionBinding != null && definitionBinding.isPresent()) {
             return definitionBinding;
         }
-        return processModelRepository.findFirstByTenantIdAndFlowableDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc(
+        Optional<KoProcessModel> model = processModelRepository
+                .findFirstByTenantIdAndFlowableDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc(
                         TenantContextHolder.getTenantId(),
                         task.processDefinitionId()
-                )
-                .flatMap(model -> formBindingService.findByProcessModelTaskKey(model.getId(), task.taskDefinitionKey()));
+                );
+        if (model == null) {
+            return Optional.empty();
+        }
+        return model
+                .flatMap(processModel -> formBindingService.findByProcessModelTaskKey(processModel.getId(), task.taskDefinitionKey()));
     }
 
     private Map<String, Object> taskCompleteAuditDetail(TaskDTO task, String formSchemaId) {

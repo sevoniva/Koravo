@@ -10,7 +10,7 @@ import io.koravo.form.domain.KoFormBinding;
 import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.form.repo.FormSchemaRepository;
-import io.koravo.form.web.FormSchemaResponse;
+import io.koravo.form.service.FormSchemaService;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
 import io.koravo.model.repo.ProcessModelRepository;
@@ -51,6 +51,7 @@ public class WorkflowEnablementService {
     private final ProcessModelRepository processModelRepository;
     private final FormSchemaRepository formSchemaRepository;
     private final FormBindingRepository formBindingRepository;
+    private final FormSchemaService formSchemaService;
     private final AuditLogService auditLogService;
     private final AuditLogQueryService auditLogQueryService;
 
@@ -59,6 +60,7 @@ public class WorkflowEnablementService {
             ProcessModelRepository processModelRepository,
             FormSchemaRepository formSchemaRepository,
             FormBindingRepository formBindingRepository,
+            FormSchemaService formSchemaService,
             AuditLogService auditLogService,
             AuditLogQueryService auditLogQueryService
     ) {
@@ -66,6 +68,7 @@ public class WorkflowEnablementService {
         this.processModelRepository = processModelRepository;
         this.formSchemaRepository = formSchemaRepository;
         this.formBindingRepository = formBindingRepository;
+        this.formSchemaService = formSchemaService;
         this.auditLogService = auditLogService;
         this.auditLogQueryService = auditLogQueryService;
     }
@@ -293,7 +296,7 @@ public class WorkflowEnablementService {
                 model.getDescription(),
                 model.getBpmnXml(),
                 startBinding.getId(),
-                toFormSchemaResponse(schema)
+                formSchemaService.get(schema.getId(), startBinding.getFormSchemaVersion())
         );
     }
 
@@ -658,16 +661,4 @@ public class WorkflowEnablementService {
         return variables;
     }
 
-    private FormSchemaResponse toFormSchemaResponse(KoFormSchema schema) {
-        return new FormSchemaResponse(
-                schema.getId(),
-                schema.getFormKey(),
-                schema.getFormName(),
-                schema.getVersion(),
-                schema.getSchemaJson(),
-                schema.getUiSchemaJson(),
-                schema.getStatus().name(),
-                schema.getAssetOrigin().name()
-        );
-    }
 }

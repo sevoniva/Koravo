@@ -94,6 +94,18 @@ public class FormSchemaService {
     }
 
     @Transactional(readOnly = true)
+    public FormSchemaResponse get(String id, int version) {
+        KoFormSchema schema = findCurrentSchema(id);
+        if (schema.getVersion() == version) {
+            return toResponse(schema);
+        }
+        KoFormSchemaVersion history = versionRepository
+                .findByTenantIdAndFormSchemaIdAndVersionAndDeletedFalse(schema.getTenantId(), schema.getId(), version)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema version not found"));
+        return toResponse(schema, history);
+    }
+
+    @Transactional(readOnly = true)
     public List<FormSchemaVersionResponse> listVersions(String id) {
         KoFormSchema schema = findCurrentSchema(id);
         return versionRepository
@@ -222,6 +234,19 @@ public class FormSchemaService {
                 schema.getVersion(),
                 schema.getSchemaJson(),
                 schema.getUiSchemaJson(),
+                schema.getStatus().name(),
+                schema.getAssetOrigin().name()
+        );
+    }
+
+    private FormSchemaResponse toResponse(KoFormSchema schema, KoFormSchemaVersion version) {
+        return new FormSchemaResponse(
+                schema.getId(),
+                version.getFormKey(),
+                version.getFormName(),
+                version.getVersion(),
+                version.getSchemaJson(),
+                version.getUiSchemaJson(),
                 schema.getStatus().name(),
                 schema.getAssetOrigin().name()
         );

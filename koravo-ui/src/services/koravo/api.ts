@@ -443,6 +443,7 @@ export function startProcessInstance(payload: {
   businessKey: string;
   variables: JsonRecord;
   formSchemaId?: string;
+  formSchemaVersion?: number;
   formData?: JsonRecord;
 }) {
   return apiData<ProcessInstance>(http.post('/process-instances/start', payload))

@@ -9,6 +9,7 @@ public record StartProcessRequest(
         @NotBlank String businessKey,
         Map<String, Object> variables,
         String formSchemaId,
-        Map<String, Object> formData
+        Map<String, Object> formData,
+        Integer formSchemaVersion
 ) {
 }

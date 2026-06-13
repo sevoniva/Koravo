@@ -130,6 +130,26 @@ class FormSchemaServiceTest {
     }
 
     @Test
+    void getSpecificVersionReturnsHistoricalSchema() {
+        TenantContextHolder.setTenantId("default");
+        KoFormSchema schema = schema("form-1", 3);
+        KoFormSchemaVersion oldVersion = version("form-1", 1);
+        oldVersion.setFormName("Old Leave");
+        oldVersion.setSchemaJson("{\"type\":\"object\",\"properties\":{\"reason\":{\"type\":\"string\"}}}");
+        when(repository.findByIdAndTenantIdAndDeletedFalse("form-1", "default")).thenReturn(Optional.of(schema));
+        when(versionRepository.findByTenantIdAndFormSchemaIdAndVersionAndDeletedFalse("default", "form-1", 1))
+                .thenReturn(Optional.of(oldVersion));
+
+        var result = service.get("form-1", 1);
+
+        assertThat(result.id()).isEqualTo("form-1");
+        assertThat(result.version()).isEqualTo(1);
+        assertThat(result.formName()).isEqualTo("Old Leave");
+        assertThat(result.schemaJson()).contains("reason");
+        assertThat(result.status()).isEqualTo("ACTIVE");
+    }
+
+    @Test
     void restoreVersionCreatesNewCurrentVersion() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");

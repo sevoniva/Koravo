@@ -67,7 +67,9 @@ public class ProcessInstanceAppService {
     public ProcessInstanceDTO start(StartProcessRequest request) {
         FormSchemaResponse formSchema = null;
         if (StringUtils.hasText(request.formSchemaId()) && request.formData() != null) {
-            formSchema = formSchemaService.get(request.formSchemaId());
+            formSchema = request.formSchemaVersion() == null
+                    ? formSchemaService.get(request.formSchemaId())
+                    : formSchemaService.get(request.formSchemaId(), request.formSchemaVersion());
         }
         Map<String, Object> submittedVariables = request.variables() != null
                 ? request.variables()

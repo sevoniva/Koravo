@@ -273,7 +273,7 @@ class TaskAppServiceTest {
         when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(java.util.Optional.of(
                 new FormBindingResponse("binding-1", null, "pd-1", "approveTask", "form-1", 1)
         ));
-        when(formSchemaService.get("form-1")).thenReturn(formSchema("form-1", 1));
+        when(formSchemaService.get("form-1", 1)).thenReturn(formSchema("form-1", 1));
 
         service.completeTask(
                 "task-1",
@@ -317,7 +317,7 @@ class TaskAppServiceTest {
         when(formBindingService.findByProcessModelTaskKey("model-1", "approveTask")).thenReturn(Optional.of(
                 new FormBindingResponse("binding-1", "model-1", null, "approveTask", "form-1", 1)
         ));
-        when(formSchemaService.get("form-1")).thenReturn(formSchema("form-1", 1));
+        when(formSchemaService.get("form-1", 1)).thenReturn(formSchema("form-1", 1));
 
         service.completeTask(
                 "task-1",
@@ -392,7 +392,7 @@ class TaskAppServiceTest {
         when(formBindingService.findByProcessDefinitionTaskKey("pd-1", "approveTask")).thenReturn(java.util.Optional.of(
                 new FormBindingResponse("binding-1", null, "pd-1", "approveTask", "form-1", 1)
         ));
-        when(formSchemaService.get("form-1")).thenReturn(new FormSchemaResponse(
+        when(formSchemaService.get("form-1", 1)).thenReturn(new FormSchemaResponse(
                 "form-1",
                 "leave",
                 "Leave",
@@ -469,7 +469,7 @@ class TaskAppServiceTest {
         when(formBindingService.findByProcessModelTaskKey("model-1", "approveTask")).thenReturn(Optional.of(
                 new FormBindingResponse("binding-1", "model-1", null, "approveTask", "form-1", 1)
         ));
-        when(formSchemaService.get("form-1")).thenReturn(new FormSchemaResponse(
+        when(formSchemaService.get("form-1", 1)).thenReturn(new FormSchemaResponse(
                 "form-1",
                 "leave",
                 "Leave",
