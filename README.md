@@ -194,11 +194,11 @@ The same workflow can be started through the API with `processDefinitionKey = co
 }
 ```
 
-The same calls are available in [examples/http/koravo.http](examples/http/koravo.http).
+The API loop below mirrors the same collaborative approval path.
 
 ## API Workflow Loop
 
-Prepare the default collaborative approval model from the console, then run release check and deployment from `流程模型`. Direct BPMN import is still available for custom models:
+Prepare the collaborative approval model from the console, then run release check and deployment from `流程模型`. Direct BPMN import is available for custom workflow models exported from the designer or maintained by your team:
 
 Login first:
 
@@ -212,7 +212,7 @@ TOKEN=$(curl -sS -H 'Content-Type: application/json' \
 curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Custom%20Workflow' \
   -H "Authorization: Bearer $TOKEN" \
   -H 'X-Koravo-Tenant-Id: default' \
-  -F 'file=@examples/bpmn/http-health-check.bpmn20.xml'
+  -F 'file=@/path/to/workflow.bpmn20.xml'
 ```
 
 Start process:
@@ -254,7 +254,7 @@ Then inspect:
 - `GET /api/v1/audit-logs?page=1&pageSize=20`
 - `GET /api/v1/audit-logs?action=PROCESS_INSTANCE_START&resourceType=PROCESS_INSTANCE&page=1&pageSize=20`
 
-The HTTP connector workflow uses [examples/bpmn/http-health-check.bpmn20.xml](examples/bpmn/http-health-check.bpmn20.xml). Deploy it, start `httpHealthCheck` with an `X-Request-Id`, query the assigned `Review HTTP Result` task, complete it, then inspect the instance detail, trace, connector logs, and connector audit. The service task stores the HTTP response in the `healthResult` process variable before moving to the review task.
+For connector-enabled workflows, inspect the process instance, trace, connector execution logs, and connector audit with the same request ID. Connector details stay in execution logs; audit records keep only operational metadata.
 
 ```http
 GET /api/v1/process-instances/{instanceId}

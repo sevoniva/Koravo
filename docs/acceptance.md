@@ -75,15 +75,14 @@ The console workflow check is:
 11. Inspect task detail, instance detail, form snapshots, trace, and audit logs. Operators can use `运维中心` for failed jobs, dead-letter jobs, and runtime actions.
 12. Use `数据源管理` to create, update, test, and inspect datasource test logs.
 
-## HTTP Connector Workflow Check
+## Connector Operations Check
 
-Use `examples/bpmn/http-health-check.bpmn20.xml` and `examples/http/koravo.http`:
+Use a connector-enabled workflow model from the designer or a local fixture:
 
-1. Deploy `httpHealthCheck`.
-2. Start it with `X-Request-Id`.
-3. Confirm the HTTP service task writes `healthResult`.
-4. Complete the assigned review task.
-5. Inspect process trace, connector execution logs, connector execution detail, and `CONNECTOR_EXECUTE` audit events filtered by the same request ID.
+1. Deploy the workflow through `流程模型` after release check passes.
+2. Start the workflow with an `X-Request-Id`.
+3. Complete the user task after the connector step.
+4. Inspect process trace, connector execution logs, connector execution detail, and `CONNECTOR_EXECUTE` audit events filtered by the same request ID.
 
 ## Security And Boundary Checks
 
