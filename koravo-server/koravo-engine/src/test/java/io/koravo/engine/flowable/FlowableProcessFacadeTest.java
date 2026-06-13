@@ -214,19 +214,19 @@ class FlowableProcessFacadeTest {
     }
 
     @Test
-    void getTaskForDetailAllowsTenantScopedHistoricReadback() {
+    void getTaskForDetailAllowsAssigneeHistoricReadback() {
         TaskQuery runtimeQuery = mock(TaskQuery.class, RETURNS_SELF);
         HistoricTaskInstanceQuery historicQuery = mock(HistoricTaskInstanceQuery.class, RETURNS_SELF);
         HistoricProcessInstanceQuery instanceQuery = mock(HistoricProcessInstanceQuery.class, RETURNS_SELF);
         HistoricTaskInstance historicTask = mock(HistoricTaskInstance.class);
-        HistoricProcessInstance historicInstance = mock(HistoricProcessInstance.class);
+        HistoricProcessInstance instance = mock(HistoricProcessInstance.class);
         when(taskService.createTaskQuery()).thenReturn(runtimeQuery);
         when(runtimeQuery.singleResult()).thenReturn(null);
         when(historyService.createHistoricTaskInstanceQuery()).thenReturn(historicQuery);
         when(historicQuery.singleResult()).thenReturn(historicTask);
         when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
-        when(instanceQuery.singleResult()).thenReturn(historicInstance);
-        when(historicInstance.getBusinessKey()).thenReturn("PO-1");
+        when(instanceQuery.singleResult()).thenReturn(instance);
+        when(instance.getBusinessKey()).thenReturn("PO-1");
         when(historicTask.getId()).thenReturn("done-task-1");
         when(historicTask.getName()).thenReturn("财务审批");
         when(historicTask.getProcessInstanceId()).thenReturn("pi-1");
@@ -235,17 +235,65 @@ class FlowableProcessFacadeTest {
         when(historicTask.getTaskDefinitionKey()).thenReturn("financeApprovalTask");
         when(historicTask.getEndTime()).thenReturn(new java.util.Date());
 
-        var task = facade.getTaskForDetail("default", "admin", "done-task-1");
+        var task = facade.getTaskForDetail("default", "finance", "done-task-1");
 
         assertThat(task.taskId()).isEqualTo("done-task-1");
         assertThat(task.assignee()).isEqualTo("finance");
         assertThat(task.status()).isEqualTo("COMPLETED");
         verify(runtimeQuery).taskTenantId("default");
         verify(runtimeQuery).taskId("done-task-1");
-        verify(runtimeQuery, never()).taskAssignee("admin");
+        verify(runtimeQuery, never()).taskAssignee("finance");
         verify(historicQuery).taskTenantId("default");
         verify(historicQuery).taskId("done-task-1");
-        verify(historicQuery, never()).taskAssignee("admin");
+        verify(historicQuery, never()).taskAssignee("finance");
+    }
+
+    @Test
+    void getTaskForDetailAllowsStarterToReadProcessTaskContext() {
+        TaskQuery runtimeQuery = mock(TaskQuery.class, RETURNS_SELF);
+        HistoricProcessInstanceQuery instanceQuery = mock(HistoricProcessInstanceQuery.class, RETURNS_SELF);
+        Task runtimeTask = mock(Task.class);
+        HistoricProcessInstance instance = mock(HistoricProcessInstance.class);
+        when(taskService.createTaskQuery()).thenReturn(runtimeQuery);
+        when(runtimeQuery.singleResult()).thenReturn(runtimeTask);
+        when(runtimeTask.getId()).thenReturn("task-1");
+        when(runtimeTask.getName()).thenReturn("多人会签");
+        when(runtimeTask.getProcessInstanceId()).thenReturn("pi-1");
+        when(runtimeTask.getProcessDefinitionId()).thenReturn("collaborativeApproval:1");
+        when(runtimeTask.getAssignee()).thenReturn("manager");
+        when(runtimeTask.getTaskDefinitionKey()).thenReturn("jointApprovalTask");
+        when(runtimeTask.getCreateTime()).thenReturn(new java.util.Date());
+        when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
+        when(instanceQuery.singleResult()).thenReturn(instance);
+        when(instance.getStartUserId()).thenReturn("applicant");
+        when(instance.getBusinessKey()).thenReturn("REQ-1");
+
+        var task = facade.getTaskForDetail("default", "applicant", "task-1");
+
+        assertThat(task.taskId()).isEqualTo("task-1");
+        assertThat(task.assignee()).isEqualTo("manager");
+    }
+
+    @Test
+    void getTaskForDetailRejectsUnrelatedWorkflowUser() {
+        TaskQuery runtimeQuery = mock(TaskQuery.class, RETURNS_SELF);
+        HistoricProcessInstanceQuery instanceQuery = mock(HistoricProcessInstanceQuery.class, RETURNS_SELF);
+        Task runtimeTask = mock(Task.class);
+        HistoricProcessInstance instance = mock(HistoricProcessInstance.class);
+        when(taskService.createTaskQuery()).thenReturn(runtimeQuery);
+        when(runtimeQuery.singleResult()).thenReturn(runtimeTask);
+        when(runtimeTask.getAssignee()).thenReturn("manager");
+        when(runtimeTask.getProcessInstanceId()).thenReturn("pi-1");
+        when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
+        when(instanceQuery.singleResult()).thenReturn(instance);
+        when(instance.getStartUserId()).thenReturn("applicant");
+
+        assertThatThrownBy(() -> facade.getTaskForDetail("default", "finance", "task-1"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.errorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+
+        verify(instanceQuery).processInstanceId("pi-1");
+        verify(instanceQuery).processInstanceTenantId("default");
     }
 
     @Test

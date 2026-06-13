@@ -230,6 +230,7 @@ public class FlowableProcessFacade implements ProcessFacade {
                 .taskTenantId(tenantId)
                 .singleResult();
         if (runtimeTask != null) {
+            assertTaskDetailVisible(tenantId, userId, runtimeTask.getAssignee(), runtimeTask.getProcessInstanceId());
             return toTaskDTO(runtimeTask);
         }
         HistoricTaskInstance historicTask = historyService.createHistoricTaskInstanceQuery()
@@ -239,6 +240,7 @@ public class FlowableProcessFacade implements ProcessFacade {
         if (historicTask == null) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found");
         }
+        assertTaskDetailVisible(tenantId, userId, historicTask.getAssignee(), historicTask.getProcessInstanceId());
         return toTaskDTO(historicTask);
     }
 
@@ -264,6 +266,7 @@ public class FlowableProcessFacade implements ProcessFacade {
                 .taskTenantId(tenantId)
                 .singleResult();
         if (runtimeTask != null) {
+            assertTaskDetailVisible(tenantId, userId, runtimeTask.getAssignee(), runtimeTask.getProcessInstanceId());
             return taskService.getVariables(taskId);
         }
         HistoricTaskInstance historicTask = historyService.createHistoricTaskInstanceQuery()
@@ -273,6 +276,7 @@ public class FlowableProcessFacade implements ProcessFacade {
         if (historicTask == null) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found");
         }
+        assertTaskDetailVisible(tenantId, userId, historicTask.getAssignee(), historicTask.getProcessInstanceId());
         Map<String, Object> variables = new HashMap<>();
         historyService.createHistoricVariableInstanceQuery()
                 .taskId(taskId)
@@ -413,6 +417,20 @@ public class FlowableProcessFacade implements ProcessFacade {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not assigned to current user");
         }
         return task;
+    }
+
+    private void assertTaskDetailVisible(String tenantId, String userId, String assignee, String processInstanceId) {
+        if (Objects.equals(assignee, userId)) {
+            return;
+        }
+        HistoricProcessInstance instance = historyService.createHistoricProcessInstanceQuery()
+                .processInstanceId(processInstanceId)
+                .processInstanceTenantId(tenantId)
+                .singleResult();
+        if (instance != null && Objects.equals(instance.getStartUserId(), userId)) {
+            return;
+        }
+        throw new BusinessException(ErrorCode.TASK_NOT_FOUND, "Task not found or not visible to current user");
     }
 
     private void addTaskComment(String taskId, String processInstanceId, String comment, String fallback) {
