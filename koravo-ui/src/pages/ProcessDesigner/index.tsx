@@ -654,13 +654,25 @@ const ProcessDesigner: React.FC = () => {
               name="candidateUsers"
               label="候选用户"
               options={handlerOptions}
-              fieldProps={{ allowClear: true, showSearch: true }}
+              fieldProps={{
+                allowClear: true,
+                mode: 'multiple',
+                showSearch: true,
+                maxTagCount: 'responsive',
+                optionFilterProp: 'label',
+              }}
             />
             <ProFormSelect
               name="candidateGroups"
               label="候选组"
               options={candidateGroupOptions}
-              fieldProps={{ allowClear: true, showSearch: true }}
+              fieldProps={{
+                allowClear: true,
+                mode: 'multiple',
+                showSearch: true,
+                maxTagCount: 'responsive',
+                optionFilterProp: 'label',
+              }}
             />
             <ProFormText name="formKey" label="表单标识" />
           </>

@@ -61,8 +61,8 @@ export interface BpmnSelectedElement {
   elementType: string;
   name?: string;
   assignee?: string;
-  candidateUsers?: string;
-  candidateGroups?: string;
+  candidateUsers?: string[];
+  candidateGroups?: string[];
   formKey?: string;
   delegateExpression?: string;
   serviceClass?: string;
@@ -73,8 +73,8 @@ export interface BpmnSelectedElement {
 export interface BpmnSelectedElementPatch {
   name?: string;
   assignee?: string;
-  candidateUsers?: string;
-  candidateGroups?: string;
+  candidateUsers?: string[];
+  candidateGroups?: string[];
   formKey?: string;
   delegateExpression?: string;
   serviceClass?: string;
@@ -199,8 +199,12 @@ function toSelectedElement(
     elementType: businessObject.$type || normalized.type || '',
     name: businessObject.name,
     assignee: readFlowableAttribute(businessObject, 'assignee'),
-    candidateUsers: readFlowableAttribute(businessObject, 'candidateUsers'),
-    candidateGroups: readFlowableAttribute(businessObject, 'candidateGroups'),
+    candidateUsers: splitCsv(
+      readFlowableAttribute(businessObject, 'candidateUsers'),
+    ),
+    candidateGroups: splitCsv(
+      readFlowableAttribute(businessObject, 'candidateGroups'),
+    ),
     formKey: readFlowableAttribute(businessObject, 'formKey'),
     delegateExpression: readFlowableAttribute(
       businessObject,
@@ -217,12 +221,24 @@ function blankToUndefined(value?: string) {
   return trimmed || undefined;
 }
 
+function splitCsv(value?: string) {
+  return value
+    ?.split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function listToCsv(value?: string[]) {
+  const items = value?.map((item) => item.trim()).filter(Boolean) || [];
+  return items.length ? items.join(',') : undefined;
+}
+
 function buildElementPatch(values: BpmnSelectedElementPatch) {
   return {
     name: blankToUndefined(values.name),
     'flowable:assignee': blankToUndefined(values.assignee),
-    'flowable:candidateUsers': blankToUndefined(values.candidateUsers),
-    'flowable:candidateGroups': blankToUndefined(values.candidateGroups),
+    'flowable:candidateUsers': listToCsv(values.candidateUsers),
+    'flowable:candidateGroups': listToCsv(values.candidateGroups),
     'flowable:formKey': blankToUndefined(values.formKey),
     'flowable:delegateExpression': blankToUndefined(values.delegateExpression),
     'flowable:class': blankToUndefined(values.serviceClass),
