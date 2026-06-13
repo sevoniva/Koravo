@@ -60,10 +60,19 @@ const INTERNAL_BUSINESS_DATA_KEYS = new Set([
   'formBindingId',
   'formSnapshotId',
   'snapshotId',
+  'nrOfInstances',
+  'nrOfActiveInstances',
+  'nrOfCompletedInstances',
+  'nrOfTerminatedInstances',
+  'loopCounter',
 ]);
 
 function isInternalBusinessDataField(key: string) {
-  return INTERNAL_BUSINESS_DATA_KEYS.has(key) || key.startsWith('_');
+  return (
+    INTERNAL_BUSINESS_DATA_KEYS.has(key) ||
+    key.startsWith('_') ||
+    /^nrOf[A-Z].*Instances$/.test(key)
+  );
 }
 
 function parseJsonObject(value?: string): JsonRecord {
@@ -135,10 +144,34 @@ function isMemberListField(field: BusinessField) {
   );
 }
 
+function isDecisionField(field?: BusinessField) {
+  return ['accepted', 'approved', 'decision', 'decisionText'].includes(
+    field?.key || '',
+  );
+}
+
+function decisionValueText(value: unknown) {
+  if (value === true) return '同意';
+  if (value === false) return '不同意';
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toUpperCase();
+  if (['APPROVED', 'APPROVE', 'ACCEPTED', 'AGREE', 'YES', 'TRUE'].includes(normalized)) {
+    return '同意';
+  }
+  if (['REJECTED', 'REJECT', 'DENIED', 'DISAGREE', 'NO', 'FALSE'].includes(normalized)) {
+    return '不同意';
+  }
+  if (['RETURNED', 'RETURN', 'BACK'].includes(normalized)) return '退回';
+  return undefined;
+}
+
 function valueText(value: unknown, field?: BusinessField): string {
   const normalized = normalizeStructuredValue(value);
   if (normalized === undefined || normalized === null || normalized === '')
     return '-';
+  if (isDecisionField(field)) {
+    return decisionValueText(normalized) || productCopy(String(normalized));
+  }
   if (typeof normalized === 'boolean') return normalized ? '是' : '否';
   if (typeof normalized === 'string' && field && isMemberField(field)) {
     return organizationMemberName(normalized);
@@ -204,6 +237,12 @@ function renderValue(field: BusinessField, value: unknown) {
   const normalized = normalizeStructuredValue(value);
   if (normalized === undefined || normalized === null || normalized === '')
     return '-';
+  if (isDecisionField(field)) {
+    const text = decisionValueText(normalized) || fieldValueText(field, normalized);
+    return (
+      <Tag color={text === '同意' ? 'success' : 'default'}>{text}</Tag>
+    );
+  }
   if (typeof normalized === 'boolean') {
     return (
       <Tag color={normalized ? 'success' : 'default'}>
@@ -281,14 +320,18 @@ const BusinessDataDescriptions: React.FC<BusinessDataDescriptionsProps> = ({
   const visibleFields = fields.filter(
     (field) => dataSource[field.key] !== undefined,
   );
+  const displayFields = visibleFields.filter((field, index, allFields) => {
+    if (!isDecisionField(field)) return true;
+    return allFields.findIndex(isDecisionField) === index;
+  });
 
-  if (!visibleFields.length) {
+  if (!displayFields.length) {
     return (
       <Empty description={emptyText} image={Empty.PRESENTED_IMAGE_SIMPLE} />
     );
   }
 
-  const columns: ProDescriptionsItemProps<JsonRecord>[] = visibleFields.map(
+  const columns: ProDescriptionsItemProps<JsonRecord>[] = displayFields.map(
     (field) => ({
       title: field.title,
       dataIndex: field.key,

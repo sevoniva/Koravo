@@ -101,7 +101,12 @@ describe('BusinessDataDescriptions', () => {
         values={{
           subject: '生产发布',
           approved: true,
+          decision: 'APPROVED',
           reviewComment: '同意发布',
+          nrOfInstances: 2,
+          nrOfActiveInstances: 0,
+          nrOfCompletedInstances: 2,
+          loopCounter: 1,
         }}
       />,
     );
@@ -109,9 +114,11 @@ describe('BusinessDataDescriptions', () => {
     expect(screen.getByText('申请主题')).toBeInTheDocument();
     expect(screen.getByText('生产发布')).toBeInTheDocument();
     expect(screen.getByText('处理结论')).toBeInTheDocument();
-    expect(screen.getByText('是')).toBeInTheDocument();
+    expect(screen.getAllByText('同意').length).toBeGreaterThan(0);
     expect(screen.getByText('处理意见')).toBeInTheDocument();
     expect(screen.getByText('同意发布')).toBeInTheDocument();
+    expect(screen.queryByText(/nrOfInstances/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/loopCounter/)).not.toBeInTheDocument();
   });
 
   it('hides runtime fields that are not part of business data', () => {
