@@ -1,5 +1,15 @@
 import { ProCard } from '@ant-design/pro-components';
-import { Badge, Empty, Flex, Space, Tag, Timeline, Typography } from 'antd';
+import {
+  Badge,
+  Collapse,
+  Empty,
+  Flex,
+  Space,
+  Tag,
+  Timeline,
+  Typography,
+} from 'antd';
+import type { CollapseProps } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type {
@@ -28,36 +38,28 @@ interface ProcessProgressCardProps {
 
 const useStyles = createStyles(({ css, token }) => ({
   content: css`
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    align-items: start;
-
-    @media (min-width: 1080px) {
-      grid-template-columns: minmax(560px, 1.5fr) minmax(280px, 0.5fr);
-    }
-  `,
-  side: css`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     min-width: 0;
   `,
-  contextLine: css`
-    padding-bottom: 10px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
-  `,
-  contextTitle: css`
-    display: block;
-    max-width: 280px;
-  `,
-  contextMeta: css`
-    display: block;
-    max-width: 280px;
+  titleMeta: css`
+    max-width: 520px;
   `,
   statusStrip: css`
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
     gap: 10px 12px;
+    padding: 10px 12px;
+    background: ${token.colorFillQuaternary};
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: ${token.borderRadius}px;
 
-    @media (max-width: 520px) {
+    @media (max-width: 900px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 560px) {
       grid-template-columns: minmax(0, 1fr);
     }
   `,
@@ -91,6 +93,16 @@ const useStyles = createStyles(({ css, token }) => ({
       margin-inline-end: 0;
       white-space: normal;
       line-height: 1.45;
+    }
+  `,
+  details: css`
+    .ant-collapse-header {
+      padding-inline: 0 !important;
+    }
+
+    .ant-collapse-content-box {
+      padding-inline: 0 !important;
+      padding-bottom: 0 !important;
     }
   `,
 }));
@@ -167,24 +179,6 @@ function handlerText(
     ),
   );
   return handlers.length ? handlers.join('、') : '-';
-}
-
-function latestCompletedNode(trace?: ProcessTrace) {
-  const completed = (trace?.timeline || []).filter(
-    (node) =>
-      node.activityType !== 'sequenceFlow' &&
-      String(node.status || '').toUpperCase() === 'COMPLETED',
-  );
-  const businessNodes = completed.filter(
-    (node) => node.activityType !== 'startEvent',
-  );
-  return [...(businessNodes.length ? businessNodes : completed)].sort(
-    (left, right) => activityTime(right) - activityTime(left),
-  )[0];
-}
-
-function activityTime(node: ProcessTraceNode) {
-  return Date.parse(node.endTime || node.startTime || '') || 0;
 }
 
 function visibleTimelineNodes(timeline: ProcessTraceNode[]) {
@@ -345,10 +339,10 @@ function diagramHeight(trace?: ProcessTrace) {
     visibleTimelineNodes(trace?.timeline || []).length,
     bpmnNodeCount(trace?.bpmnXml),
   );
-  if (nodeCount > 32) return 640;
-  if (nodeCount > 24) return 560;
-  if (nodeCount > 14) return 480;
-  return 380;
+  if (nodeCount > 32) return 720;
+  if (nodeCount > 24) return 640;
+  if (nodeCount > 14) return 560;
+  return 460;
 }
 
 const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({
@@ -373,7 +367,6 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
 }) => {
   const { styles } = useStyles();
   const activeNodes = currentNodes(trace, currentTasks);
-  const latestDone = latestCompletedNode(trace);
   const pendingTasks = currentTasks.filter(
     (task) => task.status !== 'COMPLETED',
   );
@@ -394,16 +387,76 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const timeline = trace?.timeline || [];
   const hasTimeline = timeline.length > 0;
   const taskGroups = pendingTaskGroups(pendingTasks, trace);
+  const detailItems: CollapseProps['items'] = [];
+  if (taskGroups.length) {
+    detailItems.push({
+      key: 'pending',
+      label: (
+        <Space size={8}>
+          <Typography.Text strong>待处理</Typography.Text>
+          <Badge count={taskGroups.length} showZero={false} />
+        </Space>
+      ),
+      children: (
+        <div className={styles.pendingList}>
+          {taskGroups.map((group) => (
+            <Tag
+              key={group.key}
+              color={
+                group.activeTaskIds.includes(activeTask?.taskId || '')
+                  ? 'processing'
+                  : 'default'
+              }
+            >
+              {group.label} · {group.handlers.join('、')}
+            </Tag>
+          ))}
+        </div>
+      ),
+    });
+  }
+  if (hasTimeline) {
+    detailItems.push({
+      key: 'timeline',
+      label: (
+        <Space size={8}>
+          <Typography.Text strong>已办记录</Typography.Text>
+          <Badge count={recentTimelineNodes(timeline).length} />
+        </Space>
+      ),
+      children: (
+        <div className={styles.timelineWrap}>
+          <Timeline items={buildTimelineItems(timeline)} />
+        </div>
+      ),
+    });
+  }
 
   return (
     <ProCard
-      title="流程进度"
+      title={
+        <Space size={8} wrap>
+          <span>流程进度</span>
+          {trace?.processDefinitionId ? (
+            <Typography.Text
+              className={styles.titleMeta}
+              ellipsis={{ tooltip: processDefinitionLabel(trace.processDefinitionId) }}
+              type="secondary"
+            >
+              {processDefinitionLabel(trace.processDefinitionId)}
+            </Typography.Text>
+          ) : null}
+        </Space>
+      }
       loading={loading}
       extra={
-        <Flex gap={8} wrap>
-          <Badge status={badgeStatus(trace?.status)} />
-          <Typography.Text type="secondary">{pendingLabel}</Typography.Text>
-        </Flex>
+        <Space size={8} wrap>
+          <Badge
+            status={badgeStatus(trace?.status)}
+            text={processStatusLabel(trace?.status)}
+          />
+          <Tag>{pendingLabel}</Tag>
+        </Space>
       }
       style={{ marginBottom: 16 }}
     >
@@ -418,74 +471,22 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
           timeline={trace?.timeline}
           height={diagramHeight(trace)}
         />
-        <Flex vertical gap={16} className={styles.side}>
-          <Flex
-            align="center"
-            className={styles.contextLine}
-            gap={8}
-            justify="space-between"
-            wrap
-          >
-            <Space size={6} wrap>
-              <Typography.Text
-                strong
-                className={styles.contextTitle}
-                ellipsis={{ tooltip: processDefinitionLabel(trace?.processDefinitionId) }}
-              >
-                {processDefinitionLabel(trace?.processDefinitionId)}
-              </Typography.Text>
-              <Typography.Text
-                type="secondary"
-                className={styles.contextMeta}
-                ellipsis={{ tooltip: businessKeyLabel(trace?.businessKey) }}
-              >
-                {businessKeyLabel(trace?.businessKey)}
-              </Typography.Text>
-            </Space>
-            <Badge
-              status={badgeStatus(trace?.status)}
-              text={processStatusLabel(trace?.status)}
-            />
-          </Flex>
-          <div className={styles.statusStrip}>
-            <Metric label="当前位置" value={nodeText} />
-            <Metric label="办理人" value={currentHandlerText} />
-            <Metric label="下一步" value={nextStep} />
-            <Metric label="上一步" value={nodeLabel(latestDone)} />
-          </div>
-          {taskGroups.length ? (
-            <Flex vertical gap={8}>
-              <Typography.Text strong>待处理</Typography.Text>
-              <div className={styles.pendingList}>
-                {taskGroups.map((group) => (
-                  <Tag
-                    key={group.key}
-                    color={
-                      group.activeTaskIds.includes(activeTask?.taskId || '')
-                        ? 'processing'
-                        : 'default'
-                    }
-                  >
-                    {group.label} · {group.handlers.join('、')}
-                  </Tag>
-                ))}
-              </div>
-            </Flex>
-          ) : null}
-          {hasTimeline ? (
-            <Flex vertical gap={8}>
-              <Typography.Text strong>已办记录</Typography.Text>
-              <div className={styles.timelineWrap}>
-                <Timeline items={buildTimelineItems(timeline)} />
-              </div>
-            </Flex>
-          ) : (
-            <Empty
-              description="暂无记录"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          )}
-        </Flex>
+        <div className={styles.statusStrip}>
+          <Metric label="业务对象" value={businessKeyLabel(trace?.businessKey)} />
+          <Metric label="当前位置" value={nodeText} />
+          <Metric label="办理人" value={currentHandlerText} />
+          <Metric label="下一步" value={nextStep} />
+        </div>
+        {detailItems.length ? (
+          <Collapse
+            className={styles.details}
+            ghost
+            items={detailItems}
+            size="small"
+          />
+        ) : (
+          <Empty description="暂无记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        )}
       </div>
     </ProCard>
   );
