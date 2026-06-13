@@ -24,7 +24,6 @@ import {
   Checkbox,
   Collapse,
   Descriptions,
-  Drawer,
   Empty,
   Flex,
   Form,
@@ -37,6 +36,7 @@ import {
 import { createStyles } from 'antd-style';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import {
@@ -1420,19 +1420,10 @@ const Forms: React.FC = () => {
         {renderFormFieldsEditor(styles.fieldList, styles.fieldGrid)}
       </ModalForm>
 
-      <Drawer
+      <KoravoDrawer
         title={formSchemaNameLabel(preview?.formName)}
         size={720}
         open={Boolean(preview)}
-        destroyOnHidden
-        styles={
-          preview
-            ? {
-                root: { pointerEvents: 'auto' },
-                wrapper: { transform: 'none' },
-              }
-            : undefined
-        }
         extra={
           preview ? (
             <Space>
@@ -1516,7 +1507,7 @@ const Forms: React.FC = () => {
             )}
           </Flex>
         ) : null}
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };

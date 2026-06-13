@@ -5,9 +5,10 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
-import { Alert, Button, Drawer, Empty, Space, Typography } from 'antd';
+import { Alert, Button, Empty, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
 import { type AuditLogItem, listAuditLogs } from '@/services/koravo/api';
 import {
@@ -367,7 +368,7 @@ const AuditLogs: React.FC = () => {
         }}
       />
 
-      <Drawer
+      <KoravoDrawer
         title="审计详情"
         size={720}
         extra={<AuditRelatedActions log={detail} />}
@@ -431,7 +432,7 @@ const AuditLogs: React.FC = () => {
           value={auditDetailRecord(detail)}
           emptyText="暂无操作明细"
         />
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };

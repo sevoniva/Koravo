@@ -13,7 +13,6 @@ import {
   App,
   Badge,
   Button,
-  Drawer,
   Empty,
   Flex,
   Space,
@@ -23,6 +22,7 @@ import {
 import React from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
@@ -671,7 +671,7 @@ const ProcessInstanceDetail: React.FC = () => {
           />
         </ProCard>
       </Flex>
-      <Drawer
+      <KoravoDrawer
         title="表单快照"
         size={720}
         open={Boolean(selectedSnapshot)}
@@ -692,7 +692,7 @@ const ProcessInstanceDetail: React.FC = () => {
         ) : (
           <Empty description="暂无快照数据" />
         )}
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };

@@ -11,9 +11,10 @@ import {
   type ActionType,
   type ProColumns,
 } from '@ant-design/pro-components';
-import { App, Button, Drawer, Empty, Modal, Space } from 'antd';
+import { App, Button, Empty, Modal, Space } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   createDataSource,
@@ -384,7 +385,7 @@ const DataSources: React.FC = () => {
         {formItems}
       </ModalForm>
 
-      <Drawer
+      <KoravoDrawer
         title={detail?.name || '数据源详情'}
         size={720}
         open={Boolean(detail)}
@@ -444,9 +445,9 @@ const DataSources: React.FC = () => {
             },
           ]}
         />
-      </Drawer>
+      </KoravoDrawer>
 
-      <Drawer
+      <KoravoDrawer
         title={testLogSource ? `${testLogSource.name} 检测记录` : '检测记录'}
         size={720}
         open={Boolean(testLogSource)}
@@ -474,7 +475,7 @@ const DataSources: React.FC = () => {
         ) : (
           <Empty description="请选择数据源" />
         )}
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };

@@ -23,7 +23,6 @@ import {
   Alert,
   App,
   Button,
-  Drawer,
   Dropdown,
   Empty,
   Flex,
@@ -34,6 +33,7 @@ import {
 } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import ProcessContextSummary from '@/components/ProcessContextSummary';
@@ -879,11 +879,10 @@ const ProcessInstances: React.FC = () => {
           </Button>,
         ]}
       />
-      <Drawer
+      <KoravoDrawer
         title={previewTarget?.title || '流程预览'}
         size={980}
         open={Boolean(previewTarget)}
-        destroyOnHidden
         onClose={() => setPreviewTarget(undefined)}
       >
         <ProcessProgressCard
@@ -895,7 +894,7 @@ const ProcessInstances: React.FC = () => {
               : previewTarget?.currentTasks
           }
         />
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };

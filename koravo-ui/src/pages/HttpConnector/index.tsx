@@ -7,9 +7,10 @@ import {
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Drawer, Flex, Statistic, Typography } from 'antd';
+import { Alert, Button, Flex, Statistic, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
@@ -169,7 +170,7 @@ const HttpConnector: React.FC = () => {
         }}
       />
 
-      <Drawer
+      <KoravoDrawer
         title="执行详情"
         size={720}
         extra={
@@ -228,7 +229,7 @@ const HttpConnector: React.FC = () => {
           <DetailBlock title="响应摘要" value={detail?.responseSummary} />
           <DetailBlock title="错误信息" value={detail?.errorMessage} />
         </Flex>
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };

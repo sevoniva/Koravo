@@ -27,7 +27,6 @@ import {
   Badge,
   Button,
   Collapse,
-  Drawer,
   Dropdown,
   Flex,
   FloatButton,
@@ -41,6 +40,7 @@ import {
 import { createStyles } from 'antd-style';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   deployProcessModelDraft,
@@ -806,12 +806,11 @@ const ProcessDesigner: React.FC = () => {
         </section>
       </div>
 
-      <Drawer
+      <KoravoDrawer
         title="模型"
         placement="left"
         open={modelDrawerOpen}
         size={380}
-        destroyOnHidden
         extra={
           <Space>
             <Segmented
@@ -835,14 +834,13 @@ const ProcessDesigner: React.FC = () => {
         onClose={() => setModelDrawerOpen(false)}
       >
         {renderModelList()}
-      </Drawer>
+      </KoravoDrawer>
 
-      <Drawer
+      <KoravoDrawer
         title="配置"
         open={inspectorDrawerOpen}
         size={420}
         resizable
-        destroyOnHidden
         extra={
           <Button
             size="small"
@@ -921,14 +919,13 @@ const ProcessDesigner: React.FC = () => {
           </Typography.Title>
           {renderElementProperties()}
         </section>
-      </Drawer>
+      </KoravoDrawer>
 
-      <Drawer
+      <KoravoDrawer
         title="流程源文件"
         open={xmlDrawerOpen}
         size={720}
         resizable
-        destroyOnHidden
         extra={
           <Button icon={<DownloadOutlined />} onClick={handleExport}>
             导出
@@ -941,7 +938,7 @@ const ProcessDesigner: React.FC = () => {
           value={designerXml}
           className={styles.xmlPreview}
         />
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };

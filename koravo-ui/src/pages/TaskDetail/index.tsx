@@ -20,7 +20,6 @@ import {
   App,
   Badge,
   Button,
-  Drawer,
   Empty,
   Flex,
   Modal,
@@ -32,6 +31,7 @@ import {
 import React, { useState } from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
@@ -1156,7 +1156,7 @@ const TaskDetail: React.FC = () => {
         </ProCard>
       </Flex>
 
-      <Drawer
+      <KoravoDrawer
         title="表单快照"
         size={720}
         open={Boolean(snapshot)}
@@ -1168,7 +1168,7 @@ const TaskDetail: React.FC = () => {
           uiSchemaJson={snapshot?.uiSchemaJson}
           values={snapshotData as JsonRecord}
         />
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };

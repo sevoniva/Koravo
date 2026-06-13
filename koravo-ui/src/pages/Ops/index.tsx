@@ -14,7 +14,6 @@ import {
   App,
   Button,
   Collapse,
-  Drawer,
   Empty,
   Modal,
   Space,
@@ -24,6 +23,7 @@ import {
 } from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import ProcessContextSummary from '@/components/ProcessContextSummary';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
@@ -542,7 +542,7 @@ const Ops: React.FC = () => {
           },
         ]}
       />
-      <Drawer
+      <KoravoDrawer
         title="异常任务详情"
         size={720}
         open={Boolean(selectedJob)}
@@ -722,12 +722,11 @@ const Ops: React.FC = () => {
         ) : (
           <Empty description="暂无任务详情" />
         )}
-      </Drawer>
-      <Drawer
+      </KoravoDrawer>
+      <KoravoDrawer
         title={previewTarget?.title || '流程预览'}
         size={980}
         open={Boolean(previewTarget)}
-        destroyOnHidden
         onClose={() => setPreviewTarget(undefined)}
       >
         <ProcessProgressCard
@@ -739,7 +738,7 @@ const Ops: React.FC = () => {
               : previewTarget?.currentTasks
           }
         />
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };

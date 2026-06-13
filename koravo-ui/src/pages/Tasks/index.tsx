@@ -8,9 +8,10 @@ import {
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { history, useLocation } from '@umijs/max';
-import { App, Button, Drawer, Empty, Space, Tabs, Tag } from 'antd';
+import { App, Button, Empty, Space, Tabs, Tag } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import ProcessContextSummary from '@/components/ProcessContextSummary';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
@@ -590,11 +591,10 @@ const Tasks: React.FC = () => {
           },
         ]}
       />
-      <Drawer
+      <KoravoDrawer
         title={previewTarget?.title || '流程预览'}
         size={980}
         open={Boolean(previewTarget)}
-        destroyOnHidden
         onClose={() => setPreviewTarget(undefined)}
       >
         <ProcessProgressCard
@@ -607,7 +607,7 @@ const Tasks: React.FC = () => {
               : previewTarget?.currentTasks
           }
         />
-      </Drawer>
+      </KoravoDrawer>
     </PageContainer>
   );
 };
