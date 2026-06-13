@@ -29,8 +29,7 @@ java -jar koravo-bootstrap/target/koravo-bootstrap-0.1.0-SNAPSHOT.jar
 健康检查：
 
 ```bash
-curl -H 'X-Tenant-Id: default' -H 'X-User-Id: admin' -H 'X-User-Role: admin' \
-  http://localhost:8080/api/v1/health
+curl http://localhost:8080/api/v1/health
 ```
 
 ## 启动前端
@@ -56,8 +55,8 @@ npm run dev
 ## 常用入口
 
 - 总览：查看服务状态、流程配置状态、任务和连接器摘要。
-- 工作台：处理我的待办，查看经办记录和我发起的流程。
-- 流程中心：发起流程，查看流程实例和运行状态。
+- 工作台：处理我的待办、待认领任务和已办记录。
+- 流程中心：发起流程、查看我的申请和流程实例状态。
 - 流程设计：创建、导入和编辑 BPMN 流程。
 - 流程模型：查看、校验、部署、导出模型。
 - 组织权限：查看平台同步的用户、部门、角色和流程办理权限。

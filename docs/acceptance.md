@@ -100,5 +100,5 @@ Use a connector-enabled workflow model from the designer or a local fixture:
 
 ## Current Known Limits
 
-- Fine-grained production RBAC, external secret backends, connector OAuth/mTLS/retry policies, dead-letter job operations, and process migration APIs remain roadmap items.
+- Fine-grained production RBAC, external secret backends, connector OAuth/mTLS/retry policies, and process migration APIs remain roadmap items.
 - The default frontend bundle is large because Ant Design Pro, ProComponents, antd, and bpmn-js are all used by the console.
