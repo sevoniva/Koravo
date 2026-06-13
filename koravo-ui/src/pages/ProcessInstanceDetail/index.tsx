@@ -275,7 +275,8 @@ const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
   const instanceId = params.instanceId || '';
   const session = getSessionContext();
-  const canOperateInstance = session.role === 'operator';
+  const canOperateInstance =
+    session.permissions?.canOperateSystem ?? session.role === 'operator';
   const canOpenTaskDetail =
     session.permissions?.canViewOwnWork ??
     ['applicant', 'manager', 'finance'].includes(session.role);

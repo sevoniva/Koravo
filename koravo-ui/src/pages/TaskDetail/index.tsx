@@ -884,13 +884,13 @@ const TaskDetail: React.FC = () => {
   const canClaimTask =
     session.permissions?.canClaimTask ??
     ['manager', 'finance'].includes(session.role);
-  const canViewOperationalContext = Boolean(
-    session.permissions?.canOperateSystem ||
-      session.permissions?.canViewAudit ||
-      session.permissions?.canConfigureWorkflow ||
-      session.role === 'admin' ||
-      session.role === 'operator',
-  );
+  const canViewOperationalContext = session.permissions
+    ? Boolean(
+        session.permissions.canOperateSystem ||
+          session.permissions.canViewAudit ||
+          session.permissions.canConfigureWorkflow,
+      )
+    : session.role === 'admin' || session.role === 'operator';
   const {
     canCompleteTask,
     canManageAssignedTask,
