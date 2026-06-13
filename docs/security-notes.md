@@ -12,7 +12,7 @@ Koravo is currently optimized for local development. The codebase already enforc
 - Key mutations write audit logs.
 - Datasource secrets are encrypted and are not returned by APIs.
 - Connector execution logs redact obvious `password`, `token`, and `secret` fields.
-- Audit detail JSON is redacted before persistence and on read for common `password`, `token`, and `secret` fields.
+- Audit detail fields are redacted before persistence and on read for common `password`, `token`, and `secret` fields.
 - Connector audit events record only minimal execution metadata and do not include URLs, headers, request bodies, or response bodies.
 - HTTP connector URL policy blocks obvious private, link-local, carrier-grade NAT, and metadata networks by default.
 - Arbitrary SQL execution is not exposed.

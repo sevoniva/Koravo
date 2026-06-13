@@ -1,17 +1,18 @@
-create table leave_request (
+create table business_request (
   id varchar(64) primary key,
   applicant varchar(128) not null,
-  days int not null,
-  reason varchar(1024),
+  department varchar(128) not null,
+  subject varchar(256) not null,
+  description varchar(1024),
   status varchar(64) not null,
   created_at timestamp not null
 );
 
-create table purchase_order (
+create table approval_record (
   id varchar(64) primary key,
-  requester varchar(128) not null,
-  amount numeric(18, 2) not null,
-  vendor varchar(256) not null,
-  status varchar(64) not null,
+  request_id varchar(64) not null,
+  approver varchar(128) not null,
+  decision varchar(64) not null,
+  comment varchar(1024),
   created_at timestamp not null
 );

@@ -13,8 +13,8 @@ Schema payloads include:
 
 - `formKey`
 - `formName`
-- `schemaJson`
-- `uiSchemaJson`
+- form structure
+- display settings
 
 ## Binding APIs
 
@@ -58,8 +58,8 @@ If `formData` is present, Koravo writes a `ko_form_snapshot` row when the reques
 - task ID
 - form schema ID
 - form schema version
-- schema JSON and UI schema JSON snapshot
-- submitted JSON data
+- form structure snapshot
+- submitted form data
 - tenant/user audit fields
 
 Task detail returns historical snapshots for the process instance so review does not depend on the latest form schema or latest task variables.

@@ -13,7 +13,7 @@ GET /api/v1/audit-logs?requestId=req-1&page=1&pageSize=20
 GET /api/v1/audit-logs?startTime=2026-06-07T00:00:00Z&endTime=2026-06-07T23:59:59Z&page=1&pageSize=20
 ```
 
-All queries are scoped by the current `X-Tenant-Id`. The console `Audit Logs` page supports the same filters and can open a single event to inspect metadata and formatted redacted detail JSON.
+All queries are scoped by the current `X-Tenant-Id`. The console `Audit Logs` page supports the same filters and can open a single event to inspect metadata and formatted redacted details.
 
 ## Event Coverage
 

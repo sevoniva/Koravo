@@ -55,7 +55,7 @@ The task detail response includes:
 
 `GET /api/v1/tasks/{taskId}` supports both active runtime tasks and completed historic tasks assigned to the current user. For completed tasks, task variables are read from Flowable historic variables while process variables, comments, form snapshots, and audit logs remain available for review.
 
-Form snapshots are stored in `ko_form_snapshot`. They preserve submitted form data, form schema version, schema JSON, and UI schema JSON at completion time, so historic review does not depend on the latest form schema or latest task variables. The console task detail snapshot drawer renders saved data as a structured business table.
+Form snapshots are stored in `ko_form_snapshot`. They preserve submitted form data, form version, structure, and display settings at completion time, so historic review does not depend on the latest form definition or latest task variables. The console task detail snapshot drawer renders saved data as a structured business table.
 Task audit logs are queried from `ko_audit_log` by `resourceType = TASK` and `resourceId = taskId`.
 
 The console task detail page links directly to `/process-instances/{instanceId}` so approvers can move from a task to the BPMN trace, timeline, current tasks, variables, and saved form snapshots without switching through Ops first.
