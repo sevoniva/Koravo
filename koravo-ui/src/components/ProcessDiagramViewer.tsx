@@ -8,7 +8,19 @@ import {
   LoadingOutlined,
   ZoomInOutlined,
 } from '@ant-design/icons';
-import { Alert, Badge, Button, Empty, Flex, Space, Spin, Tag, Tooltip, Typography } from 'antd';
+import {
+  Alert,
+  Badge,
+  Button,
+  Empty,
+  Flex,
+  Space,
+  Spin,
+  Steps,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTraceNode } from '@/services/koravo/api';
@@ -125,115 +137,36 @@ const useStyles = createStyles(({ css, token }) => ({
     box-shadow: ${token.boxShadowTertiary};
   `,
   generatedFlow: css`
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
     height: 100%;
     min-height: inherit;
     overflow: auto;
-    padding: 14px 16px;
+    padding: 16px;
     background: ${token.colorBgContainer};
   `,
   generatedHeader: css`
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    padding-bottom: 10px;
-    background: ${token.colorBgContainer};
+    flex: none;
   `,
-  generatedList: css`
-    display: grid;
-    gap: 8px;
-    padding-bottom: 8px;
-  `,
-  generatedRow: css`
-    display: grid;
-    grid-template-columns: 28px 18px minmax(0, 1fr);
-    gap: 8px;
-    align-items: start;
-  `,
-  generatedIndex: css`
-    display: inline-flex;
-    width: 24px;
-    height: 24px;
-    align-items: center;
-    justify-content: center;
-    color: ${token.colorTextSecondary};
-    font-weight: 600;
-    font-size: 12px;
-    background: ${token.colorFillQuaternary};
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: 50%;
-  `,
-  generatedRail: css`
-    position: relative;
-    display: flex;
-    min-height: 54px;
-    justify-content: center;
+  generatedSteps: css`
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 4px 2px;
 
-    &::before {
-      position: absolute;
-      top: 14px;
-      bottom: -16px;
-      width: 2px;
-      background: ${token.colorBorderSecondary};
-      content: '';
+    .ant-steps {
+      min-width: max-content;
     }
-  `,
-  generatedRailEnd: css`
-    &::before {
-      display: none;
-    }
-  `,
-  generatedDot: css`
-    position: relative;
-    z-index: 1;
-    width: 12px;
-    height: 12px;
-    margin-top: 6px;
-    background: ${token.colorBgContainer};
-    border: 3px solid ${token.colorBorder};
-    border-radius: 50%;
-  `,
-  generatedDotFinish: css`
-    border-color: ${token.colorSuccess};
-  `,
-  generatedDotProcess: css`
-    border-color: ${token.colorPrimary};
-    box-shadow: 0 0 0 4px ${token.colorPrimaryBg};
-  `,
-  generatedDotError: css`
-    border-color: ${token.colorError};
-  `,
-  generatedCard: css`
-    min-width: 0;
-    padding: 8px 10px;
-    background: ${token.colorBgElevated};
-    border: 1px solid ${token.colorBorderSecondary};
-    border-left: 3px solid ${token.colorBorder};
-    border-radius: ${token.borderRadiusSM}px;
-  `,
-  generatedCardFinish: css`
-    border-left-color: ${token.colorSuccess};
-    background: ${token.colorSuccessBg};
-  `,
-  generatedCardProcess: css`
-    border-color: ${token.colorPrimaryBorder};
-    border-left-color: ${token.colorPrimary};
-    background: ${token.colorPrimaryBg};
-  `,
-  generatedCardError: css`
-    border-left-color: ${token.colorError};
-    background: ${token.colorErrorBg};
-  `,
-  generatedTitle: css`
-    min-width: 0;
-    word-break: break-word;
-  `,
-  generatedMeta: css`
-    margin-top: 4px;
-    color: ${token.colorTextSecondary};
-    font-size: 12px;
 
-    .ant-tag {
-      margin-inline-end: 4px;
+    .ant-steps-item {
+      min-width: 128px;
+      max-width: 180px;
+    }
+
+    .ant-steps-item-title,
+    .ant-steps-item-description {
+      max-width: 150px;
     }
   `,
 }));
@@ -424,30 +357,6 @@ function generatedStatusColor(status: ReturnType<typeof generatedStepStatus>) {
   return mapping[status];
 }
 
-function generatedDotClassName(
-  styles: ReturnType<typeof useStyles>['styles'],
-  status: ReturnType<typeof generatedStepStatus>,
-) {
-  return [
-    styles.generatedDot,
-    status === 'finish' ? styles.generatedDotFinish : '',
-    status === 'process' ? styles.generatedDotProcess : '',
-    status === 'error' ? styles.generatedDotError : '',
-  ].filter(Boolean).join(' ');
-}
-
-function generatedCardClassName(
-  styles: ReturnType<typeof useStyles>['styles'],
-  status: ReturnType<typeof generatedStepStatus>,
-) {
-  return [
-    styles.generatedCard,
-    status === 'finish' ? styles.generatedCardFinish : '',
-    status === 'process' ? styles.generatedCardProcess : '',
-    status === 'error' ? styles.generatedCardError : '',
-  ].filter(Boolean).join(' ');
-}
-
 function currentNodeIndex(nodes: ProcessTraceNode[], currentActivityIds: string[]) {
   const currentIds = new Set(currentActivityIds.filter(Boolean));
   const current = nodes.findIndex((node) => currentIds.has(node.activityId));
@@ -489,6 +398,33 @@ function generatedCurrentText(nodes: ProcessTraceNode[], currentIndex: number) {
   return currentNode ? nodeTitle(currentNode) : '-';
 }
 
+function generatedStepItems(
+  nodes: ProcessTraceNode[],
+  currentActivityIds: string[],
+) {
+  return nodes.map((node) => {
+    const status = generatedStepStatus(node, currentActivityIds);
+    return {
+      title: (
+        <Typography.Text ellipsis={{ tooltip: nodeTitle(node) }}>
+          {nodeTitle(node)}
+        </Typography.Text>
+      ),
+      description: (
+        <Space size={4} wrap>
+          <Tag color={generatedStatusColor(status)}>
+            {processStatusLabel(node.status)}
+          </Tag>
+          <Typography.Text type="secondary">
+            {activityTypeLabel(node.activityType)}
+          </Typography.Text>
+        </Space>
+      ),
+      status,
+    };
+  });
+}
+
 const GeneratedFlow: React.FC<{
   bpmnXml?: string;
   timeline: ProcessTraceNode[];
@@ -496,16 +432,11 @@ const GeneratedFlow: React.FC<{
   height: number;
 }> = ({ bpmnXml, timeline, currentActivityIds, height }) => {
   const { styles } = useStyles();
-  const activeNodeRef = React.useRef<HTMLDivElement>(null);
   const nodes = generatedFlowNodes(timeline, bpmnXml);
   const currentIndex = currentNodeIndex(nodes, currentActivityIds);
   const completedCount = nodes.filter(
     (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
   ).length;
-
-  React.useEffect(() => {
-    activeNodeRef.current?.scrollIntoView({ block: 'center' });
-  }, []);
 
   if (!nodes.length) {
     return (
@@ -514,59 +445,37 @@ const GeneratedFlow: React.FC<{
       </Flex>
     );
   }
+  const stepsStatus =
+    generatedStepStatus(nodes[currentIndex], currentActivityIds) === 'error'
+      ? 'error'
+      : 'process';
 
   return (
     <div className={styles.shell} style={{ height }} data-testid="process-diagram-viewer">
       <div className={styles.generatedFlow}>
         <Flex className={styles.generatedHeader} align="center" justify="space-between" gap={8} wrap>
-          <Typography.Text strong>
-            {generatedCurrentText(nodes, currentIndex)}
-          </Typography.Text>
-          <Space size={8} wrap>
-            <Badge status="processing" text="当前节点" />
-            <Typography.Text type="secondary">
-              {completedCount}/{nodes.length}
+          <Space size={8}>
+            <Badge status="processing" />
+            <Typography.Text strong>
+              {generatedCurrentText(nodes, currentIndex)}
             </Typography.Text>
           </Space>
+          <Space size={8} wrap>
+            <Tag color="processing">当前</Tag>
+            <Tag>
+              {completedCount}/{nodes.length}
+            </Tag>
+          </Space>
         </Flex>
-        <div className={styles.generatedList}>
-          {nodes.map((node, index) => {
-            const status = generatedStepStatus(node, currentActivityIds);
-            const selected = index === currentIndex;
-            return (
-              <div
-                key={`${node.activityId}-${node.startTime || index}`}
-                ref={selected ? activeNodeRef : undefined}
-                className={styles.generatedRow}
-              >
-                <span className={styles.generatedIndex}>{index + 1}</span>
-                <span
-                  className={[
-                    styles.generatedRail,
-                    index === nodes.length - 1 ? styles.generatedRailEnd : '',
-                  ].filter(Boolean).join(' ')}
-                >
-                  <span className={generatedDotClassName(styles, status)} />
-                </span>
-                <div className={generatedCardClassName(styles, status)}>
-                  <Flex align="center" gap={8} wrap>
-                    <Typography.Text strong className={styles.generatedTitle}>
-                      {nodeTitle(node)}
-                    </Typography.Text>
-                    {selected ? <Tag color="processing">当前</Tag> : null}
-                    <Tag color={generatedStatusColor(status)}>
-                      {processStatusLabel(node.status)}
-                    </Tag>
-                  </Flex>
-                  <div className={styles.generatedMeta}>
-                    <Typography.Text type="secondary">
-                      {activityTypeLabel(node.activityType)}
-                    </Typography.Text>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className={styles.generatedSteps}>
+          <Steps
+            current={currentIndex}
+            items={generatedStepItems(nodes, currentActivityIds)}
+            responsive={false}
+            size="small"
+            status={stepsStatus}
+            type="dot"
+          />
         </div>
       </div>
     </div>

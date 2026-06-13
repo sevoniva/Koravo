@@ -1,5 +1,5 @@
-import { ProCard, ProDescriptions } from '@ant-design/pro-components';
-import { Badge, Empty, Flex, Tag, Timeline, Typography } from 'antd';
+import { ProCard } from '@ant-design/pro-components';
+import { Badge, Empty, Flex, Space, Tag, Timeline, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type { ProcessTrace, ProcessTraceNode, TaskItem } from '@/services/koravo/api';
@@ -33,12 +33,14 @@ const useStyles = createStyles(({ css, token }) => ({
   side: css`
     min-width: 0;
   `,
+  contextLine: css`
+    padding-bottom: 12px;
+    border-bottom: 1px solid ${token.colorBorderSecondary};
+  `,
   statusStrip: css`
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px 12px;
-    padding: 10px 0 14px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
 
     @media (max-width: 520px) {
       grid-template-columns: minmax(0, 1fr);
@@ -59,9 +61,14 @@ const useStyles = createStyles(({ css, token }) => ({
     word-break: break-word;
   `,
   timelineWrap: css`
-    max-height: 320px;
+    max-height: 260px;
     overflow: auto;
     padding-right: 4px;
+  `,
+  pendingList: css`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   `,
 }));
 
@@ -101,6 +108,13 @@ function visibleTimelineNodes(timeline: ProcessTraceNode[]) {
   return nodes.length ? nodes : timeline;
 }
 
+function recentTimelineNodes(timeline: ProcessTraceNode[], limit = 5) {
+  return visibleTimelineNodes(timeline)
+    .filter((node) => node.activityType !== 'endEvent')
+    .slice(-limit)
+    .reverse();
+}
+
 function bpmnNodeCount(bpmnXml?: string) {
   if (!bpmnXml || typeof DOMParser === 'undefined') return 0;
   try {
@@ -125,19 +139,6 @@ function bpmnNodeCount(bpmnXml?: string) {
   }
 }
 
-function activityTypeLabel(activityType?: string) {
-  const mapping: Record<string, string> = {
-    startEvent: '开始',
-    endEvent: '结束',
-    userTask: '人工任务',
-    serviceTask: '系统任务',
-    exclusiveGateway: '条件分支',
-    parallelGateway: '并行分支',
-    inclusiveGateway: '包容分支',
-  };
-  return mapping[activityType || ''] || activityType || '-';
-}
-
 function timelineColor(status?: string) {
   const normalized = String(status || '').toUpperCase();
   if (normalized === 'COMPLETED') return 'green';
@@ -156,14 +157,13 @@ function badgeStatus(status?: string) {
 }
 
 function buildTimelineItems(timeline: ProcessTraceNode[]) {
-  return visibleTimelineNodes(timeline).map((node, index) => ({
+  return recentTimelineNodes(timeline).map((node, index) => ({
     key: `${node.activityId}-${node.startTime || index}`,
     color: timelineColor(node.status),
     content: (
       <Flex vertical gap={2}>
         <Flex align="center" gap={8} wrap>
           <Typography.Text strong>{nodeLabel(node)}</Typography.Text>
-          <Tag>{activityTypeLabel(node.activityType)}</Tag>
           <Badge status={badgeStatus(node.status)} text={processStatusLabel(node.status)} />
         </Flex>
         <Typography.Text type="secondary">
@@ -233,6 +233,8 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const isCompleted = String(trace?.status || '').toUpperCase() === 'COMPLETED';
   const pendingLabel = isCompleted ? '已完成' : `待办 ${pendingTasks.length}`;
   const nextStep = nextStepText(trace, pendingTasks);
+  const timeline = trace?.timeline || [];
+  const hasTimeline = timeline.length > 0;
 
   return (
     <ProCard
@@ -254,54 +256,50 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
           height={diagramHeight(trace)}
         />
         <Flex vertical gap={16} className={styles.side}>
+          <Flex
+            align="center"
+            className={styles.contextLine}
+            gap={8}
+            justify="space-between"
+            wrap
+          >
+            <Space size={6} wrap>
+              <Typography.Text strong>
+                {businessKeyLabel(trace?.businessKey)}
+              </Typography.Text>
+              <Typography.Text type="secondary">
+                {processDefinitionLabel(trace?.processDefinitionId)}
+              </Typography.Text>
+            </Space>
+            <Badge
+              status={badgeStatus(trace?.status)}
+              text={processStatusLabel(trace?.status)}
+            />
+          </Flex>
           <div className={styles.statusStrip}>
             <Metric label="当前节点" value={currentNodeText} />
             <Metric label="处理人" value={currentHandlerText} />
-            <Metric label="待办数" value={pendingTasks.length} />
             <Metric label="下一步" value={nextStep} />
             <Metric label="最近完成" value={nodeLabel(latestDone)} />
           </div>
-          <ProDescriptions
-            size="small"
-            column={1}
-            dataSource={{
-              processDefinitionId: trace?.processDefinitionId,
-              businessKey: businessKeyLabel(trace?.businessKey),
-              status: processStatusLabel(trace?.status),
-              currentNodeText,
-              currentHandlerText,
-              nextStep,
-              latestDone: nodeLabel(latestDone),
-            }}
-            columns={[
-              {
-                title: '流程',
-                dataIndex: 'processDefinitionId',
-                renderText: processDefinitionLabel,
-              },
-              { title: '业务编号', dataIndex: 'businessKey', copyable: true },
-              { title: '实例状态', dataIndex: 'status' },
-              { title: '下一步', dataIndex: 'nextStep' },
-            ]}
-          />
           {pendingTasks.length ? (
             <Flex vertical gap={8}>
               <Typography.Text strong>待办</Typography.Text>
-              <Flex gap={8} wrap>
+              <div className={styles.pendingList}>
                 {pendingTasks.map((task) => (
                   <Tag key={task.taskId} color={task.taskId === activeTask?.taskId ? 'processing' : 'default'}>
                     {taskDefinitionLabel(task.taskDefinitionKey)}：
                     {task.assignee ? organizationMemberName(task.assignee) : '未分配'}
                   </Tag>
                 ))}
-              </Flex>
+              </div>
             </Flex>
           ) : null}
-          {trace?.timeline?.length ? (
+          {hasTimeline ? (
             <Flex vertical gap={8}>
-              <Typography.Text strong>记录</Typography.Text>
+              <Typography.Text strong>最近记录</Typography.Text>
               <div className={styles.timelineWrap}>
-                <Timeline items={buildTimelineItems(trace.timeline)} />
+                <Timeline items={buildTimelineItems(timeline)} />
               </div>
             </Flex>
           ) : (
