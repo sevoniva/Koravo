@@ -4,19 +4,13 @@ import {
   ProCard,
   type ProColumns,
   ProDescriptions,
-  ProFormDatePicker,
-  ProFormDependency,
-  ProFormDigit,
   ProFormSelect,
-  ProFormSwitch,
-  ProFormText,
   ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { history, useParams } from '@umijs/max';
 import {
-  Alert,
   App,
   Badge,
   Button,
@@ -33,7 +27,6 @@ import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
 import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
-import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
   type AuditLogItem,
@@ -51,13 +44,7 @@ import {
 import {
   applyOrganizationProfileValues,
   getOrganizationMembers,
-  isOrganizationAssigneeField,
-  isOrganizationProfileField,
-  organizationAssigneeFieldValue,
-  organizationAssigneeRole,
   organizationMemberName,
-  organizationMemberSelectOptions,
-  organizationProfileFieldValue,
 } from '@/services/koravo/organization';
 import {
   auditActionLabel,
@@ -72,7 +59,6 @@ import {
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 import {
   filterWorkflowFormValues,
-  isWorkflowFieldVisible,
   parseWorkflowFormFields,
   visibleWorkflowFormFields,
   type WorkflowFormField,
@@ -180,7 +166,14 @@ function nextPendingTask(currentTask: TaskItem, tasks: TaskItem[]) {
     (item) =>
       item.taskId !== currentTask.taskId &&
       item.assignee &&
+      item.assignee === currentTask.assignee &&
       item.status !== 'COMPLETED',
+  );
+}
+
+function remainingPendingTasks(currentTask: TaskItem, tasks: TaskItem[]) {
+  return tasks.filter(
+    (item) => item.taskId !== currentTask.taskId && item.status !== 'COMPLETED',
   );
 }
 
@@ -254,17 +247,22 @@ function taskStepItems(task: TaskItem | undefined, hasForm?: boolean) {
     {
       title: hasAssignee ? '已分配' : '待认领',
       content: hasAssignee ? organizationMemberName(task?.assignee) : '未分配',
-      status: hasAssignee || isDone ? 'finish' as const : 'process' as const,
+      status:
+        hasAssignee || isDone ? ('finish' as const) : ('process' as const),
     },
     {
       title: isDone ? '已办理' : '办理',
       content: hasForm ? '填写表单' : '缺少表单',
-      status: isDone ? 'finish' as const : hasAssignee ? 'process' as const : 'wait' as const,
+      status: isDone
+        ? ('finish' as const)
+        : hasAssignee
+          ? ('process' as const)
+          : ('wait' as const),
     },
     {
       title: isDone ? '已流转' : '流转',
       content: taskStatusLabel(task?.status),
-      status: isDone ? 'finish' as const : 'wait' as const,
+      status: isDone ? ('finish' as const) : ('wait' as const),
     },
   ];
 }
@@ -405,27 +403,9 @@ function renderParallelTasks(
 }
 
 function schemaToFields(formSchema?: FormSchemaItem): SchemaField[] {
-  return parseWorkflowFormFields(formSchema?.schemaJson, formSchema?.uiSchemaJson);
-}
-
-function isTaskProfileField(field: SchemaField) {
-  return (
-    field.widget === 'organizationProfile' ||
-    isOrganizationProfileField(field.fieldKey, field.title)
-  );
-}
-
-function isTaskAssigneeField(field: SchemaField) {
-  return (
-    field.widget === 'organizationMember' ||
-    isOrganizationAssigneeField(field.fieldKey, field.title)
-  );
-}
-
-function isTaskAssigneeMultiField(field: SchemaField) {
-  return (
-    field.widget === 'organizationMemberMulti' ||
-    (field.type === 'array' && isOrganizationAssigneeField(field.fieldKey, field.title))
+  return parseWorkflowFormFields(
+    formSchema?.schemaJson,
+    formSchema?.uiSchemaJson,
   );
 }
 
@@ -461,7 +441,7 @@ function buildCompletePayload(
       ? '同意'
       : decision === 'REJECTED'
         ? '不同意'
-      : '退回补充';
+        : '退回补充';
   const schemaFields = schemaToFields(formSchema);
   const normalizedValues = normalizeFormValues(values.formValues);
   const valuesWithProfile = applyOrganizationProfileValues(
@@ -476,11 +456,18 @@ function buildCompletePayload(
   const formValues = schemaFields.length
     ? filterWorkflowFormValues(visibleFields, valuesWithProfile)
     : normalizedValues;
+  const comment = values.comment?.trim();
   const formData = {
     ...formValues,
     decision,
     decisionText,
     approved: decision === 'APPROVED',
+    ...(comment
+      ? {
+          opinion: comment,
+          reviewComment: comment,
+        }
+      : {}),
   };
   return {
     variables: formData,
@@ -516,211 +503,10 @@ function snapshotSummary(record: FormSnapshotItem) {
   );
 }
 
-function taskFieldRules(field: SchemaField, messagePrefix = '请输入') {
-  return field.required
-    ? [{ required: true, message: `${messagePrefix}${field.title}` }]
-    : undefined;
-}
-
-function renderTaskField(
-  field: SchemaField,
-  processValues?: JsonRecord,
-  formValues?: JsonRecord,
-) {
-  const visibilityValues = { ...(processValues || {}), ...(formValues || {}) };
-  if (!isWorkflowFieldVisible(field, visibilityValues)) return null;
-
-  const name = ['formValues', field.fieldKey];
-  const readOnly = field.permission === 'readonly';
-  const formItemProps = { preserve: false };
-
-  if (isTaskAssigneeMultiField(field)) {
-    const value = processValues?.[field.fieldKey];
-    return (
-      <ProFormSelect
-        key={field.fieldKey}
-        name={name}
-        label={field.title}
-        initialValue={Array.isArray(value) ? value.map(String) : []}
-        options={organizationMemberSelectOptions()}
-        tooltip="由发起环节选择的组织成员带出。"
-        disabled
-        fieldProps={{ mode: 'multiple', maxTagCount: 'responsive' }}
-        formItemProps={formItemProps}
-        rules={
-          field.required
-            ? [{ required: true, message: `${field.title}会自动带出` }]
-            : undefined
-        }
-      />
-    );
-  }
-
-  if (isTaskAssigneeField(field)) {
-    return (
-      <ProFormSelect
-        key={field.fieldKey}
-        name={name}
-        label={field.title}
-        initialValue={organizationAssigneeFieldValue(
-          field.fieldKey,
-          processValues,
-          field.title,
-        )}
-        options={organizationMemberSelectOptions(
-          organizationAssigneeRole(field.fieldKey, field.title),
-        )}
-        tooltip="由发起环节选择的组织成员带出。"
-        disabled
-        formItemProps={formItemProps}
-        rules={
-          field.required
-            ? [{ required: true, message: `${field.title}会自动带出` }]
-            : undefined
-        }
-      />
-    );
-  }
-
-  if (isTaskProfileField(field)) {
-    return (
-      <OrganizationProfileFormItem
-        key={field.fieldKey}
-        name={name}
-        label={field.title}
-        value={organizationProfileFieldValue(
-          field.fieldKey,
-          processValues,
-          undefined,
-          field.title,
-        )}
-        required={field.required}
-        sourceText="流程档案"
-        preserve={false}
-      />
-    );
-  }
-
-  if (field.type === 'number') {
-    return (
-      <ProFormDigit
-        key={field.fieldKey}
-        name={name}
-        label={field.title}
-        placeholder={field.placeholder}
-        fieldProps={{ precision: 2, disabled: readOnly }}
-        formItemProps={formItemProps}
-        rules={taskFieldRules(field)}
-      />
-    );
-  }
-
-  if (field.options?.length) {
-    return (
-      <ProFormSelect
-        key={field.fieldKey}
-        name={name}
-        label={field.title}
-        options={field.options}
-        placeholder={field.placeholder}
-        disabled={readOnly}
-        formItemProps={formItemProps}
-        rules={taskFieldRules(field, '请选择')}
-      />
-    );
-  }
-
-  if (field.format === 'date') {
-    return (
-      <ProFormDatePicker
-        key={field.fieldKey}
-        name={name}
-        label={field.title}
-        placeholder={field.placeholder}
-        fieldProps={{ format: 'YYYY-MM-DD', disabled: readOnly }}
-        formItemProps={formItemProps}
-        rules={taskFieldRules(field, '请选择')}
-      />
-    );
-  }
-
-  if (field.type === 'boolean') {
-    return (
-      <ProFormSwitch
-        key={field.fieldKey}
-        name={name}
-        label={field.title}
-        fieldProps={{ disabled: readOnly }}
-        formItemProps={formItemProps}
-      />
-    );
-  }
-
-  if (field.widget === 'textarea') {
-    return (
-      <ProFormTextArea
-        key={field.fieldKey}
-        name={name}
-        label={field.title}
-        placeholder={field.placeholder}
-        fieldProps={{ rows: 4, disabled: readOnly }}
-        formItemProps={formItemProps}
-        rules={taskFieldRules(field)}
-      />
-    );
-  }
-
-  return (
-    <ProFormText
-      key={field.fieldKey}
-      name={name}
-      label={field.title}
-      placeholder={field.placeholder}
-      fieldProps={{ disabled: readOnly }}
-      formItemProps={formItemProps}
-      rules={taskFieldRules(field)}
-    />
-  );
-}
-
-const SchemaDrivenFields: React.FC<{
-  formSchema?: FormSchemaItem;
-  values?: JsonRecord;
-}> = ({ formSchema, values }) => {
-  const fields = schemaToFields(formSchema);
-
-  if (!fields.length) {
-    return (
-      <Alert
-        showIcon
-        type="warning"
-        title="未绑定节点表单"
-        action={
-          <Button size="small" onClick={() => history.push('/form-bindings')}>
-            去绑定表单
-          </Button>
-        }
-      />
-    );
-  }
-
-  return (
-    <>
-      {fields.map((field) => (
-        <ProFormDependency key={field.fieldKey} name={['formValues']}>
-          {({ formValues }) =>
-            renderTaskField(field, values, formValues as JsonRecord)
-          }
-        </ProFormDependency>
-      ))}
-    </>
-  );
-};
-
 const CompleteTaskFields: React.FC<{
   formSchema?: FormSchemaItem;
   values?: JsonRecord;
-}> = ({ formSchema, values }) => (
+}> = () => (
   <>
     <ProFormSelect
       name="decision"
@@ -733,7 +519,6 @@ const CompleteTaskFields: React.FC<{
       ]}
       rules={[{ required: true, message: '请选择处理结论' }]}
     />
-    <SchemaDrivenFields formSchema={formSchema} values={values} />
     <ProFormTextArea name="comment" label="处理意见" fieldProps={{ rows: 4 }} />
   </>
 );
@@ -803,12 +588,16 @@ const TaskDetail: React.FC = () => {
     enabled: Boolean(taskId),
   });
   const task = data?.task;
-  const { data: instance } = useQuery({
+  const { data: instance, refetch: refetchInstance } = useQuery({
     queryKey: ['task-instance-context', task?.processInstanceId],
     queryFn: () => getProcessInstance(task?.processInstanceId || ''),
     enabled: Boolean(task?.processInstanceId),
   });
-  const { data: trace, isLoading: traceLoading } = useQuery({
+  const {
+    data: trace,
+    isLoading: traceLoading,
+    refetch: refetchTrace,
+  } = useQuery({
     queryKey: ['task-process-trace', task?.processInstanceId],
     queryFn: () => getProcessTrace(task?.processInstanceId || ''),
     enabled: Boolean(task?.processInstanceId),
@@ -847,13 +636,23 @@ const TaskDetail: React.FC = () => {
                     data?.processVariables,
                   ),
                 );
-                const instance = await getProcessInstance(task.processInstanceId);
+                const updatedInstance = await getProcessInstance(
+                  task.processInstanceId,
+                );
+                const remainingTasks = remainingPendingTasks(
+                  task,
+                  updatedInstance.currentTasks || [],
+                );
                 const nextTask = nextPendingTask(
                   task,
-                  instance.currentTasks || [],
+                  updatedInstance.currentTasks || [],
                 );
                 message.success('已完成');
-                await refetch();
+                await Promise.all([
+                  refetch(),
+                  refetchInstance(),
+                  refetchTrace(),
+                ]);
                 let taskCompleteModal: { destroy: () => void } | undefined;
                 taskCompleteModal = modal.success({
                   title: '任务已完成',
@@ -864,7 +663,9 @@ const TaskDetail: React.FC = () => {
                       <span>
                         {nextTask
                           ? `下一节点：${taskDefinitionLabel(nextTask.taskDefinitionKey)}`
-                          : '流程已无当前待办。'}
+                          : remainingTasks.length
+                            ? `仍有 ${remainingTasks.length} 个并行任务待处理。`
+                            : '流程已无当前待办。'}
                       </span>
                       <Flex gap={8} wrap>
                         {nextTask ? (
@@ -931,12 +732,12 @@ const TaskDetail: React.FC = () => {
             </>
           ) : null}
           {task && canClaimDetailTask ? (
-              <TaskActionModal
-                task={task}
-                action="CLAIM"
-                label="认领"
-                refetch={refetch}
-              />
+            <TaskActionModal
+              task={task}
+              action="CLAIM"
+              label="认领"
+              refetch={refetch}
+            />
           ) : null}
         </Space>
       }
