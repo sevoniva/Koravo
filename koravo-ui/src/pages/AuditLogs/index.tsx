@@ -25,6 +25,8 @@ import {
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 
 const actionOptions = {
+  AUTH_LOGIN: { text: '登录系统' },
+  AUTH_LOGOUT: { text: '退出登录' },
   WORKFLOW_ENABLEMENT_INIT: { text: '维护流程配置' },
   PROCESS_MODEL_CREATE: { text: '创建流程模型' },
   PROCESS_MODEL_IMPORT: { text: '导入流程模型' },
@@ -53,6 +55,7 @@ const actionOptions = {
 };
 
 const resourceOptions = {
+  LOGIN_SESSION: { text: '登录会话' },
   WORKFLOW_ENABLEMENT: { text: '流程配置' },
   PROCESS_MODEL: { text: '流程模型' },
   PROCESS_INSTANCE: { text: '流程实例' },
