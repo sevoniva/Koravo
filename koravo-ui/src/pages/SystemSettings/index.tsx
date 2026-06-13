@@ -107,6 +107,7 @@ interface WorkflowReadinessRow {
   step?: WorkflowEnablementStepStatus;
   path: string;
   action: string;
+  permission: SessionPermissionKey;
 }
 
 const roleOptions: RoleOption[] = [
@@ -217,12 +218,48 @@ const permissionMatrix: PermissionMatrixItem[] = permissionScopes.map((item) => 
 }));
 
 const workflowStepMeta: Array<Omit<WorkflowReadinessRow, 'step'>> = [
-  { key: 'process', name: '流程发布', path: '/process-models', action: '流程模型' },
-  { key: 'form', name: '启动表单', path: '/forms', action: '表单管理' },
-  { key: 'binding', name: '表单绑定', path: '/form-bindings', action: '表单绑定' },
-  { key: 'todo', name: '待办流转', path: '/tasks', action: '任务中心' },
-  { key: 'audit', name: '审计记录', path: '/audit-logs', action: '审计日志' },
-  { key: 'connector', name: '集成动作', path: '/http-connector', action: '集成动作' },
+  {
+    key: 'process',
+    name: '流程发布',
+    path: '/process-models',
+    action: '流程模型',
+    permission: 'canConfigureWorkflow',
+  },
+  {
+    key: 'form',
+    name: '启动表单',
+    path: '/forms',
+    action: '表单管理',
+    permission: 'canConfigureWorkflow',
+  },
+  {
+    key: 'binding',
+    name: '表单绑定',
+    path: '/form-bindings',
+    action: '表单绑定',
+    permission: 'canConfigureWorkflow',
+  },
+  {
+    key: 'todo',
+    name: '待办流转',
+    path: '/tasks',
+    action: '任务中心',
+    permission: 'canHandleTask',
+  },
+  {
+    key: 'audit',
+    name: '审计记录',
+    path: '/audit-logs',
+    action: '审计日志',
+    permission: 'canViewAudit',
+  },
+  {
+    key: 'connector',
+    name: '集成动作',
+    path: '/http-connector',
+    action: '集成动作',
+    permission: 'canManageIntegration',
+  },
 ];
 
 function permissionTag(allowed: boolean, action: string) {
@@ -413,6 +450,10 @@ const SystemSettings: React.FC = () => {
   const currentPermissionProfile = identitySynced
     ? roleOptions.find((item) => item.value === session.role)
     : undefined;
+  const permissions = {
+    ...permissionsForRole(session.role),
+    ...session.permissions,
+  };
   const sessionRoleLabel = identitySynced
     ? roleLabel(session.role)
     : '待平台同步';
@@ -433,7 +474,7 @@ const SystemSettings: React.FC = () => {
     if (isLastActiveAdmin(record)) return '至少保留一名启用的管理员';
     return undefined;
   };
-  const canConfigureWorkflow = permissionsForRole(session.role).canConfigureWorkflow;
+  const canConfigureWorkflow = permissions.canConfigureWorkflow;
   const workflowRows = useMemo(
     () => workflowReadinessRows(workflowStatus),
     [workflowStatus],
@@ -464,7 +505,14 @@ const SystemSettings: React.FC = () => {
     {
       title: '说明',
       key: 'message',
-      renderText: (_, record) => productCopy(record.step?.message || '-'),
+      renderText: (_, record) => {
+        if (record.key === 'todo' && !permissions.canHandleTask) {
+          return record.step?.count
+            ? '已有待办任务，当前角色不办理任务'
+            : '暂无待办任务';
+        }
+        return productCopy(record.step?.message || '-');
+      },
     },
     {
       title: '数量',
@@ -478,7 +526,11 @@ const SystemSettings: React.FC = () => {
       valueType: 'option',
       width: 112,
       render: (_, record) => (
-        <Button type="link" onClick={() => history.push(record.path)}>
+        <Button
+          type="link"
+          disabled={!permissions[record.permission]}
+          onClick={() => history.push(record.path)}
+        >
           {record.action}
         </Button>
       ),
@@ -751,12 +803,29 @@ const SystemSettings: React.FC = () => {
               <Tag>组织：{tenantDisplayName(session.tenantId)}</Tag>
             </Space>
             <Space wrap>
-              <Button onClick={() => history.push('/process-start')}>
-                发起流程
-              </Button>
-              <Button type="primary" onClick={() => history.push('/tasks')}>
-                查看任务
-              </Button>
+              {permissions.canStartProcess ? (
+                <Button onClick={() => history.push('/process-start')}>
+                  发起流程
+                </Button>
+              ) : null}
+              {permissions.canHandleTask ? (
+                <Button type="primary" onClick={() => history.push('/tasks')}>
+                  查看任务
+                </Button>
+              ) : null}
+              {permissions.canConfigureWorkflow ? (
+                <Button
+                  type="primary"
+                  onClick={() => history.push('/process-models')}
+                >
+                  流程模型
+                </Button>
+              ) : null}
+              {permissions.canViewAudit ? (
+                <Button onClick={() => history.push('/audit-logs')}>
+                  审计日志
+                </Button>
+              ) : null}
             </Space>
           </Flex>
         }
@@ -778,20 +847,24 @@ const SystemSettings: React.FC = () => {
             >
               补齐配置
             </Button>
-            <Button
-              type="primary"
-              disabled={!workflowStatus?.initialized}
-              onClick={() =>
-                history.push(
-                  workflowStatus?.processModelId
-                    ? `/process-start?processModelId=${workflowStatus.processModelId}`
-                    : '/process-start',
-                )
-              }
-            >
-              发起流程
-            </Button>
-            <Button onClick={() => history.push('/ops')}>运维中心</Button>
+            {permissions.canStartProcess ? (
+              <Button
+                type="primary"
+                disabled={!workflowStatus?.initialized}
+                onClick={() =>
+                  history.push(
+                    workflowStatus?.processModelId
+                      ? `/process-start?processModelId=${workflowStatus.processModelId}`
+                      : '/process-start',
+                  )
+                }
+              >
+                发起流程
+              </Button>
+            ) : null}
+            {permissions.canOperateSystem ? (
+              <Button onClick={() => history.push('/ops')}>运维中心</Button>
+            ) : null}
           </Space>
         }
       >
@@ -805,7 +878,10 @@ const SystemSettings: React.FC = () => {
               <Tag>组织：{tenantDisplayName(workflowStatus?.tenantId || session.tenantId)}</Tag>
               <Button
                 type="link"
-                disabled={!workflowStatus?.processModelId}
+                disabled={
+                  !permissions.canConfigureWorkflow ||
+                  !workflowStatus?.processModelId
+                }
                 onClick={() =>
                   workflowStatus?.processModelId
                     ? history.push(
@@ -816,7 +892,11 @@ const SystemSettings: React.FC = () => {
               >
                 查看设计
               </Button>
-              <Button type="link" onClick={() => history.push('/audit-logs')}>
+              <Button
+                type="link"
+                disabled={!permissions.canViewAudit}
+                onClick={() => history.push('/audit-logs')}
+              >
                 查审计
               </Button>
             </Space>
