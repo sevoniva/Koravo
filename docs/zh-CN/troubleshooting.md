@@ -10,7 +10,7 @@ curl http://localhost:8080/api/v1/health
 
 如果后端未启动，先启动 PostgreSQL、Redis，再启动 `koravo-bootstrap`。
 
-## 启动流程失败
+## 发起流程失败
 
 检查：
 
@@ -29,12 +29,12 @@ curl http://localhost:8080/api/v1/health
 确认：
 
 - 当前用户是任务处理人
-- 当前登录会话和 `X-Koravo-Tenant-Id` 与流程启动时一致
+- 当前登录会话和 `X-Koravo-Tenant-Id` 与流程发起时一致
 - 后端任务接口返回正常
 
 ## 审计日志为空
 
-先保存流程、启动流程或完成任务。审计日志按租户隔离，确认当前租户是 `default`。
+先保存流程、发起流程或完成任务。审计日志按租户隔离，确认当前租户是 `default`。
 
 ## Maven 下载失败
 

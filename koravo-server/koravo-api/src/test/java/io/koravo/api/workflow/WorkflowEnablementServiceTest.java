@@ -109,7 +109,7 @@ class WorkflowEnablementServiceTest {
                 "创建协同审批流程模型",
                 "部署协同审批流程",
                 "创建业务申请表",
-                "绑定启动表单",
+                "绑定发起表单",
                 "绑定业务申请表到多人会签"
         );
         ArgumentCaptor<KoProcessModel> modelCaptor = ArgumentCaptor.forClass(KoProcessModel.class);
@@ -223,7 +223,7 @@ class WorkflowEnablementServiceTest {
         assertThat(response.actions()).contains(
                 "更新协同审批流程定义",
                 "部署协同审批流程",
-                "绑定启动表单",
+                "绑定发起表单",
                 "绑定业务申请表到多人会签"
         );
     }
@@ -276,7 +276,7 @@ class WorkflowEnablementServiceTest {
         assertThat(approvalBinding.getFormSchemaVersion()).isEqualTo(3);
         assertThat(response.actions()).contains(
                 "更新业务申请表为多人会签",
-                "更新启动表单绑定",
+                "更新发起表单绑定",
                 "更新审批任务表单绑定"
         );
     }

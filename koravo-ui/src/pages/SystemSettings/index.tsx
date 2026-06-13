@@ -227,7 +227,7 @@ const workflowStepMeta: Array<Omit<WorkflowReadinessRow, 'step'>> = [
   },
   {
     key: 'form',
-    name: '启动表单',
+    name: '发起表单',
     path: '/forms',
     action: '表单管理',
     permission: 'canConfigureWorkflow',

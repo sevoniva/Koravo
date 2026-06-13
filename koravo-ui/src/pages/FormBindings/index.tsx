@@ -152,7 +152,7 @@ function bindingTargetLabel(
   },
 ) {
   if (record.taskDefinitionKey === START_FORM_TASK_KEY) {
-    return <Tag color="processing">流程启动</Tag>;
+    return <Tag color="processing">流程发起</Tag>;
   }
   if (record.taskDefinitionExists === false) {
     return <Tag color="error">{taskDefinitionLabel(record.taskDefinitionKey)}</Tag>;
@@ -271,7 +271,7 @@ function bindingHealth(record: BindingTableItem) {
     return { color: 'warning', text: '表单停用' };
   }
   if (!record.hasStartBinding) {
-    return { color: 'warning', text: '缺启动表单' };
+    return { color: 'warning', text: '缺发起表单' };
   }
   if (record.missingTaskNames.length > 0) {
     return { color: 'warning', text: `缺 ${record.missingTaskNames.length} 个任务表单` };
@@ -374,7 +374,7 @@ const BindingFormItems: React.FC<{
         rules={[{ required: true, message: '请选择绑定范围' }]}
         options={[
           { label: '任务表单', value: 'TASK' },
-          { label: '启动表单', value: 'START' },
+          { label: '发起表单', value: 'START' },
         ]}
         fieldProps={{
           onChange: () => form.setFieldValue('taskDefinitionKey', undefined),
@@ -466,7 +466,7 @@ const FormBindings: React.FC = () => {
         <Flex vertical gap={12}>
           <span>
             {binding.taskDefinitionKey === START_FORM_TASK_KEY
-              ? '已将表单绑定为流程启动表单。'
+              ? '已将表单绑定为流程发起表单。'
               : `已将表单绑定到任务节点 ${taskDefinitionLabel(binding.taskDefinitionKey || '')}。`}
           </span>
           <Space wrap>
@@ -524,10 +524,10 @@ const FormBindings: React.FC = () => {
       search: false,
       valueType: 'select',
       valueEnum: {
-        [START_FORM_TASK_KEY]: { text: '启动表单' },
+        [START_FORM_TASK_KEY]: { text: '发起表单' },
       },
       renderText: (value) =>
-        value === START_FORM_TASK_KEY ? '启动表单' : '任务表单',
+        value === START_FORM_TASK_KEY ? '发起表单' : '任务表单',
     },
     {
       title: '流程模型',

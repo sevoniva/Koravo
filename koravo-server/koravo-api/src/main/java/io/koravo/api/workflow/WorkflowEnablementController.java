@@ -30,7 +30,7 @@ public class WorkflowEnablementController {
         return ApiResponse.success(workflowEnablementService.status());
     }
 
-    @Operation(summary = "查询可发起流程", description = "返回已发布、已绑定启动表单、可由当前用户发起的流程。")
+    @Operation(summary = "查询可发起流程", description = "返回已发布、已绑定发起表单、可由当前用户发起的流程。")
     @GetMapping("/api/v1/workflow-enablement/startable-processes")
     public ApiResponse<List<StartableWorkflowResponse>> startableProcesses() {
         return ApiResponse.success(workflowEnablementService.startableProcesses());

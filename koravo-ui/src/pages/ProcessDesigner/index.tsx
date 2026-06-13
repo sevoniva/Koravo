@@ -441,9 +441,9 @@ const ProcessDesigner: React.FC = () => {
                   : `发现 ${validation.errors.length} 个错误`,
               )}
               {renderReleaseCheckItem(
-                '启动表单',
+                '发起表单',
                 hasStartBinding,
-                hasStartBinding ? '已绑定启动表单' : '缺少启动表单绑定',
+                hasStartBinding ? '已绑定发起表单' : '缺少发起表单绑定',
               )}
               {renderReleaseCheckItem(
                 '任务表单',

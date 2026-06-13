@@ -53,7 +53,7 @@ function snapshotTaskLabel(record: FormSnapshotItem) {
   const data = snapshotData(record);
   const taskDefinitionKey = String(data.taskDefinitionKey || '');
   if (taskDefinitionKey) return taskDefinitionLabel(taskDefinitionKey);
-  return record.taskId ? '任务表单' : '启动表单';
+  return record.taskId ? '任务表单' : '发起表单';
 }
 
 function snapshotSummary(record: FormSnapshotItem) {

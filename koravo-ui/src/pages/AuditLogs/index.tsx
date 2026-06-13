@@ -37,7 +37,7 @@ const actionOptions = {
   PROCESS_MODEL_DEPLOY: { text: '部署流程模型' },
   PROCESS_MODEL_DISABLE: { text: '停用流程模型' },
   PROCESS_MODEL_ARCHIVE: { text: '归档流程模型' },
-  PROCESS_INSTANCE_START: { text: '启动流程实例' },
+  PROCESS_INSTANCE_START: { text: '发起流程实例' },
   PROCESS_INSTANCE_SUSPEND: { text: '挂起流程实例' },
   PROCESS_INSTANCE_ACTIVATE: { text: '激活流程实例' },
   PROCESS_INSTANCE_TERMINATE: { text: '终止流程实例' },

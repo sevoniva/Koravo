@@ -138,7 +138,7 @@ public class WorkflowEnablementService {
                 new WorkflowEnablementStatusResponse.WorkflowEnablementStepStatus(
                         bindingCount == 2,
                         bindingCount == 2 ? "READY" : "MISSING",
-                        bindingCount == 2 ? "启动表单和多人会签任务已绑定" : "启动表单或会签任务未绑定",
+                        bindingCount == 2 ? "发起表单和多人会签任务已绑定" : "发起表单或会签任务未绑定",
                         startBinding == null ? null : startBinding.getId(),
                         bindingCount
                 ),
@@ -185,7 +185,7 @@ public class WorkflowEnablementService {
         }
         ensureFormSchema(form, userId, actions);
 
-        KoFormBinding startBinding = ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.START_FORM_TASK_KEY, "启动表单", actions);
+        KoFormBinding startBinding = ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.START_FORM_TASK_KEY, "发起表单", actions);
         ensureBinding(tenantId, userId, model, form, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY, "多人会签", actions);
         archiveRetiredWorkflowAssets(tenantId, userId, model, form, actions);
 
@@ -616,7 +616,7 @@ public class WorkflowEnablementService {
         binding.setFormSchemaId(form.getId());
         binding.setFormSchemaVersion(form.getVersion());
         actions.add(WorkflowEnablementDefaults.START_FORM_TASK_KEY.equals(taskDefinitionKey)
-                ? "绑定启动表单"
+                ? "绑定发起表单"
                 : "绑定业务申请表到" + taskName);
         return formBindingRepository.save(binding);
     }
@@ -637,7 +637,7 @@ public class WorkflowEnablementService {
         binding.setFormSchemaVersion(form.getVersion());
         formBindingRepository.save(binding);
         actions.add(WorkflowEnablementDefaults.START_FORM_TASK_KEY.equals(taskDefinitionKey)
-                ? "更新启动表单绑定"
+                ? "更新发起表单绑定"
                 : "更新审批任务表单绑定");
     }
 
