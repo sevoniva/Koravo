@@ -22,7 +22,9 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { history, useLocation } from '@umijs/max';
 import {
+  Alert,
   App,
+  Badge,
   Button,
   Collapse,
   Drawer,
@@ -44,7 +46,11 @@ import {
   deployProcessModelDraft,
   getProcessModel,
   importProcessModel,
+  listFormBindings,
   listProcessModels,
+  listProcessModelTaskDefinitions,
+  type BpmnTaskDefinition,
+  type FormBindingItem,
   type ProcessModelItem,
   updateProcessModel,
   validateProcessModelXml,
@@ -58,6 +64,7 @@ import {
   processDisplayName,
   processModelKeyLabel,
   processStatusLabel,
+  taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 import {
@@ -74,6 +81,7 @@ interface ModelFormValues {
 }
 
 type ModelViewMode = 'business' | 'all';
+const START_FORM_TASK_KEY = '__START__';
 
 const useStyles = createStyles(({ css, token }) => ({
   workbench: css`
@@ -200,6 +208,48 @@ function isUserTask(element?: BpmnSelectedElement) {
 
 function isServiceTask(element?: BpmnSelectedElement) {
   return element?.elementType === 'bpmn:ServiceTask';
+}
+
+function modelBindings(
+  model: ProcessModelItem,
+  bindings: FormBindingItem[],
+) {
+  return bindings.filter(
+    (binding) =>
+      binding.processModelId === model.id ||
+      Boolean(
+        model.flowableDefinitionId &&
+          binding.processDefinitionId === model.flowableDefinitionId,
+      ),
+  );
+}
+
+function missingTaskBindings(
+  bindings: FormBindingItem[],
+  tasks: BpmnTaskDefinition[],
+) {
+  const taskBindings = bindings.filter(
+    (binding) => binding.taskDefinitionKey !== START_FORM_TASK_KEY,
+  );
+  return tasks.filter(
+    (task) =>
+      !taskBindings.some(
+        (binding) => binding.taskDefinitionKey === task.taskDefinitionKey,
+      ),
+  );
+}
+
+function renderReleaseCheckItem(
+  label: string,
+  ready: boolean,
+  description: React.ReactNode,
+) {
+  return (
+    <Flex key={label} vertical gap={2}>
+      <Badge status={ready ? 'success' : 'error'} text={label} />
+      <Typography.Text type="secondary">{description}</Typography.Text>
+    </Flex>
+  );
 }
 
 const ProcessDesigner: React.FC = () => {
@@ -356,6 +406,80 @@ const ProcessDesigner: React.FC = () => {
 
     setDeploying(true);
     try {
+      const currentXml = await getCurrentXml();
+      const validation = await validateProcessModelXml(currentXml);
+      const [bindings, tasks] = await Promise.all([
+        listFormBindings({ processModelId: activeModel.id }),
+        listProcessModelTaskDefinitions(activeModel.id).catch(() => []),
+      ]);
+      const scopedBindings = modelBindings(activeModel, bindings);
+      const hasStartBinding = scopedBindings.some(
+        (binding) => binding.taskDefinitionKey === START_FORM_TASK_KEY,
+      );
+      const missingTasks = missingTaskBindings(scopedBindings, tasks);
+      const releaseReady =
+        validation.valid && hasStartBinding && missingTasks.length === 0;
+
+      if (!releaseReady) {
+        modal.warning({
+          title: '发布检查未通过',
+          width: 620,
+          okText: '知道了',
+          content: (
+            <Flex vertical gap={12}>
+              <Alert
+                showIcon
+                type="warning"
+                title="先补齐发布条件"
+                description="处理未通过项后再部署，避免发起后缺表单或缺办理人。"
+              />
+              {renderReleaseCheckItem(
+                '流程结构',
+                validation.valid,
+                validation.valid
+                  ? '流程结构可解析'
+                  : `发现 ${validation.errors.length} 个错误`,
+              )}
+              {renderReleaseCheckItem(
+                '启动表单',
+                hasStartBinding,
+                hasStartBinding ? '已绑定启动表单' : '缺少启动表单绑定',
+              )}
+              {renderReleaseCheckItem(
+                '任务表单',
+                missingTasks.length === 0,
+                tasks.length
+                  ? `已绑定 ${tasks.length - missingTasks.length}/${tasks.length} 个任务节点`
+                  : '当前流程没有用户任务',
+              )}
+              {missingTasks.length ? (
+                <Typography.Text type="secondary">
+                  未绑定节点：
+                  {missingTasks
+                    .map((task) =>
+                      taskDefinitionLabel(task.taskDefinitionKey, task),
+                    )
+                    .join('、')}
+                </Typography.Text>
+              ) : null}
+              <Space wrap>
+                <Button
+                  type="primary"
+                  onClick={() =>
+                    history.push(`/form-bindings?processModelId=${activeModel.id}`)
+                  }
+                >
+                  绑定表单
+                </Button>
+                <Button onClick={() => history.push('/process-models')}>
+                  查看模型列表
+                </Button>
+              </Space>
+            </Flex>
+          ),
+        });
+        return;
+      }
       await handleSave();
       const result = await deployProcessModelDraft(activeModel.id);
       const deployedModel = result.model;
@@ -407,6 +531,7 @@ const ProcessDesigner: React.FC = () => {
     }
   }, [
     activeModel,
+    getCurrentXml,
     handleSave,
     message,
     modal,
