@@ -8,7 +8,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   PROCESS_MODEL_CREATE: '创建流程模型',
   PROCESS_MODEL_IMPORT: '导入流程模型',
   PROCESS_MODEL_UPDATE: '更新流程模型',
-  PROCESS_MODEL_DEPLOY: '部署流程模型',
+  PROCESS_MODEL_DEPLOY: '发布流程模型',
   PROCESS_MODEL_DISABLE: '停用流程模型',
   PROCESS_MODEL_ARCHIVE: '归档流程模型',
   PROCESS_INSTANCE_START: '启动流程实例',
@@ -62,7 +62,7 @@ const AUDIT_RESOURCE_LABELS: Record<string, string> = {
 
 const PROCESS_STATUS_LABELS: Record<string, string> = {
   DRAFT: '草稿',
-  DEPLOYED: '已部署',
+  DEPLOYED: '已发布',
   DISABLED: '已停用',
   ARCHIVED: '已归档',
   RUNNING: '运行中',
@@ -267,7 +267,7 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   processDefinitionKey: '流程标识',
   processDefinitionId: '运行版本',
   processInstanceId: '流程实例编号',
-  deploymentId: '部署编号',
+  deploymentId: '发布编号',
   taskId: '任务编号',
   taskDefinitionKey: '任务节点',
   taskName: '任务名称',

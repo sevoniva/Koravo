@@ -154,7 +154,7 @@ describe('display helpers', () => {
   });
 
   it('uses readable labels for audit detail fields and generic statuses', () => {
-    expect(businessFieldLabel('deploymentId')).toBe('部署编号');
+    expect(businessFieldLabel('deploymentId')).toBe('发布编号');
     expect(businessFieldLabel('jobId')).toBe('任务编号');
     expect(businessFieldLabel('exceptionMessage')).toBe('异常信息');
     expect(businessFieldLabel('exceptionStacktrace')).toBe('异常堆栈');

@@ -25,6 +25,7 @@ import {
   Modal,
   Segmented,
   Space,
+  Steps,
   Tag,
   Typography,
   type UploadFile,
@@ -162,7 +163,7 @@ function resolveModelNextAction(
   if (!hasStartBinding) {
     return {
       nextAction: 'bind',
-      nextActionText: '绑定启动表单',
+      nextActionText: '绑定发起表单',
       nextActionDescription: '发起前必需',
     };
   }
@@ -183,7 +184,7 @@ function resolveModelNextAction(
   if (deployReady) {
     return {
       nextAction: 'deploy',
-      nextActionText: '校验部署',
+      nextActionText: '校验发布',
       nextActionDescription: '发布后可发起',
     };
   }
@@ -244,7 +245,7 @@ function buildModelReadiness(
     invalidBindingCount === 0;
   const canStart = record.status === 'DEPLOYED' && deployReady;
   let statusText = '待配置';
-  let description = hasStartBinding ? '补齐任务表单后可发起' : '先绑定启动表单';
+  let description = hasStartBinding ? '补齐任务表单后可发起' : '先绑定发起表单';
   const nextAction = resolveModelNextAction(
     record,
     hasStartBinding,
@@ -261,12 +262,12 @@ function buildModelReadiness(
     description = '恢复后才可继续使用';
   } else if (record.status !== 'DEPLOYED' || !record.flowableDefinitionId) {
     statusText = '草稿';
-    description = deployReady ? '发布检查通过后可部署' : '部署前需完成发布检查';
+    description = deployReady ? '发布检查通过' : '发布前需补齐配置';
   } else if (canStart) {
     statusText = '可发起';
     description = outdatedBindingCount
       ? `有 ${outdatedBindingCount} 个绑定版本待同步`
-      : `启动表单和 ${tasks.length} 个任务表单已就绪`;
+      : `发起表单和 ${tasks.length} 个任务表单已就绪`;
   } else if (invalidBindingCount > 0) {
     description = `有 ${invalidBindingCount} 个表单绑定失效`;
   } else if (missingTaskKeys.length > 0) {
@@ -331,6 +332,73 @@ function renderCheckItem(
   );
 }
 
+function stepStatus(done: boolean, active: boolean, blocked: boolean) {
+  if (blocked) return 'error' as const;
+  if (active) return 'process' as const;
+  return done ? 'finish' as const : 'wait' as const;
+}
+
+function renderReadinessSteps(record: ProcessModelTableItem) {
+  const readiness = record.readiness;
+  const published =
+    record.status === 'DEPLOYED' && Boolean(record.flowableDefinitionId);
+  const retired = record.status === 'ARCHIVED' || record.status === 'DISABLED';
+  const bindingBlocked =
+    readiness.invalidBindingCount > 0 || readiness.missingTaskKeys.length > 0;
+  const current = published
+    ? readiness.canStart
+      ? 3
+      : 2
+    : readiness.deployReady
+      ? 1
+      : 0;
+
+  return (
+    <div style={{ minWidth: 340, overflowX: 'auto', paddingBlock: 2 }}>
+      <Steps
+        current={current}
+        items={[
+          {
+            title: '设计',
+            status: stepStatus(
+              Boolean(record.bpmnXml),
+              readiness.nextAction === 'design',
+              false,
+            ),
+          },
+          {
+            title: '发布',
+            status: stepStatus(
+              published,
+              readiness.nextAction === 'deploy',
+              retired,
+            ),
+          },
+          {
+            title: '表单',
+            status: stepStatus(
+              readiness.deployReady,
+              readiness.nextAction === 'bind',
+              bindingBlocked,
+            ),
+          },
+          {
+            title: '发起',
+            status: stepStatus(
+              readiness.canStart,
+              readiness.nextAction === 'start',
+              false,
+            ),
+          },
+        ]}
+        responsive={false}
+        size="small"
+        type="dot"
+      />
+    </div>
+  );
+}
+
 const ProcessModels: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
@@ -367,13 +435,13 @@ const ProcessModels: React.FC = () => {
 
   const showDeploySuccess = (record: ProcessModelItem) => {
     modal.success({
-      title: '流程已部署',
+      title: '流程已发布',
       width: 520,
       okText: '留在列表',
       content: (
         <Flex vertical gap={12}>
           <span>
-            {processDisplayName(record.modelKey, record.modelName)} 已部署为{' '}
+            {processDisplayName(record.modelKey, record.modelName)} 已发布为{' '}
             {deployedDefinitionText(record)}
           </span>
           <Space wrap>
@@ -414,8 +482,8 @@ const ProcessModels: React.FC = () => {
           title={releaseReady ? '发布检查通过' : '发布检查未通过'}
           description={
             releaseReady
-              ? '可部署。'
-              : '补齐未通过项后再部署。'
+              ? '可发布。'
+              : '补齐未通过项后再发布。'
           }
         />
         {renderCheckItem(
@@ -433,11 +501,11 @@ const ProcessModels: React.FC = () => {
             : '用户任务已配置办理人',
         )}
         {renderCheckItem(
-          '启动表单',
+          '发起表单',
           record.readiness.hasStartBinding ? 'success' : 'error',
           record.readiness.hasStartBinding
-            ? '发起流程时会采集并保存启动快照'
-            : '缺少启动表单绑定',
+            ? '发起时会保存业务快照'
+            : '缺少发起表单绑定',
         )}
         {renderCheckItem(
           '任务表单',
@@ -560,7 +628,7 @@ const ProcessModels: React.FC = () => {
       valueType: 'select',
       valueEnum: {
         DRAFT: { text: '草稿' },
-        DEPLOYED: { text: '已部署' },
+        DEPLOYED: { text: '已发布' },
         DISABLED: { text: '已停用' },
         ARCHIVED: { text: '已归档' },
       },
@@ -595,6 +663,13 @@ const ProcessModels: React.FC = () => {
       width: 180,
       search: false,
       render: (_, record) => renderConfigurationStatus(record),
+    },
+    {
+      title: '配置路径',
+      key: 'readinessPath',
+      width: 380,
+      search: false,
+      render: (_, record) => renderReadinessSteps(record),
     },
     {
       title: '下一步',
@@ -678,7 +753,7 @@ const ProcessModels: React.FC = () => {
               void deployDraft(record);
             }}
           >
-            部署
+            发布
           </Button>
           <Button
             type="link"
