@@ -1,6 +1,11 @@
-import { ProTable, type ProColumns } from '@ant-design/pro-components';
+import { type ProColumns, ProTable } from '@ant-design/pro-components';
 import { Empty, Tag, Typography } from 'antd';
 import React from 'react';
+import {
+  organizationMemberName,
+  organizationRoleLabel,
+} from '@/services/koravo/organization';
+import type { SessionRole } from '@/services/koravo/session';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -8,8 +13,8 @@ import {
   businessKeyLabel,
   dataSourceTypeLabel,
   processDefinitionLabel,
-  processNameLabel,
   processModelKeyLabel,
+  processNameLabel,
   processStatusLabel,
   productCopy,
   shortTraceLabel,
@@ -99,11 +104,33 @@ function tryParseStructuredValue(value?: unknown) {
   return parseJsonValue(text) ?? parseSummaryText(text) ?? value;
 }
 
+function isMemberField(rowKey: string) {
+  const field = rowKey.split('.').pop();
+  return [
+    'userId',
+    'startUserId',
+    'assignee',
+    'approver',
+    'handler',
+    'targetUserId',
+    'createdBy',
+    'updatedBy',
+    'approvalUser',
+  ].includes(field || '');
+}
+
+function isMemberListField(rowKey: string) {
+  const field = rowKey.split('.').pop();
+  return field === 'approvalUsers' || field === 'candidateUsers';
+}
+
 function domainText(rowKey: string, value: unknown) {
   if (typeof value !== 'string') return undefined;
   const field = rowKey.split('.').pop();
   if (field === 'action') return auditActionLabel(value);
   if (field === 'resourceType') return auditResourceLabel(value);
+  if (field === 'role') return organizationRoleLabel(value as SessionRole);
+  if (isMemberField(rowKey)) return organizationMemberName(value);
   if (field === 'businessKey') return businessKeyLabel(value);
   if (field === 'resourceId') {
     const label = businessKeyLabel(value);
@@ -115,12 +142,14 @@ function domainText(rowKey: string, value: unknown) {
   if (field === 'processDefinitionKey' || field === 'modelKey') {
     return processModelKeyLabel(value);
   }
-  if (field === 'modelName' || field === 'processName') return processNameLabel(value);
+  if (field === 'modelName' || field === 'processName')
+    return processNameLabel(value);
   if (field === 'taskDefinitionKey' || field === 'elementId') {
     return taskDefinitionLabel(value);
   }
   if (field === 'type') return dataSourceTypeLabel(value);
-  if (field === 'status' || field === 'statusText') return processStatusLabel(value);
+  if (field === 'status' || field === 'statusText')
+    return processStatusLabel(value);
   const copy = productCopy(value);
   return copy && copy !== value ? copy : undefined;
 }
@@ -131,6 +160,15 @@ function valueToText(value: unknown, rowKey = ''): string {
   if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'boolean') return value ? '是' : '否';
   if (Array.isArray(value)) {
+    if (isMemberListField(rowKey)) {
+      return value
+        .map((item) =>
+          typeof item === 'string'
+            ? organizationMemberName(item)
+            : valueToText(item),
+        )
+        .join('、');
+    }
     return value
       .map((item, index) => valueToText(item, `${rowKey}.${index + 1}`))
       .join('、');
@@ -159,7 +197,10 @@ function formatValue(value: unknown, rowKey = ''): React.ReactNode {
       .join('、');
   }
   return (
-    <Typography.Text copyable ellipsis={{ tooltip: valueToText(value, rowKey) }}>
+    <Typography.Text
+      copyable
+      ellipsis={{ tooltip: valueToText(value, rowKey) }}
+    >
       {valueToText(value, rowKey)}
     </Typography.Text>
   );
@@ -184,7 +225,11 @@ function buildRows(value: unknown, parentKey?: string): DetailRow[] {
         : String(index + 1);
       if (item && typeof item === 'object') return buildRows(item, rowKey);
       return [
-        { key: rowKey, field: pathLabel(rowKey), value: formatValue(item, rowKey) },
+        {
+          key: rowKey,
+          field: pathLabel(rowKey),
+          value: formatValue(item, rowKey),
+        },
       ];
     });
   }
@@ -238,7 +283,11 @@ const StructuredDetailTable: React.FC<StructuredDetailTableProps> = ({
         rowKey="key"
         columns={columns}
         dataSource={[
-          { key: 'content', field: '内容', value: formatValue(parsed, 'content') },
+          {
+            key: 'content',
+            field: '内容',
+            value: formatValue(parsed, 'content'),
+          },
         ]}
         search={false}
         pagination={false}

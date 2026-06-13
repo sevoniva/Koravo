@@ -1,23 +1,20 @@
 import {
   PageContainer,
+  type ProColumns,
   ProDescriptions,
   ProTable,
-  type ProColumns,
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
 import { Alert, Button, Drawer, Empty, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
+import { type AuditLogItem, listAuditLogs } from '@/services/koravo/api';
 import {
   organizationMemberName,
   organizationMemberSelectOptions,
   tenantDisplayName,
 } from '@/services/koravo/organization';
-import {
-  listAuditLogs,
-  type AuditLogItem,
-} from '@/services/koravo/api';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -70,15 +67,15 @@ const resourceOptions = {
 };
 
 function auditDetailRecord(log?: AuditLogItem) {
-  return maskSecret(parseJsonSafe<Record<string, unknown>>(log?.detailJson, {})) as Record<
-    string,
-    unknown
-  >;
+  return maskSecret(
+    parseJsonSafe<Record<string, unknown>>(log?.detailJson, {}),
+  ) as Record<string, unknown>;
 }
 
 function auditProcessInstanceId(log?: AuditLogItem) {
   const detail = auditDetailRecord(log);
-  if (typeof detail.processInstanceId === 'string') return detail.processInstanceId;
+  if (typeof detail.processInstanceId === 'string')
+    return detail.processInstanceId;
   if (log?.resourceType === 'PROCESS_INSTANCE') return log.resourceId;
   return undefined;
 }
@@ -125,7 +122,11 @@ function auditRelatedButtons(log?: AuditLogItem) {
   }
   if (taskId) {
     actions.push(
-      <Button key="task" type="link" onClick={() => history.push(`/tasks/${taskId}`)}>
+      <Button
+        key="task"
+        type="link"
+        onClick={() => history.push(`/tasks/${taskId}`)}
+      >
         查看任务
       </Button>,
     );
@@ -135,7 +136,9 @@ function auditRelatedButtons(log?: AuditLogItem) {
       <Button
         key="model"
         type="link"
-        onClick={() => history.push(`/process-designer?modelId=${processModelId}`)}
+        onClick={() =>
+          history.push(`/process-designer?modelId=${processModelId}`)
+        }
       >
         查看流程设计
       </Button>,
@@ -167,7 +170,11 @@ function auditRelatedButtons(log?: AuditLogItem) {
   }
   if (log?.resourceType === 'DATASOURCE') {
     actions.push(
-      <Button key="datasource" type="link" onClick={() => history.push('/datasources')}>
+      <Button
+        key="datasource"
+        type="link"
+        onClick={() => history.push('/datasources')}
+      >
         查看数据源
       </Button>,
     );
@@ -234,8 +241,8 @@ const AuditLogs: React.FC = () => {
     };
   }, [location.search]);
   const contextFilterDescription = query.requestId
-    ? `业务追踪号：${query.requestId}`
-    : `业务对象：${query.resourceId}，包含该对象及关联任务记录`;
+    ? `追踪号：${shortTraceLabel(query.requestId)}`
+    : `业务对象：${shortTraceLabel(query.resourceId)}`;
 
   const columns: ProColumns<AuditLogItem>[] = [
     {
@@ -312,12 +319,12 @@ const AuditLogs: React.FC = () => {
   ];
 
   return (
-    <PageContainer title="审计日志" content="查询关键操作记录和业务追踪信息。">
+    <PageContainer title="审计日志">
       {query.requestId || query.resourceId ? (
         <Alert
           showIcon
           type="info"
-          title="已按来源筛选审计记录"
+          title="已筛选"
           description={contextFilterDescription}
           action={
             <Button size="small" onClick={() => history.push('/audit-logs')}>
@@ -346,8 +353,10 @@ const AuditLogs: React.FC = () => {
             userId: params.userId as string | undefined,
             action: params.action as string | undefined,
             resourceType: params.resourceType as string | undefined,
-            resourceId: (params.resourceId as string | undefined) || query.resourceId,
-            requestId: (params.requestId as string | undefined) || query.requestId,
+            resourceId:
+              (params.resourceId as string | undefined) || query.resourceId,
+            requestId:
+              (params.requestId as string | undefined) || query.requestId,
             page: Number(params.current || 1),
             pageSize: Number(params.pageSize || 10),
           });
@@ -366,10 +375,26 @@ const AuditLogs: React.FC = () => {
           column={1}
           dataSource={detail}
           columns={[
-            { title: '组织', dataIndex: 'tenantId', renderText: tenantDisplayName },
-            { title: '操作人', dataIndex: 'userId', renderText: organizationMemberName },
-            { title: '操作类型', dataIndex: 'action', renderText: auditActionLabel },
-            { title: '对象类型', dataIndex: 'resourceType', renderText: auditResourceLabel },
+            {
+              title: '组织',
+              dataIndex: 'tenantId',
+              renderText: tenantDisplayName,
+            },
+            {
+              title: '操作人',
+              dataIndex: 'userId',
+              renderText: organizationMemberName,
+            },
+            {
+              title: '操作类型',
+              dataIndex: 'action',
+              renderText: auditActionLabel,
+            },
+            {
+              title: '对象类型',
+              dataIndex: 'resourceType',
+              renderText: auditResourceLabel,
+            },
             {
               title: '业务对象',
               dataIndex: 'resourceId',
@@ -391,11 +416,18 @@ const AuditLogs: React.FC = () => {
               ),
             },
             { title: '客户端 IP', dataIndex: 'clientIp' },
-            { title: '时间', dataIndex: 'createdAt', renderText: formatDateTime },
+            {
+              title: '时间',
+              dataIndex: 'createdAt',
+              renderText: formatDateTime,
+            },
           ]}
         />
         <Typography.Title level={5}>操作明细</Typography.Title>
-        <StructuredDetailTable value={auditDetailRecord(detail)} emptyText="暂无操作明细" />
+        <StructuredDetailTable
+          value={auditDetailRecord(detail)}
+          emptyText="暂无操作明细"
+        />
       </Drawer>
     </PageContainer>
   );
