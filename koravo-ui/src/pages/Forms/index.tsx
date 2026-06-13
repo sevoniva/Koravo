@@ -319,7 +319,7 @@ function bindingImpact(
 function bindingImpactText(impact: FormBindingImpact) {
   if (!impact.total) return '未绑定流程节点';
   const parts = [
-    impact.start ? `${impact.start} 个启动表单` : '',
+    impact.start ? `${impact.start} 个发起表单` : '',
     impact.task ? `${impact.task} 个任务节点` : '',
   ].filter(Boolean);
   const versionText = impact.versions.length
@@ -339,8 +339,8 @@ const BindingImpactSummary: React.FC<{
       <Alert
         showIcon
         type="info"
-        title="尚未绑定流程节点"
-        description="可在表单绑定页设置启动表单或任务表单。"
+        title="未绑定流程节点"
+        description="可在表单绑定页设置发起表单或任务表单。"
       />
     );
   }
@@ -349,7 +349,7 @@ const BindingImpactSummary: React.FC<{
     return (
       <Space size={[0, 4]} wrap>
         <Badge status="processing" text={`${impact.total} 处绑定`} />
-        {impact.start ? <Tag color="success">启动 {impact.start}</Tag> : null}
+        {impact.start ? <Tag color="success">发起 {impact.start}</Tag> : null}
         {impact.task ? <Tag color="blue">任务 {impact.task}</Tag> : null}
       </Space>
     );
@@ -367,7 +367,7 @@ const BindingImpactSummary: React.FC<{
           </Typography.Text>
           <Space wrap>
             {impact.start ? (
-              <Tag color="success">启动表单 {impact.start}</Tag>
+              <Tag color="success">发起表单 {impact.start}</Tag>
             ) : null}
             {impact.task ? (
               <Tag color="blue">任务表单 {impact.task}</Tag>
@@ -1219,7 +1219,7 @@ const FormReadiness: React.FC<{
       <Alert
         showIcon
         type={impact.total ? 'warning' : 'info'}
-        title={impact.total ? '已绑定流程节点' : '尚未绑定流程节点'}
+        title={impact.total ? '已绑定流程节点' : '未绑定流程节点'}
         description={
           impact.total
             ? `${bindingImpactText(impact)}。字段变更只影响新的发起和办理，历史快照保持原样。`
@@ -1229,6 +1229,40 @@ const FormReadiness: React.FC<{
     </Flex>
   );
 };
+
+function fieldDesignSummary(fields: FormFieldConfig[]) {
+  return {
+    required: fields.filter((field) => field.required).length,
+    protected: fields.filter(
+      (field) =>
+        field.permission === 'readonly' ||
+        field.permission === 'hidden' ||
+        usesOrganizationProfile(field) ||
+        usesOrganizationAssignee(field),
+    ).length,
+    conditional: fields.filter(
+      (field) => field.visibleWhenField && field.visibleWhenValue,
+    ).length,
+  };
+}
+
+function renderFieldDesignState(record: FormSchemaItem) {
+  const fields = schemaToFields(record.schemaJson, record.uiSchemaJson);
+  if (!fields.length) return <Badge status="warning" text="无字段" />;
+  const summary = fieldDesignSummary(fields);
+  return (
+    <Space size={[0, 4]} wrap>
+      <Badge status="processing" text={`${fields.length} 字段`} />
+      {summary.required ? <Tag color="blue">必填 {summary.required}</Tag> : null}
+      {summary.protected ? (
+        <Tag color="purple">权限 {summary.protected}</Tag>
+      ) : null}
+      {summary.conditional ? (
+        <Tag color="gold">条件 {summary.conditional}</Tag>
+      ) : null}
+    </Space>
+  );
+}
 
 interface FormFieldsEditorClassNames {
   fieldList: string;
@@ -1571,7 +1605,7 @@ const Forms: React.FC = () => {
   const changeFormStatus = async (record: FormSchemaItem) => {
     if (record.status === 'DISABLED') {
       await activateFormSchema(record.id);
-      message.success('已启用');
+      message.success('已发布');
     } else {
       await disableFormSchema(record.id);
       message.success('已停用');
@@ -1592,12 +1626,13 @@ const Forms: React.FC = () => {
     {
       title: '表单名称',
       dataIndex: 'formName',
+      width: 180,
       renderText: (value) => formSchemaNameLabel(value),
     },
     {
       title: '表单标识',
       dataIndex: 'formKey',
-      width: 180,
+      width: 220,
       render: (_, record) => (
         <CopyableText
           value={record.formKey}
@@ -1606,23 +1641,30 @@ const Forms: React.FC = () => {
       ),
     },
     {
-      title: '版本',
-      dataIndex: 'version',
-      width: 88,
-      search: false,
-      renderText: (value) => `v${value || 1}`,
-    },
-    {
       title: '状态',
       dataIndex: 'status',
-      width: 110,
+      width: 92,
       search: false,
       render: (_, record) => <KoravoStatusTag status={record.status} />,
     },
     {
+      title: '设计状态',
+      key: 'designState',
+      width: 250,
+      search: false,
+      render: (_, record) => renderFieldDesignState(record),
+    },
+    {
+      title: '版本',
+      dataIndex: 'version',
+      width: 72,
+      search: false,
+      renderText: (value) => `v${value || 1}`,
+    },
+    {
       title: '来源',
       dataIndex: 'assetOrigin',
-      width: 120,
+      width: 110,
       search: false,
       valueType: 'select',
       valueEnum: Object.fromEntries(
@@ -1636,14 +1678,6 @@ const Forms: React.FC = () => {
           {assetOriginLabel(record.assetOrigin)}
         </Tag>
       ),
-    },
-    {
-      title: '字段数',
-      key: 'fieldCount',
-      width: 96,
-      search: false,
-      renderText: (_, record) =>
-        schemaToFields(record.schemaJson, record.uiSchemaJson).length,
     },
     {
       title: '绑定影响',
@@ -1660,7 +1694,8 @@ const Forms: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 280,
+      width: 250,
+      fixed: 'right',
       search: false,
       render: (_, record) => {
         const impact = bindingImpact(record.id, formBindings);
@@ -1684,21 +1719,21 @@ const Forms: React.FC = () => {
           </Button>,
           <Popconfirm
             key="status"
-            title={willActivate ? '启用表单' : '停用表单'}
+            title={willActivate ? '发布表单' : '停用表单'}
             description={
               willActivate
-                ? '启用后可被新的流程绑定和发起使用。'
+                ? '发布后可被新的流程绑定和发起使用。'
                 : impact.total
                   ? `该表单已被 ${impact.total} 处流程配置使用。停用后不能再新建绑定，已有历史快照不受影响。`
                   : '停用后不能再新建绑定。'
             }
-            okText={willActivate ? '启用' : '停用'}
+            okText={willActivate ? '发布' : '停用'}
             cancelText="取消"
             okType={willActivate ? 'primary' : 'danger'}
             onConfirm={() => changeFormStatus(record)}
           >
             <Button type="link" danger={!willActivate}>
-              {willActivate ? '启用' : '停用'}
+              {willActivate ? '发布' : '停用'}
             </Button>
           </Popconfirm>,
         ];
@@ -1774,6 +1809,7 @@ const Forms: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        scroll={{ x: 1600 }}
         request={async (params) => {
           const [data, bindings] = await Promise.all([
             listFormSchemas(),
