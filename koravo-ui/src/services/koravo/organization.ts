@@ -422,7 +422,17 @@ export function organizationHandlerOptions() {
 }
 
 export function organizationGroupOptions() {
-  return Array.from(new Set(getOrganizationMembers().map((item) => item.department)))
-    .filter(Boolean)
-    .map((department) => ({ label: department, value: department }));
+  const roleCounts = getOrganizationMembers()
+    .filter((item) => item.status === '启用')
+    .reduce<Partial<Record<SessionRole, number>>>((result, member) => {
+      result[member.role] = (result[member.role] || 0) + 1;
+      return result;
+    }, {});
+
+  return (Object.keys(roleLabels) as SessionRole[])
+    .filter((role) => roleCounts[role])
+    .map((role) => ({
+      label: `${roleLabels[role]}（${roleCounts[role]}人）`,
+      value: role,
+    }));
 }

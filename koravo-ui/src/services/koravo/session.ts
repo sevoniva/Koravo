@@ -4,6 +4,7 @@ export interface SessionContext {
   role: SessionRole;
   requestId: string;
   token?: string;
+  expiresAt?: string;
   lastRequestId?: string;
 }
 
@@ -43,6 +44,13 @@ function normalizeUserId(userId?: string) {
   const value = String(userId || '').trim();
   if (!value) return defaultSession.userId;
   return value;
+}
+
+function sessionExpired(expiresAt?: string) {
+  if (!expiresAt) return false;
+  const timestamp = Date.parse(expiresAt);
+  if (!Number.isFinite(timestamp)) return false;
+  return timestamp <= Date.now();
 }
 
 export function getSessionContext(): SessionContext {
@@ -88,6 +96,7 @@ export function setRuntimeSessionContext(value: Partial<SessionContext>) {
     role: nextRole,
     requestId: value.requestId || runtimeSession.requestId,
     token: value.token ?? runtimeSession.token,
+    expiresAt: value.expiresAt ?? runtimeSession.expiresAt,
   };
 }
 
@@ -117,12 +126,17 @@ function readStoredAuthSession() {
     if (!value) return undefined;
     const parsed = JSON.parse(value) as Partial<SessionContext>;
     if (!parsed.token || !parsed.userId) return undefined;
+    if (sessionExpired(parsed.expiresAt)) {
+      clearAuthSession();
+      return undefined;
+    }
     return {
       tenantId: parsed.tenantId || defaultSession.tenantId,
       userId: normalizeUserId(parsed.userId),
       role: normalizeRole(parsed.role),
       requestId: parsed.requestId || '',
       token: parsed.token,
+      expiresAt: parsed.expiresAt,
     };
   } catch {
     return undefined;
@@ -145,6 +159,7 @@ export function setAuthSession(value: Partial<SessionContext> & { token: string 
         role: runtimeSession.role,
         requestId: runtimeSession.requestId,
         token: runtimeSession.token,
+        expiresAt: runtimeSession.expiresAt,
       }),
     );
   } catch {

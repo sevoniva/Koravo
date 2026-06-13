@@ -1,14 +1,14 @@
 import { DeploymentUnitOutlined } from '@ant-design/icons';
 import {
+  type ActionType,
   PageContainer,
   ProCard,
-  ProTable,
-  type ActionType,
   type ProColumns,
+  ProTable,
 } from '@ant-design/pro-components';
+import { useQuery } from '@tanstack/react-query';
 import { history, useLocation } from '@umijs/max';
 import { App, Badge, Button, Drawer, Empty, Space, Tabs, Tag } from 'antd';
-import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -24,13 +24,14 @@ import {
   type TaskItem,
   type TaskListParams,
 } from '@/services/koravo/api';
-import { getSessionContext } from '@/services/koravo/session';
 import {
   isPlatformIdentitySynced,
+  organizationGroupOptions,
   organizationMemberName,
   organizationRoleLabel,
   tenantDisplayName,
 } from '@/services/koravo/organization';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   businessKeyLabel,
   processDefinitionLabel,
@@ -80,22 +81,18 @@ function tabFromPath(pathname: string): TaskTabKey {
 
 function taskNodeBadge(taskDefinitionKey?: string) {
   if (!taskDefinitionKey) return '-';
-  return <Badge status="processing" text={taskDefinitionLabel(taskDefinitionKey)} />;
+  return (
+    <Badge status="processing" text={taskDefinitionLabel(taskDefinitionKey)} />
+  );
 }
 
-function taskBusinessObject(task: Pick<TaskItem, 'businessKey' | 'processInstanceId'>) {
+function taskBusinessObject(
+  task: Pick<TaskItem, 'businessKey' | 'processInstanceId'>,
+) {
   return task.businessKey
     ? businessKeyLabel(task.businessKey)
     : shortTraceLabel(task.processInstanceId);
 }
-
-const workflowCandidateGroupOptions = Array.from({ length: 20 }, (_, index) => {
-  const roleNumber = String(index + 1).padStart(2, '0');
-  return {
-    label: `流程角色 ${roleNumber}`,
-    value: `role-${roleNumber}`,
-  };
-});
 
 function instanceBusinessObject(
   instance: Pick<OpsProcessInstance, 'businessKey' | 'instanceId'>,
@@ -109,71 +106,83 @@ function buildTaskColumns(
   onPreview: (task: TaskItem) => void,
 ): ProColumns<TaskItem>[] {
   return [
-  { title: '任务名称', dataIndex: 'name', renderText: (_, record) => taskNameLabel(record) },
-  {
-    title: '业务对象',
-    dataIndex: 'businessKey',
-    width: 180,
-    render: (_, record) => (
-      <CopyableText
-        value={record.businessKey || record.processInstanceId}
-        displayValue={taskBusinessObject(record)}
-      />
-    ),
-  },
-  {
-    title: '流程',
-    dataIndex: 'processDefinitionId',
-    ellipsis: true,
-    renderText: (value) => processDefinitionLabel(value),
-  },
-  {
-    title: '当前节点',
-    dataIndex: 'taskDefinitionKey',
-    width: 140,
-    render: (_, record) => taskNodeBadge(record.taskDefinitionKey),
-  },
-  { title: '处理人', dataIndex: 'assignee', width: 120, renderText: organizationMemberName },
-  {
-    title: '创建时间',
-    dataIndex: 'createTime',
-    width: 170,
-    search: false,
-    renderText: (value) => formatDateTime(value),
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    width: 110,
-    render: (_, record) => <KoravoStatusTag status={record.status} />,
-  },
-  {
-    title: '操作',
-    valueType: 'option',
-    width: 210,
-    render: (_, record) => (
-      <Space size={4}>
-        <Button type="link" onClick={() => history.push(`/tasks/${record.taskId}`)}>
-          {record.status === 'COMPLETED' ? '查看任务' : '处理'}
-        </Button>
-        <Button
-          type="link"
-          icon={<DeploymentUnitOutlined />}
-          onClick={() => onPreview(record)}
-        >
-          流程
-        </Button>
-        <Button
-          type="link"
-          onClick={() =>
-            history.push(`/process-instances/${record.processInstanceId}`)
-          }
-        >
-          查看实例
-        </Button>
-      </Space>
-    ),
-  },
+    {
+      title: '任务名称',
+      dataIndex: 'name',
+      renderText: (_, record) => taskNameLabel(record),
+    },
+    {
+      title: '业务对象',
+      dataIndex: 'businessKey',
+      width: 180,
+      render: (_, record) => (
+        <CopyableText
+          value={record.businessKey || record.processInstanceId}
+          displayValue={taskBusinessObject(record)}
+        />
+      ),
+    },
+    {
+      title: '流程',
+      dataIndex: 'processDefinitionId',
+      ellipsis: true,
+      renderText: (value) => processDefinitionLabel(value),
+    },
+    {
+      title: '当前节点',
+      dataIndex: 'taskDefinitionKey',
+      width: 140,
+      render: (_, record) => taskNodeBadge(record.taskDefinitionKey),
+    },
+    {
+      title: '处理人',
+      dataIndex: 'assignee',
+      width: 120,
+      renderText: organizationMemberName,
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createTime',
+      width: 170,
+      search: false,
+      renderText: (value) => formatDateTime(value),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 110,
+      render: (_, record) => <KoravoStatusTag status={record.status} />,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 210,
+      render: (_, record) => (
+        <Space size={4}>
+          <Button
+            type="link"
+            onClick={() => history.push(`/tasks/${record.taskId}`)}
+          >
+            {record.status === 'COMPLETED' ? '查看任务' : '处理'}
+          </Button>
+          <Button
+            type="link"
+            icon={<DeploymentUnitOutlined />}
+            onClick={() => onPreview(record)}
+          >
+            流程
+          </Button>
+          <Button
+            type="link"
+            onClick={() =>
+              history.push(`/process-instances/${record.processInstanceId}`)
+            }
+          >
+            查看实例
+          </Button>
+        </Space>
+      ),
+    },
   ];
 }
 
@@ -181,71 +190,78 @@ function buildInstanceColumns(
   onPreview: (instance: OpsProcessInstance) => void,
 ): ProColumns<OpsProcessInstance>[] {
   return [
-  {
-    title: '业务对象',
-    dataIndex: 'businessKey',
-    width: 180,
-    render: (_, record) => (
-      <CopyableText
-        value={record.businessKey || record.instanceId}
-        displayValue={instanceBusinessObject(record)}
-      />
-    ),
-  },
-  {
-    title: '流程',
-    dataIndex: 'processDefinitionId',
-    ellipsis: true,
-    renderText: (value) => processDefinitionLabel(value),
-  },
-  {
-    title: '实例追踪',
-    dataIndex: 'instanceId',
-    width: 140,
-    search: false,
-    render: (_, record) => (
-      <CopyableText
-        value={record.instanceId}
-        displayValue={shortTraceLabel(record.instanceId)}
-      />
-    ),
-  },
-  { title: '发起人', dataIndex: 'startUserId', width: 120, renderText: organizationMemberName },
-  {
-    title: '开始时间',
-    dataIndex: 'startTime',
-    width: 170,
-    search: false,
-    renderText: (value) => formatDateTime(value),
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    width: 110,
-    render: (_, record) => <KoravoStatusTag status={record.status} />,
-  },
-  {
-    title: '操作',
-    valueType: 'option',
-    width: 160,
-    render: (_, record) => (
-      <Space size={4}>
-        <Button
-          type="link"
-          icon={<DeploymentUnitOutlined />}
-          onClick={() => onPreview(record)}
-        >
-          流程
-        </Button>
-        <Button
-          type="link"
-          onClick={() => history.push(`/process-instances/${record.instanceId}`)}
-        >
-          查看
-        </Button>
-      </Space>
-    ),
-  },
+    {
+      title: '业务对象',
+      dataIndex: 'businessKey',
+      width: 180,
+      render: (_, record) => (
+        <CopyableText
+          value={record.businessKey || record.instanceId}
+          displayValue={instanceBusinessObject(record)}
+        />
+      ),
+    },
+    {
+      title: '流程',
+      dataIndex: 'processDefinitionId',
+      ellipsis: true,
+      renderText: (value) => processDefinitionLabel(value),
+    },
+    {
+      title: '实例追踪',
+      dataIndex: 'instanceId',
+      width: 140,
+      search: false,
+      render: (_, record) => (
+        <CopyableText
+          value={record.instanceId}
+          displayValue={shortTraceLabel(record.instanceId)}
+        />
+      ),
+    },
+    {
+      title: '发起人',
+      dataIndex: 'startUserId',
+      width: 120,
+      renderText: organizationMemberName,
+    },
+    {
+      title: '开始时间',
+      dataIndex: 'startTime',
+      width: 170,
+      search: false,
+      renderText: (value) => formatDateTime(value),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 110,
+      render: (_, record) => <KoravoStatusTag status={record.status} />,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 160,
+      render: (_, record) => (
+        <Space size={4}>
+          <Button
+            type="link"
+            icon={<DeploymentUnitOutlined />}
+            onClick={() => onPreview(record)}
+          >
+            流程
+          </Button>
+          <Button
+            type="link"
+            onClick={() =>
+              history.push(`/process-instances/${record.instanceId}`)
+            }
+          >
+            查看
+          </Button>
+        </Space>
+      ),
+    },
   ];
 }
 
@@ -258,10 +274,7 @@ function taskParams(params: Record<string, unknown>): TaskListParams {
   };
 }
 
-function taskEmpty(
-  description: string,
-  action: React.ReactNode,
-) {
+function taskEmpty(description: string, action: React.ReactNode) {
   return (
     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={description}>
       {action}
@@ -278,9 +291,14 @@ const Tasks: React.FC = () => {
   const startedRef = React.useRef<ActionType>(null);
   const session = getSessionContext();
   const identitySynced = isPlatformIdentitySynced(session.userId);
-  const [previewTarget, setPreviewTarget] = React.useState<ProcessPreviewTarget>();
+  const [previewTarget, setPreviewTarget] =
+    React.useState<ProcessPreviewTarget>();
   const activeTab = tabFromPath(location.pathname);
   const pageMeta = taskTabMeta[activeTab];
+  const candidateGroupOptions = React.useMemo(
+    () => organizationGroupOptions(),
+    [],
+  );
   const previewTrace = useQuery({
     queryKey: ['task-list-process-trace', previewTarget?.instanceId],
     queryFn: () => getProcessTrace(previewTarget?.instanceId || ''),
@@ -298,24 +316,34 @@ const Tasks: React.FC = () => {
     setPreviewTarget({
       instanceId: task.processInstanceId,
       title: `${taskDefinitionLabel(task.taskDefinitionKey)} · ${
-        task.businessKey ? businessKeyLabel(task.businessKey) : task.processInstanceId
+        task.businessKey
+          ? businessKeyLabel(task.businessKey)
+          : task.processInstanceId
       }`,
       activeTask: task,
       currentTasks: [task],
     });
   }, []);
 
-  const openInstancePreview = React.useCallback((instance: OpsProcessInstance) => {
-    setPreviewTarget({
-      instanceId: instance.instanceId,
-      title: `${processDefinitionLabel(instance.processDefinitionId)} · ${
-        instance.businessKey ? businessKeyLabel(instance.businessKey) : instance.instanceId
-      }`,
-      currentTasks: instance.currentTasks,
-    });
-  }, []);
+  const openInstancePreview = React.useCallback(
+    (instance: OpsProcessInstance) => {
+      setPreviewTarget({
+        instanceId: instance.instanceId,
+        title: `${processDefinitionLabel(instance.processDefinitionId)} · ${
+          instance.businessKey
+            ? businessKeyLabel(instance.businessKey)
+            : instance.instanceId
+        }`,
+        currentTasks: instance.currentTasks,
+      });
+    },
+    [],
+  );
 
-  const taskColumns = React.useMemo(() => buildTaskColumns(openTaskPreview), [openTaskPreview]);
+  const taskColumns = React.useMemo(
+    () => buildTaskColumns(openTaskPreview),
+    [openTaskPreview],
+  );
 
   const claimTask = React.useCallback(
     async (task: TaskItem) => {
@@ -331,56 +359,53 @@ const Tasks: React.FC = () => {
     [message],
   );
 
-  const candidateColumns = React.useMemo<ProColumns<TaskItem>[]>(
-    () => {
-      const columns = taskColumns.map((column) => {
-        if (column.valueType !== 'option') return column;
-        return {
-          ...column,
-          width: 180,
-          render: (_: unknown, record: TaskItem) => (
-            <Space size={4}>
-              <Button type="link" onClick={() => claimTask(record)}>
-                认领
-              </Button>
-              <Button
-                type="link"
-                icon={<DeploymentUnitOutlined />}
-                onClick={() => openTaskPreview(record)}
-              >
-                流程
-              </Button>
-              <Button
-                type="link"
-                onClick={() =>
-                  history.push(`/process-instances/${record.processInstanceId}`)
-                }
-              >
-                查看实例
-              </Button>
-            </Space>
-          ),
-        };
-      });
-      return [
-        {
-          title: '流程候选组',
-          dataIndex: 'candidateGroup',
-          hideInTable: true,
-          valueType: 'select',
-          fieldProps: {
-            allowClear: true,
-            showSearch: true,
-            placeholder: '默认按当前岗位职责',
-            optionFilterProp: 'label',
-            options: workflowCandidateGroupOptions,
-          },
+  const candidateColumns = React.useMemo<ProColumns<TaskItem>[]>(() => {
+    const columns = taskColumns.map((column) => {
+      if (column.valueType !== 'option') return column;
+      return {
+        ...column,
+        width: 180,
+        render: (_: unknown, record: TaskItem) => (
+          <Space size={4}>
+            <Button type="link" onClick={() => claimTask(record)}>
+              认领
+            </Button>
+            <Button
+              type="link"
+              icon={<DeploymentUnitOutlined />}
+              onClick={() => openTaskPreview(record)}
+            >
+              流程
+            </Button>
+            <Button
+              type="link"
+              onClick={() =>
+                history.push(`/process-instances/${record.processInstanceId}`)
+              }
+            >
+              查看实例
+            </Button>
+          </Space>
+        ),
+      };
+    });
+    return [
+      {
+        title: '流程候选组',
+        dataIndex: 'candidateGroup',
+        hideInTable: true,
+        valueType: 'select',
+        fieldProps: {
+          allowClear: true,
+          showSearch: true,
+          placeholder: '默认按当前岗位职责',
+          optionFilterProp: 'label',
+          options: candidateGroupOptions,
         },
-        ...columns,
-      ];
-    },
-    [claimTask, openTaskPreview, taskColumns],
-  );
+      },
+      ...columns,
+    ];
+  }, [candidateGroupOptions, claimTask, openTaskPreview, taskColumns]);
 
   const instanceColumns = React.useMemo(
     () => buildInstanceColumns(openInstancePreview),
@@ -412,7 +437,9 @@ const Tasks: React.FC = () => {
         <Space wrap size={8}>
           <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
           <Tag color={identitySynced ? 'blue' : 'warning'}>
-            {identitySynced ? organizationRoleLabel(session.role) : '身份未同步'}
+            {identitySynced
+              ? organizationRoleLabel(session.role)
+              : '身份未同步'}
           </Tag>
           <Tag>{tenantDisplayName(session.tenantId)}</Tag>
         </Space>
@@ -475,7 +502,9 @@ const Tasks: React.FC = () => {
                       <Button onClick={() => switchTab('todo')}>
                         查看待办
                       </Button>
-                      <Button onClick={() => history.push('/process-instances')}>
+                      <Button
+                        onClick={() => history.push('/process-instances')}
+                      >
                         查看流程实例
                       </Button>
                     </Space>,
@@ -505,9 +534,7 @@ const Tasks: React.FC = () => {
                 locale={{
                   emptyText: taskEmpty(
                     '暂无你的已办记录',
-                    <Button onClick={() => switchTab('todo')}>
-                      查看待办
-                    </Button>,
+                    <Button onClick={() => switchTab('todo')}>查看待办</Button>,
                   ),
                 }}
                 request={async (params) => {

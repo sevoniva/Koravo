@@ -7,6 +7,7 @@ import {
   isOrganizationProfileField,
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
+  organizationGroupOptions,
   organizationHandlerOptions,
   organizationMemberName,
   organizationProfileFieldValue,
@@ -188,6 +189,14 @@ describe('organization display helpers', () => {
     const labels = organizationHandlerOptions().map((item) => item.label);
     expect(labels).toContain('流程发起人');
     expect(labels).not.toContain('发起人变量');
+  });
+
+  it('builds candidate groups from active organization roles', () => {
+    const options = organizationGroupOptions();
+
+    expect(options).toContainEqual({ label: '审批人（1人）', value: 'manager' });
+    expect(options).toContainEqual({ label: '复核人（1人）', value: 'finance' });
+    expect(options).not.toContainEqual({ label: '流程角色 01', value: 'role-01' });
   });
 
   it('defaults approval assignee fields from organization roles', () => {

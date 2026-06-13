@@ -60,12 +60,35 @@ describe('session context', () => {
       role: 'finance',
       token: 'session-token',
       requestId: 'TRACE-20260609-002',
+      expiresAt: '2099-01-01T00:00:00Z',
     });
 
     expect(sessionRequestHeaders()).toEqual({
       'X-Koravo-Tenant-Id': 'finance-org',
       Authorization: 'Bearer session-token',
       'X-Request-Id': 'TRACE-20260609-002',
+    });
+  });
+
+  it('clears expired login sessions before sending credentials', () => {
+    window.localStorage.setItem(
+      'koravo.auth',
+      JSON.stringify({
+        tenantId: 'default',
+        userId: 'manager',
+        role: 'manager',
+        token: 'expired-token',
+        expiresAt: new Date(Date.now() - 1000).toISOString(),
+      }),
+    );
+
+    expect(getSessionContext()).toMatchObject({
+      tenantId: 'default',
+      userId: 'anonymous',
+      role: 'applicant',
+    });
+    expect(sessionRequestHeaders()).toEqual({
+      'X-Koravo-Tenant-Id': 'default',
     });
   });
 

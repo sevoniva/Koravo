@@ -5,8 +5,8 @@ import React from 'react';
 import { login } from '@/services/koravo/api';
 import {
   defaultRouteForRole,
-  setAuthSession,
   type SessionRole,
+  setAuthSession,
 } from '@/services/koravo/session';
 
 interface LoginFormValues {
@@ -60,6 +60,7 @@ const Login: React.FC = () => {
         tenantId: session.tenantId,
         userId: session.userId,
         role: session.role as SessionRole,
+        expiresAt: session.expiresAt,
       });
       message.success('登录成功');
       window.location.href = defaultRouteForRole(session.role as SessionRole);
@@ -82,6 +83,7 @@ const Login: React.FC = () => {
         <Form<LoginFormValues>
           layout="vertical"
           requiredMark={false}
+          initialValues={{ tenantId: 'default' }}
           onFinish={handleFinish}
         >
           <Form.Item
@@ -89,19 +91,30 @@ const Login: React.FC = () => {
             name="tenantId"
             rules={[{ required: true, message: '请输入组织标识' }]}
           >
-            <Input allowClear placeholder="请输入组织标识" autoComplete="organization" />
+            <Input
+              allowClear
+              placeholder="请输入组织标识"
+              autoComplete="organization"
+            />
           </Form.Item>
           <Form.Item
             label="成员账号"
             name="userId"
             rules={[{ required: true, message: '请输入成员账号' }]}
           >
-            <Input allowClear prefix={<UserOutlined />} autoComplete="username" />
+            <Input
+              allowClear
+              prefix={<UserOutlined />}
+              autoComplete="username"
+            />
           </Form.Item>
           <Form.Item
             label="登录密码"
             name="password"
-            rules={[{ required: true, message: '请输入登录密码' }]}
+            rules={[
+              { required: true, message: '请输入登录密码' },
+              { min: 8, message: '密码至少 8 位' },
+            ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
