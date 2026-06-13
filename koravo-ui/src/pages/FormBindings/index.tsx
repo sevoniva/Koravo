@@ -19,6 +19,7 @@ import {
   Form,
   Modal,
   Popconfirm,
+  Segmented,
   Space,
   Tag,
   Typography,
@@ -56,6 +57,8 @@ interface BindingForm {
   formSchemaId: string;
   formSchemaVersion: number;
 }
+
+type BindingViewMode = 'current' | 'all';
 
 type BindingTableItem = FormBindingItem & {
   processModel?: ProcessModelItem;
@@ -295,6 +298,15 @@ function canStartFromBinding(record: BindingTableItem) {
   );
 }
 
+function isCurrentBindingRow(record: BindingTableItem) {
+  return (
+    Boolean(record.processModel) &&
+    Boolean(record.formSchema) &&
+    record.taskDefinitionExists &&
+    bindingVersionState(record) === 'current'
+  );
+}
+
 const BindingFormItems: React.FC<{
   initialProcessModelId?: string;
   initialFormSchemaId?: string;
@@ -437,6 +449,7 @@ const FormBindings: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormBindingItem>();
   const [modal, contextHolder] = Modal.useModal();
+  const [viewMode, setViewMode] = useState<BindingViewMode>('current');
   const queryProcessModelId = useQueryProcessModelId();
   const queryFormSchemaId = useQueryFormSchemaId();
 
@@ -663,6 +676,7 @@ const FormBindings: React.FC = () => {
         params={{
           processModelId: queryProcessModelId,
           formSchemaId: queryFormSchemaId,
+          viewMode,
         }}
         request={async (params) => {
           const [bindings, models, schemas] = await Promise.all([
@@ -722,9 +736,14 @@ const FormBindings: React.FC = () => {
                 ),
             };
           });
-          const businessData = data.filter((item) =>
-            isActiveBusinessProcessModel(item.processModel),
-          );
+          const businessData =
+            viewMode === 'current'
+              ? data
+                  .filter((item) =>
+                    isActiveBusinessProcessModel(item.processModel),
+                  )
+                  .filter(isCurrentBindingRow)
+              : data;
           const scopedData = queryFormSchemaId
             ? businessData.filter(
                 (item) => item.formSchemaId === queryFormSchemaId,
@@ -770,6 +789,15 @@ const FormBindings: React.FC = () => {
           ),
         }}
         toolBarRender={() => [
+          <Segmented
+            key="view-mode"
+            value={viewMode}
+            options={[
+              { label: '当前绑定', value: 'current' },
+              { label: '全部绑定', value: 'all' },
+            ]}
+            onChange={(value) => setViewMode(value as BindingViewMode)}
+          />,
           <ModalForm<BindingForm>
             key={`create-${queryProcessModelId || 'all'}-${queryFormSchemaId || 'form-all'}`}
             title="新建表单绑定"

@@ -167,6 +167,7 @@ describe('display helpers', () => {
   });
 
   it('does not hide non-business-looking process models in admin surfaces', () => {
+    expect(isBusinessProcessModel(undefined)).toBe(false);
     expect(
       isBusinessProcessModel({
         modelKey: 'designerDeployCheck',
@@ -191,6 +192,7 @@ describe('display helpers', () => {
   });
 
   it('keeps archived process models out of default business lists', () => {
+    expect(isActiveBusinessProcessModel(undefined)).toBe(false);
     expect(
       isActiveBusinessProcessModel({
         modelKey: 'collaborativeApproval',

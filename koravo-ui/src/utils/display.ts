@@ -274,8 +274,7 @@ export function isBusinessProcessModel(
     'modelKey' | 'modelName' | 'description'
   > | null,
 ) {
-  void model;
-  return true;
+  return Boolean(model);
 }
 
 export function isActiveBusinessProcessModel(
