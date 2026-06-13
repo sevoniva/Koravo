@@ -130,6 +130,18 @@ const APPROVAL_STAGE_NAMES = [
   '十审',
 ];
 
+const LEGACY_PROCESS_KEYS = new Set([
+  'multiAcceptance',
+  'purchaseApproval',
+  'leaveApproval',
+]);
+
+const LEGACY_FORM_KEYS = new Set([
+  'acceptance-request-form',
+  'purchase-request-form',
+  'leave-form',
+]);
+
 export const ASSET_ORIGIN_LABELS: Record<string, string> = {
   SYSTEM_TEMPLATE: '系统模板',
   USER_FLOW: '用户流程',
@@ -334,6 +346,7 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
     collaborativeApproval: '协同审批流程',
     connectorOperations: '集成动作流程',
   };
+  if (LEGACY_PROCESS_KEYS.has(modelKey || '')) return '历史流程资产';
   if (/^enterpriseApproval\d*$/i.test(modelKey || '')) {
     return '企业级审批流程';
   }
@@ -342,6 +355,7 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
 
 export function processModelKeyLabel(modelKey?: string | null) {
   if (!modelKey) return '-';
+  if (LEGACY_PROCESS_KEYS.has(modelKey)) return '历史流程资产';
   return modelKey;
 }
 
@@ -421,6 +435,7 @@ export function formSchemaNameLabel(formName?: string | null) {
 
 export function formSchemaKeyLabel(formKey?: string | null) {
   if (!formKey) return '-';
+  if (LEGACY_FORM_KEYS.has(formKey)) return '历史表单资产';
   return formKey;
 }
 

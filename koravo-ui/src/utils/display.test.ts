@@ -8,6 +8,7 @@ import {
   businessFieldLabel,
   businessKeyLabel,
   connectionAddressLabel,
+  formSchemaKeyLabel,
   genericStatusLabel,
   isBusinessProcessModel,
   isActiveBusinessProcessModel,
@@ -26,12 +27,16 @@ describe('display helpers', () => {
   it('uses product process identifiers for visible process model labels', () => {
     expect(processModelKeyLabel('collaborativeApproval')).toBe('collaborativeApproval');
     expect(processModelKeyLabel('koravoProcessmq5amzdq')).toBe('koravoProcessmq5amzdq');
+    expect(processModelKeyLabel('purchaseApproval')).toBe('历史流程资产');
+    expect(formSchemaKeyLabel('leave-form')).toBe('历史表单资产');
   });
 
   it('normalizes process names and definitions', () => {
     expect(processDisplayName('koravo Processmq5amzdq')).toBe('koravo Processmq5amzdq');
     expect(processDisplayName('collaborativeApproval')).toBe('协同审批流程');
+    expect(processDisplayName('leaveApproval', '请假审批')).toBe('历史流程资产');
     expect(processDefinitionLabel('collaborativeApproval:1:5fed0551')).toBe('协同审批流程 v1');
+    expect(processDefinitionLabel('purchaseApproval:1:5fed0551')).toBe('历史流程资产 v1');
     expect(processNameLabel('koravo Processmq5amzdq')).toBe('koravo Processmq5amzdq');
   });
 
