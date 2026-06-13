@@ -46,6 +46,7 @@ import {
   getOrganizationMembers,
   organizationMemberName,
 } from '@/services/koravo/organization';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -273,7 +274,7 @@ const TaskActionTimeline: React.FC<{ logs?: AuditLogItem[] }> = ({
   const actions = latestTaskActions(logs);
   if (!actions.length) {
     return (
-      <Empty description="暂无记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      <Empty description="暂无办理记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
     );
   }
   return (
@@ -344,6 +345,7 @@ function renderParallelTasks(
   currentTask: TaskItem,
   tasks: TaskItem[],
   openTaskAsAssignee: (task: TaskItem) => void,
+  currentUserId?: string,
 ) {
   const pendingTasks = tasks.filter((item) => item.status !== 'COMPLETED');
   if (pendingTasks.length <= 1) return null;
@@ -364,39 +366,48 @@ function renderParallelTasks(
       style={{ marginBottom: 16 }}
     >
       <Space size={[8, 8]} wrap>
-        {pendingTasks.map((task) => (
-          <Tag
-            key={task.taskId}
-            color={
-              task.taskId === currentTask.taskId ? 'processing' : 'default'
-            }
-          >
-            <Space size={6}>
-              <Badge
-                status={
-                  task.taskId === currentTask.taskId ? 'processing' : 'warning'
-                }
-                text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${
-                  task.assignee
-                    ? organizationMemberName(task.assignee)
-                    : '未分配'
-                }`}
-              />
-              <Typography.Text type="secondary">
-                {parallelTaskStatus(task, currentTask)}
-              </Typography.Text>
-              {task.taskId !== currentTask.taskId ? (
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => openTaskAsAssignee(task)}
-                >
-                  进入办理
-                </Button>
-              ) : null}
-            </Space>
-          </Tag>
-        ))}
+        {pendingTasks.map((task) => {
+          const canEnterTask =
+            task.taskId !== currentTask.taskId &&
+            Boolean(currentUserId) &&
+            task.assignee === currentUserId;
+
+          return (
+            <Tag
+              key={task.taskId}
+              color={
+                task.taskId === currentTask.taskId ? 'processing' : 'default'
+              }
+            >
+              <Space size={6}>
+                <Badge
+                  status={
+                    task.taskId === currentTask.taskId
+                      ? 'processing'
+                      : 'warning'
+                  }
+                  text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${
+                    task.assignee
+                      ? organizationMemberName(task.assignee)
+                      : '未分配'
+                  }`}
+                />
+                <Typography.Text type="secondary">
+                  {parallelTaskStatus(task, currentTask)}
+                </Typography.Text>
+                {canEnterTask ? (
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => openTaskAsAssignee(task)}
+                  >
+                    进入办理
+                  </Button>
+                ) : null}
+              </Space>
+            </Tag>
+          );
+        })}
       </Space>
     </ProCard>
   );
@@ -612,6 +623,7 @@ const TaskDetail: React.FC = () => {
     task && task.status !== 'COMPLETED' && !String(task.assignee || '').trim(),
   );
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
+  const currentUserId = getSessionContext().userId;
   const openTaskAsAssignee = React.useCallback((nextTask: TaskItem) => {
     history.push(`/tasks/${nextTask.taskId}`);
   }, []);
@@ -755,7 +767,12 @@ const TaskDetail: React.FC = () => {
         logs={data?.auditLogs}
       />
       {task && instance?.currentTasks
-        ? renderParallelTasks(task, instance.currentTasks, openTaskAsAssignee)
+        ? renderParallelTasks(
+            task,
+            instance.currentTasks,
+            openTaskAsAssignee,
+            currentUserId,
+          )
         : null}
       <ProCard title="业务数据" style={{ marginBottom: 16 }}>
         <BusinessDataDescriptions
@@ -947,7 +964,7 @@ const TaskDetail: React.FC = () => {
             locale={{
               emptyText: (
                 <Empty
-                  description="暂无内嵌审计记录"
+                  description="暂无审计记录"
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 />
               ),
