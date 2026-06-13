@@ -14,6 +14,7 @@ export type SessionPermissionKey =
   | 'canAdmin'
   | 'canViewDashboard'
   | 'canViewOwnWork'
+  | 'canViewProcessContext'
   | 'canStartProcess'
   | 'canClaimTask'
   | 'canHandleTask'

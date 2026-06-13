@@ -6,6 +6,7 @@ describe('access rules', () => {
     const rules = access({ currentUser: { access: 'applicant' } });
 
     expect(rules.canViewOwnWork).toBe(true);
+    expect(rules.canViewProcessContext).toBe(true);
     expect(rules.canHandleTask).toBe(true);
     expect(rules.canStartProcess).toBe(true);
     expect(rules.canClaimTask).toBe(false);
@@ -19,6 +20,7 @@ describe('access rules', () => {
     const rules = access({ currentUser: { access: 'manager' } });
 
     expect(rules.canViewOwnWork).toBe(true);
+    expect(rules.canViewProcessContext).toBe(true);
     expect(rules.canClaimTask).toBe(true);
     expect(rules.canStartProcess).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(false);
@@ -31,6 +33,7 @@ describe('access rules', () => {
     expect(rules.canAdmin).toBe(true);
     expect(rules.canViewDashboard).toBe(true);
     expect(rules.canViewOwnWork).toBe(false);
+    expect(rules.canViewProcessContext).toBe(false);
     expect(rules.canStartProcess).toBe(false);
     expect(rules.canClaimTask).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(true);
@@ -45,6 +48,7 @@ describe('access rules', () => {
 
     expect(rules.canViewDashboard).toBe(true);
     expect(rules.canViewOwnWork).toBe(false);
+    expect(rules.canViewProcessContext).toBe(true);
     expect(rules.canStartProcess).toBe(false);
     expect(rules.canClaimTask).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(false);

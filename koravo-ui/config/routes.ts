@@ -81,7 +81,7 @@ export default [
         name: '实例详情',
         hideInMenu: true,
         component: './ProcessInstanceDetail',
-        access: 'canViewOwnWork',
+        access: 'canViewProcessContext',
       },
     ],
   },

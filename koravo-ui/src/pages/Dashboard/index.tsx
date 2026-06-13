@@ -1,5 +1,4 @@
 import {
-  CheckCircleOutlined,
   DeploymentUnitOutlined,
   EditOutlined,
   FormOutlined,
@@ -40,7 +39,7 @@ interface WorkloadRow {
   name: string;
   total: number;
   status: string;
-  path: string;
+  path?: string;
 }
 
 interface WorkflowStep {
@@ -92,7 +91,13 @@ const workloadColumns: ProColumns<WorkloadRow>[] = [
     valueType: 'option',
     width: 96,
     render: (_, record) => (
-      <Button type="link" onClick={() => history.push(record.path)}>
+      <Button
+        type="link"
+        disabled={!record.path}
+        onClick={() => {
+          if (record.path) history.push(record.path);
+        }}
+      >
         查看
       </Button>
     ),
@@ -139,6 +144,17 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
 
 const Dashboard: React.FC = () => {
   const session = getSessionContext();
+  const canConfigureWorkflow =
+    session.permissions?.canConfigureWorkflow ?? session.role === 'admin';
+  const canStartProcess =
+    session.permissions?.canStartProcess ?? session.role === 'applicant';
+  const canHandleTask =
+    session.permissions?.canHandleTask ??
+    ['applicant', 'manager', 'finance'].includes(session.role);
+  const canOperateSystem =
+    session.permissions?.canOperateSystem ?? session.role === 'operator';
+  const canManageIntegration =
+    session.permissions?.canManageIntegration ?? session.role === 'admin';
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: getDashboardSummary,
@@ -153,14 +169,14 @@ const Dashboard: React.FC = () => {
         name: '我的待办',
         total: data?.myTodoCount ?? 0,
         status: (data?.myTodoCount ?? 0) > 0 ? 'PENDING' : 'READY',
-        path: '/tasks',
+        path: canHandleTask ? '/tasks' : undefined,
       },
       {
         key: 'running',
         name: '运行实例',
         total: data?.runningInstanceCount ?? 0,
         status: (data?.runningInstanceCount ?? 0) > 0 ? 'RUNNING' : 'READY',
-        path: '/process-instances',
+        path: canOperateSystem ? '/process-instances' : undefined,
       },
       {
         key: 'failed',
@@ -170,17 +186,26 @@ const Dashboard: React.FC = () => {
           (data?.failedJobCount ?? 0) + (data?.deadLetterJobCount ?? 0) > 0
             ? 'FAILED'
             : 'READY',
-        path: '/ops',
+        path: canOperateSystem ? '/ops' : undefined,
       },
       {
         key: 'connector',
         name: '连接器失败',
         total: data?.connectorFailedCount ?? 0,
         status: (data?.connectorFailedCount ?? 0) > 0 ? 'FAILED' : 'READY',
-        path: '/http-connector',
+        path: canManageIntegration ? '/http-connector' : undefined,
       },
     ],
-    [data],
+    [canHandleTask, canManageIntegration, canOperateSystem, data],
+  );
+  const visibleWorkflowSteps = useMemo(
+    () =>
+      workflowSteps.filter((step) =>
+        step.path === '/process-start'
+          ? canStartProcess
+          : canConfigureWorkflow,
+      ),
+    [canConfigureWorkflow, canStartProcess],
   );
 
   return (
@@ -191,25 +216,40 @@ const Dashboard: React.FC = () => {
           <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
             刷新
           </Button>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => history.push('/process-designer')}
-          >
-            创建流程
-          </Button>
-          <Button
-            icon={<DeploymentUnitOutlined />}
-            onClick={() => history.push('/process-models')}
-          >
-            流程模型
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlayCircleOutlined />}
-            onClick={() => history.push('/process-start')}
-          >
-            发起流程
-          </Button>
+          {canConfigureWorkflow ? (
+            <>
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => history.push('/process-designer')}
+              >
+                创建流程
+              </Button>
+              <Button
+                icon={<DeploymentUnitOutlined />}
+                onClick={() => history.push('/process-models')}
+              >
+                流程模型
+              </Button>
+            </>
+          ) : null}
+          {canStartProcess ? (
+            <Button
+              type="primary"
+              icon={<PlayCircleOutlined />}
+              onClick={() => history.push('/process-start')}
+            >
+              发起流程
+            </Button>
+          ) : null}
+          {canOperateSystem ? (
+            <Button
+              type="primary"
+              icon={<DeploymentUnitOutlined />}
+              onClick={() => history.push('/ops')}
+            >
+              运维中心
+            </Button>
+          ) : null}
         </Flex>
       }
     >
@@ -222,36 +262,34 @@ const Dashboard: React.FC = () => {
         />
       )}
 
-      <ProCard
-        title="流程搭建路径"
-        extra={
-          <Flex wrap gap={8}>
-            <Button
-              type="primary"
-              icon={<EditOutlined />}
-              onClick={() => history.push('/process-designer')}
-            >
-              创建流程模型
-            </Button>
-            <Button
-              icon={<CheckCircleOutlined />}
-              onClick={() => history.push('/tasks')}
-            >
-              处理待办
-            </Button>
-          </Flex>
-        }
-        style={{ marginBottom: 16 }}
-      >
-        <Steps
-          responsive
-          items={workflowSteps.map((step) => ({
-            title: step.title,
-            icon: step.icon,
-          }))}
-          onChange={(current) => history.push(workflowSteps[current].path)}
-        />
-      </ProCard>
+      {visibleWorkflowSteps.length ? (
+        <ProCard
+          title="流程搭建路径"
+          extra={
+            canConfigureWorkflow ? (
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => history.push('/process-designer')}
+              >
+                创建流程模型
+              </Button>
+            ) : null
+          }
+          style={{ marginBottom: 16 }}
+        >
+          <Steps
+            responsive
+            items={visibleWorkflowSteps.map((step) => ({
+              title: step.title,
+              icon: step.icon,
+            }))}
+            onChange={(current) =>
+              history.push(visibleWorkflowSteps[current].path)
+            }
+          />
+        </ProCard>
+      ) : null}
 
       <ProCard gutter={16} loading={isLoading} wrap>
         <ProCard colSpan={{ xs: 24, sm: 12, xl: 6 }}>

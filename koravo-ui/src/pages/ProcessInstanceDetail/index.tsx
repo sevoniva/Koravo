@@ -29,6 +29,8 @@ import {
   type AuditLogItem,
   activateProcessInstance,
   type FormSnapshotItem,
+  getOpsInstance,
+  getOpsProcessTrace,
   getProcessInstance,
   getProcessTrace,
   listAuditLogs,
@@ -283,6 +285,9 @@ const ProcessInstanceDetail: React.FC = () => {
   const instanceId = params.instanceId || '';
   const session = getSessionContext();
   const canOperateInstance = session.role === 'operator';
+  const canOpenTaskDetail =
+    session.permissions?.canViewOwnWork ??
+    ['applicant', 'manager', 'finance'].includes(session.role);
   const [selectedSnapshot, setSelectedSnapshot] =
     React.useState<FormSnapshotItem>();
   const {
@@ -290,8 +295,13 @@ const ProcessInstanceDetail: React.FC = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['process-instance', instanceId],
-    queryFn: () => getProcessInstance(instanceId),
+    queryKey: [
+      'process-instance',
+      canOperateInstance ? 'ops' : 'workflow',
+      instanceId,
+    ],
+    queryFn: () =>
+      canOperateInstance ? getOpsInstance(instanceId) : getProcessInstance(instanceId),
     enabled: Boolean(instanceId),
   });
   const {
@@ -299,8 +309,13 @@ const ProcessInstanceDetail: React.FC = () => {
     isLoading: traceLoading,
     refetch: refetchTrace,
   } = useQuery({
-    queryKey: ['process-trace', instanceId],
-    queryFn: () => getProcessTrace(instanceId),
+    queryKey: [
+      'process-trace',
+      canOperateInstance ? 'ops' : 'workflow',
+      instanceId,
+    ],
+    queryFn: () =>
+      canOperateInstance ? getOpsProcessTrace(instanceId) : getProcessTrace(instanceId),
     enabled: Boolean(instanceId),
   });
   const { data: formSnapshots = [] } = useQuery({
@@ -358,26 +373,29 @@ const ProcessInstanceDetail: React.FC = () => {
         title: '操作',
         valueType: 'option',
         width: 144,
-        render: (_, record) => [
-          <Button
-            key="complete"
-            type="link"
-            disabled={record.assignee !== session.userId}
-            onClick={() => openTaskAsAssignee(record)}
-          >
-            处理
-          </Button>,
-          <Button
-            key="view"
-            type="link"
-            onClick={() => history.push(`/tasks/${record.taskId}`)}
-          >
-            查看
-          </Button>,
-        ],
+        render: (_, record) =>
+          canOpenTaskDetail
+            ? [
+                <Button
+                  key="complete"
+                  type="link"
+                  disabled={record.assignee !== session.userId}
+                  onClick={() => openTaskAsAssignee(record)}
+                >
+                  处理
+                </Button>,
+                <Button
+                  key="view"
+                  type="link"
+                  onClick={() => history.push(`/tasks/${record.taskId}`)}
+                >
+                  查看
+                </Button>,
+              ]
+            : [],
       },
     ],
-    [openTaskAsAssignee],
+    [canOpenTaskDetail, openTaskAsAssignee, session.userId],
   );
   const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     {

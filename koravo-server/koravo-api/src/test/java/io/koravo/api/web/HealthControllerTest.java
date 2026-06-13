@@ -33,6 +33,7 @@ class HealthControllerTest {
         assertThat(response.data().get("permissions"))
                 .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
                 .containsEntry("canConfigureWorkflow", true)
+                .containsEntry("canViewProcessContext", false)
                 .containsEntry("canOperateSystem", false);
         assertThat(response.requestId()).isEqualTo("req-health");
     }

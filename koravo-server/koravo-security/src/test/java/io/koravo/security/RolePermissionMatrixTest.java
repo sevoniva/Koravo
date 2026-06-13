@@ -12,15 +12,18 @@ class RolePermissionMatrixTest {
         var operator = RolePermissionMatrix.capabilitiesForRole(UserContextHolder.ROLE_OPERATOR);
 
         assertThat(applicant)
+                .containsEntry("canViewProcessContext", true)
                 .containsEntry("canStartProcess", true)
                 .containsEntry("canConfigureWorkflow", false)
                 .containsEntry("canOperateSystem", false);
         assertThat(admin)
+                .containsEntry("canViewProcessContext", false)
                 .containsEntry("canConfigureWorkflow", true)
                 .containsEntry("canStartProcess", false)
                 .containsEntry("canOperateSystem", false);
         assertThat(operator)
                 .containsEntry("canViewDashboard", true)
+                .containsEntry("canViewProcessContext", true)
                 .containsEntry("canOperateSystem", true)
                 .containsEntry("canConfigureWorkflow", false);
     }
@@ -42,6 +45,12 @@ class RolePermissionMatrixTest {
         assertThat(RolePermissionMatrix.isAllowed(
                 "GET",
                 "/api/v1/audit-logs",
+                "operator",
+                UserContextHolder.ROLE_OPERATOR
+        )).isTrue();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "GET",
+                "/api/v1/forms/snapshots",
                 "operator",
                 UserContextHolder.ROLE_OPERATOR
         )).isTrue();

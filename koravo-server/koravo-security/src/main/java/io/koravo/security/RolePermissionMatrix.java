@@ -20,6 +20,12 @@ public final class RolePermissionMatrix {
             UserContextHolder.ROLE_MANAGER,
             UserContextHolder.ROLE_FINANCE
     );
+    private static final List<String> PROCESS_CONTEXT_ROLES = List.of(
+            UserContextHolder.ROLE_APPLICANT,
+            UserContextHolder.ROLE_MANAGER,
+            UserContextHolder.ROLE_FINANCE,
+            UserContextHolder.ROLE_OPERATOR
+    );
     private static final List<String> APPROVAL_ROLES = List.of(UserContextHolder.ROLE_MANAGER, UserContextHolder.ROLE_FINANCE);
     private static final List<String> ADMIN_ROLES = List.of(UserContextHolder.ROLE_ADMIN);
     private static final List<String> OPS_ROLES = List.of(UserContextHolder.ROLE_OPERATOR);
@@ -39,7 +45,7 @@ public final class RolePermissionMatrix {
                     rule("/api/v1/tasks/[^/]+", WORKFLOW_USER_ROLES),
                     rule("/api/v1/process-instances/[^/]+/trace", WORKFLOW_USER_ROLES),
                     rule("/api/v1/process-instances/[^/]+", WORKFLOW_USER_ROLES),
-                    rule("/api/v1/forms/snapshots", WORKFLOW_USER_ROLES),
+                    rule("/api/v1/forms/snapshots", PROCESS_CONTEXT_ROLES),
                     prefix("/api/v1/process-models", ADMIN_ROLES),
                     prefix("/api/v1/forms", ADMIN_ROLES),
                     prefix("/api/v1/form-bindings", ADMIN_ROLES),
@@ -109,6 +115,7 @@ public final class RolePermissionMatrix {
         capabilities.put("canAdmin", isAdmin);
         capabilities.put("canViewDashboard", isAdmin || isOperator);
         capabilities.put("canViewOwnWork", isWorkflowUser);
+        capabilities.put("canViewProcessContext", isWorkflowUser || isOperator);
         capabilities.put("canStartProcess", UserContextHolder.ROLE_APPLICANT.equals(role));
         capabilities.put("canClaimTask", isApprover);
         capabilities.put("canHandleTask", isWorkflowUser);
