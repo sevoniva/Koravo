@@ -9,16 +9,7 @@ import {
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { history, useParams } from '@umijs/max';
-import {
-  App,
-  Badge,
-  Button,
-  Empty,
-  Flex,
-  Space,
-  Tag,
-  Typography,
-} from 'antd';
+import { App, Badge, Button, Empty, Flex, Space, Tag, Typography } from 'antd';
 import React from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
@@ -301,7 +292,9 @@ const ProcessInstanceDetail: React.FC = () => {
       instanceId,
     ],
     queryFn: () =>
-      canOperateInstance ? getOpsInstance(instanceId) : getProcessInstance(instanceId),
+      canOperateInstance
+        ? getOpsInstance(instanceId)
+        : getProcessInstance(instanceId),
     enabled: Boolean(instanceId),
   });
   const {
@@ -315,7 +308,9 @@ const ProcessInstanceDetail: React.FC = () => {
       instanceId,
     ],
     queryFn: () =>
-      canOperateInstance ? getOpsProcessTrace(instanceId) : getProcessTrace(instanceId),
+      canOperateInstance
+        ? getOpsProcessTrace(instanceId)
+        : getProcessTrace(instanceId),
     enabled: Boolean(instanceId),
   });
   const { data: formSnapshots = [] } = useQuery({
@@ -372,27 +367,22 @@ const ProcessInstanceDetail: React.FC = () => {
       {
         title: '操作',
         valueType: 'option',
-        width: 144,
-        render: (_, record) =>
-          canOpenTaskDetail
+        width: 96,
+        render: (_, record) => {
+          const canHandleCurrentTask =
+            canOpenTaskDetail && record.assignee === session.userId;
+          return canHandleCurrentTask
             ? [
                 <Button
                   key="complete"
                   type="link"
-                  disabled={record.assignee !== session.userId}
                   onClick={() => openTaskAsAssignee(record)}
                 >
                   处理
                 </Button>,
-                <Button
-                  key="view"
-                  type="link"
-                  onClick={() => history.push(`/tasks/${record.taskId}`)}
-                >
-                  查看
-                </Button>,
               ]
-            : [],
+            : [];
+        },
       },
     ],
     [canOpenTaskDetail, openTaskAsAssignee, session.userId],
@@ -647,7 +637,7 @@ const ProcessInstanceDetail: React.FC = () => {
             locale={{
               emptyText: (
                 <Empty
-                  description="暂无内嵌审计记录"
+                  description="暂无审计记录"
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 >
                   {canOperateInstance ? (
