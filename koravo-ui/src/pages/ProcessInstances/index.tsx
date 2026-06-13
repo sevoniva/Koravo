@@ -42,7 +42,6 @@ import {
   type FormSchemaItem,
   getOpsProcessTrace,
   type JsonRecord,
-  listFormSchemas,
   listOpsInstances,
   listStartableWorkflows,
   type OpsProcessInstance,
@@ -267,28 +266,23 @@ const ProcessStartReadiness: React.FC<{
   if (!workflow) return null;
 
   return (
-    <Alert
-      showIcon
-      type="success"
-      title="可发起"
-      description={
-        <Flex vertical gap={8}>
-          <Space size={[0, 6]} wrap>
-            <Tag color="success" variant="outlined">
-              启动表单：
-              {formSchemaLabel(
-                workflow.startFormSchema,
-                workflow.startFormSchema.version,
-              )}
-            </Tag>
-          </Space>
-          {workflow.bpmnXml ? (
-            <ProcessDiagramViewer bpmnXml={workflow.bpmnXml} height={260} />
-          ) : null}
-        </Flex>
-      }
-      style={{ marginBottom: 16 }}
-    />
+    <Flex vertical gap={8} style={{ marginBottom: 16 }}>
+      <Flex align="center" justify="space-between" gap={8} wrap>
+        <Typography.Text strong>流程预览</Typography.Text>
+        <Tag color="success" variant="outlined">
+          启动表单：
+          {formSchemaLabel(
+            workflow.startFormSchema,
+            workflow.startFormSchema.version,
+          )}
+        </Tag>
+      </Flex>
+      {workflow.bpmnXml ? (
+        <ProcessDiagramViewer bpmnXml={workflow.bpmnXml} height={260} />
+      ) : (
+        <Empty description="暂无流程图" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      )}
+    </Flex>
   );
 };
 
@@ -454,14 +448,11 @@ function buildStartVariables(
   return applyOrganizationProfileValues(fields, formValues) as JsonRecord;
 }
 
-const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
-  initialProcessModelId,
-}) => {
+const StartInstanceFields: React.FC<{
+  initialProcessModelId?: string;
+  startableWorkflows: StartableWorkflowItem[];
+}> = ({ initialProcessModelId, startableWorkflows }) => {
   const form = Form.useFormInstance();
-  const { data: startableWorkflows = [] } = useQuery({
-    queryKey: ['startable-workflows'],
-    queryFn: listStartableWorkflows,
-  });
 
   const setProcessContext = React.useCallback(
     (processDefinitionKey?: string, processModelId?: string) => {
@@ -788,9 +779,9 @@ const ProcessInstances: React.FC = () => {
   const location = useLocation();
   const queryProcessModelId = useQueryProcessModelId();
   const isStartEntry = location.pathname === '/process-start';
-  const { data: startFormSchemas = [] } = useQuery({
-    queryKey: ['start-form-schemas'],
-    queryFn: () => listFormSchemas(),
+  const { data: startableWorkflows = [] } = useQuery({
+    queryKey: ['startable-workflows'],
+    queryFn: listStartableWorkflows,
     enabled: isStartEntry || Boolean(queryProcessModelId),
   });
 
@@ -835,9 +826,12 @@ const ProcessInstances: React.FC = () => {
                 message.warning('请先为流程配置启动表单');
                 return false;
               }
-              const startFormSchema = startFormSchemas.find(
-                (item) => item.id === values.startFormSchemaId,
-              );
+              const startFormSchema = startableWorkflows.find(
+                (item) =>
+                  item.startFormSchema.id === values.startFormSchemaId ||
+                  item.processModelId === values.processModelId ||
+                  item.processDefinitionKey === values.processDefinitionKey,
+              )?.startFormSchema;
               const formData = buildStartVariables(values, startFormSchema);
               const instance = await startProcessInstance({
                 processDefinitionKey: values.processDefinitionKey,
@@ -851,7 +845,10 @@ const ProcessInstances: React.FC = () => {
               return true;
             }}
           >
-            <StartInstanceFields initialProcessModelId={queryProcessModelId} />
+            <StartInstanceFields
+              initialProcessModelId={queryProcessModelId}
+              startableWorkflows={startableWorkflows}
+            />
           </ProForm>
         </ProCard>
       </PageContainer>
