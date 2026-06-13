@@ -28,6 +28,7 @@ import {
   Form,
   Popconfirm,
   Space,
+  Steps,
   Tabs,
   Tag,
   Typography,
@@ -155,7 +156,7 @@ const useStyles = createStyles(({ css, token }) => ({
   fieldGrid: css`
     display: grid;
     width: 100%;
-    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 10px 12px;
     align-items: start;
     padding: 2px 0;
@@ -171,7 +172,7 @@ const useStyles = createStyles(({ css, token }) => ({
     }
 
     @media (max-width: 760px) {
-      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     @media (max-width: 560px) {
@@ -179,7 +180,7 @@ const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   fieldMain: css`
-    grid-column: span 2;
+    grid-column: span 3;
 
     .ant-form-item-control-input-content,
     .ant-input {
@@ -192,7 +193,7 @@ const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   fieldWide: css`
-    grid-column: span 2;
+    grid-column: span 3;
 
     .ant-form-item-control-input-content,
     .ant-select,
@@ -211,6 +212,11 @@ const useStyles = createStyles(({ css, token }) => ({
     .ant-form-item-control-input {
       min-height: 34px;
     }
+  `,
+  lifecycleSteps: css`
+    min-width: 320px;
+    overflow-x: auto;
+    padding-block: 2px;
   `,
 }));
 
@@ -1264,12 +1270,59 @@ function renderFieldDesignState(record: FormSchemaItem) {
   );
 }
 
+function formStepStatus(done: boolean, active: boolean) {
+  if (active) return 'process' as const;
+  return done ? 'finish' as const : 'wait' as const;
+}
+
+function renderFormLifecycle(
+  record: FormSchemaItem,
+  fields: FormFieldConfig[],
+  impact: FormBindingImpact,
+  className: string,
+) {
+  const designed = fields.length > 0;
+  const published = record.status === 'ACTIVE';
+  const bound = impact.total > 0;
+  const current = !designed ? 0 : !published ? 1 : !bound ? 2 : 3;
+
+  return (
+    <div className={className}>
+      <Steps
+        current={current}
+        items={[
+          {
+            title: '设计',
+            status: formStepStatus(designed, !designed),
+          },
+          {
+            title: '发布',
+            status: formStepStatus(published, designed && !published),
+          },
+          {
+            title: '绑定',
+            status: formStepStatus(bound, designed && published && !bound),
+          },
+          {
+            title: '使用',
+            status: formStepStatus(designed && published && bound, false),
+          },
+        ]}
+        responsive={false}
+        size="small"
+        type="dot"
+      />
+    </div>
+  );
+}
+
 interface FormFieldsEditorClassNames {
   fieldList: string;
   fieldGrid: string;
   fieldMain: string;
   fieldWide: string;
   fieldSwitch: string;
+  lifecycleSteps: string;
 }
 
 const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
@@ -1650,9 +1703,22 @@ const Forms: React.FC = () => {
     {
       title: '设计状态',
       key: 'designState',
-      width: 250,
+      width: 240,
       search: false,
       render: (_, record) => renderFieldDesignState(record),
+    },
+    {
+      title: '使用路径',
+      key: 'lifecycle',
+      width: 360,
+      search: false,
+      render: (_, record) =>
+        renderFormLifecycle(
+          record,
+          schemaToFields(record.schemaJson, record.uiSchemaJson),
+          bindingImpact(record.id, formBindings),
+          styles.lifecycleSteps,
+        ),
     },
     {
       title: '版本',
@@ -1682,7 +1748,7 @@ const Forms: React.FC = () => {
     {
       title: '绑定影响',
       key: 'bindingImpact',
-      width: 220,
+      width: 190,
       search: false,
       render: (_, record) => (
         <BindingImpactSummary
@@ -1694,13 +1760,52 @@ const Forms: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 250,
+      width: 320,
       fixed: 'right',
       search: false,
       render: (_, record) => {
         const impact = bindingImpact(record.id, formBindings);
+        const fields = schemaToFields(record.schemaJson, record.uiSchemaJson);
         const willActivate = record.status === 'DISABLED';
+        const nextAction = !fields.length
+          ? {
+              text: '编辑字段',
+              description: '补齐字段',
+              onClick: () => setEditing(record),
+            }
+          : willActivate
+            ? {
+                text: '发布表单',
+                description: '发布后可绑定',
+                onClick: () => changeFormStatus(record),
+              }
+            : !impact.total
+              ? {
+                  text: '绑定节点',
+                  description: '接入流程',
+                  onClick: () =>
+                    history.push(`/form-bindings?formSchemaId=${record.id}`),
+                }
+              : {
+                  text: '查看表单',
+                  description: '配置可用',
+                  onClick: () => setPreview(record),
+                };
         return [
+          <Flex key="next" vertical gap={2}>
+            <Button
+              size="small"
+              type={
+                nextAction.text === '查看表单' ? 'default' : 'primary'
+              }
+              onClick={nextAction.onClick}
+            >
+              {nextAction.text}
+            </Button>
+            <Typography.Text type="secondary">
+              {nextAction.description}
+            </Typography.Text>
+          </Flex>,
           <Button key="preview" type="link" onClick={() => setPreview(record)}>
             查看
           </Button>,
