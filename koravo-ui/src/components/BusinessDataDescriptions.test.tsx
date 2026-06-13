@@ -53,6 +53,7 @@ describe('BusinessDataDescriptions', () => {
         })}
         values={{
           applicant: 'applicant',
+          approver: 'applicant',
           approvalUsers: ['manager', 'finance'],
         }}
       />,
@@ -61,6 +62,7 @@ describe('BusinessDataDescriptions', () => {
     expect(screen.getByText('发起人')).toBeInTheDocument();
     expect(screen.getByText('业务申请专员')).toBeInTheDocument();
     expect(screen.getByText('审批人')).toBeInTheDocument();
+    expect(screen.getAllByText('审批人')).toHaveLength(1);
     expect(screen.getByText('审批主管')).toBeInTheDocument();
     expect(screen.getByText('复核专员')).toBeInTheDocument();
     expect(screen.queryByText('manager')).not.toBeInTheDocument();
@@ -110,5 +112,32 @@ describe('BusinessDataDescriptions', () => {
     expect(screen.getByText('是')).toBeInTheDocument();
     expect(screen.getByText('处理意见')).toBeInTheDocument();
     expect(screen.getByText('同意发布')).toBeInTheDocument();
+  });
+
+  it('hides runtime fields that are not part of business data', () => {
+    render(
+      <BusinessDataDescriptions
+        schemaJson={JSON.stringify({
+          type: 'object',
+          properties: {
+            subject: { type: 'string', title: '申请主题' },
+          },
+        })}
+        values={{
+          subject: '流程上下文验收',
+          requestId: '331b0d7404b6457f96b47d41c18ed77f',
+          tenantId: 'default',
+          processInstanceId: '0262ff50-6776-11f1-bc79-e679d55d1770',
+          startUserId: 'applicant',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('申请主题')).toBeInTheDocument();
+    expect(screen.getByText('流程上下文验收')).toBeInTheDocument();
+    expect(screen.queryByText('业务追踪号')).not.toBeInTheDocument();
+    expect(screen.queryByText('组织')).not.toBeInTheDocument();
+    expect(screen.queryByText('流程实例编号')).not.toBeInTheDocument();
+    expect(screen.queryByText('331b0d7404b6457f96b47d41c18ed77f')).not.toBeInTheDocument();
   });
 });

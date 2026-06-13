@@ -29,6 +29,43 @@ interface BusinessField {
   widget?: string;
 }
 
+const INTERNAL_BUSINESS_DATA_KEYS = new Set([
+  'requestId',
+  'tenantId',
+  'userId',
+  'role',
+  'startUserId',
+  'startUserName',
+  'approver',
+  'approverUser',
+  'approverUserId',
+  'assignee',
+  'assigneeUser',
+  'assigneeUserId',
+  'handler',
+  'handlerUser',
+  'handlerUserId',
+  'processor',
+  'processorUser',
+  'processorUserId',
+  'processInstanceId',
+  'processDefinitionId',
+  'processDefinitionKey',
+  'taskId',
+  'taskDefinitionKey',
+  'executionId',
+  'deploymentId',
+  'formSchemaId',
+  'formSchemaVersion',
+  'formBindingId',
+  'formSnapshotId',
+  'snapshotId',
+]);
+
+function isInternalBusinessDataField(key: string) {
+  return INTERNAL_BUSINESS_DATA_KEYS.has(key) || key.startsWith('_');
+}
+
 function parseJsonObject(value?: string): JsonRecord {
   if (!value?.trim()) return {};
   try {
@@ -216,7 +253,7 @@ function isLongField(field: BusinessField, value: unknown) {
 function appendExtraFields(fields: BusinessField[], dataSource: JsonRecord) {
   const knownKeys = new Set(fields.map((field) => field.key));
   const extraFields = Object.keys(dataSource)
-    .filter((key) => !knownKeys.has(key))
+    .filter((key) => !knownKeys.has(key) && !isInternalBusinessDataField(key))
     .map((key) => ({
       key,
       title: businessFieldLabel(key),
@@ -234,10 +271,12 @@ const BusinessDataDescriptions: React.FC<BusinessDataDescriptionsProps> = ({
   const fieldsFromSchema = schemaFields(schemaJson, uiSchemaJson);
   const fields = fieldsFromSchema.length
     ? appendExtraFields(fieldsFromSchema, dataSource)
-    : Object.keys(dataSource).map((key) => ({
-        key,
-        title: businessFieldLabel(key),
-      }));
+    : Object.keys(dataSource)
+        .filter((key) => !isInternalBusinessDataField(key))
+        .map((key) => ({
+          key,
+          title: businessFieldLabel(key),
+        }));
 
   const visibleFields = fields.filter(
     (field) => dataSource[field.key] !== undefined,
