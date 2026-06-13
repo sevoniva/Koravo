@@ -39,6 +39,22 @@ public class ProcessInstanceAppService {
     private static final String MANAGER_APPROVER_FIELD = "managerApprover";
     private static final String FINANCE_APPROVER_FIELD = "financeApprover";
     private static final String APPROVAL_USERS_FIELD = "approvalUsers";
+    private static final List<String> APPLICANT_FIELD_ALIASES = List.of(
+            APPLICANT_FIELD,
+            "requester",
+            "applyUser",
+            "submitter",
+            "initiator",
+            "creator"
+    );
+    private static final List<String> DEPARTMENT_FIELD_ALIASES = List.of(
+            DEPARTMENT_FIELD,
+            "dept",
+            "applyDept",
+            "requesterDepartment",
+            "submitDepartment",
+            "organizationUnit"
+    );
 
     private final ProcessFacade processFacade;
     private final AuditLogService auditLogService;
@@ -154,12 +170,16 @@ public class ProcessInstanceAppService {
 
     private boolean containsProtectedStartField(Map<String, Object> data) {
         return data != null && (
-                data.containsKey(APPLICANT_FIELD)
-                        || data.containsKey(DEPARTMENT_FIELD)
+                containsAnyField(data, APPLICANT_FIELD_ALIASES)
+                        || containsAnyField(data, DEPARTMENT_FIELD_ALIASES)
                         || data.containsKey(MANAGER_APPROVER_FIELD)
                         || data.containsKey(FINANCE_APPROVER_FIELD)
                         || data.containsKey(APPROVAL_USERS_FIELD)
         );
+    }
+
+    private boolean containsAnyField(Map<String, Object> data, List<String> fields) {
+        return fields.stream().anyMatch(data::containsKey);
     }
 
     private List<String> trustedApprovalUsers(String tenantId, String processDefinitionKey, Map<String, Object> submittedVariables) {
@@ -232,10 +252,23 @@ public class ProcessInstanceAppService {
         }
         result.put(APPLICANT_FIELD, identity.applicantName());
         result.put(DEPARTMENT_FIELD, identity.department());
+        applyIdentityAliases(source, result, APPLICANT_FIELD_ALIASES, identity.applicantName());
+        applyIdentityAliases(source, result, DEPARTMENT_FIELD_ALIASES, identity.department());
         result.put(APPROVAL_USERS_FIELD, identity.approvalUsers());
         result.remove(MANAGER_APPROVER_FIELD);
         result.remove(FINANCE_APPROVER_FIELD);
         return result;
+    }
+
+    private void applyIdentityAliases(
+            Map<String, Object> source,
+            Map<String, Object> result,
+            List<String> aliases,
+            String value
+    ) {
+        aliases.stream()
+                .filter(source::containsKey)
+                .forEach(alias -> result.put(alias, value));
     }
 
     private record TrustedStartIdentity(

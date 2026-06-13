@@ -2,10 +2,12 @@ import {
   ProDescriptions,
   type ProDescriptionsItemProps,
 } from '@ant-design/pro-components';
-import { Empty, Tag, Typography } from 'antd';
+import { Empty, Space, Tag, Typography } from 'antd';
 import React from 'react';
 import {
+  isOrganizationAssigneeField,
   isOrganizationProfileField,
+  organizationMemberName,
   organizationProfileFieldValue,
 } from '@/services/koravo/organization';
 import { businessFieldLabel, productCopy } from '@/utils/display';
@@ -66,10 +68,30 @@ function schemaFields(
   });
 }
 
-function valueText(value: unknown): string {
+function isMemberField(field: BusinessField) {
+  return (
+    field.widget === 'organizationMember' ||
+    field.widget === 'organizationMemberMulti' ||
+    isOrganizationAssigneeField(field.key, field.title)
+  );
+}
+
+function isMemberListField(field: BusinessField) {
+  return (
+    field.widget === 'organizationMemberMulti' ||
+    ['approvalUsers', 'candidateUsers'].includes(field.key)
+  );
+}
+
+function valueText(value: unknown, field?: BusinessField): string {
   if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'boolean') return value ? '是' : '否';
-  if (Array.isArray(value)) return value.map(valueText).join('、') || '-';
+  if (typeof value === 'string' && field && isMemberField(field)) {
+    return organizationMemberName(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => valueText(item, field)).join('、') || '-';
+  }
   if (typeof value === 'object') {
     const entries = Object.entries(value as JsonRecord);
     if (!entries.length) return '-';
@@ -91,7 +113,36 @@ function fieldValueText(field: BusinessField, value: unknown): string {
       ) || '-'
     );
   }
-  return valueText(value);
+  return valueText(value, field);
+}
+
+function tagItems(field: BusinessField, value: unknown) {
+  const values = Array.isArray(value) ? value : [value];
+  return values
+    .map((item) => {
+      if (item === undefined || item === null || item === '') return '';
+      return valueText(item, field);
+    })
+    .filter(Boolean);
+}
+
+function renderTagList(field: BusinessField, value: unknown) {
+  const items = tagItems(field, value);
+  if (!items.length) return '-';
+  const counts = new Map<string, number>();
+  return (
+    <Space size={[0, 6]} wrap>
+      {items.map((item) => {
+        const count = (counts.get(item) || 0) + 1;
+        counts.set(item, count);
+        return (
+          <Tag key={`${field.key}-${item}-${count}`} color="processing">
+            {item}
+          </Tag>
+        );
+      })}
+    </Space>
+  );
 }
 
 function renderValue(field: BusinessField, value: unknown) {
@@ -102,6 +153,12 @@ function renderValue(field: BusinessField, value: unknown) {
     );
   }
   if (typeof value === 'number') return value.toLocaleString('zh-CN');
+  if (
+    isMemberListField(field) ||
+    (Array.isArray(value) && isMemberField(field))
+  ) {
+    return renderTagList(field, value);
+  }
   if (isLongField(field, value)) {
     return (
       <Typography.Paragraph

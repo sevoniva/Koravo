@@ -128,9 +128,13 @@ function businessKeyPrefix(modelKey?: string) {
 }
 
 function schemaToStartFields(formSchema?: FormSchemaItem): StartFormField[] {
-  return parseWorkflowFormFields(formSchema?.schemaJson, formSchema?.uiSchemaJson, {
-    excludeKeys: taskDecisionFieldKeys,
-  });
+  return parseWorkflowFormFields(
+    formSchema?.schemaJson,
+    formSchema?.uiSchemaJson,
+    {
+      excludeKeys: taskDecisionFieldKeys,
+    },
+  );
 }
 
 function isStartProfileField(field: StartFormField) {
@@ -184,6 +188,68 @@ function approvalUserRules(field: StartFormField) {
   }
   return rules;
 }
+
+function approvalFieldValues(field: StartFormField, values?: JsonRecord) {
+  const rawValue = values?.[field.fieldKey];
+  if (Array.isArray(rawValue)) return rawValue.map(String).filter(Boolean);
+  if (typeof rawValue === 'string' && rawValue.trim()) return [rawValue.trim()];
+  if (isStartAssigneeMultiField(field)) {
+    return defaultApprovalUsers(field) || [];
+  }
+  const value = organizationAssigneeFieldValue(
+    field.fieldKey,
+    undefined,
+    field.title,
+  );
+  return value ? [value] : [];
+}
+
+function selectedApprovalUsers(fields: StartFormField[], values?: JsonRecord) {
+  const userIds = fields
+    .filter(
+      (field) =>
+        isStartAssigneeField(field) || isStartAssigneeMultiField(field),
+    )
+    .flatMap((field) => approvalFieldValues(field, values));
+  return Array.from(new Set(userIds));
+}
+
+const StartApprovalSummary: React.FC<{ fields: StartFormField[] }> = ({
+  fields,
+}) => {
+  const approvalFields = fields.filter(
+    (field) => isStartAssigneeField(field) || isStartAssigneeMultiField(field),
+  );
+  if (!approvalFields.length) return null;
+
+  return (
+    <ProFormDependency name={['formValues']}>
+      {({ formValues }) => {
+        const users = selectedApprovalUsers(
+          approvalFields,
+          formValues as JsonRecord,
+        );
+        if (!users.length) return null;
+        return (
+          <Alert
+            showIcon
+            type="info"
+            title={users.length > 1 ? `并行审批 ${users.length} 人` : '审批人'}
+            description={
+              <Space size={[0, 6]} wrap>
+                {users.map((userId) => (
+                  <Tag key={userId} color="processing">
+                    {organizationMemberName(userId)}
+                  </Tag>
+                ))}
+              </Space>
+            }
+          />
+        );
+      }}
+    </ProFormDependency>
+  );
+};
 
 function formSchemaLabel(schema?: FormSchemaItem, version?: number) {
   if (!schema) return version ? `表单版本 v${version}` : '已绑定表单';
@@ -731,6 +797,7 @@ const StartInstanceFields: React.FC<{
                           }
                         </ProFormDependency>
                       ))}
+                      <StartApprovalSummary fields={fields} />
                     </Flex>
                   );
                 }}

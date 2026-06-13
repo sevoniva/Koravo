@@ -188,6 +188,70 @@ class ProcessInstanceAppServiceTest {
     }
 
     @Test
+    void startOverridesProtectedIdentityAliasFieldsFromTenantOrganizationDirectory() {
+        Map<String, Object> submitted = Map.of(
+                "requester", "伪造发起人",
+                "dept", "伪造部门",
+                "subject", "生产发布",
+                "approvalUsers", List.of("manager-1", "finance-1")
+        );
+        Map<String, Object> trusted = Map.of(
+                "applicant", "真实申请专员",
+                "department", "业务二部",
+                "requester", "真实申请专员",
+                "dept", "业务二部",
+                "subject", "生产发布",
+                "approvalUsers", List.of("manager-1", "finance-1")
+        );
+        StartProcessRequest request = new StartProcessRequest(
+                "generalApproval",
+                "REQ-002",
+                submitted,
+                "form-2",
+                submitted,
+                1
+        );
+        ProcessInstanceDTO instance = new ProcessInstanceDTO("pi-2", "pd-2", "REQ-002", "RUNNING");
+        FormSchemaResponse formSchema = new FormSchemaResponse(
+                "form-2",
+                "general_request",
+                "通用事项表单",
+                1,
+                "{\"type\":\"object\"}",
+                "{}",
+                "ACTIVE",
+                "USER_FLOW"
+        );
+        RequestContextHolder.set("req-2", "127.0.0.1");
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUser("starter", UserContextHolder.ROLE_APPLICANT);
+        when(formSchemaService.get("form-2", 1)).thenReturn(formSchema);
+        when(organizationMemberRepository.findByTenantIdAndUserIdAndDeletedFalse("tenant-a", "starter"))
+                .thenReturn(Optional.of(member("starter", "真实申请专员", "业务二部", UserContextHolder.ROLE_APPLICANT)));
+        when(organizationMemberRepository.findByTenantIdAndUserIdInAndStatusAndDeletedFalse(
+                "tenant-a",
+                List.of("manager-1", "finance-1"),
+                "ACTIVE"
+        )).thenReturn(List.of(
+                member("manager-1", "业务负责人", "业务二部", UserContextHolder.ROLE_MANAGER),
+                member("finance-1", "财务负责人", "财务部", UserContextHolder.ROLE_FINANCE)
+        ));
+        when(processFacade.start(new StartProcessCommand(
+                "tenant-a",
+                "starter",
+                "req-2",
+                "generalApproval",
+                "REQ-002",
+                trusted
+        ))).thenReturn(instance);
+
+        ProcessInstanceDTO result = service.start(request);
+
+        assertThat(result).isEqualTo(instance);
+        verify(formSnapshotService).saveSnapshot("pi-2", null, "form-2", formSchema, trusted);
+    }
+
+    @Test
     void startRejectsApprovalUsersOutsideCurrentTenantDirectory() {
         Map<String, Object> submitted = Map.of(
                 "applicant", "伪造申请人",
