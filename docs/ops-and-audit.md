@@ -31,7 +31,29 @@ The console also reads the operational capability matrix:
 
 - `GET /api/v1/ops/capabilities`
 
-This endpoint separates available runtime controls from reserved boundaries. Instance inspection, tracing, and connector execution logs are marked `AVAILABLE`. Failed task inspection, dead-letter tasks, job retry, and process migration are marked `PLANNED` until the underlying Flowable operations are implemented and audited.
+This endpoint separates available runtime controls from reserved boundaries. Instance inspection, tracing, connector execution logs, failed task inspection, dead-letter handling, and job retry are marked `AVAILABLE`. Process migration remains outside the current console surface.
+
+Failed job controls:
+
+- `GET /api/v1/ops/failed-jobs?page=1&pageSize=20`
+- `GET /api/v1/ops/failed-jobs/{jobId}`
+- `POST /api/v1/ops/failed-jobs/{jobId}/retry`
+- `POST /api/v1/ops/failed-jobs/{jobId}/delete`
+
+Dead-letter job controls:
+
+- `GET /api/v1/ops/dead-letter-jobs?page=1&pageSize=20`
+- `GET /api/v1/ops/dead-letter-jobs/{jobId}`
+- `POST /api/v1/ops/dead-letter-jobs/{jobId}/retry`
+- `POST /api/v1/ops/dead-letter-jobs/{jobId}/delete`
+
+Retry accepts an optional body:
+
+```json
+{
+  "retries": 3
+}
+```
 
 Terminate accepts an optional JSON body:
 
@@ -51,6 +73,10 @@ Ops actions write audit records:
 - `PROCESS_INSTANCE_SUSPEND`
 - `PROCESS_INSTANCE_ACTIVATE`
 - `PROCESS_INSTANCE_TERMINATE`
+- `FAILED_JOB_RETRY`
+- `FAILED_JOB_DELETE`
+- `DEAD_LETTER_JOB_RETRY`
+- `DEAD_LETTER_JOB_DELETE`
 - `CONNECTOR_EXECUTE`
 
 Query audit logs with:
@@ -104,5 +130,5 @@ The console `Audit Logs` page can open a single event to inspect metadata and fo
 
 ## Current Limits
 
-- Failed jobs, dead-letter jobs, retry, and migration APIs are still reserved for the next Ops iteration and surfaced as `PLANNED` capabilities.
+- Process migration APIs are still reserved for a later Ops iteration.
 - Terminated instances are visible through historic process instance queries, but runtime-only actions can only target active runtime instances.
