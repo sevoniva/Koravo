@@ -27,6 +27,7 @@ import { CopyableText } from '@/components/CopyableText';
 import {
   createFormBinding,
   deleteFormBinding,
+  type BpmnTaskDefinition,
   type FormBindingItem,
   type FormSchemaItem,
   listFormBindings,
@@ -58,6 +59,8 @@ interface BindingForm {
 type BindingTableItem = FormBindingItem & {
   processModel?: ProcessModelItem;
   formSchema?: FormSchemaItem;
+  hasStartBinding: boolean;
+  taskDefinitionExists: boolean;
 };
 
 const START_FORM_TASK_KEY = '__START__';
@@ -138,16 +141,95 @@ function formBindingLabel(record: BindingTableItem) {
 }
 
 function bindingTargetLabel(
-  record: Pick<FormBindingItem, 'taskDefinitionKey'>,
+  record: Pick<FormBindingItem, 'taskDefinitionKey'> & {
+    taskDefinitionExists?: boolean;
+  },
 ) {
   if (record.taskDefinitionKey === START_FORM_TASK_KEY) {
     return <Tag color="processing">流程启动</Tag>;
+  }
+  if (record.taskDefinitionExists === false) {
+    return <Tag color="error">{taskDefinitionLabel(record.taskDefinitionKey)}</Tag>;
   }
   return <Tag>{taskDefinitionLabel(record.taskDefinitionKey)}</Tag>;
 }
 
 function bindingModelId(binding: FormBindingItem | BindingForm) {
   return binding.processModelId;
+}
+
+function bindingVersionState(record: BindingTableItem) {
+  if (!record.formSchema) return 'missing';
+  if (record.formSchema.status !== 'ACTIVE') return 'inactive';
+  if (record.formSchemaVersion !== record.formSchema.version) return 'outdated';
+  return 'current';
+}
+
+function renderBindingVersion(record: BindingTableItem) {
+  const state = bindingVersionState(record);
+  if (state === 'missing') {
+    return <Tag color="error">未匹配</Tag>;
+  }
+  if (state === 'inactive') {
+    return (
+      <Flex vertical gap={2}>
+        <Tag>v{record.formSchemaVersion || 1}</Tag>
+        <Typography.Text type="secondary">表单已停用</Typography.Text>
+      </Flex>
+    );
+  }
+  if (state === 'outdated') {
+    return (
+      <Flex vertical gap={2}>
+        <Tag color="warning">v{record.formSchemaVersion || 1}</Tag>
+        <Typography.Text type="secondary">
+          最新 v{record.formSchema?.version || 1}
+        </Typography.Text>
+      </Flex>
+    );
+  }
+  return <Tag color="success">v{record.formSchemaVersion || 1}</Tag>;
+}
+
+function bindingHealth(record: BindingTableItem) {
+  if (!record.processModel) {
+    return { color: 'error', text: '流程失配' };
+  }
+  if (!record.formSchema) {
+    return { color: 'error', text: '表单失配' };
+  }
+  if (
+    record.taskDefinitionKey !== START_FORM_TASK_KEY &&
+    !record.taskDefinitionExists
+  ) {
+    return { color: 'error', text: '节点失配' };
+  }
+  const versionState = bindingVersionState(record);
+  if (versionState === 'outdated') {
+    return { color: 'warning', text: '版本待同步' };
+  }
+  if (versionState === 'inactive') {
+    return { color: 'warning', text: '表单停用' };
+  }
+  if (!record.hasStartBinding) {
+    return { color: 'warning', text: '缺启动表单' };
+  }
+  if (record.processModel.status === 'ARCHIVED') {
+    return { color: 'default', text: '流程归档' };
+  }
+  if (record.processModel.status === 'DISABLED') {
+    return { color: 'default', text: '流程停用' };
+  }
+  return { color: 'success', text: '已就绪' };
+}
+
+function renderBindingHealth(record: BindingTableItem) {
+  const health = bindingHealth(record);
+  return <Tag color={health.color}>{health.text}</Tag>;
+}
+
+function canStartFromBinding(record: BindingTableItem) {
+  return record.processModel?.status === 'DEPLOYED' && record.hasStartBinding;
 }
 
 const BindingFormItems: React.FC<{
@@ -382,19 +464,26 @@ const FormBindings: React.FC = () => {
     {
       title: '表单版本',
       dataIndex: 'formSchemaVersion',
-      width: 100,
+      width: 130,
       search: false,
-      renderText: (value) => `v${value || 1}`,
+      render: (_, record) => renderBindingVersion(record),
+    },
+    {
+      title: '配置状态',
+      key: 'bindingHealth',
+      width: 120,
+      search: false,
+      render: (_, record) => renderBindingHealth(record),
     },
     {
       title: '操作',
       valueType: 'option',
-      width: 210,
+      width: 240,
       render: (_, record) => [
         <Button
           key="start"
           type="link"
-          disabled={record.processModel?.status !== 'DEPLOYED'}
+          disabled={!canStartFromBinding(record)}
           onClick={() =>
             history.push(
               record.processModelId
@@ -407,6 +496,18 @@ const FormBindings: React.FC = () => {
         </Button>,
         <Button key="edit" type="link" onClick={() => setEditing(record)}>
           编辑
+        </Button>,
+        <Button
+          key="model"
+          type="link"
+          disabled={!record.processModelId}
+          onClick={() =>
+            record.processModelId
+              ? history.push(`/process-designer?modelId=${record.processModelId}`)
+              : undefined
+          }
+        >
+          查看模型
         </Button>,
         <Button
           key="delete"
@@ -465,7 +566,7 @@ const FormBindings: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 1000 }}
+        scroll={{ x: 1160 }}
         params={{
           processModelId: queryProcessModelId,
           formSchemaId: queryFormSchemaId,
@@ -480,18 +581,47 @@ const FormBindings: React.FC = () => {
             listProcessModels(),
             listFormSchemas(),
           ]);
-          const modelMap = new Map(models.map((item) => [item.id, item]));
+          const businessModels = models.filter(isBusinessProcessModel);
+          const taskEntries = await Promise.all(
+            businessModels.map(async (model) => {
+              const tasks = await listProcessModelTaskDefinitions(model.id).catch(
+                () => [] as BpmnTaskDefinition[],
+              );
+              return [model.id, tasks] as const;
+            }),
+          );
+          const modelMap = new Map(businessModels.map((item) => [item.id, item]));
           const schemaMap = new Map(schemas.map((item) => [item.id, item]));
+          const taskMap = new Map(taskEntries);
+          const startBindingModelIds = new Set(
+            bindings
+              .filter((item) => item.taskDefinitionKey === START_FORM_TASK_KEY)
+              .map((item) => item.processModelId)
+              .filter(Boolean),
+          );
           const keyword = String(
             params.processModelId || params.taskDefinitionKey || '',
           ).trim();
-          const data = bindings.map((item) => ({
-            ...item,
-            processModel: item.processModelId
-              ? modelMap.get(item.processModelId)
-              : undefined,
-            formSchema: schemaMap.get(item.formSchemaId),
-          }));
+          const data = bindings.map((item) => {
+            const tasks = item.processModelId
+              ? taskMap.get(item.processModelId) || []
+              : [];
+            return {
+              ...item,
+              processModel: item.processModelId
+                ? modelMap.get(item.processModelId)
+                : undefined,
+              formSchema: schemaMap.get(item.formSchemaId),
+              hasStartBinding: item.processModelId
+                ? startBindingModelIds.has(item.processModelId)
+                : false,
+              taskDefinitionExists:
+                item.taskDefinitionKey === START_FORM_TASK_KEY ||
+                tasks.some(
+                  (task) => task.taskDefinitionKey === item.taskDefinitionKey,
+                ),
+            };
+          });
           const businessData = data.filter((item) =>
             isBusinessProcessModel(item.processModel),
           );

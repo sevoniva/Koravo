@@ -37,11 +37,11 @@ import {
   type BpmnTaskDefinition,
   type BpmnValidationResult,
   createProcessModel,
-  deployProcessModel,
   deployProcessModelDraft,
   disableProcessModel,
   exportProcessModel,
   type FormBindingItem,
+  importProcessModel,
   listFormBindings,
   listProcessModels,
   listProcessModelTaskDefinitions,
@@ -74,6 +74,7 @@ interface ImportProcessModelForm {
 }
 
 type ModelViewMode = 'business' | 'all';
+type ModelNextAction = 'design' | 'bind' | 'deploy' | 'start' | 'none';
 interface ModelReadiness {
   hasStartBinding: boolean;
   taskCount: number;
@@ -84,6 +85,9 @@ interface ModelReadiness {
   canStart: boolean;
   statusText: string;
   description: string;
+  nextAction: ModelNextAction;
+  nextActionText: string;
+  nextActionDescription: string;
 }
 type ProcessModelTableItem = ProcessModelItem & {
   formBindingCount: number;
@@ -127,6 +131,65 @@ function extractVariableExpressions(bpmnXml?: string) {
     .slice(0, 8);
 }
 
+function resolveModelNextAction(
+  record: ProcessModelItem,
+  hasStartBinding: boolean,
+  missingTaskKeys: string[],
+  deployReady: boolean,
+  canStart: boolean,
+): Pick<
+  ModelReadiness,
+  'nextAction' | 'nextActionText' | 'nextActionDescription'
+> {
+  if (record.status === 'ARCHIVED') {
+    return {
+      nextAction: 'none',
+      nextActionText: '已归档',
+      nextActionDescription: '不可发起',
+    };
+  }
+  if (record.status === 'DISABLED') {
+    return {
+      nextAction: 'none',
+      nextActionText: '已停用',
+      nextActionDescription: '恢复后可用',
+    };
+  }
+  if (!hasStartBinding) {
+    return {
+      nextAction: 'bind',
+      nextActionText: '绑定启动表单',
+      nextActionDescription: '发起前必需',
+    };
+  }
+  if (missingTaskKeys.length > 0) {
+    return {
+      nextAction: 'bind',
+      nextActionText: '绑定任务表单',
+      nextActionDescription: `剩 ${missingTaskKeys.length} 个节点`,
+    };
+  }
+  if (canStart) {
+    return {
+      nextAction: 'start',
+      nextActionText: '发起流程',
+      nextActionDescription: '配置已就绪',
+    };
+  }
+  if (deployReady) {
+    return {
+      nextAction: 'deploy',
+      nextActionText: '校验部署',
+      nextActionDescription: '发布后可发起',
+    };
+  }
+  return {
+    nextAction: 'design',
+    nextActionText: '完善设计',
+    nextActionDescription: '保存后再校验',
+  };
+}
+
 function buildModelReadiness(
   record: ProcessModelItem,
   bindings: FormBindingItem[],
@@ -151,6 +214,13 @@ function buildModelReadiness(
   const canStart = record.status === 'DEPLOYED' && deployReady;
   let statusText = '待配置';
   let description = hasStartBinding ? '补齐任务表单后可发起' : '先绑定启动表单';
+  const nextAction = resolveModelNextAction(
+    record,
+    hasStartBinding,
+    missingTaskKeys,
+    deployReady,
+    canStart,
+  );
 
   if (record.status === 'ARCHIVED') {
     statusText = '已归档';
@@ -178,6 +248,7 @@ function buildModelReadiness(
     canStart,
     statusText,
     description,
+    ...nextAction,
   };
 }
 
@@ -246,11 +317,14 @@ const ProcessModels: React.FC = () => {
       message.error('请选择流程文件');
       return false;
     }
-    const deployment = await deployProcessModel(values.modelName, file);
-    message.success('已导入并部署');
+    const model = await importProcessModel({
+      modelName: values.modelName,
+      bpmnXml: await file.text(),
+    });
+    message.success('已导入草稿');
     setImportOpen(false);
     actionRef.current?.reload();
-    history.push(`/process-designer?modelId=${deployment.platformModelId}`);
+    history.push(`/process-designer?modelId=${model.id}`);
     return true;
   };
 
@@ -303,8 +377,8 @@ const ProcessModels: React.FC = () => {
           title={releaseReady ? '发布检查通过' : '发布检查未通过'}
           description={
             releaseReady
-              ? '该流程已具备发布和发起所需的基础配置。'
-              : '请处理未通过项后再部署，避免实例发起后卡在缺表单或缺办理人的节点。'
+              ? '可部署。'
+              : '补齐未通过项后再部署。'
           }
         />
         {renderCheckItem(
@@ -368,6 +442,35 @@ const ProcessModels: React.FC = () => {
       return;
     }
     modal.warning(options);
+  };
+
+  const deployDraft = async (record: ProcessModelTableItem) => {
+    const validation = await validateProcessModel(record.id);
+    if (!validation.valid || !record.readiness.deployReady) {
+      showReleaseCheck(record, validation);
+      return;
+    }
+    const result = await deployProcessModelDraft(record.id);
+    showDeploySuccess(result.model);
+    actionRef.current?.reload();
+  };
+
+  const openNextStep = async (record: ProcessModelTableItem) => {
+    if (record.readiness.nextAction === 'design') {
+      history.push(`/process-designer?modelId=${record.id}`);
+      return;
+    }
+    if (record.readiness.nextAction === 'bind') {
+      history.push(`/form-bindings?processModelId=${record.id}`);
+      return;
+    }
+    if (record.readiness.nextAction === 'deploy') {
+      await deployDraft(record);
+      return;
+    }
+    if (record.readiness.nextAction === 'start') {
+      history.push(`/process-start?processModelId=${record.id}`);
+    }
   };
 
   const columns: ProColumns<ProcessModelTableItem>[] = [
@@ -443,6 +546,29 @@ const ProcessModels: React.FC = () => {
       render: (_, record) => renderConfigurationStatus(record),
     },
     {
+      title: '下一步',
+      key: 'nextAction',
+      width: 150,
+      search: false,
+      render: (_, record) => (
+        <Flex vertical gap={4}>
+          <Button
+            size="small"
+            type={record.readiness.nextAction === 'start' ? 'primary' : 'default'}
+            disabled={record.readiness.nextAction === 'none'}
+            onClick={() => {
+              void openNextStep(record);
+            }}
+          >
+            {record.readiness.nextActionText}
+          </Button>
+          <Typography.Text type="secondary">
+            {record.readiness.nextActionDescription}
+          </Typography.Text>
+        </Flex>
+      ),
+    },
+    {
       title: '运行版本',
       dataIndex: 'flowableDefinitionId',
       width: 220,
@@ -496,15 +622,8 @@ const ProcessModels: React.FC = () => {
           <Button
             type="link"
             disabled={record.status !== 'DRAFT'}
-            onClick={async () => {
-              const validation = await validateProcessModel(record.id);
-              if (!validation.valid || !record.readiness.deployReady) {
-                showReleaseCheck(record, validation);
-                return;
-              }
-              const result = await deployProcessModelDraft(record.id);
-              showDeploySuccess(result.model);
-              actionRef.current?.reload();
+            onClick={() => {
+              void deployDraft(record);
             }}
           >
             部署
@@ -588,7 +707,7 @@ const ProcessModels: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 1280 }}
+        scroll={{ x: 1440 }}
         params={{ viewMode }}
         request={async (params) => {
           const [models, bindings] = await Promise.all([
@@ -738,7 +857,7 @@ const ProcessModels: React.FC = () => {
         <Alert
           showIcon
           type="info"
-          title="导入后立即部署"
+          title="导入为草稿"
           style={{ marginBottom: 16 }}
         />
         <ProFormText
