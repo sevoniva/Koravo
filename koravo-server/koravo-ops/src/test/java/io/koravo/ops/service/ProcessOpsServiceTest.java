@@ -38,7 +38,8 @@ class ProcessOpsServiceTest {
                         InstanceQueryCommand::pageSize,
                         InstanceQueryCommand::keyword,
                         InstanceQueryCommand::status,
-                        InstanceQueryCommand::excludedProcessDefinitionKeys
+                        InstanceQueryCommand::excludedProcessDefinitionKeys,
+                        InstanceQueryCommand::excludedBusinessKeyPatterns
                 )
                 .containsExactly("default", 2, 15, "PO-1001", "COMPLETED", java.util.Set.of(
                         "multiAcceptance",
@@ -47,6 +48,14 @@ class ProcessOpsServiceTest {
                         "httpConnectorDemo",
                         "designerDeployCheck",
                         "koravoProcess%"
+                ), java.util.Set.of(
+                        "PO-%",
+                        "EA-%",
+                        "TRACE-%",
+                        "SECURITY-CHECK-%",
+                        "COMPLETE-%",
+                        "HTTP-%",
+                        "REQ-CODEX-%"
                 ));
     }
 

@@ -8,18 +8,35 @@ public record InstanceQueryCommand(
         int pageSize,
         String keyword,
         String status,
-        Set<String> excludedProcessDefinitionKeys
+        Set<String> excludedProcessDefinitionKeys,
+        Set<String> excludedBusinessKeyPatterns
 ) {
     public InstanceQueryCommand {
-        excludedProcessDefinitionKeys = excludedProcessDefinitionKeys == null ? Set.of() : Set.copyOf(excludedProcessDefinitionKeys);
+        excludedProcessDefinitionKeys = excludedProcessDefinitionKeys == null
+                ? Set.of()
+                : Set.copyOf(excludedProcessDefinitionKeys);
+        excludedBusinessKeyPatterns = excludedBusinessKeyPatterns == null
+                ? Set.of()
+                : Set.copyOf(excludedBusinessKeyPatterns);
+    }
+
+    public InstanceQueryCommand(
+            String tenantId,
+            int page,
+            int pageSize,
+            String keyword,
+            String status,
+            Set<String> excludedProcessDefinitionKeys
+    ) {
+        this(tenantId, page, pageSize, keyword, status, excludedProcessDefinitionKeys, Set.of());
     }
 
     public InstanceQueryCommand(String tenantId, int page, int pageSize, String keyword, String status) {
-        this(tenantId, page, pageSize, keyword, status, Set.of());
+        this(tenantId, page, pageSize, keyword, status, Set.of(), Set.of());
     }
 
     public InstanceQueryCommand(String tenantId, int page, int pageSize) {
-        this(tenantId, page, pageSize, null, null, Set.of());
+        this(tenantId, page, pageSize, null, null, Set.of(), Set.of());
     }
 
     public int offset() {
@@ -40,5 +57,9 @@ public record InstanceQueryCommand(
 
     public boolean hasExcludedProcessDefinitionKeys() {
         return excludedProcessDefinitionKeys != null && !excludedProcessDefinitionKeys.isEmpty();
+    }
+
+    public boolean hasExcludedBusinessKeyPatterns() {
+        return excludedBusinessKeyPatterns != null && !excludedBusinessKeyPatterns.isEmpty();
     }
 }

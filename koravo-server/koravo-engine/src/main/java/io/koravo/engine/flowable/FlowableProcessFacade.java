@@ -756,6 +756,7 @@ public class FlowableProcessFacade implements ProcessFacade {
     private boolean matchesInstanceQuery(ProcessInstanceDetailDTO instance, InstanceQueryCommand command) {
         return matchesStatus(instance.status(), command)
                 && !matchesExcludedProcessDefinition(instance.processDefinitionId(), command)
+                && !matchesExcludedBusinessKey(instance.businessKey(), command)
                 && matchesKeyword(command, instance.businessKey(), instance.instanceId(), instance.processDefinitionId(), instance.startUserId());
     }
 
@@ -779,6 +780,28 @@ public class FlowableProcessFacade implements ProcessFacade {
             return processDefinitionId.startsWith(value.substring(0, value.length() - 1));
         }
         return processDefinitionId.equals(value) || processDefinitionId.startsWith(value + ":");
+    }
+
+    private boolean matchesExcludedBusinessKey(String businessKey, InstanceQueryCommand command) {
+        if (!command.hasExcludedBusinessKeyPatterns()) {
+            return false;
+        }
+        if (businessKey == null || businessKey.isBlank()) {
+            return false;
+        }
+        return command.excludedBusinessKeyPatterns().stream()
+                .anyMatch(pattern -> matchesExcludedBusinessKeyPattern(businessKey, pattern));
+    }
+
+    private boolean matchesExcludedBusinessKeyPattern(String businessKey, String pattern) {
+        if (pattern == null || pattern.isBlank()) {
+            return false;
+        }
+        String value = pattern.trim();
+        if (value.endsWith("%") || value.endsWith("*")) {
+            return businessKey.startsWith(value.substring(0, value.length() - 1));
+        }
+        return businessKey.equals(value);
     }
 
     private boolean matchesStatus(String status, TaskQueryCommand command) {

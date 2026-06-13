@@ -261,6 +261,40 @@ class FlowableProcessFacadeTest {
     }
 
     @Test
+    void listInstancesExcludesBusinessKeyPatternsBeforePaging() {
+        HistoricProcessInstanceQuery instanceQuery = mock(HistoricProcessInstanceQuery.class, RETURNS_SELF);
+        ProcessInstanceQuery runtimeQuery = mock(ProcessInstanceQuery.class, RETURNS_SELF);
+        ProcessInstance runtimeInstance = mock(ProcessInstance.class);
+        TaskQuery taskQuery = mock(TaskQuery.class, RETURNS_SELF);
+        HistoricProcessInstance enterpriseCheck = mockHistoricInstance("pi-1", "collaborativeApproval:2", "EA-RUNTIME-1", "applicant", null);
+        HistoricProcessInstance traceCheck = mockHistoricInstance("pi-2", "collaborativeApproval:2", "TRACE-1", "applicant", null);
+        HistoricProcessInstance userFlow = mockHistoricInstance("pi-3", "collaborativeApproval:2", "COLLABORATIVE-APPROVAL-1", "applicant", null);
+        when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
+        when(instanceQuery.list()).thenReturn(List.of(enterpriseCheck, traceCheck, userFlow));
+        when(runtimeService.createProcessInstanceQuery()).thenReturn(runtimeQuery);
+        when(runtimeQuery.singleResult()).thenReturn(runtimeInstance);
+        when(runtimeInstance.isSuspended()).thenReturn(false);
+        when(taskService.createTaskQuery()).thenReturn(taskQuery);
+        when(taskQuery.list()).thenReturn(List.of());
+
+        var result = facade.listInstances(new InstanceQueryCommand(
+                "default",
+                1,
+                10,
+                null,
+                null,
+                java.util.Set.of(),
+                java.util.Set.of(
+                        "EA-%",
+                        "TRACE-%"
+                )
+        ));
+
+        assertThat(result.total()).isEqualTo(1);
+        assertThat(result.items()).extracting("instanceId").containsExactly("pi-3");
+    }
+
+    @Test
     void getFailedJobReturnsStacktrace() {
         JobQuery query = mock(JobQuery.class, RETURNS_SELF);
         Job job = mockJob("job-1", "FAILED");

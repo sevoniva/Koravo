@@ -26,6 +26,15 @@ public class ProcessOpsService {
             "designerDeployCheck",
             "koravoProcess%"
     );
+    private static final Set<String> HIDDEN_BUSINESS_KEY_PATTERNS = Set.of(
+            "PO-%",
+            "EA-%",
+            "TRACE-%",
+            "SECURITY-CHECK-%",
+            "COMPLETE-%",
+            "HTTP-%",
+            "REQ-CODEX-%"
+    );
 
     private final ProcessFacade processFacade;
     private final AuditLogService auditLogService;
@@ -36,7 +45,15 @@ public class ProcessOpsService {
     }
 
     public PageResult<ProcessInstanceDetailDTO> listInstances(int page, int pageSize, String keyword, String status) {
-        return processFacade.listInstances(new InstanceQueryCommand(TenantContextHolder.getTenantId(), page, pageSize, keyword, status, HIDDEN_PROCESS_DEFINITION_PATTERNS));
+        return processFacade.listInstances(new InstanceQueryCommand(
+                TenantContextHolder.getTenantId(),
+                page,
+                pageSize,
+                keyword,
+                status,
+                HIDDEN_PROCESS_DEFINITION_PATTERNS,
+                HIDDEN_BUSINESS_KEY_PATTERNS
+        ));
     }
 
     public ProcessInstanceDetailDTO getInstance(String instanceId) {
@@ -67,7 +84,15 @@ public class ProcessOpsService {
         String tenantId = TenantContextHolder.getTenantId();
         long failedJobs = processFacade.countFailedJobs(tenantId);
         long deadLetterJobs = processFacade.countDeadLetterJobs(tenantId);
-        long runningInstances = processFacade.listInstances(new InstanceQueryCommand(tenantId, 1, 1, null, "RUNNING", HIDDEN_PROCESS_DEFINITION_PATTERNS)).total();
+        long runningInstances = processFacade.listInstances(new InstanceQueryCommand(
+                tenantId,
+                1,
+                1,
+                null,
+                "RUNNING",
+                HIDDEN_PROCESS_DEFINITION_PATTERNS,
+                HIDDEN_BUSINESS_KEY_PATTERNS
+        )).total();
         return new OpsSummaryResponse(
                 runningInstances,
                 failedJobs,

@@ -35,6 +35,15 @@ public class DashboardService {
             "designerDeployCheck",
             "koravoProcess%"
     );
+    private static final Set<String> HIDDEN_BUSINESS_KEY_PATTERNS = Set.of(
+            "PO-%",
+            "EA-%",
+            "TRACE-%",
+            "SECURITY-CHECK-%",
+            "COMPLETE-%",
+            "HTTP-%",
+            "REQ-CODEX-%"
+    );
 
     private final ProcessFacade processFacade;
     private final ProcessModelRepository processModelRepository;
@@ -63,7 +72,15 @@ public class DashboardService {
         String tenantId = TenantContextHolder.getTenantId();
         String userId = UserContextHolder.getUserId();
         ConnectorExecutionSummaryResponse connectorSummary = connectorLogQueryService.summary("http");
-        long runningInstances = processFacade.listInstances(new InstanceQueryCommand(tenantId, 1, 1, null, "RUNNING", HIDDEN_PROCESS_DEFINITION_PATTERNS)).total();
+        long runningInstances = processFacade.listInstances(new InstanceQueryCommand(
+                tenantId,
+                1,
+                1,
+                null,
+                "RUNNING",
+                HIDDEN_PROCESS_DEFINITION_PATTERNS,
+                HIDDEN_BUSINESS_KEY_PATTERNS
+        )).total();
         return new DashboardSummaryResponse(
                 tenantId,
                 userId,
