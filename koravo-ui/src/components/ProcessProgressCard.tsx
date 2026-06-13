@@ -107,13 +107,22 @@ function nodeLabel(node?: ProcessTraceNode, fallback?: string) {
 }
 
 function currentNodes(trace?: ProcessTrace, currentTasks: TaskItem[] = []) {
-  const currentIds = new Set([
-    ...(trace?.currentActivityIds || []),
-    ...currentTasks.map((task) => task.taskDefinitionKey).filter(Boolean),
-  ]);
+  const currentIds = new Set(progressCurrentActivityIds(trace, currentTasks));
   return (trace?.timeline || []).filter((node) =>
     currentIds.has(node.activityId),
   );
+}
+
+function progressCurrentActivityIds(
+  trace?: ProcessTrace,
+  currentTasks: TaskItem[] = [],
+  activeTask?: TaskItem,
+) {
+  return uniqueText([
+    ...(trace?.currentActivityIds || []),
+    ...currentTasks.map((task) => task.taskDefinitionKey || ''),
+    activeTask?.taskDefinitionKey || '',
+  ]);
 }
 
 function uniqueText(values: string[]) {
@@ -401,7 +410,11 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
       <div className={styles.content}>
         <ProcessDiagramViewer
           bpmnXml={trace?.bpmnXml}
-          currentActivityIds={trace?.currentActivityIds}
+          currentActivityIds={progressCurrentActivityIds(
+            trace,
+            currentTasks,
+            activeTask,
+          )}
           timeline={trace?.timeline}
           height={diagramHeight(trace)}
         />
