@@ -8,10 +8,11 @@ import {
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { history, useLocation } from '@umijs/max';
-import { App, Badge, Button, Drawer, Empty, Space, Tabs, Tag } from 'antd';
+import { App, Button, Drawer, Empty, Space, Tabs, Tag } from 'antd';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import ProcessContextSummary from '@/components/ProcessContextSummary';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
   getProcessTrace,
@@ -79,13 +80,6 @@ function tabFromPath(pathname: string): TaskTabKey {
   return 'todo';
 }
 
-function taskNodeBadge(taskDefinitionKey?: string) {
-  if (!taskDefinitionKey) return '-';
-  return (
-    <Badge status="processing" text={taskDefinitionLabel(taskDefinitionKey)} />
-  );
-}
-
 function taskBusinessObject(
   task: Pick<TaskItem, 'businessKey' | 'processInstanceId'>,
 ) {
@@ -129,10 +123,12 @@ function buildTaskColumns(
       renderText: (value) => processDefinitionLabel(value),
     },
     {
-      title: '当前节点',
+      title: '流程位置',
       dataIndex: 'taskDefinitionKey',
-      width: 140,
-      render: (_, record) => taskNodeBadge(record.taskDefinitionKey),
+      width: 260,
+      render: (_, record) => (
+        <ProcessContextSummary tasks={[record]} activeTask={record} />
+      ),
     },
     {
       title: '处理人',
@@ -231,6 +227,18 @@ function buildInstanceColumns(
       width: 170,
       search: false,
       renderText: (value) => formatDateTime(value),
+    },
+    {
+      title: '流程位置',
+      dataIndex: 'currentTasks',
+      width: 260,
+      search: false,
+      render: (_, record) => (
+        <ProcessContextSummary
+          tasks={record.currentTasks}
+          instanceStatus={record.status}
+        />
+      ),
     },
     {
       title: '状态',
@@ -426,7 +434,7 @@ const Tasks: React.FC = () => {
     <PageContainer title={pageMeta.title}>
       <ProCard
         size="small"
-        title="当前身份"
+        title="工作身份"
         extra={
           <Button size="small" onClick={reloadTables}>
             刷新

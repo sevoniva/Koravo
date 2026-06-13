@@ -21,7 +21,6 @@ import { history, useLocation } from '@umijs/max';
 import {
   Alert,
   App,
-  Badge,
   Button,
   Drawer,
   Dropdown,
@@ -36,6 +35,7 @@ import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
+import ProcessContextSummary from '@/components/ProcessContextSummary';
 import ProcessDiagramViewer from '@/components/ProcessDiagramViewer';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
@@ -287,23 +287,12 @@ const ProcessStartReadiness: React.FC<{
 };
 
 function renderCurrentTasks(record: OpsProcessInstance) {
-  if (!record.currentTasks?.length) {
-    return <Typography.Text type="secondary">无待办</Typography.Text>;
-  }
-
   return (
-    <Space size={[0, 4]} wrap>
-      {record.currentTasks.map((task) => (
-        <Tag key={task.taskId} color="processing">
-          <Badge
-            status="processing"
-            text={`${taskDefinitionLabel(task.taskDefinitionKey)}：${
-              task.assignee ? organizationMemberName(task.assignee) : '未分配'
-            }`}
-          />
-        </Tag>
-      ))}
-    </Space>
+    <ProcessContextSummary
+      tasks={record.currentTasks}
+      instanceStatus={record.status}
+      emptyText="无待办"
+    />
   );
 }
 
@@ -352,7 +341,7 @@ function buildColumns(
       renderText: organizationMemberName,
     },
     {
-      title: '当前任务',
+      title: '流程位置',
       dataIndex: 'currentTasks',
       width: 260,
       search: false,

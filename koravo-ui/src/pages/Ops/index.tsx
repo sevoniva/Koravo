@@ -25,6 +25,7 @@ import {
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import ProcessContextSummary from '@/components/ProcessContextSummary';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
@@ -129,6 +130,19 @@ function buildInstanceColumns(
       dataIndex: 'status',
       width: 110,
       render: (_, record) => <KoravoStatusTag status={record.status} />,
+    },
+    {
+      title: '流程位置',
+      dataIndex: 'currentTasks',
+      width: 260,
+      search: false,
+      render: (_, record) => (
+        <ProcessContextSummary
+          tasks={record.currentTasks}
+          instanceStatus={record.status}
+          emptyText="无待办"
+        />
+      ),
     },
     {
       title: '操作',

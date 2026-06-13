@@ -956,20 +956,20 @@ const TaskDetail: React.FC = () => {
       }
     >
       {contextHolder}
-      {task && instance?.currentTasks
-        ? renderParallelTasks(task, instance.currentTasks, openTaskAsAssignee)
-        : null}
-      <TaskHandlingContext
-        task={task}
-        hasForm={Boolean(data?.formSchema)}
-        logs={data?.auditLogs}
-      />
       <ProcessProgressCard
         trace={trace}
         currentTasks={instance?.currentTasks || (task ? [task] : [])}
         activeTask={task}
         loading={traceLoading}
       />
+      <TaskHandlingContext
+        task={task}
+        hasForm={Boolean(data?.formSchema)}
+        logs={data?.auditLogs}
+      />
+      {task && instance?.currentTasks
+        ? renderParallelTasks(task, instance.currentTasks, openTaskAsAssignee)
+        : null}
       <ProCard title="业务数据" style={{ marginBottom: 16 }}>
         <BusinessDataDescriptions
           schemaJson={data?.formSchema?.schemaJson}
