@@ -264,6 +264,8 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   id: '编号',
   code: '结果编码',
   data: '业务数据',
+  variables: '业务数据',
+  workflowVariables: '业务数据',
   message: '结果说明',
   requestId: '业务追踪号',
   tenantId: '组织',

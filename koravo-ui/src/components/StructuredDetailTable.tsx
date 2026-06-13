@@ -154,6 +154,52 @@ function isRoleListField(rowKey: string) {
   return field === 'candidateGroups' || field === 'roles';
 }
 
+function isInternalDetailField(rowKey: string) {
+  const field = rowKey.split('.').pop() || '';
+  return (
+    [
+      'approvalUser',
+      'approvalUserId',
+      'approvalUserName',
+      'nrOfInstances',
+      'nrOfActiveInstances',
+      'nrOfCompletedInstances',
+      'nrOfTerminatedInstances',
+      'loopCounter',
+    ].includes(field) || /^nrOf[A-Z].*Instances$/.test(field)
+  );
+}
+
+function isDecisionField(rowKey: string) {
+  const field = rowKey.split('.').pop();
+  return ['accepted', 'approved', 'decision', 'decisionText'].includes(
+    field || '',
+  );
+}
+
+function decisionValueText(value: unknown) {
+  if (value === true) return '同意';
+  if (value === false) return '不同意';
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toUpperCase();
+  if (
+    ['APPROVED', 'APPROVE', 'ACCEPTED', 'AGREE', 'YES', 'TRUE'].includes(
+      normalized,
+    )
+  ) {
+    return '同意';
+  }
+  if (
+    ['REJECTED', 'REJECT', 'DENIED', 'DISAGREE', 'NO', 'FALSE'].includes(
+      normalized,
+    )
+  ) {
+    return '不同意';
+  }
+  if (['RETURNED', 'RETURN', 'BACK'].includes(normalized)) return '退回';
+  return undefined;
+}
+
 function roleGroupLabel(value: string) {
   const match = /^role[-_]?(\d+)$/i.exec(value);
   if (match) return `审批角色 ${Number(match[1])}`;
@@ -192,6 +238,9 @@ function domainText(rowKey: string, value: unknown) {
 }
 
 function valueToText(value: unknown, rowKey = ''): string {
+  if (isDecisionField(rowKey)) {
+    return decisionValueText(value) || productCopy(String(value));
+  }
   const domainValue = domainText(rowKey, value);
   if (domainValue) return domainValue;
   if (value === undefined || value === null || value === '') return '-';
@@ -261,6 +310,10 @@ function isLongText(value: string) {
 
 function formatValue(value: unknown, rowKey = ''): React.ReactNode {
   if (value === undefined || value === null || value === '') return '-';
+  if (isDecisionField(rowKey)) {
+    const text = decisionValueText(value) || valueToText(value, rowKey);
+    return <Tag color={text === '同意' ? 'success' : 'default'}>{text}</Tag>;
+  }
   if (typeof value === 'boolean') {
     return <Tag color={value ? 'success' : 'error'}>{value ? '是' : '否'}</Tag>;
   }
@@ -326,6 +379,7 @@ function buildRows(value: unknown, parentKey?: string): DetailRow[] {
   return Object.entries(value as Record<string, unknown>).flatMap(
     ([key, item]) => {
       const rowKey = parentKey ? `${parentKey}.${key}` : key;
+      if (isInternalDetailField(rowKey)) return [];
       if (item && typeof item === 'object' && !Array.isArray(item)) {
         return buildRows(item, rowKey);
       }

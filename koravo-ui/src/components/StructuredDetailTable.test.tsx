@@ -63,4 +63,32 @@ describe('StructuredDetailTable', () => {
     expect(screen.queryByText('plain-password')).not.toBeInTheDocument();
     expect(screen.queryByText('role-01')).not.toBeInTheDocument();
   });
+
+  it('hides workflow engine variables in nested detail records', async () => {
+    render(
+      <StructuredDetailTable
+        value={{
+          variables: {
+            subject: '通用业务申请验收',
+            decision: 'APPROVED',
+            approvalUser: 'finance',
+            nrOfInstances: 2,
+            nrOfActiveInstances: 0,
+            nrOfCompletedInstances: 2,
+            loopCounter: 1,
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByText('业务数据 / 事项名称')).toBeInTheDocument();
+    expect(screen.getByText('通用业务申请验收')).toBeInTheDocument();
+    expect(screen.getByText('业务数据 / 处理结论')).toBeInTheDocument();
+    expect(screen.getByText('同意')).toBeInTheDocument();
+    expect(screen.queryByText('APPROVED')).not.toBeInTheDocument();
+    expect(screen.queryByText(/approvalUser/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/nrOfInstances/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/loopCounter/)).not.toBeInTheDocument();
+    expect(screen.queryByText('复核专员')).not.toBeInTheDocument();
+  });
 });
