@@ -4,6 +4,8 @@ import io.koravo.common.model.AssetOrigin;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.DeployProcessCommand;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
+import io.koravo.form.domain.KoFormBinding;
+import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
 import io.koravo.model.dto.ProcessModelUpdateRequest;
@@ -38,9 +40,16 @@ import static org.mockito.Mockito.when;
 class ProcessModelServiceTest {
     private final ProcessFacade processFacade = mock(ProcessFacade.class);
     private final ProcessModelRepository repository = mock(ProcessModelRepository.class);
+    private final FormBindingRepository formBindingRepository = mock(FormBindingRepository.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
     private final BpmnValidationService validationService = mock(BpmnValidationService.class);
-    private final ProcessModelService service = new ProcessModelService(processFacade, repository, auditLogService, validationService);
+    private final ProcessModelService service = new ProcessModelService(
+            processFacade,
+            repository,
+            formBindingRepository,
+            auditLogService,
+            validationService
+    );
 
     @AfterEach
     void tearDown() {
@@ -149,6 +158,7 @@ class ProcessModelServiceTest {
         ProcessModelService realValidationService = new ProcessModelService(
                 processFacade,
                 repository,
+                formBindingRepository,
                 auditLogService,
                 new BpmnValidationService()
         );
@@ -318,6 +328,79 @@ class ProcessModelServiceTest {
     }
 
     @Test
+    void deployDraftRequiresStartFormBinding() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = model("model-1", ProcessModelStatus.DRAFT);
+        model.setBpmnXml(validApprovalBpmn());
+        when(repository.findByIdAndTenantIdAndDeletedFalse("model-1", "default")).thenReturn(Optional.of(model));
+        when(validationService.validate(model.getBpmnXml())).thenReturn(new BpmnValidationResult(true, List.of(), List.of()));
+        when(formBindingRepository.findByTenantIdAndProcessModelIdAndDeletedFalseOrderByUpdatedAtDesc("default", "model-1"))
+                .thenReturn(List.of(taskBinding("approveTask")));
+
+        assertThatThrownBy(() -> service.deploy("model-1"))
+                .hasMessageContaining("缺少启动表单绑定");
+
+        verify(processFacade, never()).deploy(any(DeployProcessCommand.class));
+    }
+
+    @Test
+    void deployDraftRequiresTaskFormBindings() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = model("model-1", ProcessModelStatus.DRAFT);
+        model.setBpmnXml(validApprovalBpmn());
+        when(repository.findByIdAndTenantIdAndDeletedFalse("model-1", "default")).thenReturn(Optional.of(model));
+        when(validationService.validate(model.getBpmnXml())).thenReturn(new BpmnValidationResult(true, List.of(), List.of()));
+        when(formBindingRepository.findByTenantIdAndProcessModelIdAndDeletedFalseOrderByUpdatedAtDesc("default", "model-1"))
+                .thenReturn(List.of(startBinding()));
+
+        assertThatThrownBy(() -> service.deploy("model-1"))
+                .hasMessageContaining("缺少任务表单绑定 审批");
+
+        verify(processFacade, never()).deploy(any(DeployProcessCommand.class));
+    }
+
+    @Test
+    void deployDraftRunsWhenReleaseBindingsAreReady() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = model("model-1", ProcessModelStatus.DRAFT);
+        model.setBpmnXml(validApprovalBpmn());
+        ProcessDeploymentDTO deployment = new ProcessDeploymentDTO(
+                null,
+                "dep-1",
+                "pd-1",
+                "leaveApproval",
+                2
+        );
+        when(repository.findByIdAndTenantIdAndDeletedFalse("model-1", "default")).thenReturn(Optional.of(model));
+        when(validationService.validate(model.getBpmnXml())).thenReturn(new BpmnValidationResult(true, List.of(), List.of()));
+        when(formBindingRepository.findByTenantIdAndProcessModelIdAndDeletedFalseOrderByUpdatedAtDesc("default", "model-1"))
+                .thenReturn(List.of(startBinding(), taskBinding("approveTask")));
+        when(processFacade.deploy(new DeployProcessCommand(
+                "default",
+                "admin",
+                "leaveApproval",
+                "Leave Approval",
+                "leaveApproval.bpmn20.xml",
+                model.getBpmnXml()
+        ))).thenReturn(deployment);
+        when(repository.save(any(KoProcessModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = service.deploy("model-1");
+
+        assertThat(response.model().status()).isEqualTo("DEPLOYED");
+        assertThat(response.model().flowableDefinitionId()).isEqualTo("pd-1");
+        verify(repository).save(model);
+        verify(auditLogService).record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "model-1", Map.of(
+                "deploymentId", "dep-1",
+                "processDefinitionId", "pd-1",
+                "processDefinitionKey", "leaveApproval"
+        ));
+    }
+
+    @Test
     void exportReturnsBpmnXmlWithModelKeyFileName() {
         TenantContextHolder.setTenantId("default");
         KoProcessModel model = model("model-1", ProcessModelStatus.DRAFT);
@@ -359,6 +442,39 @@ class ProcessModelServiceTest {
         model.setStatus(status);
         model.setBpmnXml("<definitions />");
         return model;
+    }
+
+    private KoFormBinding startBinding() {
+        return binding("__START__");
+    }
+
+    private KoFormBinding taskBinding(String taskDefinitionKey) {
+        return binding(taskDefinitionKey);
+    }
+
+    private KoFormBinding binding(String taskDefinitionKey) {
+        KoFormBinding binding = new KoFormBinding();
+        binding.setId("binding-" + taskDefinitionKey);
+        binding.setTenantId("default");
+        binding.setProcessModelId("model-1");
+        binding.setTaskDefinitionKey(taskDefinitionKey);
+        binding.setFormSchemaId("form-1");
+        binding.setFormSchemaVersion(1);
+        return binding;
+    }
+
+    private String validApprovalBpmn() {
+        return """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                             xmlns:flowable="http://flowable.org/bpmn">
+                  <process id="leaveApproval" isExecutable="true">
+                    <startEvent id="start" />
+                    <userTask id="approveTask" name="审批" flowable:assignee="${approver}" />
+                    <endEvent id="end" />
+                  </process>
+                </definitions>
+                """;
     }
 
     private static String readEnterpriseApprovalBpmn() {

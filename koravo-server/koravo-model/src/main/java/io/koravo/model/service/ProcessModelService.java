@@ -6,6 +6,8 @@ import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
 import io.koravo.common.model.AssetOrigin;
+import io.koravo.form.domain.KoFormBinding;
+import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.model.dto.ProcessModelCreateRequest;
 import io.koravo.model.dto.ProcessModelDeployResponse;
 import io.koravo.model.dto.ProcessModelExportResponse;
@@ -40,6 +42,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 @Service
 public class ProcessModelService {
+    private static final String START_FORM_TASK_KEY = "__START__";
     private static final List<AssetOrigin> PRODUCTION_ASSET_ORIGINS = List.of(
             AssetOrigin.SYSTEM_TEMPLATE,
             AssetOrigin.USER_FLOW
@@ -47,17 +50,20 @@ public class ProcessModelService {
 
     private final ProcessFacade processFacade;
     private final ProcessModelRepository repository;
+    private final FormBindingRepository formBindingRepository;
     private final AuditLogService auditLogService;
     private final BpmnValidationService validationService;
 
     public ProcessModelService(
             ProcessFacade processFacade,
             ProcessModelRepository repository,
+            FormBindingRepository formBindingRepository,
             AuditLogService auditLogService,
             BpmnValidationService validationService
     ) {
         this.processFacade = processFacade;
         this.repository = repository;
+        this.formBindingRepository = formBindingRepository;
         this.auditLogService = auditLogService;
         this.validationService = validationService;
     }
@@ -142,6 +148,7 @@ public class ProcessModelService {
         if (!validation.valid()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "BPMN model has validation errors");
         }
+        assertReleaseReady(model);
 
         ProcessDeploymentDTO deployment = processFacade.deploy(new DeployProcessCommand(
                 model.getTenantId(),
@@ -239,6 +246,40 @@ public class ProcessModelService {
     @Transactional(readOnly = true)
     public List<BpmnTaskDefinitionResponse> taskDefinitions(String id) {
         KoProcessModel model = find(id);
+        return parseTaskDefinitions(model.getBpmnXml());
+    }
+
+    private void assertReleaseReady(KoProcessModel model) {
+        List<KoFormBinding> bindings = formBindingRepository
+                .findByTenantIdAndProcessModelIdAndDeletedFalseOrderByUpdatedAtDesc(
+                        model.getTenantId(),
+                        model.getId()
+                );
+        boolean hasStartBinding = bindings.stream()
+                .anyMatch(binding -> START_FORM_TASK_KEY.equals(binding.getTaskDefinitionKey()));
+        if (!hasStartBinding) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "发布检查未通过：缺少启动表单绑定");
+        }
+
+        List<String> boundTaskKeys = bindings.stream()
+                .map(KoFormBinding::getTaskDefinitionKey)
+                .filter(StringUtils::hasText)
+                .filter(taskKey -> !START_FORM_TASK_KEY.equals(taskKey))
+                .toList();
+        List<String> missingTaskNames = parseTaskDefinitions(model.getBpmnXml())
+                .stream()
+                .filter(task -> !boundTaskKeys.contains(task.taskDefinitionKey()))
+                .map(task -> StringUtils.hasText(task.name()) ? task.name() : task.taskDefinitionKey())
+                .toList();
+        if (!missingTaskNames.isEmpty()) {
+            throw new BusinessException(
+                    ErrorCode.BAD_REQUEST,
+                    "发布检查未通过：缺少任务表单绑定 " + String.join("、", missingTaskNames)
+            );
+        }
+    }
+
+    private List<BpmnTaskDefinitionResponse> parseTaskDefinitions(String bpmnXml) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
@@ -246,7 +287,7 @@ public class ProcessModelService {
             factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
             factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
             NodeList tasks = factory.newDocumentBuilder()
-                    .parse(new InputSource(new StringReader(model.getBpmnXml())))
+                    .parse(new InputSource(new StringReader(bpmnXml)))
                     .getElementsByTagNameNS("*", "userTask");
             java.util.ArrayList<BpmnTaskDefinitionResponse> result = new java.util.ArrayList<>();
             for (int i = 0; i < tasks.getLength(); i++) {
