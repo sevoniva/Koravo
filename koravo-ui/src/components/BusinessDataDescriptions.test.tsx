@@ -107,6 +107,7 @@ describe('BusinessDataDescriptions', () => {
           nrOfActiveInstances: 0,
           nrOfCompletedInstances: 2,
           loopCounter: 1,
+          approvalUser: 'finance',
         }}
       />,
     );
@@ -119,6 +120,7 @@ describe('BusinessDataDescriptions', () => {
     expect(screen.getByText('同意发布')).toBeInTheDocument();
     expect(screen.queryByText(/nrOfInstances/)).not.toBeInTheDocument();
     expect(screen.queryByText(/loopCounter/)).not.toBeInTheDocument();
+    expect(screen.queryByText('复核专员')).not.toBeInTheDocument();
   });
 
   it('hides runtime fields that are not part of business data', () => {
