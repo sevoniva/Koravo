@@ -47,10 +47,10 @@ function isInstanceDone(status?: string) {
 
 function nextActionText(tasks: TaskItem[], instanceStatus?: string) {
   if (!tasks.length) {
-    return isInstanceDone(instanceStatus) ? '无待办' : '等待流转';
+    return isInstanceDone(instanceStatus) ? '无待办' : '待流转';
   }
   if (tasks.some((task) => !task.assignee)) return '待认领';
-  if (tasks.length > 1) return '并行处理中';
+  if (tasks.length > 1) return '并行审批';
   return isCompletedTask(tasks[0]) ? '已处理' : '待处理';
 }
 

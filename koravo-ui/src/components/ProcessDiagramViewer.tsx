@@ -146,7 +146,7 @@ const useStyles = createStyles(({ css, token }) => ({
     top: 12px;
     left: 12px;
     z-index: 1;
-    max-width: min(520px, calc(100% - 164px));
+    max-width: min(420px, calc(100% - 164px));
     padding: 6px 8px;
     background: ${token.colorBgElevated};
     border: 1px solid ${token.colorBorderSecondary};
@@ -158,17 +158,6 @@ const useStyles = createStyles(({ css, token }) => ({
       right: 12px;
       max-width: none;
     }
-  `,
-  diagramLegend: css`
-    position: absolute;
-    bottom: 12px;
-    left: 12px;
-    z-index: 1;
-    padding: 4px 8px;
-    background: ${token.colorBgElevated};
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadiusSM}px;
-    box-shadow: ${token.boxShadowTertiary};
   `,
   generatedFlow: css`
     display: flex;
@@ -508,36 +497,22 @@ const DiagramStatusOverlay: React.FC<{
   const counts = diagramStatusCounts(timeline);
 
   return (
-    <>
-      <div className={styles.diagramStatus}>
-        <Space size={8} wrap>
-          <Badge
-            status={diagramBadgeStatus(current.status)}
-            text={
-              <Typography.Text
-                strong
-                ellipsis={{ tooltip: current.label }}
-                style={{ maxWidth: 260 }}
-              >
-                当前位置：{current.label}
-              </Typography.Text>
-            }
-          />
-          <Tag color="success">已办 {counts.completed}</Tag>
-          {counts.active ? (
-            <Tag color="processing">当前 {counts.active}</Tag>
-          ) : null}
-          <Tag>{counts.total}</Tag>
-        </Space>
-      </div>
-      <div className={styles.diagramLegend}>
-        <Space size={10} wrap>
-          <Badge status="success" text="已办" />
-          <Badge status="processing" text="当前" />
-          <Badge status="default" text="待办" />
-        </Space>
-      </div>
-    </>
+    <div className={styles.diagramStatus}>
+      <Space size={8} wrap>
+        <Badge status={diagramBadgeStatus(current.status)} />
+        <Tag color={counts.active ? 'processing' : 'default'}>当前</Tag>
+        <Typography.Text
+          strong
+          ellipsis={{ tooltip: current.label }}
+          style={{ maxWidth: 220 }}
+        >
+          {current.label}
+        </Typography.Text>
+        <Typography.Text type="secondary">
+          已办 {counts.completed}/{counts.total}
+        </Typography.Text>
+      </Space>
+    </div>
   );
 };
 
@@ -557,7 +532,7 @@ const GeneratedFlow: React.FC<{
   if (!nodes.length) {
     return (
       <Flex align="center" justify="center" style={{ minHeight: height }}>
-        <Empty description="当前实例暂无流程图" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Empty description="暂无流程图" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       </Flex>
     );
   }
@@ -577,19 +552,15 @@ const GeneratedFlow: React.FC<{
           wrap
         >
           <Space size={8}>
-            <Badge
-              status="processing"
-              text={
-                <Typography.Text strong>
-                  当前位置：{generatedCurrentText(nodes, currentIndex)}
-                </Typography.Text>
-              }
-            />
+            <Badge status="processing" />
+            <Tag color="processing">当前</Tag>
+            <Typography.Text strong>
+              {generatedCurrentText(nodes, currentIndex)}
+            </Typography.Text>
           </Space>
-          <Space size={8} wrap>
-            <Tag color="success">已办 {completedCount}</Tag>
-            <Tag>{nodes.length}</Tag>
-          </Space>
+          <Typography.Text type="secondary">
+            已办 {completedCount}/{nodes.length}
+          </Typography.Text>
         </Flex>
         <div className={styles.generatedSteps}>
           <Steps
@@ -755,7 +726,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     }
     return (
       <Flex align="center" justify="center" style={{ minHeight: height }}>
-        <Empty description="当前实例暂无流程图" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Empty description="暂无流程图" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       </Flex>
     );
   }
@@ -789,9 +760,9 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
             onClick={fitDiagram}
           />
         </Tooltip>
-        <Tooltip title="可读比例">
+        <Tooltip title="放大">
           <Button
-            aria-label="可读比例"
+            aria-label="放大"
             disabled={!diagramReady}
             icon={<ZoomInOutlined />}
             size="small"

@@ -278,7 +278,7 @@ function nextStepText(
   if (status === 'COMPLETED') return '无待办';
   if (status === 'TERMINATED') return '已终止';
   if (status === 'SUSPENDED') return '等待恢复';
-  if (!pendingTasks.length) return '等待流转';
+  if (!pendingTasks.length) return '待流转';
   if (activeTask && activeTask.status !== 'COMPLETED') {
     return taskHandlingInstruction({
       task: activeTask,
@@ -379,7 +379,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
     : activeTask
       ? activeTaskOwned
         ? '待你处理'
-        : '当前查看'
+        : '查看中'
       : `待办 ${pendingTasks.length}`;
   const nextStep = nextStepText(trace, pendingTasks, activeTask, currentUserId);
   const timeline = trace?.timeline || [];

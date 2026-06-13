@@ -39,7 +39,7 @@ describe('ProcessContextSummary', () => {
     expect(screen.getByText('多人会签')).toBeInTheDocument();
     expect(screen.getByText('并行 2')).toBeInTheDocument();
     expect(screen.getByText('审批主管、复核专员')).toBeInTheDocument();
-    expect(screen.getByText('并行处理中')).toBeInTheDocument();
+    expect(screen.getByText('并行审批')).toBeInTheDocument();
   });
 
   it('shows claim and finished states without raw ids', () => {
