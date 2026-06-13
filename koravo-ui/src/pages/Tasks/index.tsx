@@ -70,7 +70,7 @@ const taskTabMeta: Record<TaskTabKey, { title: string }> = {
     title: '已办任务',
   },
   started: {
-    title: '我发起的',
+    title: '我的申请',
   },
 };
 
@@ -324,6 +324,9 @@ const Tasks: React.FC = () => {
     queryFn: () => getProcessTrace(previewTarget?.instanceId || ''),
     enabled: Boolean(previewTarget?.instanceId),
   });
+  const canClaimTask =
+    session.permissions?.canClaimTask ??
+    (session.role === 'manager' || session.role === 'finance');
 
   const reloadTables = React.useCallback(() => {
     todoRef.current?.reload();
@@ -489,7 +492,7 @@ const Tasks: React.FC = () => {
                         发起流程
                       </Button>
                       <Button onClick={() => switchTab('started')}>
-                        查看我发起的
+                        查看我的申请
                       </Button>
                     </Space>,
                   ),
@@ -505,42 +508,46 @@ const Tasks: React.FC = () => {
               />
             ),
           },
-          {
-            key: 'candidate',
-            label: '待认领',
-            children: (
-              <ProTable<TaskItem>
-                actionRef={candidateRef}
-                rowKey="taskId"
-                columns={candidateColumns}
-                search={{ labelWidth: 'auto' }}
-                scroll={{ x: 1100 }}
-                locale={{
-                  emptyText: taskEmpty(
-                    '暂无可认领任务',
-                    <Space wrap>
-                      <Button onClick={() => switchTab('todo')}>
-                        查看待办
-                      </Button>
-                      <Button
-                        onClick={() => history.push('/process-instances')}
-                      >
-                        查看流程实例
-                      </Button>
-                    </Space>,
+          ...(canClaimTask
+            ? [
+                {
+                  key: 'candidate',
+                  label: '待认领',
+                  children: (
+                    <ProTable<TaskItem>
+                      actionRef={candidateRef}
+                      rowKey="taskId"
+                      columns={candidateColumns}
+                      search={{ labelWidth: 'auto' }}
+                      scroll={{ x: 1100 }}
+                      locale={{
+                        emptyText: taskEmpty(
+                          '暂无可认领任务',
+                          <Space wrap>
+                            <Button onClick={() => switchTab('todo')}>
+                              查看待办
+                            </Button>
+                            <Button onClick={() => switchTab('done')}>
+                              查看已办
+                            </Button>
+                          </Space>,
+                        ),
+                      }}
+                      request={async (params) => {
+                        const result = await listCandidateTasks(
+                          taskParams(params),
+                        );
+                        return {
+                          data: result.items,
+                          total: result.total,
+                          success: true,
+                        };
+                      }}
+                    />
                   ),
-                }}
-                request={async (params) => {
-                  const result = await listCandidateTasks(taskParams(params));
-                  return {
-                    data: result.items,
-                    total: result.total,
-                    success: true,
-                  };
-                }}
-              />
-            ),
-          },
+                },
+              ]
+            : []),
           {
             key: 'done',
             label: '已办',
@@ -570,7 +577,7 @@ const Tasks: React.FC = () => {
           },
           {
             key: 'started',
-            label: '我发起的',
+            label: '我的申请',
             children: (
               <ProTable<OpsProcessInstance>
                 actionRef={startedRef}
@@ -580,7 +587,7 @@ const Tasks: React.FC = () => {
                 scroll={{ x: 1100 }}
                 locale={{
                   emptyText: taskEmpty(
-                    '暂无你发起的流程',
+                    '暂无申请记录',
                     <Button
                       type="primary"
                       onClick={() => history.push('/process-start')}

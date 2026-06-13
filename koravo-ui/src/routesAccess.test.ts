@@ -23,6 +23,10 @@ describe('route access declarations', () => {
   it('protects configuration and integration leaf routes directly', () => {
     const accessByPath = routeAccessByPath(routes);
 
+    expect(accessByPath.get('/tasks')).toBe('canHandleTask');
+    expect(accessByPath.get('/started-instances')).toBe('canViewOwnWork');
+    expect(accessByPath.get('/process-start')).toBe('canStartProcess');
+    expect(accessByPath.get('/process-instances')).toBe('canOperateSystem');
     expect(accessByPath.get('/process-models')).toBe('canConfigureWorkflow');
     expect(accessByPath.get('/process-designer')).toBe('canConfigureWorkflow');
     expect(accessByPath.get('/forms')).toBe('canConfigureWorkflow');

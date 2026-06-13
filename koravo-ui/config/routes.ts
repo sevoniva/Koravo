@@ -43,7 +43,7 @@ export default [
       },
       {
         path: '/started-instances',
-        name: '我发起的',
+        name: '我的申请',
         icon: 'profile',
         component: './Tasks',
         access: 'canViewOwnWork',

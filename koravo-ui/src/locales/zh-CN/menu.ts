@@ -11,7 +11,7 @@ export default {
   'menu.tasks': '我的待办',
   'menu.task-claims': '待认领',
   'menu.done-tasks': '已办任务',
-  'menu.started-instances': '我发起的',
+  'menu.started-instances': '我的申请',
   'menu.task-detail': '任务详情',
   'menu.forms': '表单管理',
   'menu.form-bindings': '表单绑定',
