@@ -69,6 +69,8 @@ import {
   isWorkflowFieldVisible,
   parseWorkflowFormFields,
   visibleWorkflowFormFields,
+  workflowFieldRules,
+  workflowNumberFieldProps,
   type WorkflowFormField,
 } from '@/utils/workflowForm';
 
@@ -437,9 +439,7 @@ function buildStartVariables(
 }
 
 function startFieldRules(field: StartFormField, messagePrefix = '请输入') {
-  return field.required
-    ? [{ required: true, message: `${messagePrefix}${field.title}` }]
-    : [];
+  return workflowFieldRules(field, messagePrefix);
 }
 
 function renderStartField(field: StartFormField, values?: JsonRecord) {
@@ -522,7 +522,7 @@ function renderStartField(field: StartFormField, values?: JsonRecord) {
         name={name}
         label={field.title}
         placeholder={field.placeholder}
-        fieldProps={{ disabled: readOnly }}
+        fieldProps={{ disabled: readOnly, ...workflowNumberFieldProps(field) }}
         formItemProps={formItemProps}
         rules={startFieldRules(field)}
       />

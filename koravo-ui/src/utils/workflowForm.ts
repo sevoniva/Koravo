@@ -1,3 +1,4 @@
+import type { Rule } from 'antd/es/form';
 import { productCopy } from './display';
 
 export type WorkflowFieldPermission = 'editable' | 'readonly' | 'hidden';
@@ -15,6 +16,11 @@ export interface WorkflowFormField {
   permission: WorkflowFieldPermission;
   visibleWhenField?: string;
   visibleWhenValue?: string;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
 }
 
 interface WorkflowJsonSchemaProperty {
@@ -23,6 +29,11 @@ interface WorkflowJsonSchemaProperty {
   format?: string;
   widget?: string;
   enum?: unknown[];
+  minLength?: unknown;
+  maxLength?: unknown;
+  pattern?: unknown;
+  minimum?: unknown;
+  maximum?: unknown;
   'ui:placeholder'?: string;
   'ui:widget'?: string;
 }
@@ -68,6 +79,15 @@ function normalizeOptions(options?: unknown[]) {
 function normalizedText(value: unknown) {
   if (value === undefined || value === null) return '';
   return String(value).trim();
+}
+
+function finiteNumber(value: unknown) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function matchesVisibleCondition(value: unknown, expected: string) {
@@ -127,6 +147,14 @@ export function parseWorkflowFormFields(
         permission: normalizePermission(uiField?.permission),
         visibleWhenField: visibleWhenField || undefined,
         visibleWhenValue: visibleWhenValue || undefined,
+        minLength: finiteNumber(property.minLength),
+        maxLength: finiteNumber(property.maxLength),
+        pattern:
+          typeof property.pattern === 'string' && property.pattern.trim()
+            ? property.pattern.trim()
+            : undefined,
+        minimum: finiteNumber(property.minimum),
+        maximum: finiteNumber(property.maximum),
       };
     });
 }
@@ -170,4 +198,81 @@ export function filterWorkflowFormValues(
     },
     {},
   );
+}
+
+export function workflowFieldRules(
+  field: {
+    title: string;
+    type: WorkflowFieldType;
+    required?: boolean;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    minimum?: number;
+    maximum?: number;
+  },
+  messagePrefix = '请输入',
+): Rule[] {
+  const rules: Rule[] = [];
+
+  if (field.required) {
+    rules.push({ required: true, message: `${messagePrefix}${field.title}` });
+  }
+
+  if (field.type === 'number') {
+    const minimum = finiteNumber(field.minimum);
+    const maximum = finiteNumber(field.maximum);
+    if (minimum !== undefined || maximum !== undefined) {
+      rules.push({
+        validator: async (_rule, value) => {
+          if (value === undefined || value === null || value === '') return;
+          const numeric = finiteNumber(value);
+          if (numeric === undefined) {
+            throw new Error(`${field.title}必须为数字`);
+          }
+          if (minimum !== undefined && numeric < minimum) {
+            throw new Error(`${field.title}不能小于 ${minimum}`);
+          }
+          if (maximum !== undefined && numeric > maximum) {
+            throw new Error(`${field.title}不能大于 ${maximum}`);
+          }
+        },
+      });
+    }
+    return rules;
+  }
+
+  if (field.minLength !== undefined) {
+    rules.push({
+      min: field.minLength,
+      message: `${field.title}至少 ${field.minLength} 个字符`,
+    });
+  }
+  if (field.maxLength !== undefined) {
+    rules.push({
+      max: field.maxLength,
+      message: `${field.title}最多 ${field.maxLength} 个字符`,
+    });
+  }
+  if (field.pattern?.trim()) {
+    try {
+      rules.push({
+        pattern: new RegExp(field.pattern.trim()),
+        message: `${field.title}格式不正确`,
+      });
+    } catch {
+      // 历史表单可能保存过无效正则，运行态不阻断页面渲染。
+    }
+  }
+
+  return rules;
+}
+
+export function workflowNumberFieldProps(
+  field: Pick<WorkflowFormField, 'minimum' | 'maximum'>,
+) {
+  return {
+    ...(field.minimum !== undefined ? { min: field.minimum } : {}),
+    ...(field.maximum !== undefined ? { max: field.maximum } : {}),
+  };
 }

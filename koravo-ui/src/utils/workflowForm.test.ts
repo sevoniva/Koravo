@@ -4,6 +4,8 @@ import {
   isWorkflowFieldVisible,
   parseWorkflowFormFields,
   visibleWorkflowFormFields,
+  workflowFieldRules,
+  workflowNumberFieldProps,
 } from './workflowForm';
 
 describe('workflow form helpers', () => {
@@ -87,5 +89,61 @@ describe('workflow form helpers', () => {
         { approvalType: ['single', 'joint'] },
       ),
     ).toBe(true);
+  });
+
+  it('parses field validation and builds runtime rules', async () => {
+    const fields = parseWorkflowFormFields(
+      JSON.stringify({
+        type: 'object',
+        required: ['subject'],
+        properties: {
+          subject: {
+            title: '事项名称',
+            type: 'string',
+            minLength: 2,
+            maxLength: 30,
+            pattern: '^[\\u4e00-\\u9fa5A-Za-z0-9]+$',
+          },
+          amount: {
+            title: '金额',
+            type: 'number',
+            minimum: 1,
+            maximum: 100,
+          },
+        },
+      }),
+      '{}',
+    );
+
+    const subject = fields.find((field) => field.fieldKey === 'subject');
+    const amount = fields.find((field) => field.fieldKey === 'amount');
+
+    expect(subject).toBeDefined();
+    expect(amount).toBeDefined();
+    if (!subject || !amount) return;
+
+    expect(subject).toMatchObject({
+      minLength: 2,
+      maxLength: 30,
+      pattern: '^[\\u4e00-\\u9fa5A-Za-z0-9]+$',
+    });
+    expect(amount).toMatchObject({ minimum: 1, maximum: 100 });
+    expect(workflowFieldRules(subject)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ required: true }),
+        expect.objectContaining({ min: 2 }),
+        expect.objectContaining({ max: 30 }),
+      ]),
+    );
+    expect(workflowNumberFieldProps(amount)).toEqual({ min: 1, max: 100 });
+
+    const rangeRule = workflowFieldRules(amount).find(
+      (rule) => typeof rule === 'object' && 'validator' in rule,
+    ) as {
+      validator: (_rule: unknown, value: unknown) => Promise<void>;
+    };
+    await expect(rangeRule.validator({}, 0)).rejects.toThrow(
+      '金额不能小于 1',
+    );
   });
 });

@@ -68,6 +68,10 @@ import {
   productCopy,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+import {
+  workflowFieldRules,
+  workflowNumberFieldProps,
+} from '@/utils/workflowForm';
 
 interface FormSchemaForm {
   formKey: string;
@@ -96,6 +100,11 @@ interface FormFieldConfig {
   permission?: 'editable' | 'readonly' | 'hidden';
   visibleWhenField?: string;
   visibleWhenValue?: string;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
 }
 
 interface JsonSchemaProperty {
@@ -103,6 +112,11 @@ interface JsonSchemaProperty {
   type?: string;
   enum?: unknown[];
   format?: string;
+  minLength?: unknown;
+  maxLength?: unknown;
+  pattern?: unknown;
+  minimum?: unknown;
+  maximum?: unknown;
   'ui:placeholder'?: string;
   'ui:widget'?: string;
 }
@@ -450,6 +464,15 @@ const normalizeOptionValues = (options?: string[]) => {
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };
 
+const finiteNumber = (value: unknown) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
 const normalizePermission = (
   permission?: unknown,
 ): NonNullable<FormFieldConfig['permission']> => {
@@ -474,6 +497,11 @@ function comparableField(field: FormFieldConfig) {
     permission: field.permission || 'editable',
     visibleWhenField: field.visibleWhenField?.trim() || '',
     visibleWhenValue: field.visibleWhenValue?.trim() || '',
+    minLength: finiteNumber(field.minLength) ?? null,
+    maxLength: finiteNumber(field.maxLength) ?? null,
+    pattern: field.pattern?.trim() || '',
+    minimum: finiteNumber(field.minimum) ?? null,
+    maximum: finiteNumber(field.maximum) ?? null,
   };
 }
 
@@ -581,6 +609,28 @@ const schemaToFields = (
         typeof uiField?.visibleWhenValue === 'string'
           ? uiField.visibleWhenValue
           : undefined,
+      minLength:
+        isProfileField || isAssigneeField
+          ? undefined
+          : finiteNumber(property?.minLength),
+      maxLength:
+        isProfileField || isAssigneeField
+          ? undefined
+          : finiteNumber(property?.maxLength),
+      pattern:
+        isProfileField || isAssigneeField
+          ? undefined
+          : typeof property?.pattern === 'string' && property.pattern.trim()
+            ? property.pattern.trim()
+            : undefined,
+      minimum:
+        isProfileField || isAssigneeField
+          ? undefined
+          : finiteNumber(property?.minimum),
+      maximum:
+        isProfileField || isAssigneeField
+          ? undefined
+          : finiteNumber(property?.maximum),
     };
   });
 };
@@ -618,6 +668,26 @@ const buildPayload = (values: FormSchemaForm) => {
       placeholder:
         isProfileField || isAssigneeField ? undefined : field.placeholder,
       format: isProfileField || isAssigneeField ? undefined : field.format,
+      minLength:
+        isProfileField || isAssigneeField
+          ? undefined
+          : finiteNumber(field.minLength),
+      maxLength:
+        isProfileField || isAssigneeField
+          ? undefined
+          : finiteNumber(field.maxLength),
+      pattern:
+        isProfileField || isAssigneeField
+          ? undefined
+          : field.pattern?.trim() || undefined,
+      minimum:
+        isProfileField || isAssigneeField
+          ? undefined
+          : finiteNumber(field.minimum),
+      maximum:
+        isProfileField || isAssigneeField
+          ? undefined
+          : finiteNumber(field.maximum),
     };
   });
 
@@ -630,6 +700,11 @@ const buildPayload = (values: FormSchemaForm) => {
         items?: { type: string };
         enum?: string[];
         format?: string;
+        minLength?: number;
+        maxLength?: number;
+        pattern?: string;
+        minimum?: number;
+        maximum?: number;
         'ui:placeholder'?: string;
         'ui:widget'?: string;
       }
@@ -642,6 +717,21 @@ const buildPayload = (values: FormSchemaForm) => {
       ...(field.type === 'array' ? { items: { type: 'string' } } : {}),
       ...(options ? { enum: options } : {}),
       ...(field.format?.trim() ? { format: field.format.trim() } : {}),
+      ...(field.type === 'number' && field.minimum !== undefined
+        ? { minimum: field.minimum }
+        : {}),
+      ...(field.type === 'number' && field.maximum !== undefined
+        ? { maximum: field.maximum }
+        : {}),
+      ...(field.type !== 'number' && field.minLength !== undefined
+        ? { minLength: field.minLength }
+        : {}),
+      ...(field.type !== 'number' && field.maxLength !== undefined
+        ? { maxLength: field.maxLength }
+        : {}),
+      ...(field.type !== 'number' && field.pattern?.trim()
+        ? { pattern: field.pattern.trim() }
+        : {}),
       ...(field.placeholder?.trim()
         ? { 'ui:placeholder': field.placeholder.trim() }
         : {}),
@@ -702,6 +792,72 @@ const hasDuplicatedFieldKey = (fields: FormFieldConfig[]) => {
   return new Set(keys).size !== keys.length;
 };
 
+const fieldConfigError = (fields: FormFieldConfig[]) => {
+  for (const field of fields) {
+    const label = fieldDisplayName(field);
+    const minLength = finiteNumber(field.minLength);
+    const maxLength = finiteNumber(field.maxLength);
+    const minimum = finiteNumber(field.minimum);
+    const maximum = finiteNumber(field.maximum);
+
+    if (
+      minLength !== undefined &&
+      maxLength !== undefined &&
+      minLength > maxLength
+    ) {
+      return `${label}的最少字符不能大于最多字符`;
+    }
+    if (minimum !== undefined && maximum !== undefined && minimum > maximum) {
+      return `${label}的最小值不能大于最大值`;
+    }
+    if (field.pattern?.trim()) {
+      try {
+        new RegExp(field.pattern.trim());
+      } catch {
+        return `${label}的格式正则无效`;
+      }
+    }
+  }
+  return '';
+};
+
+const fieldRuleTags = (field: FormFieldConfig) => {
+  const tags = [
+    field.required ? (
+      <Tag key="required" color="red">
+        必填
+      </Tag>
+    ) : (
+      <Tag key="optional">选填</Tag>
+    ),
+  ];
+  if (field.type === 'number') {
+    if (field.minimum !== undefined || field.maximum !== undefined) {
+      tags.push(
+        <Tag key="range" color="blue">
+          {field.minimum ?? '-'} ~ {field.maximum ?? '-'}
+        </Tag>,
+      );
+    }
+    return <Space size={[4, 4]} wrap>{tags}</Space>;
+  }
+  if (field.minLength !== undefined || field.maxLength !== undefined) {
+    tags.push(
+      <Tag key="length" color="blue">
+        {field.minLength ?? 0} ~ {field.maxLength ?? '-'} 字
+      </Tag>,
+    );
+  }
+  if (field.pattern?.trim()) {
+    tags.push(
+      <Tag key="pattern" color="purple">
+        格式
+      </Tag>,
+    );
+  }
+  return <Space size={[4, 4]} wrap>{tags}</Space>;
+};
+
 const fieldColumns: ProColumns<FormFieldConfig>[] = [
   { title: '字段名称', dataIndex: 'title', width: 180 },
   {
@@ -751,9 +907,8 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
   {
     title: '规则',
     dataIndex: 'required',
-    width: 96,
-    render: (_, record) =>
-      record.required ? <Tag color="red">必填</Tag> : <Tag>选填</Tag>,
+    width: 220,
+    render: (_, record) => fieldRuleTags(record),
   },
   {
     title: '权限',
@@ -779,9 +934,7 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
 
 const renderPreviewField = (field: FormFieldConfig) => {
   if (field.permission === 'hidden') return null;
-  const rules = field.required
-    ? [{ required: true, message: `请填写${field.title}` }]
-    : undefined;
+  const rules = workflowFieldRules(field);
   const name = field.fieldKey;
   if (usesOrganizationAssignee(field)) {
     const isMulti = usesOrganizationAssigneeMulti(field);
@@ -852,7 +1005,7 @@ const renderPreviewField = (field: FormFieldConfig) => {
         label={field.title}
         placeholder={field.placeholder}
         rules={rules}
-        fieldProps={{ precision: 2 }}
+        fieldProps={{ precision: 2, ...workflowNumberFieldProps(field) }}
       />
     );
   }
@@ -869,11 +1022,7 @@ const renderPreviewField = (field: FormFieldConfig) => {
         label={field.title}
         placeholder={field.placeholder}
         options={field.options.map((item) => ({ label: item, value: item }))}
-        rules={
-          field.required
-            ? [{ required: true, message: `请选择${field.title}` }]
-            : undefined
-        }
+        rules={workflowFieldRules(field, '请选择')}
       />
     );
   }
@@ -885,11 +1034,7 @@ const renderPreviewField = (field: FormFieldConfig) => {
         label={field.title}
         placeholder={field.placeholder}
         fieldProps={{ format: 'YYYY-MM-DD' }}
-        rules={
-          field.required
-            ? [{ required: true, message: `请选择${field.title}` }]
-            : undefined
-        }
+        rules={workflowFieldRules(field, '请选择')}
       />
     );
   }
@@ -1215,6 +1360,65 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
             );
           }}
         </ProFormDependency>
+        <ProFormDependency
+          name={['fieldKey', 'title', 'type', 'widget', 'options']}
+        >
+          {({ fieldKey, title, type, widget, options }) => {
+            const isSystemField =
+              usesOrganizationProfile({ fieldKey, title, widget }) ||
+              usesOrganizationAssignee({ fieldKey, title, widget });
+            const isChoiceField =
+              type === 'array' ||
+              widget === 'select' ||
+              (Array.isArray(options) && options.length > 0);
+
+            if (isSystemField || type === 'boolean' || isChoiceField) {
+              return null;
+            }
+
+            if (type === 'number' || widget === 'number') {
+              return (
+                <>
+                  <ProFormDigit
+                    name="minimum"
+                    label="最小值"
+                    width="xs"
+                    fieldProps={{ precision: 2 }}
+                  />
+                  <ProFormDigit
+                    name="maximum"
+                    label="最大值"
+                    width="xs"
+                    fieldProps={{ precision: 2 }}
+                  />
+                </>
+              );
+            }
+
+            return (
+              <>
+                <ProFormDigit
+                  name="minLength"
+                  label="最少字符"
+                  width="xs"
+                  fieldProps={{ min: 0, precision: 0 }}
+                />
+                <ProFormDigit
+                  name="maxLength"
+                  label="最多字符"
+                  width="xs"
+                  fieldProps={{ min: 0, precision: 0 }}
+                />
+                <ProFormText
+                  name="pattern"
+                  label="格式正则"
+                  formItemProps={{ className: classNames.fieldWide }}
+                  placeholder="例如：^[A-Z0-9]+$"
+                />
+              </>
+            );
+          }}
+        </ProFormDependency>
         <ProFormSelect
           name="permission"
           label="权限"
@@ -1324,6 +1528,11 @@ const Forms: React.FC = () => {
     }
     if (hasDuplicatedFieldKey(values.fields)) {
       message.error('业务字段不能重复');
+      return false;
+    }
+    const configError = fieldConfigError(values.fields);
+    if (configError) {
+      message.error(configError);
       return false;
     }
     if (id && impact?.total && !values.confirmBindingImpact) {

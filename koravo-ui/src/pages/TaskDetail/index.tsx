@@ -77,6 +77,8 @@ import {
   isWorkflowFieldVisible,
   parseWorkflowFormFields,
   visibleWorkflowFormFields,
+  workflowFieldRules,
+  workflowNumberFieldProps,
   type WorkflowFormField,
 } from '@/utils/workflowForm';
 
@@ -578,9 +580,7 @@ function isCompletionAssigneeMultiField(field: SchemaField) {
 }
 
 function completionFieldRules(field: SchemaField, messagePrefix = '请输入') {
-  return field.required
-    ? [{ required: true, message: `${messagePrefix}${field.title}` }]
-    : [];
+  return workflowFieldRules(field, messagePrefix);
 }
 
 function completionFieldInitialValue(field: SchemaField, values?: JsonRecord) {
@@ -683,7 +683,11 @@ function renderCompletionField(
         label={field.title}
         initialValue={initialValue}
         placeholder={field.placeholder}
-        fieldProps={{ precision: 2, disabled: readOnly }}
+        fieldProps={{
+          precision: 2,
+          disabled: readOnly,
+          ...workflowNumberFieldProps(field),
+        }}
         formItemProps={formItemProps}
         rules={completionFieldRules(field)}
       />
