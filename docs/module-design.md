@@ -6,11 +6,11 @@ Defines `ApiResponse`, `PageResult`, `ErrorCode`, exception classes, `BaseEntity
 
 ## tenant
 
-Loads the active platform tenant into `TenantContextHolder`; the web console also sends `X-Tenant-Id` so gateway-integrated deployments can keep the same request contract.
+Loads the active platform tenant into `TenantContextHolder`. The web console sends `X-Koravo-Tenant-Id` and defaults to `default` for local development.
 
 ## security
 
-Loads the active platform member and responsibility into `UserContextHolder` and Spring Security context. The web console sends `X-User-Id` and `X-User-Role` as request context, but users do not switch identity from page headers.
+Loads the active platform member and responsibility into `UserContextHolder` and Spring Security context. Normal requests use `Authorization: Bearer <token>` from `/api/v1/auth/login`; the development platform-token fallback uses `X-Koravo-User-Id`, `X-Koravo-User-Role`, and `X-Koravo-Platform-Token`.
 
 ## engine
 
@@ -22,7 +22,7 @@ Stores platform model metadata in `ko_process_model`. Deployment is currently BP
 
 ## task
 
-Provides my pending tasks and task completion. It currently queries Flowable through `ProcessFacade` and leaves platform task extensions for later releases.
+Provides pending task lists, task detail, task completion, process context, flow trace, form snapshots, and processing records through the platform API.
 
 ## form
 

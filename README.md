@@ -108,6 +108,14 @@ PostgreSQL defaults:
 - password: `koravo`
 - host port: `15432`
 
+Default console accounts use tenant `default` and password `Koravo@2026`:
+
+- `admin`: platform administrator
+- `applicant`: workflow starter
+- `manager`: business approval owner
+- `finance`: finance reviewer
+- `operator`: operations reviewer
+
 MinIO API and console listen on `MINIO_API_PORT` and `MINIO_CONSOLE_PORT`; by default the console is available at `http://localhost:9001`.
 
 ## Run Backend
@@ -129,7 +137,7 @@ http://localhost:8080/swagger-ui.html
 Health:
 
 ```bash
-curl -H 'X-Tenant-Id: default' -H 'X-User-Id: admin' -H 'X-User-Role: admin' \
+curl -H 'X-Koravo-Tenant-Id: default' \
   http://localhost:8080/api/v1/health
 ```
 
@@ -164,10 +172,15 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 
 1. Start PostgreSQL, Redis, and MinIO with Docker Compose.
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
-3. Start frontend and open `http://localhost:8000`.
-   The Dashboard shows backend health, tenant/user/request context, pending and done task totals, started instances, and HTTP connector success/failure counts.
-4. Use `Process Models` to run the release check for the collaborative approval process, or use `Process Designer` to adjust the BPMN and save the draft before deployment.
-5. Create or update the business request form in `Forms`, bind the start form plus `jointApprovalTask` in `Form Bindings`, then start a process with `processDefinitionKey = collaborativeApproval` and variables:
+3. Start frontend, open `http://localhost:8000`, and log in as `applicant` / `Koravo@2026`.
+4. Open `Start Process`, choose `协同审批流程`, confirm applicant and department are filled from the current organization member, then submit a request with multiple approval users.
+5. Open `My Requests` or the process instance detail page to inspect the flow diagram, current node, parallel tasks, form snapshot, and timeline.
+6. Log in as `manager` and `finance` in turn, open `My Tasks`, and complete each parallel approval task. The task detail page shows the current node, required action, prior records, next step, and business form snapshot.
+7. Return to the instance detail page to confirm the flow is completed and both approval records are retained.
+8. Open `Audit Logs` to review model, start, task, form, datasource, connector, and ops events.
+9. Create, update, test, and inspect datasource test logs in `Data Sources`; pool settings are edited with structured fields.
+
+The same workflow can be started through the API with `processDefinitionKey = collaborativeApproval` and variables:
 
 ```json
 {
@@ -181,33 +194,38 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 }
 ```
 
-6. Open `My Tasks`, enter the task detail page as each assigned handler, and complete every parallel approval task with the rendered business form and processing comment.
-7. From task detail, open the linked process instance, or open `Process Instances` / `Ops`, to inspect the process trace, current/completed nodes, variables, timeline, and saved form snapshots.
-8. Open `Audit Logs` to review model, start, task, form, datasource, connector, and ops events.
-9. Create, update, test, and inspect datasource test logs in `Data Sources`; pool settings are edited with structured fields.
-
 The same calls are available in [examples/http/koravo.http](examples/http/koravo.http).
 
 ## API Workflow Loop
 
 Prepare the default collaborative approval model from the console, then run release check and deployment from `Process Models`. Direct BPMN import is still available for custom models:
 
+Login first:
+
+```bash
+TOKEN=$(curl -sS -H 'Content-Type: application/json' \
+  -d '{"tenantId":"default","userId":"admin","password":"Koravo@2026"}' \
+  http://localhost:8080/api/v1/auth/login | jq -r '.data.token')
+```
+
 ```bash
 curl -X POST 'http://localhost:8080/api/v1/process-models/deploy?modelName=Custom%20Workflow' \
-  -H 'X-Tenant-Id: default' \
-  -H 'X-User-Id: admin' \
-  -H 'X-User-Role: admin' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'X-Koravo-Tenant-Id: default' \
   -F 'file=@examples/bpmn/http-health-check.bpmn20.xml'
 ```
 
 Start process:
 
 ```bash
+APPLICANT_TOKEN=$(curl -sS -H 'Content-Type: application/json' \
+  -d '{"tenantId":"default","userId":"applicant","password":"Koravo@2026"}' \
+  http://localhost:8080/api/v1/auth/login | jq -r '.data.token')
+
 curl -X POST http://localhost:8080/api/v1/process-instances/start \
   -H 'Content-Type: application/json' \
-  -H 'X-Tenant-Id: default' \
-  -H 'X-User-Id: applicant' \
-  -H 'X-User-Role: applicant' \
+  -H "Authorization: Bearer $APPLICANT_TOKEN" \
+  -H 'X-Koravo-Tenant-Id: default' \
   -d '{"processDefinitionKey":"collaborativeApproval","businessKey":"REQ-001","variables":{"applicant":"业务申请专员","department":"业务一部","subject":"通用业务申请","businessDescription":"说明申请事项、背景和需要审批的内容","expectedResult":"所有审批人完成会签后流程结束","amount":12800,"approvalUsers":["manager","finance"]}}'
 ```
 

@@ -95,8 +95,8 @@ GET /api/v1/audit-logs?startTime=2026-06-07T00:00:00Z&endTime=2026-06-07T23:59:5
 
 All calls should include:
 
-- `X-Tenant-Id`
-- `X-User-Id`
+- `Authorization: Bearer <token>`
+- `X-Koravo-Tenant-Id`
 - optional `X-Request-Id`
 
 The audit record stores tenant, user, request ID, client IP, action, resource type, resource ID, and structured details. Detail fields are redacted before persistence and again when queried so common `password`, `token`, and `secret` fields are not exposed.

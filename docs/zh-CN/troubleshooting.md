@@ -29,7 +29,7 @@ curl http://localhost:8080/api/v1/health
 确认：
 
 - 当前用户是任务处理人
-- 请求头 `X-Tenant-Id` 与流程启动时一致
+- 当前登录会话和 `X-Koravo-Tenant-Id` 与流程启动时一致
 - 后端任务接口返回正常
 
 ## 审计日志为空

@@ -17,7 +17,7 @@
         <flowable:field name="connectorType" stringValue="http"/>
         <flowable:field name="method" stringValue="GET"/>
         <flowable:field name="url" stringValue="http://localhost:8080/api/v1/health"/>
-        <flowable:field name="headers" stringValue="{&quot;X-Tenant-Id&quot;:&quot;default&quot;,&quot;X-User-Id&quot;:&quot;admin&quot;}"/>
+        <flowable:field name="headers" stringValue="{&quot;X-Koravo-Tenant-Id&quot;:&quot;default&quot;}"/>
         <flowable:field name="timeoutMillis" stringValue="3000"/>
         <flowable:field name="outputVariable" stringValue="healthResult"/>
       </extensionElements>

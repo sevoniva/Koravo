@@ -93,9 +93,8 @@ Error:
 
 ## Headers
 
-- `X-Tenant-Id`: current organization context.
-- `X-User-Id`: current member context.
-- `X-User-Role`: current responsibility context.
+- `Authorization: Bearer <token>`: active platform login session.
+- `X-Koravo-Tenant-Id`: current organization context.
 - `X-Request-Id`: optional trace context; generated if absent.
 
-The web console reads the active platform session and sends the same context on every API request.
+For local platform-token fallback, requests may also include `X-Koravo-User-Id`, `X-Koravo-User-Role`, and `X-Koravo-Platform-Token`. The web console reads the active platform session and sends the same context on every API request.

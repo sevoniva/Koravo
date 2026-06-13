@@ -24,9 +24,8 @@
 
 查看当前登录成员、组织、职责和最近一次请求追踪号。前端会随 API 请求发送当前平台会话上下文，包括：
 
-- `X-Tenant-Id`：当前组织
-- `X-User-Id`：当前成员
-- `X-User-Role`：当前职责
+- `Authorization: Bearer <token>`：当前登录会话
+- `X-Koravo-Tenant-Id`：当前组织
 - `X-Request-Id`：可选追踪号，不填则后端自动生成
 
 ## 审计日志

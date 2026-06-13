@@ -30,7 +30,7 @@ Koravo does not modify Flowable internal table structures. Flowable creates and 
 
 ## Tenant Design
 
-All platform rows include `tenant_id`. The development tenant filter reads `X-Tenant-Id`; missing values use `default`.
+All platform rows include `tenant_id`. The development tenant filter reads `X-Koravo-Tenant-Id`; missing values use `default`.
 
 ## Datasource Secrets
 
