@@ -14,6 +14,7 @@ import {
   Button,
   Empty,
   Flex,
+  Progress,
   Space,
   Spin,
   Steps,
@@ -143,20 +144,37 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   diagramStatus: css`
     position: absolute;
-    top: 12px;
+    right: 12px;
+    bottom: 12px;
     left: 12px;
     z-index: 1;
-    max-width: min(420px, calc(100% - 164px));
-    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: none;
+    min-width: 0;
+    padding: 8px 10px;
     background: ${token.colorBgElevated};
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: ${token.borderRadiusSM}px;
     box-shadow: ${token.boxShadowTertiary};
 
     @media (max-width: 640px) {
-      top: 52px;
-      right: 12px;
-      max-width: none;
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 6px;
+    }
+  `,
+  diagramStatusText: css`
+    min-width: 0;
+    flex: 1;
+  `,
+  diagramProgress: css`
+    flex: none;
+    width: 132px;
+
+    @media (max-width: 640px) {
+      width: 100%;
     }
   `,
   generatedFlow: css`
@@ -284,14 +302,13 @@ function currentDiagramNode(
 
 function diagramStatusCounts(timeline: ProcessTraceNode[]) {
   const nodes = visibleFlowNodes(timeline);
+  const completed = nodes.filter(
+    (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
+  ).length;
   return {
-    completed: nodes.filter(
-      (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
-    ).length,
-    active: nodes.filter((node) =>
-      ['ACTIVE', 'RUNNING'].includes(String(node.status || '').toUpperCase()),
-    ).length,
+    completed,
     total: nodes.length,
+    percent: progressPercent(completed, nodes.length),
   };
 }
 
@@ -436,6 +453,19 @@ function diagramBadgeStatus(status?: string) {
   return 'default' as const;
 }
 
+function progressPercent(completed: number, total: number) {
+  if (!total) return 0;
+  return Math.round((completed / total) * 100);
+}
+
+function diagramProgressStatus(status?: string) {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'FAILED' || normalized === 'TERMINATED') return 'exception' as const;
+  if (normalized === 'COMPLETED') return 'success' as const;
+  if (normalized === 'ACTIVE' || normalized === 'RUNNING') return 'active' as const;
+  return 'normal' as const;
+}
+
 function currentNodeIndex(nodes: ProcessTraceNode[], currentActivityIds: string[]) {
   const currentIds = new Set(currentActivityIds.filter(Boolean));
   const current = nodes.findIndex((node) => currentIds.has(node.activityId));
@@ -498,9 +528,8 @@ const DiagramStatusOverlay: React.FC<{
 
   return (
     <div className={styles.diagramStatus}>
-      <Space size={8} wrap>
-        <Badge status={diagramBadgeStatus(current.status)} />
-        <Tag color={counts.active ? 'processing' : 'default'}>当前</Tag>
+      <Space className={styles.diagramStatusText} size={8} wrap>
+        <Badge status={diagramBadgeStatus(current.status)} text="当前位置" />
         <Typography.Text
           strong
           ellipsis={{ tooltip: current.label }}
@@ -508,10 +537,17 @@ const DiagramStatusOverlay: React.FC<{
         >
           {current.label}
         </Typography.Text>
-        <Typography.Text type="secondary">
-          已办 {counts.completed}/{counts.total}
-        </Typography.Text>
       </Space>
+      <Progress
+        className={styles.diagramProgress}
+        percent={counts.percent}
+        showInfo={false}
+        size={[132, 6]}
+        status={diagramProgressStatus(current.status)}
+      />
+      <Typography.Text type="secondary">
+        {counts.completed}/{counts.total}
+      </Typography.Text>
     </div>
   );
 };
@@ -528,6 +564,7 @@ const GeneratedFlow: React.FC<{
   const completedCount = nodes.filter(
     (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
   ).length;
+  const percent = progressPercent(completedCount, nodes.length);
 
   if (!nodes.length) {
     return (
@@ -553,14 +590,21 @@ const GeneratedFlow: React.FC<{
         >
           <Space size={8}>
             <Badge status="processing" />
-            <Tag color="processing">当前</Tag>
             <Typography.Text strong>
               {generatedCurrentText(nodes, currentIndex)}
             </Typography.Text>
           </Space>
-          <Typography.Text type="secondary">
-            已办 {completedCount}/{nodes.length}
-          </Typography.Text>
+          <Space size={8}>
+            <Progress
+              percent={percent}
+              showInfo={false}
+              size={[132, 6]}
+              status={diagramProgressStatus(nodes[currentIndex]?.status)}
+            />
+            <Typography.Text type="secondary">
+              {completedCount}/{nodes.length}
+            </Typography.Text>
+          </Space>
         </Flex>
         <div className={styles.generatedSteps}>
           <Steps
