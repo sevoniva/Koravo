@@ -194,7 +194,11 @@ The same workflow can be started through the API with `processDefinitionKey = co
 }
 ```
 
-The API loop below mirrors the same collaborative approval path.
+The API loop below mirrors the same collaborative approval path. For a repeatable runtime check:
+
+```bash
+node scripts/verify-collaborative-approval.mjs
+```
 
 ## API Workflow Loop
 
