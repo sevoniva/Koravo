@@ -9,19 +9,16 @@ import {
 import {
   PageContainer,
   ProCard,
-  ProTable,
   type ProColumns,
+  ProTable,
 } from '@ant-design/pro-components';
-import { history } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
+import { history } from '@umijs/max';
 import { Alert, Button, Flex, Statistic, Steps } from 'antd';
 import React, { useMemo } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
-import {
-  getDashboardSummary,
-  type AuditLogItem,
-} from '@/services/koravo/api';
+import { type AuditLogItem, getDashboardSummary } from '@/services/koravo/api';
 import {
   organizationMemberName,
   tenantDisplayName,
@@ -90,17 +87,16 @@ const workloadColumns: ProColumns<WorkloadRow>[] = [
     title: '操作',
     valueType: 'option',
     width: 96,
-    render: (_, record) => (
-      <Button
-        type="link"
-        disabled={!record.path}
-        onClick={() => {
-          if (record.path) history.push(record.path);
-        }}
-      >
-        查看
-      </Button>
-    ),
+    render: (_, record) => {
+      const { path } = record;
+      return path ? (
+        <Button type="link" onClick={() => history.push(path)}>
+          查看
+        </Button>
+      ) : (
+        '-'
+      );
+    },
   },
 ];
 
@@ -201,9 +197,7 @@ const Dashboard: React.FC = () => {
   const visibleWorkflowSteps = useMemo(
     () =>
       workflowSteps.filter((step) =>
-        step.path === '/process-start'
-          ? canStartProcess
-          : canConfigureWorkflow,
+        step.path === '/process-start' ? canStartProcess : canConfigureWorkflow,
       ),
     [canConfigureWorkflow, canStartProcess],
   );
