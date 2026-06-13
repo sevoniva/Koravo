@@ -9,6 +9,7 @@ import {
   businessKeyLabel,
   connectionAddressLabel,
   isBusinessProcessModel,
+  isActiveBusinessProcessModel,
   normalizeBpmnXmlLabels,
   processDescriptionLabel,
   processDefinitionLabel,
@@ -166,5 +167,24 @@ describe('display helpers', () => {
         description: '业务申请提交后并行处理。',
       }),
     ).toBe(true);
+  });
+
+  it('keeps archived process models out of default business lists', () => {
+    expect(
+      isActiveBusinessProcessModel({
+        modelKey: 'collaborativeApproval',
+        modelName: '协同审批流程',
+        description: '业务申请提交后并行处理。',
+        status: 'DEPLOYED',
+      }),
+    ).toBe(true);
+    expect(
+      isActiveBusinessProcessModel({
+        modelKey: 'bindingNext_mq5ilw5vmlw',
+        modelName: '绑定后续验证流程',
+        description: '验证绑定后续动作',
+        status: 'ARCHIVED',
+      }),
+    ).toBe(false);
   });
 });

@@ -42,7 +42,7 @@ import {
   formSchemaKeyLabel,
   formSchemaNameLabel,
   formSchemaOptionLabel,
-  isBusinessProcessModel,
+  isActiveBusinessProcessModel,
   processDisplayName,
   processModelKeyLabel,
   taskDefinitionLabel,
@@ -286,8 +286,7 @@ const BindingFormItems: React.FC<{
         }}
         request={async () =>
           (await listProcessModels())
-            .filter((item) => item.status !== 'ARCHIVED')
-            .filter(isBusinessProcessModel)
+            .filter(isActiveBusinessProcessModel)
             .map((item) => ({
               label: processDisplayName(item.modelKey, item.modelName),
               value: item.id,
@@ -613,7 +612,7 @@ const FormBindings: React.FC = () => {
             listProcessModels(),
             listFormSchemas(),
           ]);
-          const businessModels = models.filter(isBusinessProcessModel);
+          const businessModels = models.filter(isActiveBusinessProcessModel);
           const taskEntries = await Promise.all(
             businessModels.map(async (model) => {
               const tasks = await listProcessModelTaskDefinitions(model.id).catch(
@@ -655,7 +654,7 @@ const FormBindings: React.FC = () => {
             };
           });
           const businessData = data.filter((item) =>
-            isBusinessProcessModel(item.processModel),
+            isActiveBusinessProcessModel(item.processModel),
           );
           const scopedData = queryFormSchemaId
             ? businessData.filter(

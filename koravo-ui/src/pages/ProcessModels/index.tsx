@@ -52,7 +52,7 @@ import {
   ASSET_ORIGIN_LABELS,
   assetOriginColor,
   assetOriginLabel,
-  isBusinessProcessModel,
+  isActiveBusinessProcessModel,
   processDefinitionLabel,
   processDescriptionLabel,
   processDisplayName,
@@ -718,7 +718,7 @@ const ProcessModels: React.FC = () => {
           ]);
           const visibleModels =
             viewMode === 'business'
-              ? models.filter(isBusinessProcessModel)
+              ? models.filter(isActiveBusinessProcessModel)
               : models;
           const keyword = String(
             params.modelName || params.modelKey || '',

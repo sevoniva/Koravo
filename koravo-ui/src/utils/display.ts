@@ -251,6 +251,15 @@ export function isBusinessProcessModel(
   return true;
 }
 
+export function isActiveBusinessProcessModel(
+  model?: Pick<
+    ProcessModelItem,
+    'modelKey' | 'modelName' | 'description' | 'status'
+  > | null,
+) {
+  return isBusinessProcessModel(model) && model?.status !== 'ARCHIVED';
+}
+
 export function processDescriptionLabel(
   model?: Pick<ProcessModelItem, 'modelKey' | 'description'> | null,
 ) {
