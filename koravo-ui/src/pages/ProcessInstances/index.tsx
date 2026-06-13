@@ -116,6 +116,7 @@ function nextBusinessKey(prefix = 'REQ') {
 
 function businessKeyPrefix(modelKey?: string) {
   if (!modelKey) return 'REQ';
+  if (modelKey === 'collaborativeApproval') return 'REQ';
   const normalized = modelKey
     .replace(/([a-z])([A-Z])/g, '$1-$2')
     .replace(/[^A-Za-z0-9]+/g, '-')

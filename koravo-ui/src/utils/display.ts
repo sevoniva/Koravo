@@ -400,9 +400,19 @@ export function buildVersionLabel(value?: string | null) {
   return text;
 }
 
+function generatedBusinessKeyLabel(value: string) {
+  const match = value.match(
+    /^(?:COLLABORATIVE-APPROVAL|REQ)-(\d{8})-(\d{6})$/,
+  );
+  if (!match) return '';
+  const [, date, time] = match;
+  return `业务申请 ${date.slice(0, 4)}/${date.slice(4, 6)}/${date.slice(6, 8)} ${time.slice(0, 2)}:${time.slice(2, 4)}:${time.slice(4, 6)}`;
+}
+
 export function businessKeyLabel(value?: string | null) {
   if (!value) return '-';
-  return productCopy(value);
+  const text = productCopy(value);
+  return generatedBusinessKeyLabel(text) || text;
 }
 
 export function formSchemaNameLabel(formName?: string | null) {

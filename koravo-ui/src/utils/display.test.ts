@@ -35,9 +35,12 @@ describe('display helpers', () => {
     expect(processNameLabel('koravo Processmq5amzdq')).toBe('koravo Processmq5amzdq');
   });
 
-  it('keeps historical business object prefixes visible for data cleanup', () => {
-    expect(businessKeyLabel('PO-CONTINUE-20260609-0437')).toBe(
-      'PO-CONTINUE-20260609-0437',
+  it('formats generic workflow business numbers without hiding cleanup markers', () => {
+    expect(businessKeyLabel('COLLABORATIVE-APPROVAL-20260609-193920')).toBe(
+      '业务申请 2026/06/09 19:39:20',
+    );
+    expect(businessKeyLabel('REQ-20260609-043701')).toBe(
+      '业务申请 2026/06/09 04:37:01',
     );
     expect(businessKeyLabel('任务：PO-CONTINUE-20260609-0437')).toBe(
       '任务：PO-CONTINUE-20260609-0437',
