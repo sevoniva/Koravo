@@ -22,7 +22,6 @@ import {
   Badge,
   Button,
   Checkbox,
-  Collapse,
   Descriptions,
   Empty,
   Flex,
@@ -237,7 +236,9 @@ function bindingImpact(
       (binding) => binding.taskDefinitionKey !== START_FORM_TASK_KEY,
     ).length,
     versions: Array.from(
-      new Set(matched.map((binding) => binding.formSchemaVersion).filter(Boolean)),
+      new Set(
+        matched.map((binding) => binding.formSchemaVersion).filter(Boolean),
+      ),
     ).sort((a, b) => a - b),
   };
 }
@@ -289,11 +290,16 @@ const BindingImpactSummary: React.FC<{
       description={
         <Flex vertical gap={8}>
           <Typography.Text type="secondary">
-            {bindingImpactText(impact)}。保存字段变更后，后续发起和办理会按新字段展示；已提交的历史快照不受影响。
+            {bindingImpactText(impact)}
+            。保存字段变更后，后续发起和办理会按新字段展示；已提交的历史快照不受影响。
           </Typography.Text>
           <Space wrap>
-            {impact.start ? <Tag color="success">启动表单 {impact.start}</Tag> : null}
-            {impact.task ? <Tag color="blue">任务表单 {impact.task}</Tag> : null}
+            {impact.start ? (
+              <Tag color="success">启动表单 {impact.start}</Tag>
+            ) : null}
+            {impact.task ? (
+              <Tag color="blue">任务表单 {impact.task}</Tag>
+            ) : null}
             {impact.versions.map((version) => (
               <Tag key={version}>v{version}</Tag>
             ))}
@@ -315,8 +321,7 @@ const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
   organizationMemberMulti: '组织成员多选',
 };
 
-const systemFieldTooltip =
-  '系统字段由组织档案联动，保存时自动按系统带出处理。';
+const systemFieldTooltip = '系统字段由组织档案联动，保存时自动按系统带出处理。';
 
 const parseJsonObject = (value?: string) => {
   if (!value) return {};
@@ -325,15 +330,6 @@ const parseJsonObject = (value?: string) => {
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch {
     return {};
-  }
-};
-
-const formatDebugJson = (value?: string) => {
-  if (!value?.trim()) return '{}';
-  try {
-    return JSON.stringify(JSON.parse(value), null, 2);
-  } catch {
-    return value;
   }
 };
 
@@ -383,7 +379,8 @@ const usesOrganizationAssigneeMulti = (field: {
   widget?: string;
 }) =>
   field.widget === 'organizationMemberMulti' ||
-  (field.type === 'array' && isOrganizationAssigneeField(field.fieldKey, field.title));
+  (field.type === 'array' &&
+    isOrganizationAssigneeField(field.fieldKey, field.title));
 
 const normalizeOptions = (options?: unknown[]) => {
   if (!Array.isArray(options)) return undefined;
@@ -427,7 +424,10 @@ function comparableField(field: FormFieldConfig) {
 }
 
 function fieldChanged(before: FormFieldConfig, after: FormFieldConfig) {
-  return JSON.stringify(comparableField(before)) !== JSON.stringify(comparableField(after));
+  return (
+    JSON.stringify(comparableField(before)) !==
+    JSON.stringify(comparableField(after))
+  );
 }
 
 function fieldChangeSummary(
@@ -435,8 +435,12 @@ function fieldChangeSummary(
   currentFields?: FormFieldConfig[],
 ) {
   const original = originalFields.filter((field) => field.fieldKey?.trim());
-  const current = (currentFields || []).filter((field) => field.fieldKey?.trim());
-  const originalByKey = new Map(original.map((field) => [field.fieldKey, field]));
+  const current = (currentFields || []).filter((field) =>
+    field.fieldKey?.trim(),
+  );
+  const originalByKey = new Map(
+    original.map((field) => [field.fieldKey, field]),
+  );
   const currentByKey = new Map(current.map((field) => [field.fieldKey, field]));
 
   return {
@@ -491,16 +495,20 @@ const schemaToFields = (
     return {
       fieldKey,
       title: productCopy(property?.title) || fieldKey,
-      type: isAssigneeMultiField ? 'array' : isProfileField || isAssigneeField ? 'string' : type,
+      type: isAssigneeMultiField
+        ? 'array'
+        : isProfileField || isAssigneeField
+          ? 'string'
+          : type,
       widget: isProfileField
         ? 'organizationProfile'
         : isAssigneeMultiField
           ? 'organizationMemberMulti'
           : isAssigneeField
-          ? 'organizationMember'
-          : options?.length
-            ? 'select'
-            : normalizedWidget,
+            ? 'organizationMember'
+            : options?.length
+              ? 'select'
+              : normalizedWidget,
       placeholder:
         isProfileField || isAssigneeField
           ? undefined
@@ -528,7 +536,11 @@ const buildPayload = (values: FormSchemaForm) => {
     const isProfileField = usesOrganizationProfile(field);
     const isAssigneeField = usesOrganizationAssignee(field);
     const isAssigneeMultiField = usesOrganizationAssigneeMulti(field);
-    const type = isAssigneeMultiField ? 'array' : isProfileField || isAssigneeField ? 'string' : field.type;
+    const type = isAssigneeMultiField
+      ? 'array'
+      : isProfileField || isAssigneeField
+        ? 'string'
+        : field.type;
     const options =
       isProfileField || isAssigneeField
         ? undefined
@@ -538,10 +550,10 @@ const buildPayload = (values: FormSchemaForm) => {
       : isAssigneeMultiField
         ? 'organizationMemberMulti'
         : isAssigneeField
-        ? 'organizationMember'
-        : field.type === 'string' && options?.length
-          ? 'select'
-          : normalizeWidget(field.widget, field.type);
+          ? 'organizationMember'
+          : field.type === 'string' && options?.length
+            ? 'select'
+            : normalizeWidget(field.widget, field.type);
     return {
       ...field,
       fieldKey: field.fieldKey.trim(),
@@ -661,7 +673,9 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
       if (usesOrganizationAssignee(record)) {
         return (
           <Tag color="blue">
-            {usesOrganizationAssigneeMulti(record) ? '组织成员多选' : '组织成员'}
+            {usesOrganizationAssigneeMulti(record)
+              ? '组织成员多选'
+              : '组织成员'}
           </Tag>
         );
       }
@@ -693,7 +707,8 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
     width: 96,
     render: (_, record) => {
       if (record.permission === 'readonly') return <Tag color="blue">只读</Tag>;
-      if (record.permission === 'hidden') return <Tag color="default">隐藏</Tag>;
+      if (record.permission === 'hidden')
+        return <Tag color="default">隐藏</Tag>;
       return <Tag color="success">可填写</Tag>;
     },
   },
@@ -724,17 +739,33 @@ const renderPreviewField = (field: FormFieldConfig) => {
         initialValue={
           isMulti
             ? [
-                organizationAssigneeFieldValue('managerApprover', undefined, '第一审批人'),
-                organizationAssigneeFieldValue('financeApprover', undefined, '第二审批人'),
+                organizationAssigneeFieldValue(
+                  'managerApprover',
+                  undefined,
+                  '第一审批人',
+                ),
+                organizationAssigneeFieldValue(
+                  'financeApprover',
+                  undefined,
+                  '第二审批人',
+                ),
               ].filter(Boolean)
-            : organizationAssigneeFieldValue(field.fieldKey, undefined, field.title)
+            : organizationAssigneeFieldValue(
+                field.fieldKey,
+                undefined,
+                field.title,
+              )
         }
         options={organizationMemberSelectOptions(
-          isMulti ? undefined : organizationAssigneeRole(field.fieldKey, field.title),
+          isMulti
+            ? undefined
+            : organizationAssigneeRole(field.fieldKey, field.title),
         )}
         tooltip="办理人由组织成员带出。"
         disabled
-        fieldProps={isMulti ? { mode: 'multiple', maxTagCount: 'responsive' } : undefined}
+        fieldProps={
+          isMulti ? { mode: 'multiple', maxTagCount: 'responsive' } : undefined
+        }
         rules={
           field.required
             ? [{ required: true, message: `${field.title}会自动带出` }]
@@ -840,26 +871,6 @@ const renderFormPreview = (fields: FormFieldConfig[]) =>
     <Empty description="暂无字段配置" />
   );
 
-const DebugJsonBlock: React.FC<{ value?: string }> = ({ value }) => {
-  const text = formatDebugJson(value);
-  return (
-    <Typography.Paragraph
-      copyable={{ text }}
-      style={{
-        marginBottom: 0,
-        maxHeight: 360,
-        overflow: 'auto',
-        whiteSpace: 'pre-wrap',
-        fontFamily:
-          'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-        fontSize: 12,
-      }}
-    >
-      {text}
-    </Typography.Paragraph>
-  );
-};
-
 const renderFormVersionSummary = (
   record: FormSchemaItem,
   fields: FormFieldConfig[],
@@ -911,6 +922,98 @@ const renderFormVersionSummary = (
     ]}
   />
 );
+
+const FormReadiness: React.FC<{
+  fields: FormFieldConfig[];
+  impact: FormBindingImpact;
+}> = ({ fields, impact }) => {
+  const requiredFields = fields.filter((field) => field.required);
+  const systemFields = fields.filter(usesOrganizationProfile);
+  const assigneeFields = fields.filter(usesOrganizationAssignee);
+  const conditionalFields = fields.filter(
+    (field) => field.visibleWhenField && field.visibleWhenValue,
+  );
+  const hiddenFields = fields.filter((field) => field.permission === 'hidden');
+
+  const tagGroup = (items: FormFieldConfig[], emptyText: string) =>
+    items.length ? (
+      <Space size={[0, 6]} wrap>
+        {items.map((field) => (
+          <Tag key={field.fieldKey}>{fieldDisplayName(field)}</Tag>
+        ))}
+      </Space>
+    ) : (
+      <Typography.Text type="secondary">{emptyText}</Typography.Text>
+    );
+
+  return (
+    <Flex vertical gap={16}>
+      <Descriptions
+        size="small"
+        column={{ xs: 1, sm: 2 }}
+        items={[
+          {
+            key: 'fieldCount',
+            label: '字段数量',
+            children: `${fields.length} 个`,
+          },
+          {
+            key: 'requiredCount',
+            label: '必填字段',
+            children: `${requiredFields.length} 个`,
+          },
+          {
+            key: 'systemCount',
+            label: '组织联动',
+            children: `${systemFields.length + assigneeFields.length} 个`,
+          },
+          {
+            key: 'bindingCount',
+            label: '流程绑定',
+            children: impact.total ? `${impact.total} 处` : '未绑定',
+          },
+          {
+            key: 'requiredFields',
+            label: '必填项',
+            span: 'filled',
+            children: tagGroup(requiredFields, '无必填项'),
+          },
+          {
+            key: 'systemFields',
+            label: '系统带出',
+            span: 'filled',
+            children: tagGroup(
+              [...systemFields, ...assigneeFields],
+              '未配置组织联动字段',
+            ),
+          },
+          {
+            key: 'conditionalFields',
+            label: '条件显示',
+            span: 'filled',
+            children: tagGroup(conditionalFields, '未配置条件显示'),
+          },
+          {
+            key: 'hiddenFields',
+            label: '隐藏字段',
+            span: 'filled',
+            children: tagGroup(hiddenFields, '无隐藏字段'),
+          },
+        ]}
+      />
+      <Alert
+        showIcon
+        type={impact.total ? 'warning' : 'info'}
+        title={impact.total ? '已绑定流程节点' : '尚未绑定流程节点'}
+        description={
+          impact.total
+            ? `${bindingImpactText(impact)}。字段变更只影响新的发起和办理，历史快照保持原样。`
+            : '绑定到流程节点后，发起和办理页面会按这里的字段配置渲染。'
+        }
+      />
+    </Flex>
+  );
+};
 
 const renderFormFieldsEditor = (
   fieldListClassName: string,
@@ -996,10 +1099,18 @@ const renderFormFieldsEditor = (
                       : isAssigneeField
                         ? [
                             {
-                              label: usesOrganizationAssigneeMulti({ fieldKey, title, widget })
+                              label: usesOrganizationAssigneeMulti({
+                                fieldKey,
+                                title,
+                                widget,
+                              })
                                 ? '组织成员多选'
                                 : '组织成员',
-                              value: usesOrganizationAssigneeMulti({ fieldKey, title, widget })
+                              value: usesOrganizationAssigneeMulti({
+                                fieldKey,
+                                title,
+                                widget,
+                              })
                                 ? 'organizationMemberMulti'
                                 : 'organizationMember',
                             },
@@ -1344,7 +1455,11 @@ const Forms: React.FC = () => {
       width: 96,
       render: (_, record) =>
         record.version === preview?.version
-          ? [<Typography.Text key="current" type="secondary">当前</Typography.Text>]
+          ? [
+              <Typography.Text key="current" type="secondary">
+                当前
+              </Typography.Text>,
+            ]
           : [
               <Popconfirm
                 key="restore"
@@ -1568,28 +1683,12 @@ const Forms: React.FC = () => {
                     ),
                   },
                   {
-                    key: 'debug',
-                    label: '高级调试',
+                    key: 'readiness',
+                    label: '发布检查',
                     children: (
-                      <Collapse
-                        size="small"
-                        ghost
-                        items={[
-                          {
-                            key: 'schema',
-                            label: '字段结构',
-                            children: (
-                              <DebugJsonBlock value={preview.schemaJson} />
-                            ),
-                          },
-                          {
-                            key: 'uiSchema',
-                            label: '展示规则',
-                            children: (
-                              <DebugJsonBlock value={preview.uiSchemaJson} />
-                            ),
-                          },
-                        ]}
+                      <FormReadiness
+                        fields={previewFields}
+                        impact={previewImpact}
                       />
                     ),
                   },
