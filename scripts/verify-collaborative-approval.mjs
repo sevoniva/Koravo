@@ -26,9 +26,10 @@ async function main() {
   }
 
   const workflow = await startableWorkflow(applicant);
+  await assertSingleApproverRejected(applicant, workflow);
   const businessKey = `COLLAB-VERIFY-${Date.now()}`;
   const formData = {
-    subject: "协同审批验收",
+    subject: "通用业务申请验收",
     businessDescription: "验证通用业务申请可以流转给多个审批人并完成会签。",
     expectedResult: "全部审批人完成后流程结束。",
     amount: 12800,
@@ -38,6 +39,14 @@ async function main() {
   const instance = await startProcess(applicant, workflow, businessKey, formData);
   const startedTrace = await waitForTrace(applicant, instance.instanceId, "RUNNING");
   assertEquals(startedTrace.currentTasks.length, approverIds.length, "parallel task count");
+  assertListEquals(
+    startedTrace.currentTasks.map((task) => task.assignee).sort(),
+    [...approverIds].sort(),
+    "parallel task assignees",
+  );
+  if (!startedTrace.currentActivityIds?.includes("jointApprovalTask")) {
+    throw new Error(`current activity expected jointApprovalTask, got ${JSON.stringify(startedTrace.currentActivityIds)}`);
+  }
 
   for (const [index, userId] of approverIds.entries()) {
     const session = approvers.get(userId);
@@ -105,6 +114,24 @@ async function startableWorkflow(session) {
     throw new Error(`Missing startable workflow ${processKey}`);
   }
   return workflow;
+}
+
+async function assertSingleApproverRejected(session, workflow) {
+  const formData = {
+    subject: "单审批人拦截验收",
+    businessDescription: "验证通用一对多主流程不能退化成单人审批。",
+    expectedResult: "系统阻止单审批人发起。",
+    approvalUsers: [approverIds[0]],
+  };
+  try {
+    await startProcess(session, workflow, `COLLAB-SINGLE-${Date.now()}`, formData);
+  } catch (error) {
+    if (String(error.message || error).includes("至少选择两名审批人")) {
+      return;
+    }
+    throw error;
+  }
+  throw new Error("single approver collaborative start should be rejected");
 }
 
 async function startProcess(session, workflow, businessKey, formData) {

@@ -24,7 +24,7 @@ docker compose up -d postgres redis minio
 
 - 协同审批流程 `collaborativeApproval`
 - 业务申请表
-- 启动表单和多人会签任务节点的表单绑定
+- 发起表单和多人会签任务节点的表单绑定
 
 重复点击不会生成大量重复数据。
 

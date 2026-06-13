@@ -72,7 +72,7 @@ The console workflow check is:
 4. Log in as `admin`, open `系统设置`, and check workflow readiness.
 5. Use `流程模型` or `流程设计` to validate and deploy the collaborative approval process.
 6. Create or update the business request form in `表单管理`.
-7. Bind the start form and `jointApprovalTask` in `表单绑定`.
+7. Bind the launch form and `jointApprovalTask` in `表单绑定`.
 8. Log in as `applicant`, open `发起流程`, and start `collaborativeApproval` with multiple `approvalUsers`.
 9. Open `我的申请` to confirm the applicant can see the flow diagram, current node, handlers, and status.
 10. Log in as each approver, complete parallel approval tasks from `我的待办` with form data and comments.

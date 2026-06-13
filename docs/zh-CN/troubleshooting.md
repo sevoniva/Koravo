@@ -17,7 +17,7 @@ curl http://localhost:8080/api/v1/health
 - 是否已有可部署流程资产；开发环境缺失时可在「流程模型」初始化默认协同审批流程
 - 流程模型是否已部署
 - 流程定义 Key 是否为 `collaborativeApproval`
-- 启动表单必填字段是否已填写
+- 发起表单必填字段是否已填写
 - 审批人是否为当前租户内启用成员，例如 `manager`、`finance`
 
 ## 我的待办为空
