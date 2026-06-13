@@ -306,11 +306,7 @@ const TaskActionTimeline: React.FC<{ logs?: AuditLogItem[] }> = ({
   logs = [],
 }) => {
   const actions = latestTaskActions(logs);
-  if (!actions.length) {
-    return (
-      <Empty description="暂无办理记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-    );
-  }
+  if (!actions.length) return null;
   return (
     <Flex vertical gap={8}>
       {actions.map((action) => (
