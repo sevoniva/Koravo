@@ -44,7 +44,7 @@ docker compose up -d postgres redis minio
 
 ## 6. 查看结果
 
-进入「流程实例」打开实例详情。
+进入「我的申请」打开申请详情。
 
 应能看到：
 
@@ -56,4 +56,4 @@ docker compose up -d postgres redis minio
 - 执行轨迹
 - 审计记录
 
-进入「审计日志」可查看关键操作记录。
+管理员进入「审计日志」可查看关键操作记录。

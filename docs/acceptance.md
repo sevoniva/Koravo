@@ -65,14 +65,15 @@ The console workflow check is:
 1. Start dependencies with `docker compose up -d postgres redis minio`.
 2. Start `koravo-bootstrap`.
 3. Start `koravo-ui`.
-4. Open `System Status` and check `Workflow Readiness`.
-5. Use `Process Designer` or `Process Models` to validate and deploy the collaborative approval process.
-6. Create or update the business request form schema in `Forms`.
+4. Log in as `admin`, open `System Status`, and check workflow readiness.
+5. Use `Process Models` or `Process Designer` to validate and deploy the collaborative approval process.
+6. Create or update the business request form in `Forms`.
 7. Bind the start form and `jointApprovalTask` in `Form Bindings`.
-8. Start `collaborativeApproval` from `Start Process` with multiple `approvalUsers`.
-9. Complete every parallel approval task from `My Tasks` or task detail with form data and comments.
-10. Inspect `Process Instance` / `Ops` trace, current and completed activities, variables, task detail, form snapshots, and audit logs.
-11. Use `Data Sources` to create, update, test, and inspect datasource test logs.
+8. Log in as `applicant`, open `Start Process`, and start `collaborativeApproval` with multiple `approvalUsers`.
+9. Open `My Requests` to confirm the applicant can see the flow diagram, current node, handlers, and status.
+10. Log in as each approver, complete parallel approval tasks from `My Tasks` with form data and comments.
+11. Inspect task detail, instance detail, form snapshots, trace, and audit logs. Operators can use `Ops` for failed jobs, dead-letter jobs, and runtime actions.
+12. Use `Data Sources` to create, update, test, and inspect datasource test logs.
 
 ## HTTP Connector Workflow Check
 
