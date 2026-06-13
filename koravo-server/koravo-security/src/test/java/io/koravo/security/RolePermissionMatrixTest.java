@@ -8,15 +8,22 @@ class RolePermissionMatrixTest {
     @Test
     void capabilitiesMatchEndpointBoundaries() {
         var applicant = RolePermissionMatrix.capabilitiesForRole(UserContextHolder.ROLE_APPLICANT);
+        var manager = RolePermissionMatrix.capabilitiesForRole(UserContextHolder.ROLE_MANAGER);
         var admin = RolePermissionMatrix.capabilitiesForRole(UserContextHolder.ROLE_ADMIN);
         var operator = RolePermissionMatrix.capabilitiesForRole(UserContextHolder.ROLE_OPERATOR);
 
         assertThat(applicant)
                 .containsEntry("canViewProcessContext", true)
                 .containsEntry("canStartProcess", true)
+                .containsEntry("canHandleTask", false)
                 .containsEntry("canConfigureWorkflow", false)
                 .containsEntry("canViewAudit", false)
                 .containsEntry("canOperateSystem", false);
+        assertThat(manager)
+                .containsEntry("canViewOwnWork", true)
+                .containsEntry("canHandleTask", true)
+                .containsEntry("canStartProcess", false)
+                .containsEntry("canConfigureWorkflow", false);
         assertThat(admin)
                 .containsEntry("canViewProcessContext", false)
                 .containsEntry("canConfigureWorkflow", true)
@@ -45,6 +52,18 @@ class RolePermissionMatrixTest {
                 "admin",
                 UserContextHolder.ROLE_ADMIN
         )).isFalse();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "GET",
+                "/api/v1/tasks/my",
+                "applicant",
+                UserContextHolder.ROLE_APPLICANT
+        )).isFalse();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "GET",
+                "/api/v1/tasks/my",
+                "manager",
+                UserContextHolder.ROLE_MANAGER
+        )).isTrue();
         assertThat(RolePermissionMatrix.isAllowed(
                 "GET",
                 "/api/v1/audit-logs",

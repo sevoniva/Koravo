@@ -7,7 +7,7 @@ describe('access rules', () => {
 
     expect(rules.canViewOwnWork).toBe(true);
     expect(rules.canViewProcessContext).toBe(true);
-    expect(rules.canHandleTask).toBe(true);
+    expect(rules.canHandleTask).toBe(false);
     expect(rules.canStartProcess).toBe(true);
     expect(rules.canClaimTask).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(false);
@@ -23,6 +23,7 @@ describe('access rules', () => {
     expect(rules.canViewOwnWork).toBe(true);
     expect(rules.canViewProcessContext).toBe(true);
     expect(rules.canClaimTask).toBe(true);
+    expect(rules.canHandleTask).toBe(true);
     expect(rules.canStartProcess).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(false);
     expect(rules.canViewAudit).toBe(false);

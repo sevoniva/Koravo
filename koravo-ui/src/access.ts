@@ -31,7 +31,7 @@ export function permissionsForRole(role?: string): Required<SessionPermissions> 
     canViewProcessContext: isWorkflowUser || isOperator,
     canStartProcess: role === 'applicant',
     canClaimTask: isApprover,
-    canHandleTask: isWorkflowUser,
+    canHandleTask: isApprover,
     canConfigureWorkflow: isAdmin,
     canManageOrganization: isAdmin,
     canManageIntegration: isAdmin,

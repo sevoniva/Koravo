@@ -39,9 +39,9 @@ public final class RolePermissionMatrix {
                     rule("/api/v1/organization/members", ALL_BUSINESS_ROLES),
                     rule("/api/v1/workflow-enablement/status", ADMIN_ROLES),
                     rule("/api/v1/workflow-enablement/startable-processes", List.of(UserContextHolder.ROLE_APPLICANT)),
-                    rule("/api/v1/tasks/my", WORKFLOW_USER_ROLES),
+                    rule("/api/v1/tasks/my", APPROVAL_ROLES),
                     rule("/api/v1/tasks/candidates", APPROVAL_ROLES),
-                    rule("/api/v1/tasks/done", WORKFLOW_USER_ROLES),
+                    rule("/api/v1/tasks/done", APPROVAL_ROLES),
                     rule("/api/v1/tasks/started", WORKFLOW_USER_ROLES),
                     rule("/api/v1/tasks/[^/]+", WORKFLOW_USER_ROLES),
                     rule("/api/v1/process-instances/[^/]+/trace", PROCESS_CONTEXT_ROLES),
@@ -119,7 +119,7 @@ public final class RolePermissionMatrix {
         capabilities.put("canViewProcessContext", isWorkflowUser || isOperator);
         capabilities.put("canStartProcess", UserContextHolder.ROLE_APPLICANT.equals(role));
         capabilities.put("canClaimTask", isApprover);
-        capabilities.put("canHandleTask", isWorkflowUser);
+        capabilities.put("canHandleTask", isApprover);
         capabilities.put("canConfigureWorkflow", isAdmin);
         capabilities.put("canManageOrganization", isAdmin);
         capabilities.put("canManageIntegration", isAdmin);

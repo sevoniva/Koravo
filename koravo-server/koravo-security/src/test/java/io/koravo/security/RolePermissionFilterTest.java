@@ -25,6 +25,7 @@ class RolePermissionFilterTest {
 
         assertThat(allows("POST", "/api/v1/process-instances/start")).isTrue();
         assertThat(allows("GET", "/api/v1/forms/snapshots")).isTrue();
+        assertThat(allows("GET", "/api/v1/tasks/my")).isFalse();
         assertThat(allows("GET", "/api/v1/process-models")).isFalse();
     }
 
@@ -33,6 +34,7 @@ class RolePermissionFilterTest {
         UserContextHolder.setUser("manager", UserContextHolder.ROLE_MANAGER);
 
         assertThat(allows("POST", "/api/v1/tasks/task-1/complete")).isTrue();
+        assertThat(allows("GET", "/api/v1/tasks/my")).isTrue();
         assertThat(allows("GET", "/api/v1/process-instances/pi-1/trace")).isTrue();
         assertThat(allows("GET", "/api/v1/ops/process-instances")).isFalse();
     }

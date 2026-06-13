@@ -146,7 +146,7 @@ const Dashboard: React.FC = () => {
     session.permissions?.canStartProcess ?? session.role === 'applicant';
   const canHandleTask =
     session.permissions?.canHandleTask ??
-    ['applicant', 'manager', 'finance'].includes(session.role);
+    ['manager', 'finance'].includes(session.role);
   const canOperateSystem =
     session.permissions?.canOperateSystem ?? session.role === 'operator';
   const canManageIntegration =
