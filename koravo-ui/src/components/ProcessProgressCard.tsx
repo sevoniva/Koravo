@@ -175,6 +175,19 @@ function buildTimelineItems(timeline: ProcessTraceNode[]) {
   }));
 }
 
+function nextStepText(trace: ProcessTrace | undefined, pendingTasks: TaskItem[]) {
+  const status = String(trace?.status || '').toUpperCase();
+  if (status === 'COMPLETED') return '无待办';
+  if (status === 'TERMINATED') return '已终止';
+  if (status === 'SUSPENDED') return '等待恢复';
+  if (!pendingTasks.length) return '等待流转';
+  if (pendingTasks.length > 1) return '等待并行任务完成';
+  const task = pendingTasks[0];
+  return task.assignee
+    ? `等待${organizationMemberName(task.assignee)}处理`
+    : '等待认领';
+}
+
 function diagramHeight(trace?: ProcessTrace) {
   const nodeCount = Math.max(
     visibleTimelineNodes(trace?.timeline || []).length,
@@ -219,6 +232,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
     '-';
   const isCompleted = String(trace?.status || '').toUpperCase() === 'COMPLETED';
   const pendingLabel = isCompleted ? '已完成' : `待办 ${pendingTasks.length}`;
+  const nextStep = nextStepText(trace, pendingTasks);
 
   return (
     <ProCard
@@ -244,6 +258,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             <Metric label="当前节点" value={currentNodeText} />
             <Metric label="处理人" value={currentHandlerText} />
             <Metric label="待办数" value={pendingTasks.length} />
+            <Metric label="下一步" value={nextStep} />
             <Metric label="最近完成" value={nodeLabel(latestDone)} />
           </div>
           <ProDescriptions
@@ -255,6 +270,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
               status: processStatusLabel(trace?.status),
               currentNodeText,
               currentHandlerText,
+              nextStep,
               latestDone: nodeLabel(latestDone),
             }}
             columns={[
@@ -265,6 +281,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
               },
               { title: '业务编号', dataIndex: 'businessKey', copyable: true },
               { title: '实例状态', dataIndex: 'status' },
+              { title: '下一步', dataIndex: 'nextStep' },
             ]}
           />
           {pendingTasks.length ? (
