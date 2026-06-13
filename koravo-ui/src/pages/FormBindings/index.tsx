@@ -433,17 +433,13 @@ const FormBindings: React.FC = () => {
   ];
 
   return (
-    <PageContainer
-      title="表单绑定"
-      content="将流程任务节点绑定到指定表单版本。"
-    >
+    <PageContainer title="表单绑定">
       {contextHolder}
       {queryProcessModelId ? (
         <Alert
           showIcon
           type="info"
-          title="正在查看指定流程的表单绑定"
-          description="从流程模型进入后，列表和新建绑定会默认使用该流程模型。完成绑定后请回到流程模型做发布检查，确认启动表单、任务表单和办理人都已就绪。"
+          title="指定流程"
           action={
             <Button size="small" onClick={() => history.push('/form-bindings')}>
               查看全部
@@ -456,8 +452,7 @@ const FormBindings: React.FC = () => {
         <Alert
           showIcon
           type="info"
-          title="正在绑定指定表单"
-          description="从表单管理进入后，列表会只显示该表单的绑定，新建绑定会默认使用该表单版本。"
+          title="指定表单"
           action={
             <Button size="small" onClick={() => history.push('/form-bindings')}>
               查看全部

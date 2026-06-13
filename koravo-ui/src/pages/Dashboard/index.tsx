@@ -45,7 +45,6 @@ interface WorkloadRow {
 
 interface WorkflowStep {
   title: string;
-  description: string;
   path: string;
   icon: React.ReactNode;
 }
@@ -53,31 +52,26 @@ interface WorkflowStep {
 const workflowSteps: WorkflowStep[] = [
   {
     title: '创建流程模型',
-    description: '新建流程、导入流程文件、设计审批节点',
     path: '/process-designer',
     icon: <EditOutlined />,
   },
   {
     title: '配置业务表单',
-    description: '维护业务字段和控件',
     path: '/forms',
     icon: <FormOutlined />,
   },
   {
     title: '绑定任务节点',
-    description: '把表单绑定到审批任务',
     path: '/form-bindings',
     icon: <LinkOutlined />,
   },
   {
     title: '校验并部署',
-    description: '确认流程和表单后发布定义',
     path: '/process-models',
     icon: <DeploymentUnitOutlined />,
   },
   {
     title: '发起流程',
-    description: '提交业务单据并跟踪处理',
     path: '/process-start',
     icon: <PlayCircleOutlined />,
   },
@@ -192,7 +186,6 @@ const Dashboard: React.FC = () => {
   return (
     <PageContainer
       title="总览"
-      content="流程模型、运行实例、待办任务和异常状态。"
       extra={
         <Flex wrap gap={8}>
           <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
@@ -225,7 +218,6 @@ const Dashboard: React.FC = () => {
           type="warning"
           showIcon
           title="摘要加载失败"
-          description="请确认服务已启动，并检查组织权限配置。"
           style={{ marginBottom: 16 }}
         />
       )}
@@ -255,7 +247,6 @@ const Dashboard: React.FC = () => {
           responsive
           items={workflowSteps.map((step) => ({
             title: step.title,
-            content: step.description,
             icon: step.icon,
           }))}
           onChange={(current) => history.push(workflowSteps[current].path)}

@@ -495,20 +495,14 @@ const SystemSettings: React.FC = () => {
 
   if (isOrganizationPage) {
     return (
-      <PageContainer
-        title="组织权限"
-        content="查看平台同步的成员、部门、职责和流程办理权限。"
-      >
+      <PageContainer title="组织权限">
         {organizationPermissionsContent}
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer
-      title="系统状态"
-      content="查看组织身份、依赖状态和系统策略。"
-    >
+    <PageContainer title="系统状态">
       <ProCard
         gutter={16}
         wrap
@@ -536,11 +530,6 @@ const SystemSettings: React.FC = () => {
         title={identitySynced ? '组织权限范围' : '平台身份未同步'}
         description={
           <Flex vertical gap={8}>
-            <span>
-              {identitySynced
-                ? '待办、发起和运维操作会按平台身份源加载权限范围。成员、部门和岗位职责由组织档案同步。'
-                : '当前会话还没有拿到平台身份源中的成员档案，页面只展示同步状态，不会默认展示为管理员。'}
-            </span>
             <Space wrap>
               <Tag color="processing">
                 当前成员：{organizationMemberName(session.userId)}

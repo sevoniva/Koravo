@@ -582,10 +582,7 @@ const ProcessModels: React.FC = () => {
   ];
 
   return (
-    <PageContainer
-      title="流程模型"
-      content="维护流程草稿、部署版本和运行定义。"
-    >
+    <PageContainer title="流程模型">
       {contextHolder}
       <ProTable<ProcessModelTableItem>
         actionRef={actionRef}
@@ -741,8 +738,7 @@ const ProcessModels: React.FC = () => {
         <Alert
           showIcon
           type="info"
-          title="导入后会立即部署为可运行流程"
-          description="请确认流程文件内的流程标识稳定，后续表单绑定和实例发起都会使用该标识。"
+          title="导入后立即部署"
           style={{ marginBottom: 16 }}
         />
         <ProFormText

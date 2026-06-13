@@ -678,12 +678,6 @@ const renderFormPreview = (fields: FormFieldConfig[]) =>
 
 const renderFormFieldsEditor = () => (
   <>
-    <Alert
-      showIcon
-      type="info"
-      title="按业务表单维护字段，申请人、所属部门等组织档案字段会自动联动。"
-      style={{ marginBottom: 16 }}
-    />
     <ProFormList
       name="fields"
       label="字段清单"
@@ -984,7 +978,7 @@ const Forms: React.FC = () => {
   ];
 
   return (
-    <PageContainer title="表单管理" content="维护任务表单结构和展示配置。">
+    <PageContainer title="表单管理">
       <ProTable<FormSchemaItem>
         actionRef={actionRef}
         rowKey="id"

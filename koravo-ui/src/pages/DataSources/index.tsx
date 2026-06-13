@@ -324,7 +324,7 @@ const DataSources: React.FC = () => {
   );
 
   return (
-    <PageContainer title="数据源管理" content="维护外部数据源连接和连通性。">
+    <PageContainer title="数据源管理">
       {contextHolder}
       <ProTable<DataSourceItem>
         actionRef={actionRef}

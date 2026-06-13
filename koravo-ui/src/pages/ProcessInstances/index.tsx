@@ -502,7 +502,6 @@ const StartInstanceFields: React.FC<{
           showIcon
           type="warning"
           title="暂无可发起流程"
-          description="先发布流程并绑定启动表单。"
           action={
             <Button
               size="small"
@@ -594,7 +593,6 @@ const StartInstanceFields: React.FC<{
                         showIcon
                         type="warning"
                         title="当前表单没有可填写字段"
-                        description="去表单管理维护字段。"
                       />
                     );
                   }
