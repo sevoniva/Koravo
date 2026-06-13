@@ -435,14 +435,14 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             />
           </Flex>
           <div className={styles.statusStrip}>
-            <Metric label="节点" value={nodeText} />
-            <Metric label="处理人" value={currentHandlerText} />
-            <Metric label="动作" value={nextStep} />
+            <Metric label="当前位置" value={nodeText} />
+            <Metric label="办理人" value={currentHandlerText} />
+            <Metric label="下一步" value={nextStep} />
             <Metric label="上一步" value={nodeLabel(latestDone)} />
           </div>
           {taskGroups.length ? (
             <Flex vertical gap={8}>
-              <Typography.Text strong>待办</Typography.Text>
+              <Typography.Text strong>待处理</Typography.Text>
               <div className={styles.pendingList}>
                 {taskGroups.map((group) => (
                   <Tag
@@ -461,7 +461,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
           ) : null}
           {hasTimeline ? (
             <Flex vertical gap={8}>
-              <Typography.Text strong>最近记录</Typography.Text>
+              <Typography.Text strong>已办记录</Typography.Text>
               <div className={styles.timelineWrap}>
                 <Timeline items={buildTimelineItems(timeline)} />
               </div>

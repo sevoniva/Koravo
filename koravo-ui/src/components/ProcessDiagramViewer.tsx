@@ -85,7 +85,12 @@ const useStyles = createStyles(({ css, token }) => ({
     .djs-label text {
       fill: ${token.colorText} !important;
       font-weight: ${token.fontWeightStrong};
-      font-size: 13px !important;
+      font-size: 14px !important;
+    }
+
+    .djs-element.koravo-node-current .djs-visual text,
+    .djs-element.koravo-node-active .djs-visual text {
+      fill: ${token.colorPrimary} !important;
     }
 
     .bjs-powered-by {
@@ -131,6 +136,35 @@ const useStyles = createStyles(({ css, token }) => ({
     right: 12px;
     z-index: 1;
     padding: 4px;
+    background: ${token.colorBgElevated};
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: ${token.borderRadiusSM}px;
+    box-shadow: ${token.boxShadowTertiary};
+  `,
+  diagramStatus: css`
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1;
+    max-width: min(520px, calc(100% - 164px));
+    padding: 6px 8px;
+    background: ${token.colorBgElevated};
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: ${token.borderRadiusSM}px;
+    box-shadow: ${token.boxShadowTertiary};
+
+    @media (max-width: 640px) {
+      top: 52px;
+      right: 12px;
+      max-width: none;
+    }
+  `,
+  diagramLegend: css`
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    z-index: 1;
+    padding: 4px 8px;
     background: ${token.colorBgElevated};
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: ${token.borderRadiusSM}px;
@@ -244,6 +278,32 @@ function currentDiagramElementId(
   return [...(businessNodes.length ? businessNodes : completed)]
     .sort((left, right) => activityTime(right) - activityTime(left))[0]
     ?.activityId;
+}
+
+function currentDiagramNode(
+  currentActivityIds: string[],
+  timeline: ProcessTraceNode[] | undefined,
+) {
+  const currentId = currentDiagramElementId(currentActivityIds, timeline);
+  const node = (timeline || []).find((item) => item.activityId === currentId);
+  return {
+    id: currentId,
+    label: node ? nodeTitle(node) : currentId ? taskDefinitionLabel(currentId) : '-',
+    status: node?.status,
+  };
+}
+
+function diagramStatusCounts(timeline: ProcessTraceNode[]) {
+  const nodes = visibleFlowNodes(timeline);
+  return {
+    completed: nodes.filter(
+      (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
+    ).length,
+    active: nodes.filter((node) =>
+      ['ACTIVE', 'RUNNING'].includes(String(node.status || '').toUpperCase()),
+    ).length,
+    total: nodes.length,
+  };
 }
 
 function activityTime(node: ProcessTraceNode) {
@@ -377,6 +437,16 @@ function generatedStatusColor(status: ReturnType<typeof generatedStepStatus>) {
   return mapping[status];
 }
 
+function diagramBadgeStatus(status?: string) {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'COMPLETED') return 'success' as const;
+  if (normalized === 'ACTIVE' || normalized === 'RUNNING')
+    return 'processing' as const;
+  if (normalized === 'FAILED' || normalized === 'TERMINATED')
+    return 'error' as const;
+  return 'default' as const;
+}
+
 function currentNodeIndex(nodes: ProcessTraceNode[], currentActivityIds: string[]) {
   const currentIds = new Set(currentActivityIds.filter(Boolean));
   const current = nodes.findIndex((node) => currentIds.has(node.activityId));
@@ -427,6 +497,50 @@ function generatedStepItems(
   });
 }
 
+const DiagramStatusOverlay: React.FC<{
+  currentActivityIds: string[];
+  timeline: ProcessTraceNode[];
+}> = ({ currentActivityIds, timeline }) => {
+  const { styles } = useStyles();
+  if (!timeline.length) return null;
+
+  const current = currentDiagramNode(currentActivityIds, timeline);
+  const counts = diagramStatusCounts(timeline);
+
+  return (
+    <>
+      <div className={styles.diagramStatus}>
+        <Space size={8} wrap>
+          <Badge
+            status={diagramBadgeStatus(current.status)}
+            text={
+              <Typography.Text
+                strong
+                ellipsis={{ tooltip: current.label }}
+                style={{ maxWidth: 260 }}
+              >
+                当前位置：{current.label}
+              </Typography.Text>
+            }
+          />
+          <Tag color="success">已办 {counts.completed}</Tag>
+          {counts.active ? (
+            <Tag color="processing">当前 {counts.active}</Tag>
+          ) : null}
+          <Tag>{counts.total}</Tag>
+        </Space>
+      </div>
+      <div className={styles.diagramLegend}>
+        <Space size={10} wrap>
+          <Badge status="success" text="已办" />
+          <Badge status="processing" text="当前" />
+          <Badge status="default" text="待办" />
+        </Space>
+      </div>
+    </>
+  );
+};
+
 const GeneratedFlow: React.FC<{
   bpmnXml?: string;
   timeline: ProcessTraceNode[];
@@ -455,18 +569,26 @@ const GeneratedFlow: React.FC<{
   return (
     <div className={styles.shell} style={{ height }} data-testid="process-diagram-viewer">
       <div className={styles.generatedFlow}>
-        <Flex className={styles.generatedHeader} align="center" justify="space-between" gap={8} wrap>
+        <Flex
+          className={styles.generatedHeader}
+          align="center"
+          justify="space-between"
+          gap={8}
+          wrap
+        >
           <Space size={8}>
-            <Badge status="processing" />
-            <Typography.Text strong>
-              {generatedCurrentText(nodes, currentIndex)}
-            </Typography.Text>
+            <Badge
+              status="processing"
+              text={
+                <Typography.Text strong>
+                  当前位置：{generatedCurrentText(nodes, currentIndex)}
+                </Typography.Text>
+              }
+            />
           </Space>
           <Space size={8} wrap>
-            <Tag color="processing">当前</Tag>
-            <Tag>
-              {completedCount}/{nodes.length}
-            </Tag>
+            <Tag color="success">已办 {completedCount}</Tag>
+            <Tag>{nodes.length}</Tag>
           </Space>
         </Flex>
         <div className={styles.generatedSteps}>
@@ -591,11 +713,16 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
         await viewerRef.current.importXML(renderableBpmnXml);
         const canvas = viewerRef.current.get('canvas') as Canvas;
         const elementRegistry = viewerRef.current.get('elementRegistry') as ElementRegistry;
-        const elements = fitDiagramViewport(canvas, elementRegistry);
+        const elements = applyReadableViewport(canvas, elementRegistry);
         if (!elements.length) {
           throw new Error('流程图没有可显示节点');
         }
         applyMarkers();
+        focusDiagramElement(
+          canvas,
+          elementRegistry,
+          currentDiagramElementId(currentActivityIds, timeline),
+        );
         setDiagramReady(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : '流程图加载失败');
@@ -647,6 +774,10 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   return (
     <div className={styles.shell} style={{ height }} data-testid="process-diagram-viewer">
       <div ref={mountRef} className={styles.mount} />
+      <DiagramStatusOverlay
+        currentActivityIds={currentActivityIds}
+        timeline={timeline}
+      />
       <Space.Compact className={styles.toolbar}>
         <Tooltip title="适配视图">
           <Button
