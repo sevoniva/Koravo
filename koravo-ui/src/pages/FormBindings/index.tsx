@@ -62,6 +62,8 @@ type BindingTableItem = FormBindingItem & {
   formSchema?: FormSchemaItem;
   hasStartBinding: boolean;
   taskDefinitionExists: boolean;
+  missingTaskNames: string[];
+  readyToStart: boolean;
 };
 
 const START_FORM_TASK_KEY = '__START__';
@@ -159,6 +161,59 @@ function bindingModelId(binding: FormBindingItem | BindingForm) {
   return binding.processModelId;
 }
 
+function bindingTargetsModel(
+  binding: FormBindingItem,
+  model?: ProcessModelItem,
+) {
+  if (!model) return false;
+  return (
+    binding.processModelId === model.id ||
+    Boolean(
+      model.flowableDefinitionId &&
+        binding.processDefinitionId === model.flowableDefinitionId,
+    )
+  );
+}
+
+function buildBindingReadiness(
+  model: ProcessModelItem,
+  bindings: FormBindingItem[],
+  schemas: FormSchemaItem[],
+  tasks: BpmnTaskDefinition[],
+) {
+  const activeSchemaIds = new Set(
+    schemas
+      .filter((schema) => schema.status === 'ACTIVE')
+      .map((schema) => schema.id),
+  );
+  const modelBindings = bindings.filter((binding) =>
+    bindingTargetsModel(binding, model),
+  );
+  const hasStartBinding = modelBindings.some(
+    (binding) =>
+      binding.taskDefinitionKey === START_FORM_TASK_KEY &&
+      activeSchemaIds.has(binding.formSchemaId),
+  );
+  const boundTaskKeys = new Set(
+    modelBindings
+      .filter((binding) => binding.taskDefinitionKey !== START_FORM_TASK_KEY)
+      .filter((binding) => activeSchemaIds.has(binding.formSchemaId))
+      .map((binding) => binding.taskDefinitionKey),
+  );
+  const missingTaskNames = tasks
+    .filter((task) => !boundTaskKeys.has(task.taskDefinitionKey))
+    .map((task) => taskDefinitionLabel(task.taskDefinitionKey, task));
+
+  return {
+    hasStartBinding,
+    missingTaskNames,
+    readyToStart:
+      model.status === 'DEPLOYED' &&
+      hasStartBinding &&
+      missingTaskNames.length === 0,
+  };
+}
+
 function bindingVersionState(record: BindingTableItem) {
   if (!record.formSchema) return 'missing';
   if (record.formSchema.status !== 'ACTIVE') return 'inactive';
@@ -215,6 +270,9 @@ function bindingHealth(record: BindingTableItem) {
   if (!record.hasStartBinding) {
     return { color: 'warning', text: '缺启动表单' };
   }
+  if (record.missingTaskNames.length > 0) {
+    return { color: 'warning', text: `缺 ${record.missingTaskNames.length} 个任务表单` };
+  }
   if (record.processModel.status === 'ARCHIVED') {
     return { color: 'default', text: '流程归档' };
   }
@@ -230,7 +288,11 @@ function renderBindingHealth(record: BindingTableItem) {
 }
 
 function canStartFromBinding(record: BindingTableItem) {
-  return record.processModel?.status === 'DEPLOYED' && record.hasStartBinding;
+  return (
+    record.readyToStart &&
+    record.taskDefinitionExists &&
+    bindingVersionState(record) === 'current'
+  );
 }
 
 const BindingFormItems: React.FC<{
@@ -405,12 +467,12 @@ const FormBindings: React.FC = () => {
               onClick={() =>
                 history.push(
                   processModelId
-                    ? `/process-start?processModelId=${processModelId}`
-                    : '/process-start',
+                    ? `/form-bindings?processModelId=${processModelId}`
+                    : '/form-bindings',
                 )
               }
             >
-              发起流程
+              继续绑定表单
             </Button>
             {processModelId ? (
               <Button
@@ -624,28 +686,35 @@ const FormBindings: React.FC = () => {
           const modelMap = new Map(businessModels.map((item) => [item.id, item]));
           const schemaMap = new Map(schemas.map((item) => [item.id, item]));
           const taskMap = new Map(taskEntries);
-          const startBindingModelIds = new Set(
-            bindings
-              .filter((item) => item.taskDefinitionKey === START_FORM_TASK_KEY)
-              .map((item) => item.processModelId)
-              .filter(Boolean),
+          const readinessMap = new Map(
+            businessModels.map((model) => [
+              model.id,
+              buildBindingReadiness(
+                model,
+                bindings,
+                schemas,
+                taskMap.get(model.id) || [],
+              ),
+            ]),
           );
           const keyword = String(
             params.processModelId || params.taskDefinitionKey || '',
           ).trim();
           const data = bindings.map((item) => {
-            const tasks = item.processModelId
-              ? taskMap.get(item.processModelId) || []
-              : [];
+            const processModel = item.processModelId
+              ? modelMap.get(item.processModelId)
+              : undefined;
+            const readiness = processModel
+              ? readinessMap.get(processModel.id)
+              : undefined;
+            const tasks = processModel ? taskMap.get(processModel.id) || [] : [];
             return {
               ...item,
-              processModel: item.processModelId
-                ? modelMap.get(item.processModelId)
-                : undefined,
+              processModel,
               formSchema: schemaMap.get(item.formSchemaId),
-              hasStartBinding: item.processModelId
-                ? startBindingModelIds.has(item.processModelId)
-                : false,
+              hasStartBinding: readiness?.hasStartBinding || false,
+              missingTaskNames: readiness?.missingTaskNames || [],
+              readyToStart: readiness?.readyToStart || false,
               taskDefinitionExists:
                 item.taskDefinitionKey === START_FORM_TASK_KEY ||
                 tasks.some(

@@ -25,7 +25,12 @@ import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -284,8 +289,7 @@ public class WorkflowEnablementService {
     ) {
         KoFormBinding startBinding = bindings.stream()
                 .filter(binding -> WorkflowEnablementDefaults.START_FORM_TASK_KEY.equals(binding.getTaskDefinitionKey()))
-                .filter(binding -> model.getId().equals(binding.getProcessModelId())
-                        || model.getFlowableDefinitionId().equals(binding.getProcessDefinitionId()))
+                .filter(binding -> bindingTargetsModel(binding, model))
                 .findFirst()
                 .orElse(null);
         if (startBinding == null) {
@@ -293,6 +297,9 @@ public class WorkflowEnablementService {
         }
         KoFormSchema schema = schemaMap.get(startBinding.getFormSchemaId());
         if (schema == null) {
+            return null;
+        }
+        if (!hasReadyTaskBindings(model, bindings, schemaMap)) {
             return null;
         }
         return new StartableWorkflowResponse(
@@ -305,6 +312,53 @@ public class WorkflowEnablementService {
                 startBinding.getId(),
                 startFormSchema(schema, startBinding)
         );
+    }
+
+    private boolean hasReadyTaskBindings(
+            KoProcessModel model,
+            List<KoFormBinding> bindings,
+            Map<String, KoFormSchema> schemaMap
+    ) {
+        List<String> taskKeys = parseUserTaskKeys(model.getBpmnXml());
+        if (taskKeys.isEmpty()) {
+            return true;
+        }
+        return taskKeys.stream().allMatch(taskKey -> bindings.stream()
+                .filter(binding -> taskKey.equals(binding.getTaskDefinitionKey()))
+                .filter(binding -> bindingTargetsModel(binding, model))
+                .anyMatch(binding -> schemaMap.containsKey(binding.getFormSchemaId())));
+    }
+
+    private boolean bindingTargetsModel(KoFormBinding binding, KoProcessModel model) {
+        return model.getId().equals(binding.getProcessModelId())
+                || model.getFlowableDefinitionId().equals(binding.getProcessDefinitionId());
+    }
+
+    private List<String> parseUserTaskKeys(String bpmnXml) {
+        if (!StringUtils.hasText(bpmnXml)) {
+            return List.of("__INVALID_BPMN__");
+        }
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            NodeList tasks = factory.newDocumentBuilder()
+                    .parse(new InputSource(new StringReader(bpmnXml)))
+                    .getElementsByTagNameNS("*", "userTask");
+            List<String> keys = new ArrayList<>();
+            for (int i = 0; i < tasks.getLength(); i++) {
+                Element task = (Element) tasks.item(i);
+                String id = task.getAttribute("id");
+                if (StringUtils.hasText(id)) {
+                    keys.add(id);
+                }
+            }
+            return keys;
+        } catch (Exception e) {
+            return List.of("__INVALID_BPMN__");
+        }
     }
 
     private FormSchemaResponse startFormSchema(KoFormSchema schema, KoFormBinding startBinding) {

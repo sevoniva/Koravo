@@ -327,6 +327,7 @@ class WorkflowEnablementServiceTest {
         KoProcessModel retiredModel = deployedModel("retired-model", "purchaseApproval", "历史流程资产");
         KoFormSchema form = activeForm();
         KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        KoFormBinding taskBinding = binding("task-binding", "form-1", 2, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY);
         KoFormBinding retiredBinding = binding("retired-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
         retiredBinding.setProcessModelId("retired-model");
         retiredBinding.setProcessDefinitionId("purchaseApproval:1:retired");
@@ -334,7 +335,7 @@ class WorkflowEnablementServiceTest {
         when(processModelRepository.findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc("default", ProcessModelStatus.DEPLOYED))
                 .thenReturn(List.of(model, retiredModel));
         when(formBindingRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
-                .thenReturn(List.of(startBinding, retiredBinding));
+                .thenReturn(List.of(startBinding, taskBinding, retiredBinding));
         when(formSchemaRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
                 .thenReturn(List.of(form));
         when(formSchemaService.get("form-1", 2)).thenReturn(formResponse(form));
@@ -348,16 +349,36 @@ class WorkflowEnablementServiceTest {
     }
 
     @Test
-    void startableProcessesFallsBackToCurrentFormWhenBoundVersionIsMissing() {
+    void startableProcessesRequireTaskFormBindings() {
         TenantContextHolder.setTenantId("default");
         KoProcessModel model = deployedModel();
         KoFormSchema form = activeForm();
-        KoFormBinding startBinding = binding("start-binding", "form-1", 1, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        KoFormBinding startBinding = binding("start-binding", "form-1", 2, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
 
         when(processModelRepository.findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc("default", ProcessModelStatus.DEPLOYED))
                 .thenReturn(List.of(model));
         when(formBindingRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
                 .thenReturn(List.of(startBinding));
+        when(formSchemaRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
+                .thenReturn(List.of(form));
+
+        List<StartableWorkflowResponse> response = service.startableProcesses();
+
+        assertThat(response).isEmpty();
+    }
+
+    @Test
+    void startableProcessesFallsBackToCurrentFormWhenBoundVersionIsMissing() {
+        TenantContextHolder.setTenantId("default");
+        KoProcessModel model = deployedModel();
+        KoFormSchema form = activeForm();
+        KoFormBinding startBinding = binding("start-binding", "form-1", 1, WorkflowEnablementDefaults.START_FORM_TASK_KEY);
+        KoFormBinding taskBinding = binding("task-binding", "form-1", 1, WorkflowEnablementDefaults.BUSINESS_ACCEPTANCE_TASK_KEY);
+
+        when(processModelRepository.findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc("default", ProcessModelStatus.DEPLOYED))
+                .thenReturn(List.of(model));
+        when(formBindingRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
+                .thenReturn(List.of(startBinding, taskBinding));
         when(formSchemaRepository.findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default"))
                 .thenReturn(List.of(form));
         when(formSchemaService.get("form-1", 1))
