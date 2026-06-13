@@ -19,6 +19,7 @@ export default [
     key: 'workbench',
     name: '工作台',
     icon: 'checkCircle',
+    access: 'canHandleTask',
     routes: [
       {
         path: '/tasks',
@@ -42,13 +43,6 @@ export default [
         access: 'canHandleTask',
       },
       {
-        path: '/started-instances',
-        name: '我的申请',
-        icon: 'profile',
-        component: './Tasks',
-        access: 'canViewOwnWork',
-      },
-      {
         path: '/tasks/:taskId',
         name: '任务详情',
         hideInMenu: true,
@@ -68,6 +62,13 @@ export default [
         icon: 'playCircle',
         component: './ProcessInstances',
         access: 'canStartProcess',
+      },
+      {
+        path: '/started-instances',
+        name: '我的申请',
+        icon: 'profile',
+        component: './Tasks',
+        access: 'canViewOwnWork',
       },
       {
         path: '/process-instances',

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import routes from '../config/routes';
 
 interface AppRoute {
+  key?: string;
   path?: string;
   access?: string;
   routes?: AppRoute[];
@@ -17,6 +18,17 @@ function routeAccessByPath(items: AppRoute[]) {
   };
   visit(items);
   return result;
+}
+
+function routeByKey(items: AppRoute[], key: string): AppRoute | undefined {
+  for (const route of items) {
+    if (route.key === key) return route;
+    if (route.routes) {
+      const child = routeByKey(route.routes, key);
+      if (child) return child;
+    }
+  }
+  return undefined;
 }
 
 describe('route access declarations', () => {
@@ -37,5 +49,12 @@ describe('route access declarations', () => {
     expect(accessByPath.get('/system-settings')).toBe('canManageSystem');
     expect(accessByPath.get('/datasources')).toBe('canManageIntegration');
     expect(accessByPath.get('/http-connector')).toBe('canManageIntegration');
+  });
+
+  it('keeps applicant menu focused on process center', () => {
+    const accessByPath = routeAccessByPath(routes);
+
+    expect(routeByKey(routes, 'workbench')?.access).toBe('canHandleTask');
+    expect(accessByPath.get('/started-instances')).toBe('canViewOwnWork');
   });
 });
