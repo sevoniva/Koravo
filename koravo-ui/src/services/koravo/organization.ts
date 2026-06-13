@@ -376,6 +376,17 @@ export function organizationMemberSelectOptions(role?: SessionRole) {
     }));
 }
 
+export function organizationApprovalMemberSelectOptions() {
+  const approvalRoles: SessionRole[] = ['manager', 'finance'];
+  return getOrganizationMembers()
+    .filter((member) => member.status === '启用')
+    .filter((member) => approvalRoles.includes(member.role))
+    .map((member) => ({
+      label: `${member.name}（${member.department}）`,
+      value: member.userId,
+    }));
+}
+
 export function organizationAssigneeFieldValue(
   fieldKey?: string | null,
   values?: Record<string, unknown>,

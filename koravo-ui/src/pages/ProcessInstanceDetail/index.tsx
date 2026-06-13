@@ -2,35 +2,43 @@ import {
   ModalForm,
   PageContainer,
   ProCard,
+  type ProColumns,
   ProDescriptions,
   ProFormTextArea,
   ProTable,
-  type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useParams } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { App, Badge, Button, Drawer, Empty, Flex, Space, Tag, Typography } from 'antd';
+import { history, useParams } from '@umijs/max';
+import {
+  App,
+  Badge,
+  Button,
+  Drawer,
+  Empty,
+  Flex,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import React from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
+  type AuditLogItem,
   activateProcessInstance,
+  type FormSnapshotItem,
   getProcessInstance,
   getProcessTrace,
   listAuditLogs,
   listFormSnapshots,
-  suspendProcessInstance,
-  terminateProcessInstance,
-  type AuditLogItem,
-  type FormSnapshotItem,
   type ProcessTraceNode,
+  suspendProcessInstance,
   type TaskItem,
+  terminateProcessInstance,
 } from '@/services/koravo/api';
-import {
-  organizationMemberName,
-} from '@/services/koravo/organization';
+import { organizationMemberName } from '@/services/koravo/organization';
 import { getSessionContext } from '@/services/koravo/session';
 import {
   auditActionLabel,
@@ -59,14 +67,19 @@ function snapshotSummary(record: FormSnapshotItem) {
   const data = snapshotData(record);
   const approved = data.approved;
   const opinion = typeof data.opinion === 'string' ? data.opinion : '';
-  const taskName = typeof data.taskName === 'string' ? data.taskName : snapshotTaskLabel(record);
+  const taskName =
+    typeof data.taskName === 'string'
+      ? data.taskName
+      : snapshotTaskLabel(record);
 
   if (approved === undefined && !opinion) {
     return (
       <Flex gap={8} align="center" wrap>
         <Typography.Text>{taskName}</Typography.Text>
         <Typography.Text type="secondary">
-          {Object.keys(data).length ? `${Object.keys(data).length} 个字段` : '暂无字段'}
+          {Object.keys(data).length
+            ? `${Object.keys(data).length} 个字段`
+            : '暂无字段'}
         </Typography.Text>
       </Flex>
     );
@@ -80,12 +93,17 @@ function snapshotSummary(record: FormSnapshotItem) {
           {approved ? '同意' : '不同意'}
         </Tag>
       ) : null}
-      {opinion ? <Typography.Text type="secondary">{opinion}</Typography.Text> : null}
+      {opinion ? (
+        <Typography.Text type="secondary">{opinion}</Typography.Text>
+      ) : null}
     </Flex>
   );
 }
 
-function instanceActionDisabled(status: string | undefined, action: 'suspend' | 'activate' | 'terminate') {
+function instanceActionDisabled(
+  status: string | undefined,
+  action: 'suspend' | 'activate' | 'terminate',
+) {
   if (action === 'suspend') return status !== 'RUNNING';
   if (action === 'activate') return status !== 'SUSPENDED';
   return !['RUNNING', 'SUSPENDED'].includes(status || '');
@@ -202,7 +220,12 @@ const traceColumns: ProColumns<ProcessTraceNode>[] = [
     renderText: (value, record) =>
       taskDefinitionLabel(value, { name: record.activityName }),
   },
-  { title: '类型', dataIndex: 'activityType', width: 150, renderText: activityTypeLabel },
+  {
+    title: '类型',
+    dataIndex: 'activityType',
+    width: 150,
+    renderText: activityTypeLabel,
+  },
   {
     title: '开始时间',
     dataIndex: 'startTime',
@@ -220,7 +243,10 @@ const traceColumns: ProColumns<ProcessTraceNode>[] = [
     dataIndex: 'status',
     width: 110,
     render: (_, record) => (
-      <KoravoStatusTag status={record.status} text={processStatusLabel(record.status)} />
+      <KoravoStatusTag
+        status={record.status}
+        text={processStatusLabel(record.status)}
+      />
     ),
   },
 ];
@@ -239,7 +265,11 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     renderText: organizationMemberName,
   },
   { title: '操作类型', dataIndex: 'action', renderText: auditActionLabel },
-  { title: '对象类型', dataIndex: 'resourceType', renderText: auditResourceLabel },
+  {
+    title: '对象类型',
+    dataIndex: 'resourceType',
+    renderText: auditResourceLabel,
+  },
   {
     title: '业务追踪号',
     dataIndex: 'requestId',
@@ -251,8 +281,10 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
 const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
   const instanceId = params.instanceId || '';
-  const canOperateInstance = getSessionContext().role === 'operator';
-  const [selectedSnapshot, setSelectedSnapshot] = React.useState<FormSnapshotItem>();
+  const session = getSessionContext();
+  const canOperateInstance = session.role === 'operator';
+  const [selectedSnapshot, setSelectedSnapshot] =
+    React.useState<FormSnapshotItem>();
   const {
     data: instance,
     isLoading,
@@ -262,7 +294,11 @@ const ProcessInstanceDetail: React.FC = () => {
     queryFn: () => getProcessInstance(instanceId),
     enabled: Boolean(instanceId),
   });
-  const { data: trace, isLoading: traceLoading, refetch: refetchTrace } = useQuery({
+  const {
+    data: trace,
+    isLoading: traceLoading,
+    refetch: refetchTrace,
+  } = useQuery({
     queryKey: ['process-trace', instanceId],
     queryFn: () => getProcessTrace(instanceId),
     enabled: Boolean(instanceId),
@@ -274,29 +310,38 @@ const ProcessInstanceDetail: React.FC = () => {
   });
   const { data: auditLogs } = useQuery({
     queryKey: ['process-instance-audit-logs', instanceId],
-    queryFn: () => listAuditLogs({ resourceId: instanceId, page: 1, pageSize: 20 }),
+    queryFn: () =>
+      listAuditLogs({ resourceId: instanceId, page: 1, pageSize: 20 }),
     enabled: canOperateInstance && Boolean(instanceId),
   });
   const currentTasks = instance?.currentTasks || [];
   const timeline = trace?.timeline || [];
-  const visibleTimeline = timeline.filter((node) => node.activityType !== 'sequenceFlow');
-  const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
-  const openTaskAsAssignee = React.useCallback(
-    (task: TaskItem) => {
-      history.push(`/tasks/${task.taskId}`);
-    },
-    [],
+  const visibleTimeline = timeline.filter(
+    (node) => node.activityType !== 'sequenceFlow',
   );
+  const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
+  const openTaskAsAssignee = React.useCallback((task: TaskItem) => {
+    history.push(`/tasks/${task.taskId}`);
+  }, []);
   const currentTaskColumns = React.useMemo<ProColumns<TaskItem>[]>(
     () => [
-      { title: '任务名称', dataIndex: 'name', renderText: (_, record) => taskNameLabel(record) },
+      {
+        title: '任务名称',
+        dataIndex: 'name',
+        renderText: (_, record) => taskNameLabel(record),
+      },
       {
         title: '节点',
         dataIndex: 'taskDefinitionKey',
         width: 150,
         renderText: taskDefinitionLabel,
       },
-      { title: '处理人', dataIndex: 'assignee', width: 120, renderText: organizationMemberName },
+      {
+        title: '处理人',
+        dataIndex: 'assignee',
+        width: 120,
+        renderText: organizationMemberName,
+      },
       {
         title: '创建时间',
         dataIndex: 'createTime',
@@ -317,7 +362,7 @@ const ProcessInstanceDetail: React.FC = () => {
           <Button
             key="complete"
             type="link"
-            disabled={!record.assignee}
+            disabled={record.assignee !== session.userId}
             onClick={() => openTaskAsAssignee(record)}
           >
             处理
@@ -385,12 +430,9 @@ const ProcessInstanceDetail: React.FC = () => {
   return (
     <PageContainer
       title="流程实例详情"
-      content="查看实例状态、当前任务、执行轨迹和审计记录。"
       extra={
         <Space wrap>
-          <Button onClick={() => refetch()}>
-            刷新
-          </Button>
+          <Button onClick={() => refetch()}>刷新</Button>
           {canOperateInstance ? (
             <Button
               onClick={() =>
@@ -464,10 +506,26 @@ const ProcessInstanceDetail: React.FC = () => {
                 />
               ),
             },
-            { title: '发起人', dataIndex: 'startUserId', renderText: organizationMemberName },
-            { title: '开始时间', dataIndex: 'startTime', renderText: formatDateTime },
-            { title: '结束时间', dataIndex: 'endTime', renderText: formatDateTime },
-            { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
+            {
+              title: '发起人',
+              dataIndex: 'startUserId',
+              renderText: organizationMemberName,
+            },
+            {
+              title: '开始时间',
+              dataIndex: 'startTime',
+              renderText: formatDateTime,
+            },
+            {
+              title: '结束时间',
+              dataIndex: 'endTime',
+              renderText: formatDateTime,
+            },
+            {
+              title: '状态',
+              dataIndex: 'status',
+              render: (_, record) => <KoravoStatusTag status={record.status} />,
+            },
           ]}
         />
       </ProCard>
@@ -605,7 +663,12 @@ const ProcessInstanceDetail: React.FC = () => {
           <BusinessDataDescriptions
             schemaJson={selectedSnapshot.schemaJson}
             uiSchemaJson={selectedSnapshot.uiSchemaJson}
-            values={maskSecret(snapshotData(selectedSnapshot)) as Record<string, unknown>}
+            values={
+              maskSecret(snapshotData(selectedSnapshot)) as Record<
+                string,
+                unknown
+              >
+            }
             emptyText="暂无快照数据"
           />
         ) : (

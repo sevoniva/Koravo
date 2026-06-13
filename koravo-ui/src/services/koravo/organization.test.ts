@@ -7,6 +7,7 @@ import {
   isOrganizationProfileField,
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
+  organizationApprovalMemberSelectOptions,
   organizationGroupOptions,
   organizationHandlerOptions,
   organizationMemberName,
@@ -204,6 +205,14 @@ describe('organization display helpers', () => {
     expect(organizationAssigneeRole('financeApprover')).toBe('finance');
     expect(organizationAssigneeFieldValue('managerApprover')).toBe('manager');
     expect(organizationAssigneeFieldValue('financeApprover')).toBe('finance');
+  });
+
+  it('keeps default approval picker focused on approval roles', () => {
+    const values = organizationApprovalMemberSelectOptions().map((item) => item.value);
+
+    expect(values).toEqual(['manager', 'finance']);
+    expect(values).not.toContain('applicant');
+    expect(values).not.toContain('operator');
   });
 
   it('recognizes approver fields without treating comments as assignees', () => {

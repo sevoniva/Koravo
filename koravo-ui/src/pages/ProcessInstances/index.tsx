@@ -35,13 +35,13 @@ import {
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import ProcessDiagramViewer from '@/components/ProcessDiagramViewer';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
-import OrganizationProfileFormItem from '@/components/OrganizationProfileFormItem';
 import {
   type FormSchemaItem,
-  type JsonRecord,
   getOpsProcessTrace,
+  type JsonRecord,
   listFormSchemas,
   listOpsInstances,
   listStartableWorkflows,
@@ -54,6 +54,7 @@ import {
   applyOrganizationProfileValues,
   isOrganizationAssigneeField,
   isOrganizationProfileField,
+  organizationApprovalMemberSelectOptions,
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
   organizationMemberName,
@@ -209,7 +210,8 @@ function isStartAssigneeField(field: StartFormField) {
 function isStartAssigneeMultiField(field: StartFormField) {
   return (
     field.widget === 'organizationMemberMulti' ||
-    (field.type === 'array' && isOrganizationAssigneeField(field.fieldKey, field.title))
+    (field.type === 'array' &&
+      isOrganizationAssigneeField(field.fieldKey, field.title))
   );
 }
 
@@ -268,12 +270,9 @@ const ProcessStartReadiness: React.FC<{
     <Alert
       showIcon
       type="success"
-      title="流程可发起"
+      title="可发起"
       description={
         <Flex vertical gap={8}>
-          <Typography.Text type="secondary">
-            后端已确认该流程发布可用，并绑定了启动表单。提交后会生成审批待办，实例详情可追踪流程图、表单快照和办理记录。
-          </Typography.Text>
           <Space size={[0, 6]} wrap>
             <Tag color="success" variant="outlined">
               启动表单：
@@ -492,7 +491,10 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
         (item) => item.processModelId === initialProcessModelId,
       );
       if (workflow) {
-        setProcessContext(workflow.processDefinitionKey, workflow.processModelId);
+        setProcessContext(
+          workflow.processDefinitionKey,
+          workflow.processModelId,
+        );
         return;
       }
     }
@@ -508,8 +510,8 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
         <Alert
           showIcon
           type="warning"
-          title="还没有可发起的流程"
-          description="请先完成流程发布和启动表单绑定。发起页只展示已通过后端校验、可直接提交业务实例的流程。"
+          title="暂无可发起流程"
+          description="先发布流程并绑定启动表单。"
           action={
             <Button
               size="small"
@@ -556,24 +558,11 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
       <ProFormDependency name={['processDefinitionKey', 'processModelId']}>
         {({ processDefinitionKey, processModelId }) => {
           if (!processDefinitionKey) {
-            return (
-              <Alert
-                showIcon
-                type="info"
-                title="请选择要发起的流程"
-                description="选择流程后，系统会生成业务编号，并展示对应的业务字段。"
-              />
-            );
+            return <Alert showIcon type="info" title="选择流程" />;
           }
 
           return (
             <>
-              <Alert
-                showIcon
-                type="info"
-                title="填写启动表单后发起流程，字段会作为流程变量提交。"
-                style={{ marginBottom: 16 }}
-              />
               {(() => {
                 const selectedWorkflow = startableWorkflows.find(
                   (item) => item.processModelId === processModelId,
@@ -614,7 +603,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                         showIcon
                         type="warning"
                         title="当前表单没有可填写字段"
-                        description="请先在表单管理配置字段，再回到这里发起流程。"
+                        description="去表单管理维护字段。"
                       />
                     );
                   }
@@ -627,7 +616,7 @@ const StartInstanceFields: React.FC<{ initialProcessModelId?: string }> = ({
                             name={['formValues', field.fieldKey]}
                             label={field.title}
                             initialValue={defaultApprovalUsers(field)}
-                            options={organizationMemberSelectOptions()}
+                            options={organizationApprovalMemberSelectOptions()}
                             placeholder="请选择一个或多个审批人"
                             fieldProps={{
                               mode: 'multiple',
@@ -832,10 +821,7 @@ const ProcessInstances: React.FC = () => {
 
   if (isStartEntry || queryProcessModelId) {
     return (
-      <PageContainer
-        title="发起流程"
-        content="选择已发布流程，填写启动表单并提交业务实例。"
-      >
+      <PageContainer title="发起流程">
         <ProCard>
           <ProForm<StartInstanceForm>
             submitter={{
@@ -873,10 +859,7 @@ const ProcessInstances: React.FC = () => {
   }
 
   return (
-    <PageContainer
-      title="流程实例"
-      content="查看业务实例、当前任务和运行状态。"
-    >
+    <PageContainer title="流程实例">
       <ProTable<OpsProcessInstance>
         rowKey="instanceId"
         columns={columns}
