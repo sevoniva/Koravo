@@ -296,7 +296,7 @@ const ProcessStartReadiness: React.FC<{
       <Flex align="center" justify="space-between" gap={8} wrap>
         <Typography.Text strong>流程预览</Typography.Text>
         <Tag color="success" variant="outlined">
-          启动表单：
+          业务表单：
           {formSchemaLabel(
             workflow.startFormSchema,
             workflow.startFormSchema.version,
@@ -688,6 +688,7 @@ const StartInstanceFields: React.FC<{
       <ProFormText
         name="businessKey"
         label="业务编号"
+        fieldProps={{ readOnly: true, allowClear: false }}
         rules={[{ required: true, message: '请输入业务编号' }]}
       />
       <ProFormDependency name={['processModelId']}>
@@ -700,75 +701,46 @@ const StartInstanceFields: React.FC<{
       </ProFormDependency>
       <ProFormText name="processModelId" hidden />
       <ProFormText name="processDefinitionId" hidden />
-      <ProFormDependency name={['processDefinitionKey', 'processModelId']}>
-        {({ processDefinitionKey, processModelId }) => {
+      <ProFormText name="startFormSchemaId" hidden />
+      <ProFormDependency name={['processDefinitionKey']}>
+        {({ processDefinitionKey }) => {
           if (!processDefinitionKey) {
             return <Alert showIcon type="info" title="选择流程" />;
           }
 
           return (
-            <>
-              {(() => {
-                const selectedWorkflow = startableWorkflows.find(
-                  (item) => item.processModelId === processModelId,
-                );
-                const startSchema = selectedWorkflow?.startFormSchema;
-                return startSchema ? (
-                  <ProFormSelect
-                    name="startFormSchemaId"
-                    label="启动表单"
-                    disabled
-                    rules={[{ required: true, message: '请选择启动表单' }]}
-                    options={[
-                      {
-                        label: formSchemaOptionLabel(
-                          startSchema,
-                          startSchema.version,
-                        ),
-                        value: startSchema.id,
-                      },
-                    ]}
-                    fieldProps={{
-                      showSearch: true,
-                      optionFilterProp: 'label',
-                      onChange: () => form.setFieldValue('formValues', {}),
-                    }}
-                  />
-                ) : null;
-              })()}
-              <ProFormDependency name={['startFormSchemaId']}>
-                {({ startFormSchemaId }) => {
-                  const formSchema = startableWorkflows.find(
-                    (item) => item.startFormSchema.id === startFormSchemaId,
-                  )?.startFormSchema;
-                  const fields = schemaToStartFields(formSchema);
-                  if (!fields.length) {
-                    return (
-                      <Alert
-                        showIcon
-                        type="warning"
-                        title="当前表单没有可填写字段"
-                      />
-                    );
-                  }
+            <ProFormDependency name={['startFormSchemaId']}>
+              {({ startFormSchemaId }) => {
+                const formSchema = startableWorkflows.find(
+                  (item) => item.startFormSchema.id === startFormSchemaId,
+                )?.startFormSchema;
+                const fields = schemaToStartFields(formSchema);
+                if (!fields.length) {
                   return (
-                    <Flex vertical gap={4}>
-                      {fields.map((field) => (
-                        <ProFormDependency
-                          key={field.fieldKey}
-                          name={['formValues']}
-                        >
-                          {({ formValues }) =>
-                            renderStartField(field, formValues as JsonRecord)
-                          }
-                        </ProFormDependency>
-                      ))}
-                      <StartApprovalSummary fields={fields} />
-                    </Flex>
+                    <Alert
+                      showIcon
+                      type="warning"
+                      title="当前表单没有可填写字段"
+                    />
                   );
-                }}
-              </ProFormDependency>
-            </>
+                }
+                return (
+                  <Flex vertical gap={4}>
+                    {fields.map((field) => (
+                      <ProFormDependency
+                        key={field.fieldKey}
+                        name={['formValues']}
+                      >
+                        {({ formValues }) =>
+                          renderStartField(field, formValues as JsonRecord)
+                        }
+                      </ProFormDependency>
+                    ))}
+                    <StartApprovalSummary fields={fields} />
+                  </Flex>
+                );
+              }}
+            </ProFormDependency>
           );
         }}
       </ProFormDependency>
@@ -844,7 +816,7 @@ const ProcessInstances: React.FC = () => {
             }}
             onFinish={async (values) => {
               if (!values.startFormSchemaId) {
-                message.warning('请先为流程配置启动表单');
+                message.warning('当前流程暂不可发起');
                 return false;
               }
               const startFormSchema = startableWorkflows.find(
