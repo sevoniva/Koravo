@@ -89,7 +89,7 @@ const useStyles = createStyles(({ css, token }) => ({
     }
 
     .bjs-powered-by {
-      color: ${token.colorTextQuaternary};
+      display: none;
     }
 
     .djs-element.koravo-node-completed .djs-visual > :first-child {
@@ -128,7 +128,7 @@ const useStyles = createStyles(({ css, token }) => ({
   toolbar: css`
     position: absolute;
     top: 12px;
-    left: 12px;
+    right: 12px;
     z-index: 1;
     padding: 4px;
     background: ${token.colorBgElevated};
@@ -672,9 +672,6 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
       {loading ? (
         <div className={styles.overlay}>
           <Spin indicator={<LoadingOutlined spin />} />
-          <Typography.Text type="secondary" style={{ marginLeft: 12 }}>
-            加载流程图
-          </Typography.Text>
         </div>
       ) : null}
       {error && !timeline.length ? (

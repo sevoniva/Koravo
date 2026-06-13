@@ -29,6 +29,11 @@ const useStyles = createStyles(({ css, token }) => ({
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
+    align-items: start;
+
+    @media (min-width: 1080px) {
+      grid-template-columns: minmax(520px, 1.35fr) minmax(300px, 0.65fr);
+    }
   `,
   side: css`
     min-width: 0;
@@ -58,10 +63,11 @@ const useStyles = createStyles(({ css, token }) => ({
     min-width: 0;
     color: ${token.colorText};
     font-weight: ${token.fontWeightStrong};
+    line-height: 1.45;
     word-break: break-word;
   `,
   timelineWrap: css`
-    max-height: 260px;
+    max-height: 220px;
     overflow: auto;
     padding-right: 4px;
   `,
@@ -69,6 +75,13 @@ const useStyles = createStyles(({ css, token }) => ({
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+
+    .ant-tag {
+      max-width: 100%;
+      margin-inline-end: 0;
+      white-space: normal;
+      line-height: 1.45;
+    }
   `,
 }));
 
@@ -232,13 +245,15 @@ function buildTimelineItems(timeline: ProcessTraceNode[]) {
 function nextStepText(
   trace: ProcessTrace | undefined,
   pendingTasks: TaskItem[],
+  activeTask?: TaskItem,
 ) {
   const status = String(trace?.status || '').toUpperCase();
   if (status === 'COMPLETED') return '无待办';
   if (status === 'TERMINATED') return '已终止';
   if (status === 'SUSPENDED') return '等待恢复';
   if (!pendingTasks.length) return '等待流转';
-  if (pendingTasks.length > 1) return `待 ${pendingTasks.length} 人处理`;
+  if (activeTask && activeTask.status !== 'COMPLETED') return '待你处理';
+  if (pendingTasks.length > 1) return `并行待办 ${pendingTasks.length}`;
   const task = pendingTasks[0];
   return task.assignee
     ? `待${organizationMemberName(task.assignee)}处理`
@@ -312,15 +327,19 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const nodeText = currentNodeText(activeTask, activeNodes);
   const currentHandlerText = handlerText(activeTask, pendingTasks);
   const isCompleted = String(trace?.status || '').toUpperCase() === 'COMPLETED';
-  const pendingLabel = isCompleted ? '已完成' : `待办 ${pendingTasks.length}`;
-  const nextStep = nextStepText(trace, pendingTasks);
+  const pendingLabel = isCompleted
+    ? '已完成'
+    : activeTask
+      ? '当前任务'
+      : `待办 ${pendingTasks.length}`;
+  const nextStep = nextStepText(trace, pendingTasks, activeTask);
   const timeline = trace?.timeline || [];
   const hasTimeline = timeline.length > 0;
   const taskGroups = pendingTaskGroups(pendingTasks);
 
   return (
     <ProCard
-      title="流程图"
+      title="流程进度"
       loading={loading}
       extra={
         <Flex gap={8} wrap>
