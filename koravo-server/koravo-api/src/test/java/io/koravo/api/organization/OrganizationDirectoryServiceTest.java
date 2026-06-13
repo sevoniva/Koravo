@@ -1,5 +1,6 @@
 package io.koravo.api.organization;
 
+import io.koravo.common.exception.BusinessException;
 import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
@@ -8,10 +9,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,6 +58,43 @@ class OrganizationDirectoryServiceTest {
             assertThat(member.passwordConfigured()).isTrue();
         });
         verify(repository, times(2)).findByTenantIdAndDeletedFalseOrderByDepartmentAscNameAsc("tenant-a");
+    }
+
+    @Test
+    void createRejectsWeakInitialPassword() {
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUserId("admin");
+
+        assertThatThrownBy(() -> service.create(new OrganizationMemberUpsertRequest(
+                "reviewer",
+                "审批专员",
+                "审批中心",
+                UserContextHolder.ROLE_MANAGER,
+                "ACTIVE",
+                "1234567"
+        )))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("密码至少 8 位，且包含字母和数字");
+        verify(repository, never()).save(any(KoOrganizationMember.class));
+    }
+
+    @Test
+    void resetPasswordRejectsWeakPassword() {
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUserId("admin");
+        KoOrganizationMember existing = member(
+                "manager",
+                "tenant-a",
+                "审批主管",
+                "审批中心",
+                UserContextHolder.ROLE_MANAGER
+        );
+        when(repository.findById(existing.getId())).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.resetPassword(existing.getId(), "password"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("密码至少 8 位，且包含字母和数字");
+        verify(repository, never()).save(any(KoOrganizationMember.class));
     }
 
     @Test

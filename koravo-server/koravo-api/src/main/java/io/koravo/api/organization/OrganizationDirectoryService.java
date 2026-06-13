@@ -78,6 +78,7 @@ public class OrganizationDirectoryService {
         if (request.password() == null || request.password().isBlank()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "新增成员必须设置初始密码");
         }
+        assertPasswordPolicy(request.password());
         KoOrganizationMember member = new KoOrganizationMember();
         member.setTenantId(tenantId);
         member.setCreatedBy(UserContextHolder.getUserId());
@@ -101,6 +102,7 @@ public class OrganizationDirectoryService {
         apply(member, request);
         member.setUserId(nextUserId);
         if (request.password() != null && !request.password().isBlank()) {
+            assertPasswordPolicy(request.password());
             member.setPasswordHash(passwordEncoder.encode(request.password()));
         }
         member.setUpdatedBy(UserContextHolder.getUserId());
@@ -135,6 +137,7 @@ public class OrganizationDirectoryService {
     @Transactional
     public OrganizationMemberResponse resetPassword(String memberId, String password) {
         KoOrganizationMember member = findCurrentTenantMember(memberId);
+        assertPasswordPolicy(password);
         member.setPasswordHash(passwordEncoder.encode(password));
         member.setUpdatedBy(UserContextHolder.getUserId());
         KoOrganizationMember saved = organizationMemberRepository.save(member);
@@ -206,6 +209,15 @@ public class OrganizationDirectoryService {
             return DISABLED;
         }
         throw new BusinessException(ErrorCode.BAD_REQUEST, "成员状态不正确");
+    }
+
+    private void assertPasswordPolicy(String password) {
+        String value = password == null ? "" : password;
+        boolean hasLetter = value.chars().anyMatch(Character::isLetter);
+        boolean hasDigit = value.chars().anyMatch(Character::isDigit);
+        if (value.length() < 8 || !hasLetter || !hasDigit) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "密码至少 8 位，且包含字母和数字");
+        }
     }
 
     private Map<String, Object> auditDetail(KoOrganizationMember member) {
