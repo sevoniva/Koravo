@@ -71,7 +71,7 @@ public class OrganizationDirectoryService {
     @Transactional
     public OrganizationMemberResponse create(OrganizationMemberUpsertRequest request) {
         String tenantId = TenantContextHolder.getTenantId();
-        String userId = normalizedText(request.userId());
+        String userId = normalizedRequiredText(request.userId(), "成员账号");
         if (organizationMemberRepository.existsByTenantIdAndUserIdAndDeletedFalse(tenantId, userId)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "成员账号已存在");
         }
@@ -94,7 +94,11 @@ public class OrganizationDirectoryService {
     @Transactional
     public OrganizationMemberResponse update(String memberId, OrganizationMemberUpsertRequest request) {
         KoOrganizationMember member = findCurrentTenantMember(memberId);
-        String nextUserId = normalizedText(request.userId());
+        String nextUserId = normalizedRequiredText(request.userId(), "成员账号");
+        String nextRole = normalizedRole(request.role());
+        String nextStatus = normalizedStatus(request.status());
+        assertCurrentMemberKeepsAccess(member, nextRole, nextStatus);
+        assertTenantKeepsActiveAdmin(member, nextRole, nextStatus);
         if (!member.getUserId().equals(nextUserId)
                 && organizationMemberRepository.existsByTenantIdAndUserIdAndDeletedFalse(member.getTenantId(), nextUserId)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "成员账号已存在");
@@ -127,6 +131,7 @@ public class OrganizationDirectoryService {
         if (member.getUserId().equals(UserContextHolder.getUserId())) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "不能禁用当前登录成员");
         }
+        assertTenantKeepsActiveAdmin(member, member.getRole(), DISABLED);
         member.setStatus(DISABLED);
         member.setUpdatedBy(UserContextHolder.getUserId());
         KoOrganizationMember saved = organizationMemberRepository.save(member);
@@ -175,8 +180,8 @@ public class OrganizationDirectoryService {
     }
 
     private void apply(KoOrganizationMember member, OrganizationMemberUpsertRequest request) {
-        member.setName(normalizedText(request.name()));
-        member.setDepartment(normalizedText(request.department()));
+        member.setName(normalizedRequiredText(request.name(), "成员姓名"));
+        member.setDepartment(normalizedRequiredText(request.department(), "所属部门"));
         member.setRole(normalizedRole(request.role()));
         member.setStatus(normalizedStatus(request.status()));
     }
@@ -190,6 +195,14 @@ public class OrganizationDirectoryService {
 
     private String normalizedText(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String normalizedRequiredText(String value, String label) {
+        String normalized = normalizedText(value);
+        if (normalized.isBlank()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, label + "不能为空");
+        }
+        return normalized;
     }
 
     private String normalizedRole(String role) {
@@ -217,6 +230,31 @@ public class OrganizationDirectoryService {
         boolean hasDigit = value.chars().anyMatch(Character::isDigit);
         if (value.length() < 8 || !hasLetter || !hasDigit) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "密码至少 8 位，且包含字母和数字");
+        }
+    }
+
+    private void assertCurrentMemberKeepsAccess(KoOrganizationMember member, String nextRole, String nextStatus) {
+        if (!member.getUserId().equals(UserContextHolder.getUserId())) {
+            return;
+        }
+        if (!ACTIVE.equals(nextStatus) || !UserContextHolder.ROLE_ADMIN.equals(nextRole)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "不能移除当前登录成员的管理员权限");
+        }
+    }
+
+    private void assertTenantKeepsActiveAdmin(KoOrganizationMember member, String nextRole, String nextStatus) {
+        boolean wasActiveAdmin = UserContextHolder.ROLE_ADMIN.equals(member.getRole()) && ACTIVE.equals(member.getStatus());
+        boolean willActiveAdmin = UserContextHolder.ROLE_ADMIN.equals(nextRole) && ACTIVE.equals(nextStatus);
+        if (!wasActiveAdmin || willActiveAdmin) {
+            return;
+        }
+        long activeAdmins = organizationMemberRepository.countByTenantIdAndRoleAndStatusAndDeletedFalse(
+                member.getTenantId(),
+                UserContextHolder.ROLE_ADMIN,
+                ACTIVE
+        );
+        if (activeAdmins <= 1) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "至少保留一名启用的管理员");
         }
     }
 

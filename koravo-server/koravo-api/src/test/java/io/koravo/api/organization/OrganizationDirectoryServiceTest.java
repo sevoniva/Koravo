@@ -98,6 +98,95 @@ class OrganizationDirectoryServiceTest {
     }
 
     @Test
+    void updateRejectsRemovingCurrentAdminAccess() {
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUser("admin", UserContextHolder.ROLE_ADMIN);
+        KoOrganizationMember existing = member(
+                "admin",
+                "tenant-a",
+                "流程平台负责人",
+                "流程平台组",
+                UserContextHolder.ROLE_ADMIN
+        );
+        when(repository.findById(existing.getId())).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.update(existing.getId(), new OrganizationMemberUpsertRequest(
+                "admin",
+                "流程平台负责人",
+                "流程平台组",
+                UserContextHolder.ROLE_MANAGER,
+                "ACTIVE",
+                null
+        )))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("不能移除当前登录成员的管理员权限");
+        verify(repository, never()).save(any(KoOrganizationMember.class));
+    }
+
+    @Test
+    void updateRejectsDisablingLastActiveAdmin() {
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUser("operator", UserContextHolder.ROLE_OPERATOR);
+        KoOrganizationMember existing = member(
+                "admin",
+                "tenant-a",
+                "流程平台负责人",
+                "流程平台组",
+                UserContextHolder.ROLE_ADMIN
+        );
+        when(repository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(repository.countByTenantIdAndRoleAndStatusAndDeletedFalse(
+                "tenant-a",
+                UserContextHolder.ROLE_ADMIN,
+                "ACTIVE"
+        )).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.update(existing.getId(), new OrganizationMemberUpsertRequest(
+                "admin",
+                "流程平台负责人",
+                "流程平台组",
+                UserContextHolder.ROLE_ADMIN,
+                "DISABLED",
+                null
+        )))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("至少保留一名启用的管理员");
+        verify(repository, never()).save(any(KoOrganizationMember.class));
+    }
+
+    @Test
+    void updateAllowsChangingAdminWhenAnotherActiveAdminExists() {
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUser("admin-backup", UserContextHolder.ROLE_ADMIN);
+        KoOrganizationMember existing = member(
+                "admin",
+                "tenant-a",
+                "流程平台负责人",
+                "流程平台组",
+                UserContextHolder.ROLE_ADMIN
+        );
+        when(repository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(repository.countByTenantIdAndRoleAndStatusAndDeletedFalse(
+                "tenant-a",
+                UserContextHolder.ROLE_ADMIN,
+                "ACTIVE"
+        )).thenReturn(2L);
+        when(repository.save(existing)).thenReturn(existing);
+
+        var response = service.update(existing.getId(), new OrganizationMemberUpsertRequest(
+                "admin",
+                "流程平台负责人",
+                "流程平台组",
+                UserContextHolder.ROLE_MANAGER,
+                "ACTIVE",
+                null
+        ));
+
+        assertThat(response.role()).isEqualTo(UserContextHolder.ROLE_MANAGER);
+        verify(repository).save(existing);
+    }
+
+    @Test
     void initializesTenantDirectoryWhenNoSyncedMembersExist() {
         TenantContextHolder.setTenantId("tenant-b");
         when(repository.countByTenantIdAndDeletedFalse("tenant-b")).thenReturn(0L);

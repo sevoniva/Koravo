@@ -46,8 +46,10 @@ import {
 import {
   getSessionContext,
   type SessionContext,
+  type SessionPermissionKey,
   type SessionRole,
 } from '@/services/koravo/session';
+import { permissionsForRole } from '@/access';
 import { buildVersionLabel, productCopy } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 
@@ -71,11 +73,12 @@ interface RoleOption {
 interface PermissionMatrixItem {
   key: string;
   scope: string;
-  admin: string;
-  applicant: string;
-  manager: string;
-  finance: string;
-  operator: string;
+  action: string;
+  admin: boolean;
+  applicant: boolean;
+  manager: boolean;
+  finance: boolean;
+  operator: boolean;
 }
 
 interface OrganizationMemberFormValues {
@@ -119,61 +122,125 @@ const roleOptions: RoleOption[] = [
   },
 ];
 
-const permissionMatrix: PermissionMatrixItem[] = [
+const permissionScopes: Array<{
+  key: string;
+  scope: string;
+  permission: SessionPermissionKey;
+  action: string;
+}> = [
   {
-    key: 'configuration',
-    scope: '流程、表单、绑定配置',
-    admin: '维护',
-    applicant: '只读',
-    manager: '只读',
-    finance: '只读',
-    operator: '不可见',
+    key: 'dashboard',
+    scope: '总览与运行数据',
+    permission: 'canViewDashboard',
+    action: '查看',
+  },
+  {
+    key: 'own-work',
+    scope: '个人流程与任务',
+    permission: 'canViewOwnWork',
+    action: '查看',
   },
   {
     key: 'start',
-    scope: '发起流程实例',
-    admin: '允许',
-    applicant: '允许',
-    manager: '不可操作',
-    finance: '不可操作',
-    operator: '不可操作',
+    scope: '发起流程',
+    permission: 'canStartProcess',
+    action: '发起',
+  },
+  {
+    key: 'claim',
+    scope: '认领候选任务',
+    permission: 'canClaimTask',
+    action: '认领',
   },
   {
     key: 'task',
-    scope: '办理待办任务',
-    admin: '允许',
-    applicant: '不可操作',
-    manager: '允许',
-    finance: '允许',
-    operator: '不可操作',
+    scope: '办理任务',
+    permission: 'canHandleTask',
+    action: '办理',
+  },
+  {
+    key: 'workflow-config',
+    scope: '流程与表单配置',
+    permission: 'canConfigureWorkflow',
+    action: '维护',
+  },
+  {
+    key: 'organization',
+    scope: '组织成员权限',
+    permission: 'canManageOrganization',
+    action: '维护',
+  },
+  {
+    key: 'integration',
+    scope: '集成配置',
+    permission: 'canManageIntegration',
+    action: '维护',
+  },
+  {
+    key: 'audit',
+    scope: '审计日志',
+    permission: 'canViewAudit',
+    action: '查看',
   },
   {
     key: 'ops',
     scope: '运维处置',
-    admin: '不可操作',
-    applicant: '不可见',
-    manager: '不可见',
-    finance: '不可见',
-    operator: '允许',
-  },
-  {
-    key: 'system',
-    scope: '组织、集成、系统设置',
-    admin: '维护',
-    applicant: '不可见',
-    manager: '不可见',
-    finance: '不可见',
-    operator: '只读健康状态',
+    permission: 'canOperateSystem',
+    action: '处置',
   },
 ];
 
+const permissionMatrix: PermissionMatrixItem[] = permissionScopes.map((item) => ({
+  key: item.key,
+  scope: item.scope,
+  action: item.action,
+  admin: permissionsForRole('admin')[item.permission],
+  applicant: permissionsForRole('applicant')[item.permission],
+  manager: permissionsForRole('manager')[item.permission],
+  finance: permissionsForRole('finance')[item.permission],
+  operator: permissionsForRole('operator')[item.permission],
+}));
+
+function permissionTag(allowed: boolean, action: string) {
+  return (
+    <Tag color={allowed ? 'success' : 'default'}>
+      {allowed ? action : '不可用'}
+    </Tag>
+  );
+}
+
 const permissionColumns: ProColumns<PermissionMatrixItem>[] = [
   { title: '权限域', dataIndex: 'scope', width: 200 },
-  { title: '管理员', dataIndex: 'admin', width: 96 },
-  { title: '发起人', dataIndex: 'applicant', width: 96 },
-  { title: '审批人', dataIndex: 'manager', width: 112 },
-  { title: '复核人', dataIndex: 'finance', width: 112 },
-  { title: '运维审计人', dataIndex: 'operator', width: 112 },
+  {
+    title: '管理员',
+    dataIndex: 'admin',
+    width: 96,
+    render: (_, record) => permissionTag(record.admin, record.action),
+  },
+  {
+    title: '发起人',
+    dataIndex: 'applicant',
+    width: 96,
+    render: (_, record) => permissionTag(record.applicant, record.action),
+  },
+  {
+    title: '审批人',
+    dataIndex: 'manager',
+    width: 112,
+    render: (_, record) => permissionTag(record.manager, record.action),
+  },
+  {
+    title: '复核人',
+    dataIndex: 'finance',
+    width: 112,
+    render: (_, record) => permissionTag(record.finance, record.action),
+  },
+  {
+    title: '运维审计人',
+    dataIndex: 'operator',
+    width: 112,
+    render: (_, record) => permissionTag(record.operator, record.action),
+  },
 ];
 
 function roleLabel(role: SessionRole) {
@@ -185,9 +252,11 @@ const passwordPolicyRules = [
   { pattern: /^(?=.*[A-Za-z])(?=.*\d).+$/, message: '密码需包含字母和数字' },
 ];
 
-const MemberFormFields: React.FC<{ passwordRequired?: boolean }> = ({
-  passwordRequired,
-}) => (
+const MemberFormFields: React.FC<{
+  passwordRequired?: boolean;
+  roleDisabled?: boolean;
+  statusDisabled?: boolean;
+}> = ({ passwordRequired, roleDisabled, statusDisabled }) => (
   <>
     <ProFormText
       name="userId"
@@ -214,6 +283,7 @@ const MemberFormFields: React.FC<{ passwordRequired?: boolean }> = ({
         label: item.label,
         value: item.value,
       }))}
+      fieldProps={{ disabled: roleDisabled }}
       rules={[{ required: true, message: '请选择岗位职责' }]}
     />
     <ProFormSelect
@@ -223,6 +293,7 @@ const MemberFormFields: React.FC<{ passwordRequired?: boolean }> = ({
         { label: '启用', value: 'ACTIVE' },
         { label: '停用', value: 'DISABLED' },
       ]}
+      fieldProps={{ disabled: statusDisabled }}
       rules={[{ required: true, message: '请选择成员状态' }]}
     />
     <ProFormText.Password
@@ -270,6 +341,13 @@ const SystemSettings: React.FC = () => {
         : getOrganizationMembers(),
     [organizationMembers],
   );
+  const activeAdminCount = useMemo(
+    () =>
+      members.filter(
+        (member) => member.role === 'admin' && member.status === '启用',
+      ).length,
+    [members],
+  );
 
   const policy = useMemo(
     () => [
@@ -300,6 +378,19 @@ const SystemSettings: React.FC = () => {
     organizationMemberName(
       userId && userId !== 'anonymous' ? userId : session.userId,
     );
+  const isCurrentMember = (record: OrganizationMember) =>
+    record.userId === session.userId;
+  const isLastActiveAdmin = (record: OrganizationMember) =>
+    record.role === 'admin' &&
+    record.status === '启用' &&
+    activeAdminCount <= 1;
+  const memberEditLocked = (record: OrganizationMember) =>
+    isCurrentMember(record) || isLastActiveAdmin(record);
+  const memberDisableReason = (record: OrganizationMember) => {
+    if (isCurrentMember(record)) return '不能停用当前登录成员';
+    if (isLastActiveAdmin(record)) return '至少保留一名启用的管理员';
+    return undefined;
+  };
 
   const memberColumns: ProColumns<OrganizationMember>[] = [
     {
@@ -339,6 +430,16 @@ const SystemSettings: React.FC = () => {
       ),
     },
     {
+      title: '密码',
+      dataIndex: 'passwordConfigured',
+      width: 88,
+      render: (_, record) => (
+        <Tag color={record.passwordConfigured === false ? 'warning' : 'success'}>
+          {record.passwordConfigured === false ? '未设置' : '已设置'}
+        </Tag>
+      ),
+    },
+    {
       title: '最近登录',
       dataIndex: 'lastLoginAt',
       width: 170,
@@ -371,7 +472,18 @@ const SystemSettings: React.FC = () => {
               return true;
             }}
           >
-            <MemberFormFields />
+            {memberEditLocked(record) ? (
+              <Alert
+                showIcon
+                type="info"
+                title="管理员权限受保护"
+                style={{ marginBottom: 16 }}
+              />
+            ) : null}
+            <MemberFormFields
+              roleDisabled={memberEditLocked(record)}
+              statusDisabled={memberEditLocked(record)}
+            />
           </ModalForm>
           <ModalForm<ResetPasswordFormValues>
             title="重置密码"
@@ -404,6 +516,7 @@ const SystemSettings: React.FC = () => {
             <Popconfirm
               title="停用成员"
               description="停用后该成员不能登录，也不能继续处理待办。"
+              disabled={Boolean(memberDisableReason(record))}
               okText="停用"
               cancelText="取消"
               onConfirm={async () => {
@@ -412,7 +525,12 @@ const SystemSettings: React.FC = () => {
                 await refetchOrganizationMembers();
               }}
             >
-              <Button type="link" danger>
+              <Button
+                type="link"
+                danger
+                disabled={Boolean(memberDisableReason(record))}
+                title={memberDisableReason(record)}
+              >
                 停用
               </Button>
             </Popconfirm>
@@ -473,7 +591,7 @@ const SystemSettings: React.FC = () => {
             search={false}
             pagination={false}
             options={false}
-            scroll={{ x: 1040 }}
+            scroll={{ x: 1120 }}
             size="small"
           />
         </ProCard>

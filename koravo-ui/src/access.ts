@@ -3,7 +3,7 @@ import type {
   SessionPermissions,
 } from './services/koravo/session';
 
-const permissionKeys: SessionPermissionKey[] = [
+export const sessionPermissionKeys: SessionPermissionKey[] = [
   'canAdmin',
   'canViewDashboard',
   'canViewOwnWork',
@@ -19,7 +19,7 @@ const permissionKeys: SessionPermissionKey[] = [
   'canOperateSystem',
 ];
 
-function fallbackPermissions(role?: string): Required<SessionPermissions> {
+export function permissionsForRole(role?: string): Required<SessionPermissions> {
   const isAdmin = role === 'admin';
   const isApprover = role === 'manager' || role === 'finance';
   const isWorkflowUser = role === 'applicant' || isApprover;
@@ -42,8 +42,8 @@ function fallbackPermissions(role?: string): Required<SessionPermissions> {
 }
 
 function normalizePermissions(role?: string, permissions?: SessionPermissions) {
-  const fallback = fallbackPermissions(role);
-  return permissionKeys.reduce<Required<SessionPermissions>>((result, key) => {
+  const fallback = permissionsForRole(role);
+  return sessionPermissionKeys.reduce<Required<SessionPermissions>>((result, key) => {
     result[key] =
       typeof permissions?.[key] === 'boolean'
         ? permissions[key]
