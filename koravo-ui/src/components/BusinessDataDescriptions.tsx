@@ -41,6 +41,21 @@ function parseJsonObject(value?: string): JsonRecord {
   }
 }
 
+function parseJsonValue(value: string) {
+  const text = value.trim();
+  if (!/^[{[]/.test(text)) return undefined;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeStructuredValue(value: unknown) {
+  if (typeof value !== 'string') return value;
+  return parseJsonValue(value) ?? value;
+}
+
 function schemaFields(
   schemaJson?: string,
   uiSchemaJson?: string,
@@ -84,22 +99,24 @@ function isMemberListField(field: BusinessField) {
 }
 
 function valueText(value: unknown, field?: BusinessField): string {
-  if (value === undefined || value === null || value === '') return '-';
-  if (typeof value === 'boolean') return value ? '是' : '否';
-  if (typeof value === 'string' && field && isMemberField(field)) {
-    return organizationMemberName(value);
+  const normalized = normalizeStructuredValue(value);
+  if (normalized === undefined || normalized === null || normalized === '')
+    return '-';
+  if (typeof normalized === 'boolean') return normalized ? '是' : '否';
+  if (typeof normalized === 'string' && field && isMemberField(field)) {
+    return organizationMemberName(normalized);
   }
-  if (Array.isArray(value)) {
-    return value.map((item) => valueText(item, field)).join('、') || '-';
+  if (Array.isArray(normalized)) {
+    return normalized.map((item) => valueText(item, field)).join('、') || '-';
   }
-  if (typeof value === 'object') {
-    const entries = Object.entries(value as JsonRecord);
+  if (typeof normalized === 'object') {
+    const entries = Object.entries(normalized as JsonRecord);
     if (!entries.length) return '-';
     return entries
       .map(([key, item]) => `${businessFieldLabel(key)}：${valueText(item)}`)
       .join('，');
   }
-  return productCopy(String(value)) || String(value);
+  return productCopy(String(normalized)) || String(normalized);
 }
 
 function fieldValueText(field: BusinessField, value: unknown): string {
@@ -117,7 +134,8 @@ function fieldValueText(field: BusinessField, value: unknown): string {
 }
 
 function tagItems(field: BusinessField, value: unknown) {
-  const values = Array.isArray(value) ? value : [value];
+  const normalized = normalizeStructuredValue(value);
+  const values = Array.isArray(normalized) ? normalized : [normalized];
   return values
     .map((item) => {
       if (item === undefined || item === null || item === '') return '';
@@ -146,20 +164,24 @@ function renderTagList(field: BusinessField, value: unknown) {
 }
 
 function renderValue(field: BusinessField, value: unknown) {
-  if (value === undefined || value === null || value === '') return '-';
-  if (typeof value === 'boolean') {
+  const normalized = normalizeStructuredValue(value);
+  if (normalized === undefined || normalized === null || normalized === '')
+    return '-';
+  if (typeof normalized === 'boolean') {
     return (
-      <Tag color={value ? 'success' : 'default'}>{value ? '是' : '否'}</Tag>
+      <Tag color={normalized ? 'success' : 'default'}>
+        {normalized ? '是' : '否'}
+      </Tag>
     );
   }
-  if (typeof value === 'number') return value.toLocaleString('zh-CN');
+  if (typeof normalized === 'number') return normalized.toLocaleString('zh-CN');
   if (
     isMemberListField(field) ||
-    (Array.isArray(value) && isMemberField(field))
+    (Array.isArray(normalized) && isMemberField(field))
   ) {
-    return renderTagList(field, value);
+    return renderTagList(field, normalized);
   }
-  if (isLongField(field, value)) {
+  if (isLongField(field, normalized)) {
     return (
       <Typography.Paragraph
         ellipsis={{
@@ -169,22 +191,25 @@ function renderValue(field: BusinessField, value: unknown) {
         }}
         style={{ marginBottom: 0 }}
       >
-        {fieldValueText(field, value)}
+        {fieldValueText(field, normalized)}
       </Typography.Paragraph>
     );
   }
   return (
-    <Typography.Text ellipsis={{ tooltip: fieldValueText(field, value) }}>
-      {fieldValueText(field, value)}
+    <Typography.Text ellipsis={{ tooltip: fieldValueText(field, normalized) }}>
+      {fieldValueText(field, normalized)}
     </Typography.Text>
   );
 }
 
 function isLongField(field: BusinessField, value: unknown) {
   if (field.widget === 'textarea') return true;
-  const text = fieldValueText(field, value);
+  const normalized = normalizeStructuredValue(value);
+  const text = fieldValueText(field, normalized);
   return (
-    text.length > 32 || field.type === 'array' || typeof value === 'object'
+    text.length > 32 ||
+    field.type === 'array' ||
+    (typeof normalized === 'object' && normalized !== null)
   );
 }
 

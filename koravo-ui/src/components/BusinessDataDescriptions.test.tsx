@@ -65,4 +65,25 @@ describe('BusinessDataDescriptions', () => {
     expect(screen.getByText('复核专员')).toBeInTheDocument();
     expect(screen.queryByText('manager')).not.toBeInTheDocument();
   });
+
+  it('renders json string values as business text', () => {
+    render(
+      <BusinessDataDescriptions
+        values={{
+          payload: JSON.stringify({
+            applicantName: '真实申请专员',
+            department: '业务一部',
+          }),
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText((text) => text.includes('发起人：真实申请专员')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText((text) => text.includes('所属部门：业务一部')),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/"applicantName"/)).not.toBeInTheDocument();
+  });
 });
