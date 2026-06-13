@@ -3,6 +3,7 @@ import type { BpmnTaskDefinition, ProcessModelItem } from '../types/koravo';
 const AUDIT_ACTION_LABELS: Record<string, string> = {
   AUTH_LOGIN: '登录系统',
   AUTH_LOGOUT: '退出登录',
+  ACCESS_DENIED: '拦截接口访问',
   WORKFLOW_ENABLEMENT_INIT: '维护流程配置',
   PROCESS_MODEL_CREATE: '创建流程模型',
   PROCESS_MODEL_IMPORT: '导入流程模型',
@@ -44,6 +45,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
 
 const AUDIT_RESOURCE_LABELS: Record<string, string> = {
   LOGIN_SESSION: '登录会话',
+  API_ENDPOINT: '接口',
   WORKFLOW_ENABLEMENT: '流程配置',
   PROCESS_MODEL: '流程模型',
   PROCESS_INSTANCE: '流程实例',
@@ -89,6 +91,7 @@ const DATASOURCE_TYPE_LABELS: Record<string, string> = {
 
 const RESOURCE_TYPE_LABELS: Record<string, string> = {
   ...AUDIT_RESOURCE_LABELS,
+  API_ENDPOINT: '接口',
   DATASOURCE_TEST_LOG: '数据源检测记录',
   FAILED_JOB: '失败任务',
   DEAD_LETTER_JOB: '死信任务',
