@@ -37,9 +37,16 @@ class ProcessOpsServiceTest {
                         InstanceQueryCommand::page,
                         InstanceQueryCommand::pageSize,
                         InstanceQueryCommand::keyword,
-                        InstanceQueryCommand::status
+                        InstanceQueryCommand::status,
+                        InstanceQueryCommand::excludedProcessDefinitionKeys
                 )
-                .containsExactly("default", 2, 15, "PO-1001", "COMPLETED");
+                .containsExactly("default", 2, 15, "PO-1001", "COMPLETED", java.util.Set.of(
+                        "multiAcceptance",
+                        "purchaseApproval",
+                        "leaveApproval",
+                        "httpConnectorDemo",
+                        "designerDeployCheck"
+                ));
     }
 
     @Test

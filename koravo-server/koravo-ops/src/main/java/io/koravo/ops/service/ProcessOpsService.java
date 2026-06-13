@@ -14,9 +14,18 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ProcessOpsService {
+    private static final Set<String> RETIRED_PROCESS_KEYS = Set.of(
+            "multiAcceptance",
+            "purchaseApproval",
+            "leaveApproval",
+            "httpConnectorDemo",
+            "designerDeployCheck"
+    );
+
     private final ProcessFacade processFacade;
     private final AuditLogService auditLogService;
 
@@ -26,7 +35,7 @@ public class ProcessOpsService {
     }
 
     public PageResult<ProcessInstanceDetailDTO> listInstances(int page, int pageSize, String keyword, String status) {
-        return processFacade.listInstances(new InstanceQueryCommand(TenantContextHolder.getTenantId(), page, pageSize, keyword, status));
+        return processFacade.listInstances(new InstanceQueryCommand(TenantContextHolder.getTenantId(), page, pageSize, keyword, status, RETIRED_PROCESS_KEYS));
     }
 
     public ProcessInstanceDetailDTO getInstance(String instanceId) {
@@ -57,8 +66,9 @@ public class ProcessOpsService {
         String tenantId = TenantContextHolder.getTenantId();
         long failedJobs = processFacade.countFailedJobs(tenantId);
         long deadLetterJobs = processFacade.countDeadLetterJobs(tenantId);
+        long runningInstances = processFacade.listInstances(new InstanceQueryCommand(tenantId, 1, 1, null, "RUNNING", RETIRED_PROCESS_KEYS)).total();
         return new OpsSummaryResponse(
-                processFacade.countRunningInstances(tenantId),
+                runningInstances,
                 failedJobs,
                 deadLetterJobs,
                 connectorFailureCount,
