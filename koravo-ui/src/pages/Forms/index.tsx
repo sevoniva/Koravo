@@ -139,11 +139,7 @@ const useStyles = createStyles(({ css, token }) => ({
   fieldGrid: css`
     display: grid;
     width: 100%;
-    grid-template-columns:
-      minmax(180px, 1.15fr)
-      minmax(180px, 1.15fr)
-      minmax(126px, 0.75fr)
-      minmax(160px, 0.95fr);
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
     gap: 10px 12px;
     align-items: start;
     padding: 2px 0;
@@ -164,6 +160,19 @@ const useStyles = createStyles(({ css, token }) => ({
 
     @media (max-width: 560px) {
       grid-template-columns: minmax(0, 1fr);
+    }
+  `,
+  fieldMain: css`
+    grid-column: span 2;
+
+    .ant-form-item-control-input-content,
+    .ant-input {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    @media (max-width: 560px) {
+      grid-column: span 1;
     }
   `,
   fieldWide: css`
@@ -1063,6 +1072,7 @@ const FormReadiness: React.FC<{
 interface FormFieldsEditorClassNames {
   fieldList: string;
   fieldGrid: string;
+  fieldMain: string;
   fieldWide: string;
   fieldSwitch: string;
 }
@@ -1090,7 +1100,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 <ProFormText
                   name="fieldKey"
                   label="业务字段"
-                  width="sm"
+                  formItemProps={{ className: classNames.fieldMain }}
                   disabled={isSystemField}
                   tooltip={
                     isSystemField
@@ -1108,7 +1118,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 <ProFormText
                   name="title"
                   label="字段名称"
-                  width="sm"
+                  formItemProps={{ className: classNames.fieldMain }}
                   disabled={isSystemField}
                   tooltip={isSystemField ? systemFieldTooltip : undefined}
                   rules={[{ required: true, message: '请输入字段名称' }]}
@@ -1174,7 +1184,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 <ProFormText
                   name="placeholder"
                   label="输入提示"
-                  className={classNames.fieldWide}
+                  formItemProps={{ className: classNames.fieldWide }}
                   disabled={isSystemField}
                   placeholder={
                     isSystemField ? '自动联动' : '例如：请输入事项说明'
@@ -1192,7 +1202,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 <ProFormSelect
                   name="options"
                   label="选项"
-                  className={classNames.fieldWide}
+                  formItemProps={{ className: classNames.fieldWide }}
                   disabled={isSystemField}
                   placeholder={isSystemField ? '自动联动' : '输入选项后回车'}
                   tooltip="配置后在发起和办理表单中显示为下拉选择。"
@@ -1214,19 +1224,19 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
         <ProFormText
           name="visibleWhenField"
           label="显示字段"
-          className={classNames.fieldWide}
+          formItemProps={{ className: classNames.fieldWide }}
           placeholder="例如：type"
         />
         <ProFormText
           name="visibleWhenValue"
           label="显示值"
-          className={classNames.fieldWide}
+          formItemProps={{ className: classNames.fieldWide }}
           placeholder="例如：合同"
         />
         <ProFormSwitch
           name="required"
           label="必填"
-          className={classNames.fieldSwitch}
+          formItemProps={{ className: classNames.fieldSwitch }}
         />
       </div>
     </ProFormList>
