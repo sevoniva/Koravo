@@ -539,6 +539,35 @@ export function taskDefinitionLabel(
   return mapping[key] || productCopy(task?.name) || readableIdentifier(key);
 }
 
+export function bpmnValidationIssueText(issue?: {
+  code?: string;
+  message?: string;
+  elementId?: string;
+}) {
+  const node = issue?.elementId
+    ? taskDefinitionLabel(issue.elementId)
+    : undefined;
+  const atNode = node && node !== '-' ? `：${node}` : '';
+  const mapping: Record<string, string> = {
+    BPMN_XML_REQUIRED: '请先保存流程图',
+    BPMN_XML_INVALID: '流程文件格式不正确',
+    BPMN_DEFINITIONS_MISSING: '缺少 BPMN 定义',
+    BPMN_PROCESS_MISSING: '缺少流程定义',
+    BPMN_PROCESS_ID_MISSING: '流程标识为空',
+    BPMN_PROCESS_NOT_EXECUTABLE: '流程未设为可执行',
+    BPMN_START_EVENT_MISSING: '缺少开始节点',
+    BPMN_END_EVENT_MISSING: '缺少结束节点',
+    BPMN_USER_TASK_ASSIGNEE_REQUIRED: `缺少办理人${atNode}`,
+  };
+  if (issue?.code && mapping[issue.code]) {
+    return mapping[issue.code];
+  }
+  if (issue?.message && !/[a-z]{3,}/i.test(issue.message)) {
+    return issue.message;
+  }
+  return issue?.code || '流程校验未通过';
+}
+
 export function normalizeBpmnXmlLabels(bpmnXml?: string) {
   if (!bpmnXml) return '';
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {

@@ -4,6 +4,7 @@ import {
   auditResourceLabel,
   assetOriginColor,
   assetOriginLabel,
+  bpmnValidationIssueText,
   buildVersionLabel,
   businessFieldLabel,
   businessKeyLabel,
@@ -140,6 +141,29 @@ describe('display helpers', () => {
     expect(normalized).toContain('name="业务五部流程完成"');
     expect(normalized).not.toContain('dept-05子流程');
     expect(normalized).not.toContain('部门05审批节点01');
+  });
+
+  it('uses product copy for bpmn validation issues', () => {
+    expect(
+      bpmnValidationIssueText({
+        code: 'BPMN_USER_TASK_ASSIGNEE_REQUIRED',
+        message: 'User task approve must define an assignee',
+        elementId: 'jointApprovalTask',
+      }),
+    ).toBe('缺少办理人：多人会签');
+    expect(
+      bpmnValidationIssueText({
+        code: 'BPMN_PROCESS_NOT_EXECUTABLE',
+        message: 'Process demo is not executable',
+        elementId: 'demo',
+      }),
+    ).toBe('流程未设为可执行');
+    expect(
+      bpmnValidationIssueText({
+        code: 'UNKNOWN',
+        message: 'Raw english validation failed',
+      }),
+    ).toBe('UNKNOWN');
   });
 
   it('uses product labels for authentication audit records', () => {

@@ -55,6 +55,7 @@ import {
   ASSET_ORIGIN_LABELS,
   assetOriginColor,
   assetOriginLabel,
+  bpmnValidationIssueText,
   isActiveBusinessProcessModel,
   processDefinitionLabel,
   processDescriptionLabel,
@@ -506,6 +507,11 @@ const ProcessModels: React.FC = () => {
             ? '流程结构可解析'
             : `发现 ${validation.errors.length} 个错误`,
         )}
+        {validation.errors.length > 0 && (
+          <Typography.Text type="secondary">
+            {validation.errors.map(bpmnValidationIssueText).join('；')}
+          </Typography.Text>
+        )}
         {renderCheckItem(
           '办理人配置',
           assigneeErrors.length ? 'error' : 'success',
@@ -555,7 +561,7 @@ const ProcessModels: React.FC = () => {
         {validation.warnings.length > 0 && (
           <Typography.Text type="secondary">
             流程文件提醒：
-            {validation.warnings.map((item) => item.message).join('；')}
+            {validation.warnings.map(bpmnValidationIssueText).join('；')}
           </Typography.Text>
         )}
       </Flex>

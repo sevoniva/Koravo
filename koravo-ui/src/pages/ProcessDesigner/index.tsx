@@ -61,6 +61,7 @@ import {
 } from '@/services/koravo/organization';
 import { getSessionContext } from '@/services/koravo/session';
 import {
+  bpmnValidationIssueText,
   isBusinessProcessModel,
   processDisplayName,
   processModelKeyLabel,
@@ -444,6 +445,11 @@ const ProcessDesigner: React.FC = () => {
                   ? '流程结构可解析'
                   : `发现 ${validation.errors.length} 个错误`,
               )}
+              {validation.errors.length ? (
+                <Typography.Text type="secondary">
+                  {validation.errors.map(bpmnValidationIssueText).join('；')}
+                </Typography.Text>
+              ) : null}
               {renderReleaseCheckItem(
                 '发起表单',
                 hasStartBinding,
