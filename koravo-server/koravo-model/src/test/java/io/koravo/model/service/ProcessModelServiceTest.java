@@ -347,6 +347,47 @@ class ProcessModelServiceTest {
     }
 
     @Test
+    void versionsIncludeArchivedProductionHistoryByDefault() {
+        TenantContextHolder.setTenantId("default");
+        KoProcessModel current = model("model-current", ProcessModelStatus.DEPLOYED);
+        current.setVersion(3);
+        KoProcessModel archived = model("model-archived", ProcessModelStatus.ARCHIVED);
+        archived.setVersion(2);
+        KoProcessModel fixture = model("model-fixture", ProcessModelStatus.ARCHIVED);
+        fixture.setVersion(1);
+        fixture.setAssetOrigin(AssetOrigin.TEST_FIXTURE);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("model-current", "default"))
+                .thenReturn(Optional.of(current));
+        when(repository.findByTenantIdAndModelKeyAndDeletedFalseOrderByVersionDescUpdatedAtDesc(
+                "default",
+                "leaveApproval"
+        )).thenReturn(List.of(current, archived, fixture));
+
+        var result = service.versions("model-current", false);
+
+        assertThat(result).extracting("id").containsExactly("model-current", "model-archived");
+        assertThat(result).extracting("status").containsExactly("DEPLOYED", "ARCHIVED");
+    }
+
+    @Test
+    void versionsCanIncludeNonProductionHistoryForGovernance() {
+        TenantContextHolder.setTenantId("default");
+        KoProcessModel current = model("model-current", ProcessModelStatus.DEPLOYED);
+        KoProcessModel fixture = model("model-fixture", ProcessModelStatus.ARCHIVED);
+        fixture.setAssetOrigin(AssetOrigin.TEST_FIXTURE);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("model-current", "default"))
+                .thenReturn(Optional.of(current));
+        when(repository.findByTenantIdAndModelKeyAndDeletedFalseOrderByVersionDescUpdatedAtDesc(
+                "default",
+                "leaveApproval"
+        )).thenReturn(List.of(current, fixture));
+
+        var result = service.versions("model-current", true);
+
+        assertThat(result).extracting("id").containsExactly("model-current", "model-fixture");
+    }
+
+    @Test
     void updateAssetOriginWritesLifecycleAuditDetail() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");

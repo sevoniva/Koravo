@@ -65,6 +65,14 @@ public class ProcessModelController {
         return ApiResponse.success(processModelService.get(id));
     }
 
+    @GetMapping("/api/v1/process-models/{id}/versions")
+    public ApiResponse<List<ProcessModelResponse>> versions(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "false") boolean includeNonProduction
+    ) {
+        return ApiResponse.success(processModelService.versions(id, includeNonProduction));
+    }
+
     @GetMapping("/api/v1/process-models/{id}/task-definitions")
     public ApiResponse<List<BpmnTaskDefinitionResponse>> taskDefinitions(@PathVariable String id) {
         return ApiResponse.success(processModelService.taskDefinitions(id));

@@ -53,6 +53,7 @@ import {
   listFormBindings,
   listFormSchemas,
   listProcessModels,
+  listProcessModelVersions,
   listProcessModelTaskDefinitions,
   type ProcessModelItem,
   restoreProcessModelDraft,
@@ -179,6 +180,17 @@ function versionGroupContext(
     versionCount: sortedVersions.length,
     versions: sortedVersions,
     runtimeVersion,
+  };
+}
+
+export function withProcessModelVersionHistory<
+  T extends ProcessModelVersionGroup,
+>(current: T, versions: ProcessModelItem[]): T {
+  const refreshedCurrent =
+    versions.find((item) => item.id === current.id) || current;
+  return {
+    ...current,
+    ...versionGroupContext(refreshedCurrent, versions),
   };
 }
 
@@ -592,9 +604,28 @@ const ProcessModels: React.FC = () => {
   const [viewMode, setViewMode] = useState<ModelViewMode>('business');
   const [versionPreview, setVersionPreview] =
     useState<ProcessModelTableItem>();
+  const [versionLoading, setVersionLoading] = useState(false);
   const session = getSessionContext();
   const canStartProcess =
     session.permissions?.canStartProcess ?? session.role === 'applicant';
+
+  const refreshVersionPreview = async (record: ProcessModelTableItem) => {
+    setVersionLoading(true);
+    try {
+      const versions = await listProcessModelVersions(
+        record.id,
+        viewMode === 'all',
+      );
+      setVersionPreview(withProcessModelVersionHistory(record, versions));
+    } finally {
+      setVersionLoading(false);
+    }
+  };
+
+  const openVersionPreview = (record: ProcessModelTableItem) => {
+    setVersionPreview(record);
+    void refreshVersionPreview(record);
+  };
 
   const saveProcessModel = async (values: ProcessModelForm) => {
     const model = await createProcessModel({
@@ -1038,7 +1069,7 @@ const ProcessModels: React.FC = () => {
               type="link"
               size="small"
               icon={<HistoryOutlined />}
-              onClick={() => setVersionPreview(record)}
+              onClick={() => openVersionPreview(record)}
             >
               版本记录
             </Button>
@@ -1319,6 +1350,7 @@ const ProcessModels: React.FC = () => {
 
       <Drawer
         destroyOnHidden
+        loading={versionLoading}
         open={Boolean(versionPreview)}
         title={
           versionPreview
@@ -1330,7 +1362,12 @@ const ProcessModels: React.FC = () => {
         extra={
           <Button
             icon={<ReloadOutlined />}
-            onClick={() => actionRef.current?.reload()}
+            disabled={!versionPreview}
+            onClick={() => {
+              if (versionPreview) {
+                void refreshVersionPreview(versionPreview);
+              }
+            }}
           >
             刷新
           </Button>

@@ -385,6 +385,12 @@ export function getProcessModel(id: string) {
   return apiData<ProcessModelItem>(http.get(`/process-models/${id}`))
 }
 
+export function listProcessModelVersions(id: string, includeNonProduction = false) {
+  return apiData<ProcessModelItem[]>(http.get(`/process-models/${id}/versions`, {
+    params: { includeNonProduction },
+  }))
+}
+
 export function listProcessModelTaskDefinitions(id: string) {
   return apiData<BpmnTaskDefinition[]>(http.get(`/process-models/${id}/task-definitions`))
 }

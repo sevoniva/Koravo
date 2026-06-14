@@ -116,6 +116,20 @@ public class ProcessModelService {
         return toResponse(find(id));
     }
 
+    @Transactional(readOnly = true)
+    public List<ProcessModelResponse> versions(String id, boolean includeNonProduction) {
+        KoProcessModel model = find(id);
+        return repository
+                .findByTenantIdAndModelKeyAndDeletedFalseOrderByVersionDescUpdatedAtDesc(
+                        model.getTenantId(),
+                        model.getModelKey()
+                )
+                .stream()
+                .filter(item -> includeNonProduction || PRODUCTION_ASSET_ORIGINS.contains(item.getAssetOrigin()))
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public ProcessModelResponse update(String id, ProcessModelUpdateRequest request) {
         KoProcessModel model = find(id);

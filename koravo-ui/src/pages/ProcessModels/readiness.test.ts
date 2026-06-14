@@ -10,6 +10,7 @@ import {
   buildModelReadiness,
   compareProcessModelVersionsDesc,
   selectProcessModelVersionForStatus,
+  withProcessModelVersionHistory,
 } from './index';
 
 vi.mock('@ant-design/pro-components', () => ({
@@ -258,5 +259,44 @@ describe('ProcessModels version aggregation', () => {
       'approval-v3',
       'approval-v2',
     ]);
+  });
+
+  it('refreshes the drawer history with archived versions from the backend', () => {
+    const current = aggregateProcessModelVersions([
+      model({
+        id: 'approval-v3',
+        modelKey: 'approval',
+        version: 3,
+        status: 'DEPLOYED',
+        flowableDefinitionId: 'approval:3:pd',
+        updatedAt: '2026-01-03T00:00:00Z',
+      }),
+    ])[0];
+    const refreshed = withProcessModelVersionHistory(current, [
+      current,
+      model({
+        id: 'approval-v2',
+        modelKey: 'approval',
+        version: 2,
+        status: 'ARCHIVED',
+        updatedAt: '2026-01-02T00:00:00Z',
+      }),
+      model({
+        id: 'approval-v1',
+        modelKey: 'approval',
+        version: 1,
+        status: 'ARCHIVED',
+        updatedAt: '2026-01-01T00:00:00Z',
+      }),
+    ]);
+
+    expect(refreshed.id).toBe('approval-v3');
+    expect(refreshed.versionCount).toBe(3);
+    expect(refreshed.versions.map((item) => item.id)).toEqual([
+      'approval-v3',
+      'approval-v2',
+      'approval-v1',
+    ]);
+    expect(refreshed.runtimeVersion?.id).toBe('approval-v3');
   });
 });
