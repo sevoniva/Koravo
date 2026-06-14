@@ -436,6 +436,10 @@ export function archiveProcessModel(id: string) {
   return apiData<ProcessModelItem>(http.post(`/process-models/${id}/archive`))
 }
 
+export function restoreProcessModelDraft(id: string) {
+  return apiData<ProcessModelItem>(http.post(`/process-models/${id}/restore-draft`))
+}
+
 export async function exportProcessModel(id: string) {
   const response = await http.blob(`/process-models/${id}/export`)
   return response.data as Blob

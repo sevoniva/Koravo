@@ -1,8 +1,10 @@
 import {
   CloudUploadOutlined,
   DownloadOutlined,
+  HistoryOutlined,
   PlusOutlined,
   ReloadOutlined,
+  RollbackOutlined,
 } from '@ant-design/icons';
 import {
   type ActionType,
@@ -20,14 +22,17 @@ import {
   App,
   Badge,
   Button,
+  Drawer,
   Empty,
   Flex,
   Modal,
   Segmented,
   Space,
   Steps,
+  Table,
   Tag,
   Typography,
+  type TableColumnsType,
   type UploadFile,
 } from 'antd';
 import React, { useRef, useState } from 'react';
@@ -49,6 +54,7 @@ import {
   listProcessModels,
   listProcessModelTaskDefinitions,
   type ProcessModelItem,
+  restoreProcessModelDraft,
   validateProcessModel,
 } from '@/services/koravo/api';
 import { getSessionContext } from '@/services/koravo/session';
@@ -100,6 +106,9 @@ export interface ModelReadiness {
 type ProcessModelTableItem = ProcessModelItem & {
   formBindingCount: number;
   readiness: ModelReadiness;
+  latestVersion: number;
+  versionCount: number;
+  versions: ProcessModelItem[];
 };
 
 const START_FORM_TASK_KEY = '__START__';
@@ -122,6 +131,53 @@ function downloadModelFile(record: ProcessModelItem, blob: Blob) {
 
 function deployedDefinitionText(record: ProcessModelItem) {
   return processDefinitionLabel(record.flowableDefinitionId || record.modelKey);
+}
+
+function modelGroupKey(model: ProcessModelItem) {
+  return model.modelKey || model.id;
+}
+
+function modelTimestamp(model: ProcessModelItem) {
+  return Date.parse(model.updatedAt || model.createdAt || '') || 0;
+}
+
+function statusRank(status?: string) {
+  if (status === 'DEPLOYED') return 4;
+  if (status === 'DRAFT') return 3;
+  if (status === 'DISABLED') return 2;
+  if (status === 'ARCHIVED') return 1;
+  return 0;
+}
+
+export function compareProcessModelVersionsDesc(
+  left: ProcessModelItem,
+  right: ProcessModelItem,
+) {
+  const versionDelta = (right.version || 0) - (left.version || 0);
+  if (versionDelta !== 0) return versionDelta;
+  const updatedDelta = modelTimestamp(right) - modelTimestamp(left);
+  if (updatedDelta !== 0) return updatedDelta;
+  return statusRank(right.status) - statusRank(left.status);
+}
+
+export function aggregateProcessModelVersions(models: ProcessModelItem[]) {
+  const groups = new Map<string, ProcessModelItem[]>();
+  for (const model of models) {
+    const key = modelGroupKey(model);
+    groups.set(key, [...(groups.get(key) || []), model]);
+  }
+  return Array.from(groups.values())
+    .map((versions) => {
+      const sortedVersions = [...versions].sort(compareProcessModelVersionsDesc);
+      const current = sortedVersions[0];
+      return {
+        ...current,
+        latestVersion: current.version || 1,
+        versionCount: sortedVersions.length,
+        versions: sortedVersions,
+      };
+    })
+    .sort(compareProcessModelVersionsDesc);
 }
 
 function getModelBindings(
@@ -456,6 +512,8 @@ const ProcessModels: React.FC = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ModelViewMode>('business');
+  const [versionPreview, setVersionPreview] =
+    useState<ProcessModelTableItem>();
   const session = getSessionContext();
   const canStartProcess =
     session.permissions?.canStartProcess ?? session.role === 'applicant';
@@ -644,6 +702,44 @@ const ProcessModels: React.FC = () => {
     actionRef.current?.reload();
   };
 
+  const confirmDisableModel = (record: ProcessModelItem) => {
+    modal.confirm({
+      title: '停用流程模型',
+      content: `确认停用「${processDisplayName(record.modelKey, record.modelName)}」？`,
+      okText: '停用',
+      cancelText: '取消',
+      onOk: async () => {
+        await disableProcessModel(record.id);
+        message.success('已停用');
+        setVersionPreview(undefined);
+        actionRef.current?.reload();
+      },
+    });
+  };
+
+  const confirmArchiveModel = (record: ProcessModelItem) => {
+    modal.confirm({
+      title: '归档流程模型',
+      content: `确认归档「${processDisplayName(record.modelKey, record.modelName)}」？`,
+      okText: '归档',
+      cancelText: '取消',
+      onOk: async () => {
+        await archiveProcessModel(record.id);
+        message.success('已归档');
+        setVersionPreview(undefined);
+        actionRef.current?.reload();
+      },
+    });
+  };
+
+  const restoreDraft = async (record: ProcessModelItem) => {
+    const restored = await restoreProcessModelDraft(record.id);
+    message.success(`已恢复为 v${restored.version} 草稿`);
+    setVersionPreview(undefined);
+    actionRef.current?.reload();
+    history.push(`/process-designer?modelId=${restored.id}`);
+  };
+
   const openNextStep = async (record: ProcessModelTableItem) => {
     if (record.readiness.nextAction === 'design') {
       history.push(`/process-designer?modelId=${record.id}`);
@@ -662,6 +758,121 @@ const ProcessModels: React.FC = () => {
     }
   };
 
+  const versionColumns: TableColumnsType<ProcessModelItem> = [
+    {
+      title: '版本',
+      dataIndex: 'version',
+      width: 90,
+      render: (_, record) => (
+        <Space size={4}>
+          <Tag color="blue">v{record.version || 1}</Tag>
+          {record.id === versionPreview?.id ? <Tag>当前</Tag> : null}
+        </Space>
+      ),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 96,
+      render: (_, record) => (
+        <KoravoStatusTag
+          status={record.status}
+          text={processStatusLabel(record.status)}
+        />
+      ),
+    },
+    {
+      title: '来源',
+      dataIndex: 'assetOrigin',
+      width: 100,
+      render: (_, record) => (
+        <Tag color={assetOriginColor(record.assetOrigin)}>
+          {assetOriginLabel(record.assetOrigin)}
+        </Tag>
+      ),
+    },
+    {
+      title: '运行版本',
+      dataIndex: 'flowableDefinitionId',
+      width: 200,
+      ellipsis: true,
+      render: (_, record) => (
+        <CopyableText
+          value={record.flowableDefinitionId}
+          displayValue={processDefinitionLabel(record.flowableDefinitionId)}
+        />
+      ),
+    },
+    {
+      title: '更新时间',
+      dataIndex: 'updatedAt',
+      width: 150,
+      render: (value) => formatDateTime(value as string),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 280,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space size={4} wrap>
+          <Button
+            type="link"
+            onClick={() =>
+              history.push(`/process-designer?modelId=${record.id}`)
+            }
+          >
+            设计
+          </Button>
+          <Button
+            type="link"
+            disabled={record.status === 'ARCHIVED'}
+            onClick={() =>
+              history.push(`/form-bindings?processModelId=${record.id}`)
+            }
+          >
+            绑定表单
+          </Button>
+          <Button
+            type="link"
+            icon={<RollbackOutlined />}
+            disabled={!record.bpmnXml}
+            onClick={() => {
+              void restoreDraft(record);
+            }}
+          >
+            恢复草稿
+          </Button>
+          <Button
+            type="link"
+            icon={<DownloadOutlined />}
+            onClick={async () => {
+              downloadModelFile(record, await exportProcessModel(record.id));
+            }}
+          >
+            导出
+          </Button>
+          <Button
+            type="link"
+            danger
+            disabled={record.status !== 'DEPLOYED'}
+            onClick={() => confirmDisableModel(record)}
+          >
+            停用
+          </Button>
+          <Button
+            type="link"
+            danger
+            disabled={record.status === 'ARCHIVED'}
+            onClick={() => confirmArchiveModel(record)}
+          >
+            归档
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
   const columns: ProColumns<ProcessModelTableItem>[] = [
     {
       title: '模型名称',
@@ -677,9 +888,28 @@ const ProcessModels: React.FC = () => {
     {
       title: '版本',
       dataIndex: 'version',
-      width: 88,
+      width: 160,
       search: false,
-      renderText: (value) => `v${value || 1}`,
+      render: (_, record) => (
+        <Flex vertical gap={2}>
+          <Space size={4}>
+            <Tag color="blue">v{record.version || 1}</Tag>
+            {record.versionCount > 1 ? (
+              <Button
+                type="link"
+                size="small"
+                icon={<HistoryOutlined />}
+                onClick={() => setVersionPreview(record)}
+              >
+                版本记录
+              </Button>
+            ) : null}
+          </Space>
+          <Typography.Text type="secondary">
+            {record.versionCount > 1 ? `共 ${record.versionCount} 版` : '当前版本'}
+          </Typography.Text>
+        </Flex>
+      ),
     },
     {
       title: '状态',
@@ -853,19 +1083,7 @@ const ProcessModels: React.FC = () => {
             type="link"
             danger
             disabled={record.status !== 'DEPLOYED'}
-            onClick={() => {
-              modal.confirm({
-                title: '停用流程模型',
-                content: `确认停用「${processDisplayName(record.modelKey, record.modelName)}」？`,
-                okText: '停用',
-                cancelText: '取消',
-                onOk: async () => {
-                  await disableProcessModel(record.id);
-                  message.success('已停用');
-                  actionRef.current?.reload();
-                },
-              });
-            }}
+            onClick={() => confirmDisableModel(record)}
           >
             停用
           </Button>
@@ -873,19 +1091,7 @@ const ProcessModels: React.FC = () => {
             type="link"
             danger
             disabled={record.status === 'ARCHIVED'}
-            onClick={() => {
-              modal.confirm({
-                title: '归档流程模型',
-                content: `确认归档「${processDisplayName(record.modelKey, record.modelName)}」？`,
-                okText: '归档',
-                cancelText: '取消',
-                onOk: async () => {
-                  await archiveProcessModel(record.id);
-                  message.success('已归档');
-                  actionRef.current?.reload();
-                },
-              });
-            }}
+            onClick={() => confirmArchiveModel(record)}
           >
             归档
           </Button>
@@ -905,10 +1111,7 @@ const ProcessModels: React.FC = () => {
         params={{ viewMode }}
         request={async (params) => {
           const [models, bindings, schemas] = await Promise.all([
-            listProcessModels(
-              params.status as string | undefined,
-              viewMode === 'all',
-            ),
+            listProcessModels(undefined, viewMode === 'all'),
             listFormBindings(),
             listFormSchemas(),
           ]);
@@ -916,28 +1119,49 @@ const ProcessModels: React.FC = () => {
             viewMode === 'business'
               ? models.filter(isActiveBusinessProcessModel)
               : models;
+          const versionGroups = aggregateProcessModelVersions(visibleModels);
           const keyword = String(params.modelName || '').trim();
           const filteredModels = keyword
-            ? visibleModels.filter((item) =>
-                [item.modelName, item.description]
-                  .filter(Boolean)
-                  .some((value) => String(value).includes(keyword)),
+            ? versionGroups.filter((group) =>
+                group.versions.some((item) =>
+                  [item.modelName, item.description, item.modelKey]
+                    .filter(Boolean)
+                    .some((value) => String(value).includes(keyword)),
+                ),
               )
-            : visibleModels;
+            : versionGroups;
+          const status = String(params.status || '').trim();
+          const statusFilteredModels = status
+            ? filteredModels.filter((group) =>
+                group.versions.some((item) => item.status === status),
+              )
+            : filteredModels;
           const data = await Promise.all(
-            filteredModels.map(async (model) => {
-              const modelBindings = getModelBindings(model, bindings);
+            statusFilteredModels.map(async (model) => {
+              const matchingVersion =
+                status && model.status !== status
+                  ? [...model.versions]
+                      .filter((item) => item.status === status)
+                      .sort(compareProcessModelVersionsDesc)[0]
+                  : model;
+              const displayModel = {
+                ...matchingVersion,
+                latestVersion: model.latestVersion,
+                versionCount: model.versionCount,
+                versions: model.versions,
+              };
+              const modelBindings = getModelBindings(displayModel, bindings);
               let tasks: BpmnTaskDefinition[] = [];
               try {
-                tasks = await listProcessModelTaskDefinitions(model.id);
+                tasks = await listProcessModelTaskDefinitions(displayModel.id);
               } catch {
                 tasks = [];
               }
               return {
-                ...model,
+                ...displayModel,
                 formBindingCount: modelBindings.length,
                 readiness: buildModelReadiness(
-                  model,
+                  displayModel,
                   modelBindings,
                   tasks,
                   schemas,
@@ -1015,6 +1239,35 @@ const ProcessModels: React.FC = () => {
           </Button>,
         ]}
       />
+
+      <Drawer
+        destroyOnHidden
+        open={Boolean(versionPreview)}
+        title={
+          versionPreview
+            ? `${processDisplayName(versionPreview.modelKey, versionPreview.modelName)} · 版本记录`
+            : '版本记录'
+        }
+        size="min(1120px, calc(100vw - 96px))"
+        onClose={() => setVersionPreview(undefined)}
+        extra={
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => actionRef.current?.reload()}
+          >
+            刷新
+          </Button>
+        }
+      >
+        <Table<ProcessModelItem>
+          rowKey="id"
+          size="small"
+          columns={versionColumns}
+          dataSource={versionPreview?.versions || []}
+          pagination={false}
+          scroll={{ x: 920 }}
+        />
+      </Drawer>
 
       <ModalForm<ProcessModelForm>
         title="新建流程模型"

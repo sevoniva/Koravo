@@ -210,6 +210,30 @@ public class ProcessModelService {
     }
 
     @Transactional
+    public ProcessModelResponse restoreDraft(String id) {
+        KoProcessModel source = find(id);
+        KoProcessModel draft = new KoProcessModel();
+        draft.setTenantId(source.getTenantId());
+        draft.setCreatedBy(UserContextHolder.getUserId());
+        draft.setUpdatedBy(UserContextHolder.getUserId());
+        draft.setModelKey(source.getModelKey());
+        draft.setModelName(source.getModelName());
+        draft.setModelType(source.getModelType());
+        draft.setVersion(nextVersion(source));
+        draft.setStatus(ProcessModelStatus.DRAFT);
+        draft.setDescription(source.getDescription());
+        draft.setBpmnXml(source.getBpmnXml());
+        draft.setAssetOrigin(source.getAssetOrigin());
+        repository.save(draft);
+
+        Map<String, Object> detail = modelAuditDetail(draft);
+        detail.put("sourceModelId", source.getId());
+        detail.put("sourceVersion", source.getVersion());
+        auditLogService.record("PROCESS_MODEL_RESTORE_DRAFT", "PROCESS_MODEL", draft.getId(), detail);
+        return toResponse(draft);
+    }
+
+    @Transactional
     public ProcessDeploymentDTO deploy(String modelName, MultipartFile file) {
         return deploy(modelName, file, AssetOrigin.USER_FLOW);
     }
@@ -352,6 +376,18 @@ public class ProcessModelService {
         model.setAssetOrigin(AssetOrigin.USER_FLOW);
         repository.save(model);
         return model;
+    }
+
+    private int nextVersion(KoProcessModel model) {
+        return repository
+                .findByTenantIdAndModelKeyAndDeletedFalseOrderByVersionDescUpdatedAtDesc(
+                        model.getTenantId(),
+                        model.getModelKey()
+                )
+                .stream()
+                .mapToInt(KoProcessModel::getVersion)
+                .max()
+                .orElse(model.getVersion()) + 1;
     }
 
     private ProcessModelResponse toResponse(KoProcessModel model) {

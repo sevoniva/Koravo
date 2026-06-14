@@ -202,6 +202,9 @@ describe('display helpers', () => {
     expect(auditActionLabel('PROCESS_MODEL_ASSET_ORIGIN_UPDATE')).toBe(
       '调整模型归类',
     );
+    expect(auditActionLabel('PROCESS_MODEL_RESTORE_DRAFT')).toBe(
+      '恢复流程草稿',
+    );
     expect(auditResourceLabel('ORGANIZATION_MEMBER')).toBe('组织成员');
   });
 

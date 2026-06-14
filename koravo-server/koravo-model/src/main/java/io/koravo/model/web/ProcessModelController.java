@@ -100,6 +100,11 @@ public class ProcessModelController {
         return ApiResponse.success(processModelService.archive(id));
     }
 
+    @PostMapping("/api/v1/process-models/{id}/restore-draft")
+    public ApiResponse<ProcessModelResponse> restoreDraft(@PathVariable String id) {
+        return ApiResponse.success(processModelService.restoreDraft(id));
+    }
+
     @PostMapping("/api/v1/process-models/{id}/asset-origin")
     public ApiResponse<ProcessModelResponse> updateAssetOrigin(
             @PathVariable String id,

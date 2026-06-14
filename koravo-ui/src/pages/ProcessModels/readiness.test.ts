@@ -5,7 +5,11 @@ import type {
   FormSchemaItem,
   ProcessModelItem,
 } from '@/services/koravo/api';
-import { buildModelReadiness } from './index';
+import {
+  aggregateProcessModelVersions,
+  buildModelReadiness,
+  compareProcessModelVersionsDesc,
+} from './index';
 
 vi.mock('@ant-design/pro-components', () => ({
   ModalForm: () => null,
@@ -136,5 +140,59 @@ describe('ProcessModels readiness', () => {
     expect(readiness.statusText).toBe('待同步');
     expect(readiness.nextAction).toBe('bind');
     expect(readiness.nextActionText).toBe('同步表单版本');
+  });
+});
+
+describe('ProcessModels version aggregation', () => {
+  it('keeps one row per model key and exposes sorted version history', () => {
+    const groups = aggregateProcessModelVersions([
+      model({
+        id: 'approval-v1',
+        modelKey: 'approval',
+        version: 1,
+        status: 'ARCHIVED',
+        updatedAt: '2026-01-01T00:00:00Z',
+      }),
+      model({
+        id: 'approval-v5',
+        modelKey: 'approval',
+        version: 5,
+        status: 'DEPLOYED',
+        updatedAt: '2026-01-05T00:00:00Z',
+      }),
+      model({
+        id: 'expense-v2',
+        modelKey: 'expense',
+        version: 2,
+        status: 'DRAFT',
+        updatedAt: '2026-01-03T00:00:00Z',
+      }),
+    ]);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0].id).toBe('approval-v5');
+    expect(groups[0].versionCount).toBe(2);
+    expect(groups[0].versions.map((item) => item.id)).toEqual([
+      'approval-v5',
+      'approval-v1',
+    ]);
+    expect(groups[1].id).toBe('expense-v2');
+  });
+
+  it('uses update time when versions are equal', () => {
+    const older = model({
+      id: 'old',
+      version: 2,
+      updatedAt: '2026-01-01T00:00:00Z',
+    });
+    const newer = model({
+      id: 'new',
+      version: 2,
+      updatedAt: '2026-01-02T00:00:00Z',
+    });
+
+    expect([older, newer].sort(compareProcessModelVersionsDesc)[0].id).toBe(
+      'new',
+    );
   });
 });

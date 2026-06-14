@@ -366,6 +366,50 @@ class ProcessModelServiceTest {
     }
 
     @Test
+    void restoreDraftCopiesHistoricalVersionAsNextDraft() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel source = model("model-v2", ProcessModelStatus.ARCHIVED);
+        source.setVersion(2);
+        source.setDescription("历史版本");
+        source.setBpmnXml("<definitions id=\"v2\" />");
+        KoProcessModel latest = model("model-v5", ProcessModelStatus.DEPLOYED);
+        latest.setVersion(5);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("model-v2", "default")).thenReturn(Optional.of(source));
+        when(repository.findByTenantIdAndModelKeyAndDeletedFalseOrderByVersionDescUpdatedAtDesc("default", "leaveApproval"))
+                .thenReturn(List.of(latest, source));
+        when(repository.save(any(KoProcessModel.class))).thenAnswer(invocation -> {
+            KoProcessModel saved = invocation.getArgument(0);
+            saved.setId("model-v6");
+            return saved;
+        });
+
+        var response = service.restoreDraft("model-v2");
+
+        assertThat(response.id()).isEqualTo("model-v6");
+        assertThat(response.version()).isEqualTo(6);
+        assertThat(response.status()).isEqualTo("DRAFT");
+        assertThat(response.bpmnXml()).isEqualTo("<definitions id=\"v2\" />");
+        ArgumentCaptor<KoProcessModel> modelCaptor = ArgumentCaptor.forClass(KoProcessModel.class);
+        verify(repository).save(modelCaptor.capture());
+        assertThat(modelCaptor.getValue().getFlowableDefinitionId()).isNull();
+        assertThat(modelCaptor.getValue().getUpdatedBy()).isEqualTo("admin");
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> detailCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(auditLogService).record(
+                org.mockito.ArgumentMatchers.eq("PROCESS_MODEL_RESTORE_DRAFT"),
+                org.mockito.ArgumentMatchers.eq("PROCESS_MODEL"),
+                org.mockito.ArgumentMatchers.eq("model-v6"),
+                detailCaptor.capture()
+        );
+        assertThat(detailCaptor.getValue()).containsEntry("modelKey", "leaveApproval");
+        assertThat(detailCaptor.getValue()).containsEntry("version", 6);
+        assertThat(detailCaptor.getValue()).containsEntry("status", "DRAFT");
+        assertThat(detailCaptor.getValue()).containsEntry("sourceModelId", "model-v2");
+        assertThat(detailCaptor.getValue()).containsEntry("sourceVersion", 2);
+    }
+
+    @Test
     void updateDeployedModelReturnsDraftAndWritesLifecycleAuditDetail() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
