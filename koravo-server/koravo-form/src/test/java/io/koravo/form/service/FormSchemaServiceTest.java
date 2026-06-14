@@ -199,6 +199,38 @@ class FormSchemaServiceTest {
     }
 
     @Test
+    void activateRejectsReleaseBlockingIssues() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoFormSchema schema = schema("form-1", 1);
+        schema.setStatus(FormStatus.DISABLED);
+        schema.setSchemaJson("""
+                {"type":"object","required":["subject"],"properties":{"subject":{"title":"事项名称","type":"string"}}}
+                """);
+        schema.setUiSchemaJson("{\"subject\":{\"permission\":\"hidden\"}}");
+        when(repository.findByIdAndTenantIdAndDeletedFalse("form-1", "default")).thenReturn(Optional.of(schema));
+
+        assertThatThrownBy(() -> service.activate("form-1"))
+                .hasMessage("发布检查未通过：隐藏必填字段：事项名称");
+    }
+
+    @Test
+    void updateRejectsBlockingIssuesWhenSchemaIsActive() {
+        TenantContextHolder.setTenantId("default");
+        KoFormSchema schema = schema("form-1", 1);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("form-1", "default")).thenReturn(Optional.of(schema));
+
+        assertThatThrownBy(() -> service.update("form-1", new FormSchemaRequest(
+                "leave",
+                "Leave",
+                """
+                        {"type":"object","properties":{"subject":{"title":"事项名称","type":"string","minLength":20,"maxLength":5}}}
+                        """,
+                "{}"
+        ))).hasMessage("发布检查未通过：事项名称的最少字符不能大于最多字符");
+    }
+
+    @Test
     void createRejectsInvalidSchemaPayload() {
         TenantContextHolder.setTenantId("default");
 
@@ -208,6 +240,13 @@ class FormSchemaServiceTest {
                 "{\"type\":\"object\"}",
                 "{}"
         ))).hasMessage("表单结构配置必须包含字段清单");
+
+        assertThatThrownBy(() -> service.create(new FormSchemaRequest(
+                "leave",
+                "Leave",
+                "{\"type\":\"object\",\"properties\":{}}",
+                "{}"
+        ))).hasMessage("发布检查未通过：请先配置字段");
 
         assertThatThrownBy(() -> service.create(new FormSchemaRequest(
                 "leave",

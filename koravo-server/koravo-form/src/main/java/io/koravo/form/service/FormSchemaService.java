@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 @Service
 public class FormSchemaService {
@@ -51,6 +53,7 @@ public class FormSchemaService {
     @Transactional
     public FormSchemaResponse create(FormSchemaRequest request) {
         validateSchemaPayload(request);
+        validateReleasePayload(request.schemaJson(), request.uiSchemaJson());
         KoFormSchema schema = new KoFormSchema();
         schema.setTenantId(TenantContextHolder.getTenantId());
         schema.setCreatedBy(UserContextHolder.getUserId());
@@ -119,6 +122,9 @@ public class FormSchemaService {
     public FormSchemaResponse update(String id, FormSchemaRequest request) {
         validateSchemaPayload(request);
         KoFormSchema schema = findCurrentSchema(id);
+        if (schema.getStatus() == FormStatus.ACTIVE) {
+            validateReleasePayload(request.schemaJson(), request.uiSchemaJson());
+        }
         schema.setFormKey(request.formKey());
         schema.setFormName(request.formName());
         schema.setSchemaJson(request.schemaJson());
@@ -140,6 +146,9 @@ public class FormSchemaService {
         KoFormSchemaVersion source = versionRepository
                 .findByTenantIdAndFormSchemaIdAndVersionAndDeletedFalse(schema.getTenantId(), schema.getId(), version)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FORM_SCHEMA_NOT_FOUND, "Form schema version not found"));
+        if (schema.getStatus() == FormStatus.ACTIVE) {
+            validateReleasePayload(source.getSchemaJson(), source.getUiSchemaJson());
+        }
         schema.setFormKey(source.getFormKey());
         schema.setFormName(source.getFormName());
         schema.setSchemaJson(source.getSchemaJson());
@@ -168,6 +177,9 @@ public class FormSchemaService {
 
     private FormSchemaResponse updateStatus(String id, FormStatus status, String action) {
         KoFormSchema schema = findCurrentSchema(id);
+        if (status == FormStatus.ACTIVE) {
+            validateReleasePayload(schema.getSchemaJson(), schema.getUiSchemaJson());
+        }
         schema.setStatus(status);
         schema.setUpdatedBy(UserContextHolder.getUserId());
         KoFormSchema saved = repository.save(schema);
@@ -212,6 +224,74 @@ public class FormSchemaService {
         if (StringUtils.hasText(request.uiSchemaJson())) {
             readObjectNode(request.uiSchemaJson(), "表单展示配置");
         }
+    }
+
+    private void validateReleasePayload(String schemaJson, String uiSchemaJson) {
+        JsonNode schema = readObjectNode(schemaJson, "表单结构配置");
+        JsonNode properties = schema.get("properties");
+        if (properties == null || !properties.isObject() || properties.size() == 0) {
+            throw releaseError("请先配置字段");
+        }
+
+        JsonNode uiSchema = StringUtils.hasText(uiSchemaJson)
+                ? readObjectNode(uiSchemaJson, "表单展示配置")
+                : objectMapper.createObjectNode();
+        JsonNode required = schema.get("required");
+        if (required != null && required.isArray()) {
+            for (JsonNode item : required) {
+                String fieldKey = item.asText("");
+                JsonNode uiField = uiSchema.get(fieldKey);
+                if (uiField != null && "hidden".equals(uiField.path("permission").asText())) {
+                    throw releaseError("隐藏必填字段：" + fieldTitle(properties.get(fieldKey), fieldKey));
+                }
+            }
+        }
+
+        properties.properties().forEach(entry -> validateReleaseField(entry.getKey(), entry.getValue()));
+    }
+
+    private void validateReleaseField(String fieldKey, JsonNode property) {
+        String title = fieldTitle(property, fieldKey);
+        Integer minLength = integerValue(property.get("minLength"));
+        Integer maxLength = integerValue(property.get("maxLength"));
+        Double minimum = numberValue(property.get("minimum"));
+        Double maximum = numberValue(property.get("maximum"));
+
+        if (minLength != null && maxLength != null && minLength > maxLength) {
+            throw releaseError(title + "的最少字符不能大于最多字符");
+        }
+        if (minimum != null && maximum != null && minimum > maximum) {
+            throw releaseError(title + "的最小值不能大于最大值");
+        }
+        String pattern = textValue(property.get("pattern"));
+        if (StringUtils.hasText(pattern)) {
+            try {
+                Pattern.compile(pattern.trim());
+            } catch (PatternSyntaxException ex) {
+                throw releaseError(title + "的格式正则无效");
+            }
+        }
+    }
+
+    private BusinessException releaseError(String message) {
+        return new BusinessException(ErrorCode.BAD_REQUEST, "发布检查未通过：" + message);
+    }
+
+    private String fieldTitle(JsonNode property, String fieldKey) {
+        String title = textValue(property == null ? null : property.get("title"));
+        return StringUtils.hasText(title) ? title.trim() : fieldKey;
+    }
+
+    private String textValue(JsonNode node) {
+        return node != null && node.isTextual() ? node.asText() : null;
+    }
+
+    private Integer integerValue(JsonNode node) {
+        return node != null && node.isIntegralNumber() ? node.asInt() : null;
+    }
+
+    private Double numberValue(JsonNode node) {
+        return node != null && node.isNumber() ? node.asDouble() : null;
     }
 
     private JsonNode readObjectNode(String json, String label) {
