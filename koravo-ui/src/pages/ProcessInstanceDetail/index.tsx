@@ -309,6 +309,11 @@ const ProcessInstanceDetail: React.FC = () => {
     queryFn: () => listFormSnapshots({ processInstanceId: instanceId }),
     enabled: Boolean(instanceId),
   });
+  const primarySnapshot = React.useMemo(
+    () =>
+      formSnapshots.find((snapshot) => !snapshot.taskId) || formSnapshots[0],
+    [formSnapshots],
+  );
   const { data: auditLogs } = useQuery({
     queryKey: ['process-instance-audit-logs', instanceId],
     queryFn: () =>
@@ -536,6 +541,26 @@ const ProcessInstanceDetail: React.FC = () => {
           currentUserId={session.userId}
           loading={traceLoading}
         />
+        <ProCard title="业务数据">
+          {primarySnapshot ? (
+            <BusinessDataDescriptions
+              schemaJson={primarySnapshot.schemaJson}
+              uiSchemaJson={primarySnapshot.uiSchemaJson}
+              values={
+                maskSecret(snapshotData(primarySnapshot)) as Record<
+                  string,
+                  unknown
+                >
+              }
+              emptyText="暂无业务数据"
+            />
+          ) : (
+            <Empty
+              description="暂无业务数据"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )}
+        </ProCard>
         <ProCard
           title={
             <Flex align="center" gap={8}>
