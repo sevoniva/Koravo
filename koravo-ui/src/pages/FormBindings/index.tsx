@@ -27,9 +27,9 @@ import {
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import {
+  type BpmnTaskDefinition,
   createFormBinding,
   deleteFormBinding,
-  type BpmnTaskDefinition,
   type FormBindingItem,
   type FormSchemaItem,
   listFormBindings,
@@ -60,6 +60,13 @@ interface BindingForm {
 }
 
 type BindingViewMode = 'current' | 'all';
+export type BindingCompletionAction =
+  | 'deploy'
+  | 'bindStart'
+  | 'bindTask'
+  | 'start'
+  | 'review'
+  | 'none';
 
 type BindingTableItem = FormBindingItem & {
   processModel?: ProcessModelItem;
@@ -69,6 +76,21 @@ type BindingTableItem = FormBindingItem & {
   missingTaskNames: string[];
   readyToStart: boolean;
 };
+
+export interface ProcessBindingReadiness {
+  hasStartBinding: boolean;
+  missingTaskNames: string[];
+  readyToStart: boolean;
+}
+
+export interface BindingCompletionState {
+  nextAction: BindingCompletionAction;
+  description: string;
+  primaryText: string;
+  primaryPath: string;
+  secondaryText?: string;
+  secondaryPath?: string;
+}
 
 const START_FORM_TASK_KEY = '__START__';
 
@@ -156,7 +178,9 @@ function bindingTargetLabel(
     return <Tag color="processing">流程发起</Tag>;
   }
   if (record.taskDefinitionExists === false) {
-    return <Tag color="error">{taskDefinitionLabel(record.taskDefinitionKey)}</Tag>;
+    return (
+      <Tag color="error">{taskDefinitionLabel(record.taskDefinitionKey)}</Tag>
+    );
   }
   return <Tag>{taskDefinitionLabel(record.taskDefinitionKey)}</Tag>;
 }
@@ -179,12 +203,12 @@ function bindingTargetsModel(
   );
 }
 
-function buildBindingReadiness(
+export function buildBindingReadiness(
   model: ProcessModelItem,
   bindings: FormBindingItem[],
   schemas: FormSchemaItem[],
   tasks: BpmnTaskDefinition[],
-) {
+): ProcessBindingReadiness {
   const activeSchemaIds = new Set(
     schemas
       .filter((schema) => schema.status === 'ACTIVE')
@@ -208,13 +232,111 @@ function buildBindingReadiness(
     .filter((task) => !boundTaskKeys.has(task.taskDefinitionKey))
     .map((task) => taskDefinitionLabel(task.taskDefinitionKey, task));
 
+  const published =
+    model.status === 'DEPLOYED' && Boolean(model.flowableDefinitionId);
+
   return {
     hasStartBinding,
     missingTaskNames,
-    readyToStart:
-      model.status === 'DEPLOYED' &&
-      hasStartBinding &&
-      missingTaskNames.length === 0,
+    readyToStart: published && hasStartBinding && missingTaskNames.length === 0,
+  };
+}
+
+export function resolveBindingCompletionState(
+  model: ProcessModelItem | undefined,
+  readiness: ProcessBindingReadiness | undefined,
+  canStartProcess: boolean,
+  fallbackProcessModelId?: string,
+): BindingCompletionState {
+  const processModelId = model?.id || fallbackProcessModelId;
+  const bindingPath = processModelId
+    ? `/form-bindings?processModelId=${processModelId}`
+    : '/form-bindings';
+  const designPath = processModelId
+    ? `/process-designer?modelId=${processModelId}`
+    : '/process-designer';
+
+  if (!processModelId || !model) {
+    return {
+      nextAction: 'review',
+      description: '检查绑定状态',
+      primaryText: '查看绑定',
+      primaryPath: bindingPath,
+    };
+  }
+
+  if (model.status === 'ARCHIVED') {
+    return {
+      nextAction: 'none',
+      description: '流程已归档',
+      primaryText: '查看配置',
+      primaryPath: '/process-models',
+    };
+  }
+
+  if (model.status === 'DISABLED') {
+    return {
+      nextAction: 'none',
+      description: '流程已停用',
+      primaryText: '查看配置',
+      primaryPath: '/process-models',
+    };
+  }
+
+  const published =
+    model.status === 'DEPLOYED' && Boolean(model.flowableDefinitionId);
+
+  if (!published) {
+    return {
+      nextAction: 'deploy',
+      description: '下一步：发布流程',
+      primaryText: '去发布',
+      primaryPath: '/process-models',
+      secondaryText: '查看设计',
+      secondaryPath: designPath,
+    };
+  }
+
+  if (!readiness?.hasStartBinding) {
+    return {
+      nextAction: 'bindStart',
+      description: '下一步：绑定发起表单',
+      primaryText: '继续绑定',
+      primaryPath: bindingPath,
+      secondaryText: '查看配置',
+      secondaryPath: '/process-models',
+    };
+  }
+
+  if (readiness.missingTaskNames.length > 0) {
+    return {
+      nextAction: 'bindTask',
+      description: `下一步：补 ${readiness.missingTaskNames.length} 个任务表单`,
+      primaryText: '继续绑定',
+      primaryPath: bindingPath,
+      secondaryText: '查看配置',
+      secondaryPath: '/process-models',
+    };
+  }
+
+  if (readiness.readyToStart && canStartProcess) {
+    return {
+      nextAction: 'start',
+      description: '流程可发起',
+      primaryText: '发起流程',
+      primaryPath: `/process-start?processModelId=${processModelId}`,
+      secondaryText: '查看配置',
+      secondaryPath: '/process-models',
+    };
+  }
+
+  return {
+    nextAction: 'review',
+    description: '配置已就绪',
+    primaryText: '查看配置',
+    primaryPath: '/process-models',
+    secondaryText: '查看绑定',
+    secondaryPath: bindingPath,
   };
 }
 
@@ -275,7 +397,10 @@ function bindingHealth(record: BindingTableItem) {
     return { color: 'warning', text: '缺发起表单' };
   }
   if (record.missingTaskNames.length > 0) {
-    return { color: 'warning', text: `缺 ${record.missingTaskNames.length} 个任务表单` };
+    return {
+      color: 'warning',
+      text: `缺 ${record.missingTaskNames.length} 个任务表单`,
+    };
   }
   if (record.processModel.status === 'ARCHIVED') {
     return { color: 'default', text: '流程归档' };
@@ -457,11 +582,51 @@ const FormBindings: React.FC = () => {
   const canStartProcess =
     session.permissions?.canStartProcess ?? session.role === 'applicant';
 
-  const showBindingSuccess = (
+  const loadBindingCompletionState = async (
+    processModelId?: string,
+  ): Promise<BindingCompletionState> => {
+    if (!processModelId) {
+      return resolveBindingCompletionState(
+        undefined,
+        undefined,
+        canStartProcess,
+      );
+    }
+
+    const [models, bindings, schemas] = await Promise.all([
+      listProcessModels(),
+      listFormBindings(),
+      listFormSchemas(),
+    ]);
+    const model = models.find((item) => item.id === processModelId);
+    const tasks = model
+      ? await listProcessModelTaskDefinitions(model.id).catch(
+          () => [] as BpmnTaskDefinition[],
+        )
+      : [];
+    const readiness = model
+      ? buildBindingReadiness(model, bindings, schemas, tasks)
+      : undefined;
+    return resolveBindingCompletionState(
+      model,
+      readiness,
+      canStartProcess,
+      processModelId,
+    );
+  };
+
+  const showBindingSuccess = async (
     binding: FormBindingItem | BindingForm,
     action: 'created' | 'updated',
   ) => {
     const processModelId = bindingModelId(binding);
+    const completion = await loadBindingCompletionState(processModelId);
+    const bindingPath = processModelId
+      ? `/form-bindings?processModelId=${processModelId}`
+      : '/form-bindings';
+    const showContinueBinding =
+      completion.primaryPath !== bindingPath &&
+      completion.secondaryPath !== bindingPath;
     modal.success({
       title: action === 'created' ? '表单绑定已创建' : '表单绑定已保存',
       width: 520,
@@ -470,34 +635,29 @@ const FormBindings: React.FC = () => {
         <Flex vertical gap={12}>
           <span>
             {binding.taskDefinitionKey === START_FORM_TASK_KEY
-              ? '已将表单绑定为流程发起表单。'
-              : `已将表单绑定到任务节点 ${taskDefinitionLabel(binding.taskDefinitionKey || '')}。`}
+              ? '发起表单已绑定'
+              : `任务表单已绑定：${taskDefinitionLabel(binding.taskDefinitionKey || '')}`}
           </span>
+          <Typography.Text type="secondary">
+            {completion.description}
+          </Typography.Text>
           <Space wrap>
             <Button
               type="primary"
-              onClick={() => history.push('/process-models')}
+              onClick={() => history.push(completion.primaryPath)}
             >
-              查看配置状态
+              {completion.primaryText}
             </Button>
-            <Button
-              onClick={() =>
-                history.push(
-                  processModelId
-                    ? `/form-bindings?processModelId=${processModelId}`
-                    : '/form-bindings',
-                )
-              }
-            >
-              继续绑定表单
-            </Button>
-            {processModelId ? (
+            {completion.secondaryPath ? (
               <Button
-                onClick={() =>
-                  history.push(`/process-designer?modelId=${processModelId}`)
-                }
+                onClick={() => history.push(completion.secondaryPath || '')}
               >
-                查看流程设计
+                {completion.secondaryText}
+              </Button>
+            ) : null}
+            {showContinueBinding ? (
+              <Button onClick={() => history.push(bindingPath)}>
+                继续绑定表单
               </Button>
             ) : null}
           </Space>
@@ -575,7 +735,8 @@ const FormBindings: React.FC = () => {
       search: false,
       render: (_, record) => {
         const canSyncVersion =
-          bindingVersionState(record) === 'outdated' && Boolean(record.formSchema);
+          bindingVersionState(record) === 'outdated' &&
+          Boolean(record.formSchema);
         return [
           canStartProcess ? (
             <Button
@@ -614,7 +775,9 @@ const FormBindings: React.FC = () => {
             disabled={!record.processModelId}
             onClick={() =>
               record.processModelId
-                ? history.push(`/process-designer?modelId=${record.processModelId}`)
+                ? history.push(
+                    `/process-designer?modelId=${record.processModelId}`,
+                  )
                 : undefined
             }
           >
@@ -697,13 +860,15 @@ const FormBindings: React.FC = () => {
           const businessModels = models.filter(isActiveBusinessProcessModel);
           const taskEntries = await Promise.all(
             businessModels.map(async (model) => {
-              const tasks = await listProcessModelTaskDefinitions(model.id).catch(
-                () => [] as BpmnTaskDefinition[],
-              );
+              const tasks = await listProcessModelTaskDefinitions(
+                model.id,
+              ).catch(() => [] as BpmnTaskDefinition[]);
               return [model.id, tasks] as const;
             }),
           );
-          const modelMap = new Map(businessModels.map((item) => [item.id, item]));
+          const modelMap = new Map(
+            businessModels.map((item) => [item.id, item]),
+          );
           const schemaMap = new Map(schemas.map((item) => [item.id, item]));
           const taskMap = new Map(taskEntries);
           const readinessMap = new Map(
@@ -727,7 +892,9 @@ const FormBindings: React.FC = () => {
             const readiness = processModel
               ? readinessMap.get(processModel.id)
               : undefined;
-            const tasks = processModel ? taskMap.get(processModel.id) || [] : [];
+            const tasks = processModel
+              ? taskMap.get(processModel.id) || []
+              : [];
             return {
               ...item,
               processModel,
@@ -820,7 +987,7 @@ const FormBindings: React.FC = () => {
             modalProps={{ destroyOnHidden: true }}
             onFinish={async (values) => {
               const binding = await createFormBinding(bindingPayload(values));
-              showBindingSuccess(binding, 'created');
+              await showBindingSuccess(binding, 'created');
               actionRef.current?.reload();
               return true;
             }}
@@ -862,7 +1029,7 @@ const FormBindings: React.FC = () => {
             editing.id,
             bindingPayload(values),
           );
-          showBindingSuccess(binding, 'updated');
+          await showBindingSuccess(binding, 'updated');
           setEditing(undefined);
           actionRef.current?.reload();
           return true;
