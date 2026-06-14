@@ -22,6 +22,7 @@ import {
   Badge,
   Button,
   Checkbox,
+  Collapse,
   Descriptions,
   Dropdown,
   Empty,
@@ -266,6 +267,62 @@ const useStyles = createStyles(({ css, token }) => ({
     min-width: 320px;
     overflow-x: auto;
     padding-block: 2px;
+  `,
+  fieldPanel: css`
+    & + & {
+      margin-top: 8px;
+    }
+
+    .ant-collapse-item {
+      overflow: hidden;
+      border: 1px solid ${token.colorBorderSecondary};
+      border-radius: ${token.borderRadius}px !important;
+      background: ${token.colorFillAlter};
+    }
+
+    .ant-collapse-header {
+      align-items: flex-start !important;
+      padding: 10px 12px !important;
+    }
+
+    .ant-collapse-content-box {
+      padding: 12px 12px 4px !important;
+    }
+  `,
+  fieldPanelLabel: css`
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+  `,
+  fieldPanelTitle: css`
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    align-items: center;
+  `,
+  fieldPanelName: css`
+    max-width: 360px;
+    font-weight: ${token.fontWeightStrong};
+  `,
+  fieldPanelMeta: css`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    .ant-tag {
+      margin-inline-end: 0;
+    }
+  `,
+  fieldPanelAction: css`
+    display: inline-flex;
+    align-items: center;
+    padding-inline-start: 8px;
+
+    .ant-pro-form-list-action {
+      padding-top: 0;
+    }
   `,
 }));
 
@@ -547,8 +604,8 @@ function fieldDisplayName(field: Pick<FormFieldConfig, 'fieldKey' | 'title'>) {
   return field.title?.trim() || field.fieldKey;
 }
 
-const fieldKey = (field: Pick<FormFieldConfig, 'fieldKey'>) =>
-  field.fieldKey?.trim() || '';
+const fieldKey = (field?: Pick<FormFieldConfig, 'fieldKey'> | null) =>
+  field?.fieldKey?.trim() || '';
 
 export function conditionFieldOptions(
   fields: FormFieldConfig[] = [],
@@ -1638,6 +1695,12 @@ interface FormFieldsEditorClassNames {
   fieldCompact: string;
   fieldSwitch: string;
   lifecycleSteps: string;
+  fieldPanel: string;
+  fieldPanelLabel: string;
+  fieldPanelTitle: string;
+  fieldPanelName: string;
+  fieldPanelMeta: string;
+  fieldPanelAction: string;
 }
 
 const FieldConditionEditor: React.FC<{
@@ -1693,6 +1756,56 @@ const FieldConditionEditor: React.FC<{
   );
 };
 
+function fieldEditorPanelTitle(
+  field: Partial<FormFieldConfig>,
+  index: number,
+) {
+  return fieldDisplayName({
+    fieldKey: field.fieldKey || '',
+    title: field.title || '',
+  }) || `字段 ${index + 1}`;
+}
+
+export function fieldEditorSummaryTags(field: Partial<FormFieldConfig>) {
+  const tags = [
+    field.type ? fieldTypeText[field.type] : '未选类型',
+    field.widget ? widgetText[field.widget] : '未选控件',
+  ];
+  if (field.required) tags.push('必填');
+  if (field.permission === 'readonly') tags.push('只读');
+  if (field.permission === 'hidden') tags.push('隐藏');
+  if (field.visibleWhenField) tags.push('有条件');
+  return tags;
+}
+
+const FieldEditorPanelLabel: React.FC<{
+  classNames: FormFieldsEditorClassNames;
+  field: Partial<FormFieldConfig>;
+  index: number;
+}> = ({ classNames, field, index }) => {
+  const key = field.fieldKey?.trim();
+
+  return (
+    <div className={classNames.fieldPanelLabel}>
+      <div className={classNames.fieldPanelTitle}>
+        <Typography.Text className={classNames.fieldPanelName} ellipsis>
+          {fieldEditorPanelTitle(field, index)}
+        </Typography.Text>
+        {key ? (
+          <Typography.Text type="secondary">{key}</Typography.Text>
+        ) : (
+          <Tag color="gold">未命名字段</Tag>
+        )}
+      </div>
+      <div className={classNames.fieldPanelMeta}>
+        {fieldEditorSummaryTags(field).map((tag) => (
+          <Tag key={tag}>{tag}</Tag>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
   <div className={classNames.fieldList}>
     <ProFormList
@@ -1704,6 +1817,36 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
       arrowSort
       alwaysShowItemLabel
       min={1}
+      itemRender={(dom, meta) => (
+        <Collapse
+          className={classNames.fieldPanel}
+          defaultActiveKey={meta.index === 0 ? ['field'] : undefined}
+          destroyOnHidden
+          expandIconPlacement="end"
+          items={[
+            {
+              key: 'field',
+              label: (
+                <FieldEditorPanelLabel
+                  classNames={classNames}
+                  field={meta.record as Partial<FormFieldConfig>}
+                  index={meta.index}
+                />
+              ),
+              extra: (
+                <span
+                  className={classNames.fieldPanelAction}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {dom.action}
+                </span>
+              ),
+              children: dom.listDom,
+            },
+          ]}
+          size="small"
+        />
+      )}
     >
       <div className={classNames.fieldGrid}>
         <ProFormDependency name={['fieldKey', 'title', 'widget']}>

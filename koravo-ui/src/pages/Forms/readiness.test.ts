@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   conditionFieldOptions,
   conditionValueOptions,
+  fieldEditorSummaryTags,
   fieldChangeCount,
   fieldChangeSummary,
   formBlockingReadinessIssues,
@@ -158,6 +159,22 @@ describe('formReadinessIssues', () => {
     ]);
   });
 
+  it('ignores unmounted field rows when building condition options', () => {
+    const fields = [
+      undefined,
+      {
+        fieldKey: 'subject',
+        title: '事项名称',
+        type: 'string',
+        widget: 'input',
+      },
+    ] as unknown as ReadinessField[];
+
+    expect(conditionFieldOptions(fields, 'approvalUsers')).toEqual([
+      { label: '事项名称（subject）', value: 'subject' },
+    ]);
+  });
+
   it('blocks invalid conditional display rules', () => {
     expect(
       formBlockingReadinessIssues([
@@ -261,5 +278,19 @@ describe('formReadinessIssues', () => {
       'subject',
     ]);
     expect(fieldChangeCount(summary)).toBe(3);
+  });
+
+  it('summarizes editable field panels without exposing raw config names', () => {
+    expect(
+      fieldEditorSummaryTags({
+        fieldKey: 'approvalUsers',
+        title: '审批人',
+        type: 'array',
+        widget: 'organizationMemberMulti',
+        required: true,
+        permission: 'readonly',
+        visibleWhenField: 'approvalResult',
+      }),
+    ).toEqual(['多选', '组织成员多选', '必填', '只读', '有条件']);
   });
 });
