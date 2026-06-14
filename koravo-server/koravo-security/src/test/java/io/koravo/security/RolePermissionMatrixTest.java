@@ -111,6 +111,6 @@ class RolePermissionMatrixTest {
                 "/api/v1/process-instances/pi-1/trace",
                 "admin",
                 UserContextHolder.ROLE_ADMIN
-        )).isFalse();
+        )).isTrue();
     }
 }

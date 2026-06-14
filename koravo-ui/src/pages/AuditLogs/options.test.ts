@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { actionOptions, auditProcessInstanceId } from './index';
+import {
+  actionOptions,
+  auditCanOpenProcessContext,
+  auditProcessInstanceId,
+} from './index';
 
 vi.mock('@ant-design/pro-components', () => ({
   PageContainer: ({ children }: { children?: unknown }) => children,
@@ -48,5 +52,30 @@ describe('AuditLogs actionOptions', () => {
         createdAt: '2026-01-01T00:00:00Z',
       }),
     ).toBe('process-2');
+  });
+
+  it('lets audit operators open process context from audit detail', () => {
+    expect(
+      auditCanOpenProcessContext({
+        role: 'admin',
+        permissions: {
+          canViewProcessContext: false,
+          canViewAudit: true,
+        },
+      }),
+    ).toBe(true);
+
+    expect(
+      auditCanOpenProcessContext({
+        role: 'operator',
+        permissions: {
+          canViewProcessContext: false,
+          canViewAudit: false,
+          canOperateSystem: false,
+        },
+      }),
+    ).toBe(false);
+
+    expect(auditCanOpenProcessContext({ role: 'manager' })).toBe(true);
   });
 });

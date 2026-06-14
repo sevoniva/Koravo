@@ -21,6 +21,7 @@ public final class RolePermissionMatrix {
             UserContextHolder.ROLE_FINANCE
     );
     private static final List<String> PROCESS_CONTEXT_ROLES = List.of(
+            UserContextHolder.ROLE_ADMIN,
             UserContextHolder.ROLE_APPLICANT,
             UserContextHolder.ROLE_MANAGER,
             UserContextHolder.ROLE_FINANCE,

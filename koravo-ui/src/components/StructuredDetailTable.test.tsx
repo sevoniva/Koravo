@@ -5,7 +5,13 @@ import StructuredDetailTable from './StructuredDetailTable';
 vi.mock('@ant-design/pro-components', async () => {
   const React = await import('react');
   return {
-    ProTable: ({ columns, dataSource }: { columns: any[]; dataSource: any[] }) =>
+    ProTable: ({
+      columns,
+      dataSource,
+    }: {
+      columns: any[];
+      dataSource: any[];
+    }) =>
       React.createElement(
         'table',
         {},
@@ -90,5 +96,48 @@ describe('StructuredDetailTable', () => {
     expect(screen.queryByText(/nrOfInstances/)).not.toBeInTheDocument();
     expect(screen.queryByText(/loopCounter/)).not.toBeInTheDocument();
     expect(screen.queryByText('复核专员')).not.toBeInTheDocument();
+  });
+
+  it('expands nested json strings into readable rows', async () => {
+    const processInstanceId = '62738d33-678f-11f1-9bb0-6eaa56961236';
+
+    render(
+      <StructuredDetailTable
+        value={{
+          processInstanceId,
+          request: JSON.stringify({
+            url: 'http://localhost:8080/actuator/health',
+            body: JSON.stringify({
+              subject: '通用业务申请验收',
+              approvalUsers: ['manager', 'finance'],
+              password: 'plain-password',
+            }),
+          }),
+          responseSummary: JSON.stringify({
+            statusCode: 200,
+            body: { success: true },
+          }),
+        }}
+      />,
+    );
+
+    expect(await screen.findByText('流程实例编号')).toBeInTheDocument();
+    expect(screen.getByText('62738d33')).toBeInTheDocument();
+    expect(screen.queryByText(processInstanceId)).not.toBeInTheDocument();
+    expect(screen.getByText('请求 / 请求地址')).toBeInTheDocument();
+    expect(screen.getByText('本地服务健康检查')).toBeInTheDocument();
+    expect(screen.getByText('请求 / 请求体 / 事项名称')).toBeInTheDocument();
+    expect(screen.getByText('通用业务申请验收')).toBeInTheDocument();
+    expect(screen.getByText('请求 / 请求体 / 审批人')).toBeInTheDocument();
+    expect(screen.getAllByText('审批主管').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('复核专员').length).toBeGreaterThan(0);
+    expect(screen.getByText('请求 / 请求体 / 密码')).toBeInTheDocument();
+    expect(screen.getByText('******')).toBeInTheDocument();
+    expect(screen.queryByText('plain-password')).not.toBeInTheDocument();
+    expect(screen.getByText('响应摘要 / 状态码')).toBeInTheDocument();
+    expect(
+      screen.getByText('响应摘要 / 响应体 / 是否成功'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('是')).toBeInTheDocument();
   });
 });

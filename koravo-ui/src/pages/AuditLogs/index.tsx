@@ -22,7 +22,10 @@ import {
   organizationMemberSelectOptions,
   tenantDisplayName,
 } from '@/services/koravo/organization';
-import { getSessionContext } from '@/services/koravo/session';
+import {
+  getSessionContext,
+  type SessionContext,
+} from '@/services/koravo/session';
 import {
   auditActionLabel,
   auditResourceLabel,
@@ -129,12 +132,25 @@ interface AuditRelatedAccess {
   canManageIntegration: boolean;
 }
 
+export function auditCanOpenProcessContext(
+  session: Pick<SessionContext, 'role' | 'permissions'>,
+) {
+  if (session.permissions) {
+    return Boolean(
+      session.permissions.canViewProcessContext ||
+        session.permissions.canViewAudit ||
+        session.permissions.canConfigureWorkflow ||
+        session.permissions.canOperateSystem ||
+        session.permissions.canAdmin,
+    );
+  }
+  return ['applicant', 'manager', 'finance', 'operator'].includes(session.role);
+}
+
 function auditRelatedAccess(): AuditRelatedAccess {
   const session = getSessionContext();
   return {
-    canOpenProcessInstance:
-      session.permissions?.canViewProcessContext ??
-      ['applicant', 'manager', 'finance', 'operator'].includes(session.role),
+    canOpenProcessInstance: auditCanOpenProcessContext(session),
     canConfigureWorkflow:
       session.permissions?.canConfigureWorkflow ?? session.role === 'admin',
     canManageIntegration:

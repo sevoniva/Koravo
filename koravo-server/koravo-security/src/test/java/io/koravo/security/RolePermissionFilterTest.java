@@ -47,6 +47,7 @@ class RolePermissionFilterTest {
         assertThat(allows("POST", "/api/v1/process-instances/start")).isFalse();
         assertThat(allows("GET", "/api/v1/tasks/my")).isFalse();
         assertThat(allows("GET", "/api/v1/audit-logs")).isTrue();
+        assertThat(allows("GET", "/api/v1/process-instances/pi-1/trace")).isTrue();
         assertThat(allows("GET", "/api/v1/connector-execution-logs")).isTrue();
         assertThat(allows("GET", "/api/v1/ops/process-instances")).isFalse();
     }

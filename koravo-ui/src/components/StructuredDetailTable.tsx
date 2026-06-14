@@ -4,6 +4,7 @@ import React from 'react';
 import {
   organizationMemberName,
   organizationRoleLabel,
+  tenantDisplayName,
 } from '@/services/koravo/organization';
 import type { SessionRole } from '@/services/koravo/session';
 import {
@@ -11,6 +12,7 @@ import {
   auditResourceLabel,
   businessFieldLabel,
   businessKeyLabel,
+  connectionAddressLabel,
   dataSourceTypeLabel,
   genericStatusLabel,
   processDefinitionLabel,
@@ -170,6 +172,30 @@ function isInternalDetailField(rowKey: string) {
   );
 }
 
+function isOpaqueIdentifier(value: string) {
+  return /^[a-f0-9]{16,}$/i.test(value) || /^[0-9a-f-]{24,}$/i.test(value);
+}
+
+function isTechnicalIdField(rowKey: string) {
+  const field = rowKey.split('.').pop() || '';
+  return [
+    'id',
+    'resourceId',
+    'requestId',
+    'processInstanceId',
+    'processModelId',
+    'modelId',
+    'taskId',
+    'jobId',
+    'executionId',
+    'deploymentId',
+    'formSchemaId',
+    'formBindingId',
+    'dataSourceId',
+    'connectorExecutionId',
+  ].includes(field);
+}
+
 function isDecisionField(rowKey: string) {
   const field = rowKey.split('.').pop();
   return ['accepted', 'approved', 'decision', 'decisionText'].includes(
@@ -213,13 +239,21 @@ function domainText(rowKey: string, value: unknown) {
   if (field === 'resourceType') return auditResourceLabel(value);
   if (field === 'role') return organizationRoleLabel(value as SessionRole);
   if (field === 'candidateGroup') return roleGroupLabel(value);
+  if (field === 'tenantId') return tenantDisplayName(value);
   if (isMemberField(rowKey)) return organizationMemberName(value);
   if (field === 'businessKey') return businessKeyLabel(value);
+  if (field === 'url' || field === 'jdbcUrl') {
+    return connectionAddressLabel(value);
+  }
+  if (field === 'requestId') return shortTraceLabel(value);
   if (field === 'resourceId') {
     const label = businessKeyLabel(value);
     return /^[a-f0-9]{16,}$/i.test(label) || /^[0-9a-f-]{24,}$/i.test(label)
       ? shortTraceLabel(label)
       : label;
+  }
+  if (isTechnicalIdField(rowKey) && isOpaqueIdentifier(value)) {
+    return shortTraceLabel(value);
   }
   if (field === 'processDefinitionId') return processDefinitionLabel(value);
   if (field === 'processDefinitionKey' || field === 'modelKey') {
@@ -293,7 +327,9 @@ function tagList(items: string[]) {
 function arrayValueItems(value: unknown[], rowKey: string) {
   if (isMemberListField(rowKey)) {
     return value.map((item) =>
-      typeof item === 'string' ? organizationMemberName(item) : valueToText(item),
+      typeof item === 'string'
+        ? organizationMemberName(item)
+        : valueToText(item),
     );
   }
   if (isRoleListField(rowKey)) {
@@ -301,7 +337,9 @@ function arrayValueItems(value: unknown[], rowKey: string) {
       typeof item === 'string' ? roleGroupLabel(item) : valueToText(item),
     );
   }
-  return value.map((item, index) => valueToText(item, `${rowKey}.${index + 1}`));
+  return value.map((item, index) =>
+    valueToText(item, `${rowKey}.${index + 1}`),
+  );
 }
 
 function isLongText(value: string) {
@@ -339,55 +377,79 @@ function formatValue(value: unknown, rowKey = ''): React.ReactNode {
     );
   }
   return (
-    <Typography.Text
-      copyable={{ text }}
-      ellipsis={{ tooltip: text }}
-    >
+    <Typography.Text copyable={{ text }} ellipsis={{ tooltip: text }}>
       {text}
     </Typography.Text>
   );
 }
 
 function pathLabel(rowKey: string) {
-  return rowKey
-    .split('.')
+  const parts = rowKey.split('.');
+  return parts
     .map((part) => {
       if (/^\d+$/.test(part)) return `第 ${part} 项`;
+      const root = parts[0] || '';
+      if ((part === 'body' || part === 'headers') && /response/i.test(root)) {
+        return part === 'body' ? '响应体' : '响应头';
+      }
       return businessFieldLabel(part);
     })
     .join(' / ');
 }
 
+function isSecretDetailField(rowKey: string) {
+  const field = rowKey.split('.').pop() || '';
+  return /password|token|secret|authorization/i.test(field);
+}
+
+function normalizeDetailValue(value: unknown) {
+  return tryParseStructuredValue(value);
+}
+
+function displayDetailValue(value: unknown, rowKey: string) {
+  if (isSecretDetailField(rowKey)) return '******';
+  return maskSecret(value);
+}
+
 function buildRows(value: unknown, parentKey?: string): DetailRow[] {
-  if (!value || typeof value !== 'object') return [];
-  if (Array.isArray(value)) {
-    return value.flatMap((item, index) => {
+  const parsedValue = normalizeDetailValue(value);
+  if (!parsedValue || typeof parsedValue !== 'object') return [];
+  if (Array.isArray(parsedValue)) {
+    return parsedValue.flatMap((item, index) => {
       const rowKey = parentKey
         ? `${parentKey}.${index + 1}`
         : String(index + 1);
-      if (item && typeof item === 'object') return buildRows(item, rowKey);
-      return [
-        {
-          key: rowKey,
-          field: pathLabel(rowKey),
-          value: formatValue(item, rowKey),
-        },
-      ];
-    });
-  }
-
-  return Object.entries(value as Record<string, unknown>).flatMap(
-    ([key, item]) => {
-      const rowKey = parentKey ? `${parentKey}.${key}` : key;
-      if (isInternalDetailField(rowKey)) return [];
-      if (item && typeof item === 'object' && !Array.isArray(item)) {
-        return buildRows(item, rowKey);
+      const parsedItem = normalizeDetailValue(item);
+      if (parsedItem && typeof parsedItem === 'object') {
+        return buildRows(parsedItem, rowKey);
       }
       return [
         {
           key: rowKey,
           field: pathLabel(rowKey),
-          value: formatValue(item, rowKey),
+          value: formatValue(displayDetailValue(parsedItem, rowKey), rowKey),
+        },
+      ];
+    });
+  }
+
+  return Object.entries(parsedValue as Record<string, unknown>).flatMap(
+    ([key, item]) => {
+      const rowKey = parentKey ? `${parentKey}.${key}` : key;
+      if (isInternalDetailField(rowKey)) return [];
+      const parsedItem = normalizeDetailValue(item);
+      if (
+        parsedItem &&
+        typeof parsedItem === 'object' &&
+        !Array.isArray(parsedItem)
+      ) {
+        return buildRows(parsedItem, rowKey);
+      }
+      return [
+        {
+          key: rowKey,
+          field: pathLabel(rowKey),
+          value: formatValue(displayDetailValue(parsedItem, rowKey), rowKey),
         },
       ];
     },
@@ -403,7 +465,7 @@ const StructuredDetailTable: React.FC<StructuredDetailTableProps> = ({
   value,
   emptyText = '暂无明细',
 }) => {
-  const parsed = maskSecret(tryParseStructuredValue(value));
+  const parsed = normalizeDetailValue(value);
   const rows = buildRows(parsed);
 
   if (rows.length) {
@@ -421,6 +483,7 @@ const StructuredDetailTable: React.FC<StructuredDetailTableProps> = ({
   }
 
   if (typeof parsed === 'string' && parsed.trim()) {
+    const text = displayDetailValue(parsed, 'content');
     return (
       <ProTable<DetailRow>
         rowKey="key"
@@ -429,7 +492,7 @@ const StructuredDetailTable: React.FC<StructuredDetailTableProps> = ({
           {
             key: 'content',
             field: '内容',
-            value: formatValue(parsed, 'content'),
+            value: formatValue(text, 'content'),
           },
         ]}
         search={false}
