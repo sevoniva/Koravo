@@ -91,6 +91,7 @@ export type ProcessModelVersionGroup = ProcessModelItem & {
   latestVersion: number;
   versionCount: number;
   versions: ProcessModelItem[];
+  runtimeVersion?: ProcessModelItem;
 };
 export interface ModelReadiness {
   hasStartBinding: boolean;
@@ -163,6 +164,24 @@ export function compareProcessModelVersionsDesc(
   return statusRank(right.status) - statusRank(left.status);
 }
 
+function versionGroupContext(
+  current: ProcessModelItem,
+  versions: ProcessModelItem[],
+): ProcessModelVersionGroup {
+  const sortedVersions = [...versions].sort(compareProcessModelVersionsDesc);
+  const runtimeVersion =
+    sortedVersions.find(
+      (item) => item.status === 'DEPLOYED' && item.flowableDefinitionId,
+    ) || sortedVersions.find((item) => item.status === 'DEPLOYED');
+  return {
+    ...current,
+    latestVersion: sortedVersions[0]?.version || current.version || 1,
+    versionCount: sortedVersions.length,
+    versions: sortedVersions,
+    runtimeVersion,
+  };
+}
+
 export function aggregateProcessModelVersions(
   models: ProcessModelItem[],
 ): ProcessModelVersionGroup[] {
@@ -174,13 +193,7 @@ export function aggregateProcessModelVersions(
   return Array.from(groups.values())
     .map((versions) => {
       const sortedVersions = [...versions].sort(compareProcessModelVersionsDesc);
-      const current = sortedVersions[0];
-      return {
-        ...current,
-        latestVersion: current.version || 1,
-        versionCount: sortedVersions.length,
-        versions: sortedVersions,
-      };
+      return versionGroupContext(sortedVersions[0], sortedVersions);
     })
     .sort(compareProcessModelVersionsDesc);
 }
@@ -195,12 +208,7 @@ export function selectProcessModelVersionForStatus(
     .filter((item) => item.status === targetStatus)
     .sort(compareProcessModelVersionsDesc)[0];
   if (!matchingVersion) return group;
-  return {
-    ...matchingVersion,
-    latestVersion: group.latestVersion,
-    versionCount: group.versionCount,
-    versions: group.versions,
-  };
+  return versionGroupContext(matchingVersion, group.versions);
 }
 
 function isLatestVersion(
@@ -210,8 +218,44 @@ function isLatestVersion(
   return group?.versions[0]?.id === record.id;
 }
 
+function isRuntimeVersion(
+  record: ProcessModelItem,
+  group?: ProcessModelVersionGroup,
+) {
+  return group?.runtimeVersion?.id === record.id;
+}
+
 function versionCountText(count: number) {
   return `共 ${count || 1} 版`;
+}
+
+function runtimeVersionLabel(record: ProcessModelVersionGroup) {
+  const runtimeVersion = record.runtimeVersion;
+  if (!runtimeVersion) return undefined;
+  const version = runtimeVersion.version || 1;
+  return isRuntimeVersion(record, record) ? '运行中' : `运行 v${version}`;
+}
+
+function renderRuntimeDefinition(record: ProcessModelTableItem) {
+  const runtimeVersion = record.runtimeVersion;
+  if (!runtimeVersion) {
+    return <Typography.Text type="secondary">暂无运行版本</Typography.Text>;
+  }
+  return (
+    <Flex vertical gap={2}>
+      <CopyableText
+        value={runtimeVersion.flowableDefinitionId}
+        displayValue={processDefinitionLabel(
+          runtimeVersion.flowableDefinitionId || runtimeVersion.modelKey,
+        )}
+      />
+      {!isRuntimeVersion(record, record) && (
+        <Typography.Text type="secondary">
+          来自 v{runtimeVersion.version || 1}
+        </Typography.Text>
+      )}
+    </Flex>
+  );
 }
 
 function getModelBindings(
@@ -852,6 +896,9 @@ const ProcessModels: React.FC = () => {
           {isLatestVersion(record, versionPreview) ? (
             <Tag color="green">最新</Tag>
           ) : null}
+          {isRuntimeVersion(record, versionPreview) ? (
+            <Tag color="processing">运行中</Tag>
+          ) : null}
           {record.id === versionPreview?.id ? <Tag>列表显示</Tag> : null}
         </Space>
       ),
@@ -984,6 +1031,9 @@ const ProcessModels: React.FC = () => {
             ) : (
               <Tag>匹配筛选</Tag>
             )}
+            {runtimeVersionLabel(record) ? (
+              <Tag color="processing">{runtimeVersionLabel(record)}</Tag>
+            ) : null}
             <Button
               type="link"
               size="small"
@@ -1085,12 +1135,7 @@ const ProcessModels: React.FC = () => {
       width: 220,
       search: false,
       ellipsis: true,
-      render: (_, record) => (
-        <CopyableText
-          value={record.flowableDefinitionId}
-          displayValue={processDefinitionLabel(record.flowableDefinitionId)}
-        />
-      ),
+      render: (_, record) => renderRuntimeDefinition(record),
     },
     {
       title: '说明',

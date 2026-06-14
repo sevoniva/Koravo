@@ -225,4 +225,38 @@ describe('ProcessModels version aggregation', () => {
       'approval-v2',
     ]);
   });
+
+  it('keeps the deployed runtime visible when the latest version is draft', () => {
+    const [group] = aggregateProcessModelVersions([
+      model({
+        id: 'approval-v3',
+        modelKey: 'approval',
+        version: 3,
+        status: 'DRAFT',
+        updatedAt: '2026-01-03T00:00:00Z',
+      }),
+      model({
+        id: 'approval-v2',
+        modelKey: 'approval',
+        version: 2,
+        status: 'DEPLOYED',
+        flowableDefinitionId: 'approval:2:pd',
+        updatedAt: '2026-01-02T00:00:00Z',
+      }),
+    ]);
+
+    expect(group.id).toBe('approval-v3');
+    expect(group.latestVersion).toBe(3);
+    expect(group.runtimeVersion?.id).toBe('approval-v2');
+
+    const selected = selectProcessModelVersionForStatus(group, 'DEPLOYED');
+
+    expect(selected.id).toBe('approval-v2');
+    expect(selected.latestVersion).toBe(3);
+    expect(selected.runtimeVersion?.id).toBe('approval-v2');
+    expect(selected.versions.map((item) => item.id)).toEqual([
+      'approval-v3',
+      'approval-v2',
+    ]);
+  });
 });
