@@ -181,6 +181,30 @@ function handlerText(
   return handlers.length ? handlers.join('、') : '-';
 }
 
+function taskGroupsSummary(
+  taskGroups: ReturnType<typeof pendingTaskGroups>,
+  pendingTasks: TaskItem[],
+) {
+  if (!pendingTasks.length) return undefined;
+  const jointGroups = taskGroups.filter((group) => group.activeTaskIds.length > 1);
+  if (jointGroups.length) {
+    return `会签 ${pendingTasks.length}人`;
+  }
+  if (pendingTasks.length > 1) return `并行 ${taskGroups.length}节点`;
+  return undefined;
+}
+
+function pendingHandlersText(
+  taskGroups: ReturnType<typeof pendingTaskGroups>,
+  fallback: string,
+) {
+  if (!taskGroups.length) return fallback;
+  if (taskGroups.length === 1) return taskGroups[0].handlers.join('、') || fallback;
+  return taskGroups
+    .map((group) => `${group.label}：${group.handlers.join('、') || '-'}`)
+    .join('；');
+}
+
 function visibleTimelineNodes(timeline: ProcessTraceNode[]) {
   const nodes = timeline.filter((node) => node.activityType !== 'sequenceFlow');
   return nodes.length ? nodes : timeline;
@@ -274,6 +298,7 @@ function buildTimelineItems(timeline: ProcessTraceNode[]) {
 function nextStepText(
   trace: ProcessTrace | undefined,
   pendingTasks: TaskItem[],
+  taskGroups: ReturnType<typeof pendingTaskGroups>,
   activeTask?: TaskItem,
   currentUserId?: string,
 ) {
@@ -289,6 +314,8 @@ function nextStepText(
       hasForm: true,
     });
   }
+  const jointGroup = taskGroups.find((group) => group.activeTaskIds.length > 1);
+  if (jointGroup) return `待${jointGroup.handlers.join('、')}会签`;
   if (pendingTasks.length > 1) return `并行待办 ${pendingTasks.length}`;
   const task = pendingTasks[0];
   return task.assignee
@@ -376,17 +403,25 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const activeTaskOwned = Boolean(
     activeTask?.assignee && activeTask.assignee === currentUserId,
   );
+  const taskGroups = pendingTaskGroups(pendingTasks, trace);
+  const groupSummary = taskGroupsSummary(taskGroups, pendingTasks);
   const pendingLabel = isCompleted
     ? '已完成'
     : activeTask
       ? activeTaskOwned
         ? '待你处理'
         : '查看中'
-      : `待办 ${pendingTasks.length}`;
-  const nextStep = nextStepText(trace, pendingTasks, activeTask, currentUserId);
+      : groupSummary || `待办 ${pendingTasks.length}`;
+  const nextStep = nextStepText(
+    trace,
+    pendingTasks,
+    taskGroups,
+    activeTask,
+    currentUserId,
+  );
   const timeline = trace?.timeline || [];
   const hasTimeline = timeline.length > 0;
-  const taskGroups = pendingTaskGroups(pendingTasks, trace);
+  const handlerMetric = pendingHandlersText(taskGroups, currentHandlerText);
   const detailItems: CollapseProps['items'] = [];
   if (taskGroups.length) {
     detailItems.push({
@@ -409,6 +444,9 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
               }
             >
               {group.label} · {group.handlers.join('、')}
+              {group.activeTaskIds.length > 1
+                ? ` · 会签${group.activeTaskIds.length}人`
+                : ''}
             </Tag>
           ))}
         </div>
@@ -474,12 +512,13 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
         <div className={styles.statusStrip}>
           <Metric label="业务对象" value={businessKeyLabel(trace?.businessKey)} />
           <Metric label="当前位置" value={nodeText} />
-          <Metric label="办理人" value={currentHandlerText} />
+          <Metric label={groupSummary ? '待处理' : '办理人'} value={handlerMetric} />
           <Metric label="下一步" value={nextStep} />
         </div>
         {detailItems.length ? (
           <Collapse
             className={styles.details}
+            defaultActiveKey={taskGroups.length ? ['pending'] : undefined}
             ghost
             items={detailItems}
             size="small"
