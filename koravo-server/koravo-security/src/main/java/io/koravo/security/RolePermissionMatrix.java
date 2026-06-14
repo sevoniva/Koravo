@@ -118,7 +118,7 @@ public final class RolePermissionMatrix {
         capabilities.put("canAdmin", isAdmin);
         capabilities.put("canViewDashboard", isAdmin || isOperator);
         capabilities.put("canViewOwnWork", isWorkflowUser);
-        capabilities.put("canViewProcessContext", isWorkflowUser || isOperator);
+        capabilities.put("canViewProcessContext", isAdmin || isWorkflowUser || isOperator);
         capabilities.put("canStartProcess", UserContextHolder.ROLE_APPLICANT.equals(role));
         capabilities.put("canClaimTask", isApprover);
         capabilities.put("canHandleTask", isApprover);

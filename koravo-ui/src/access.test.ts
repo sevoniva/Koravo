@@ -36,7 +36,7 @@ describe('access rules', () => {
     expect(rules.canAdmin).toBe(true);
     expect(rules.canViewDashboard).toBe(true);
     expect(rules.canViewOwnWork).toBe(false);
-    expect(rules.canViewProcessContext).toBe(false);
+    expect(rules.canViewProcessContext).toBe(true);
     expect(rules.canStartProcess).toBe(false);
     expect(rules.canClaimTask).toBe(false);
     expect(rules.canConfigureWorkflow).toBe(true);

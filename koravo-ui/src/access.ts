@@ -19,7 +19,9 @@ export const sessionPermissionKeys: SessionPermissionKey[] = [
   'canOperateSystem',
 ];
 
-export function permissionsForRole(role?: string): Required<SessionPermissions> {
+export function permissionsForRole(
+  role?: string,
+): Required<SessionPermissions> {
   const isAdmin = role === 'admin';
   const isApprover = role === 'manager' || role === 'finance';
   const isWorkflowUser = role === 'applicant' || isApprover;
@@ -28,7 +30,7 @@ export function permissionsForRole(role?: string): Required<SessionPermissions> 
     canAdmin: isAdmin,
     canViewDashboard: isAdmin || isOperator,
     canViewOwnWork: isWorkflowUser,
-    canViewProcessContext: isWorkflowUser || isOperator,
+    canViewProcessContext: isAdmin || isWorkflowUser || isOperator,
     canStartProcess: role === 'applicant',
     canClaimTask: isApprover,
     canHandleTask: isApprover,
@@ -43,13 +45,16 @@ export function permissionsForRole(role?: string): Required<SessionPermissions> 
 
 function normalizePermissions(role?: string, permissions?: SessionPermissions) {
   const fallback = permissionsForRole(role);
-  return sessionPermissionKeys.reduce<Required<SessionPermissions>>((result, key) => {
-    result[key] =
-      typeof permissions?.[key] === 'boolean'
-        ? permissions[key]
-        : fallback[key];
-    return result;
-  }, fallback);
+  return sessionPermissionKeys.reduce<Required<SessionPermissions>>(
+    (result, key) => {
+      result[key] =
+        typeof permissions?.[key] === 'boolean'
+          ? permissions[key]
+          : fallback[key];
+      return result;
+    },
+    fallback,
+  );
 }
 
 export default function access(

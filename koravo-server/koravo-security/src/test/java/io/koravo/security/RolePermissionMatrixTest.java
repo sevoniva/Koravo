@@ -25,7 +25,7 @@ class RolePermissionMatrixTest {
                 .containsEntry("canStartProcess", false)
                 .containsEntry("canConfigureWorkflow", false);
         assertThat(admin)
-                .containsEntry("canViewProcessContext", false)
+                .containsEntry("canViewProcessContext", true)
                 .containsEntry("canConfigureWorkflow", true)
                 .containsEntry("canStartProcess", false)
                 .containsEntry("canViewAudit", true)
