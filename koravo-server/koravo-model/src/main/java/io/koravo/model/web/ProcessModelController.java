@@ -1,8 +1,10 @@
 package io.koravo.model.web;
 
 import io.koravo.common.api.ApiResponse;
+import io.koravo.common.model.AssetOrigin;
 import io.koravo.engine.dto.ProcessDeploymentDTO;
 import io.koravo.model.domain.ProcessModelStatus;
+import io.koravo.model.dto.ProcessModelAssetOriginRequest;
 import io.koravo.model.dto.ProcessModelCreateRequest;
 import io.koravo.model.dto.ProcessModelDeployResponse;
 import io.koravo.model.dto.ProcessModelExportResponse;
@@ -98,6 +100,14 @@ public class ProcessModelController {
         return ApiResponse.success(processModelService.archive(id));
     }
 
+    @PostMapping("/api/v1/process-models/{id}/asset-origin")
+    public ApiResponse<ProcessModelResponse> updateAssetOrigin(
+            @PathVariable String id,
+            @Valid @RequestBody ProcessModelAssetOriginRequest request
+    ) {
+        return ApiResponse.success(processModelService.updateAssetOrigin(id, request.assetOrigin()));
+    }
+
     @GetMapping("/api/v1/process-models/{id}/export")
     public ResponseEntity<byte[]> export(@PathVariable String id) {
         ProcessModelExportResponse export = processModelService.export(id);
@@ -111,8 +121,9 @@ public class ProcessModelController {
     @PostMapping(value = "/api/v1/process-models/deploy", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<ProcessDeploymentDTO> deploy(
             @RequestParam(required = false) String modelName,
+            @RequestParam(defaultValue = "USER_FLOW") AssetOrigin assetOrigin,
             @NotNull @RequestPart("file") MultipartFile file
     ) {
-        return ApiResponse.success(processModelService.deploy(modelName, file));
+        return ApiResponse.success(processModelService.deploy(modelName, file, assetOrigin));
     }
 }

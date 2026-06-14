@@ -54,6 +54,22 @@ class ProcessOpsServiceTest {
     }
 
     @Test
+    void listInstancesCanIncludeNonProductionForVerificationReview() {
+        TenantContextHolder.setTenantId("default");
+
+        service.listInstances(1, 20, null, null, true);
+
+        var commandCaptor = forClass(InstanceQueryCommand.class);
+        verify(processFacade).listInstances(commandCaptor.capture());
+        assertThat(commandCaptor.getValue())
+                .extracting(
+                        InstanceQueryCommand::excludedProcessDefinitionKeys,
+                        InstanceQueryCommand::excludedBusinessKeyPatterns
+                )
+                .containsExactly(java.util.Set.of(), java.util.Set.of());
+    }
+
+    @Test
     void terminateInstanceCallsFacadeAndWritesAuditLog() {
         TenantContextHolder.setTenantId("default");
 

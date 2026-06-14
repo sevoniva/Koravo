@@ -40,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 class TaskAppServiceTest {
@@ -201,6 +202,37 @@ class TaskAppServiceTest {
 
         assertThat(result.items()).isEmpty();
         verify(processFacade).queryMyTasks(command);
+    }
+
+    @Test
+    void queryTasksCanIncludeNonProductionForVerificationScripts() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("manager");
+        TaskQueryCommand command = new TaskQueryCommand(
+                "default",
+                "manager",
+                null,
+                1,
+                20,
+                null,
+                null,
+                null,
+                null,
+                Set.of(),
+                Set.of()
+        );
+        when(processFacade.queryMyTasks(command))
+                .thenReturn(PageResult.of(List.of(), 0, 1, 20));
+
+        var result = service.queryMyTasks(1, 20, null, null, null, null, true);
+
+        assertThat(result.items()).isEmpty();
+        verify(processFacade).queryMyTasks(command);
+        verify(processModelRepository, never()).findByTenantIdAndStatusAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                ProcessModelStatus.DEPLOYED,
+                List.of(AssetOrigin.SYSTEM_TEMPLATE, AssetOrigin.USER_FLOW)
+        );
     }
 
     @Test

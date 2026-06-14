@@ -199,6 +199,9 @@ describe('display helpers', () => {
     expect(auditActionLabel('FAILED_JOB_RETRY')).toBe('重试失败任务');
     expect(auditActionLabel('DEAD_LETTER_JOB_DELETE')).toBe('删除死信任务');
     expect(auditActionLabel('CONNECTOR_RETRY')).toBe('重试连接器');
+    expect(auditActionLabel('PROCESS_MODEL_ASSET_ORIGIN_UPDATE')).toBe(
+      '调整模型归类',
+    );
     expect(auditResourceLabel('ORGANIZATION_MEMBER')).toBe('组织成员');
   });
 

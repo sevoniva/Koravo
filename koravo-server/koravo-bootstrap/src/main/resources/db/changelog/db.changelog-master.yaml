@@ -569,3 +569,21 @@ databaseChangeLog:
                   and version.version = bound.form_schema_version
                   and version.deleted = false
               );
+  - changeSet:
+      id: 0014-classify-verification-process-models
+      author: koravo
+      changes:
+        - update:
+            tableName: ko_process_model
+            columns:
+              - column: { name: asset_origin, value: TEST_FIXTURE }
+            where: model_key = 'enterpriseApproval30' and model_name like '%验收%'
+  - changeSet:
+      id: 0015-classify-enterprise-approval-fixtures
+      author: koravo
+      changes:
+        - update:
+            tableName: ko_process_model
+            columns:
+              - column: { name: asset_origin, value: TEST_FIXTURE }
+            where: model_key like 'enterpriseApproval%'

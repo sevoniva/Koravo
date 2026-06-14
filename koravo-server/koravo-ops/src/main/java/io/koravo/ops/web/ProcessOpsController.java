@@ -29,9 +29,10 @@ public class ProcessOpsController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "false") boolean includeNonProduction
     ) {
-        return ApiResponse.success(processOpsService.listInstances(page, pageSize, keyword, status));
+        return ApiResponse.success(processOpsService.listInstances(page, pageSize, keyword, status, includeNonProduction));
     }
 
     @GetMapping("/api/v1/ops/capabilities")

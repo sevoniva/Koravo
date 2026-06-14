@@ -18,6 +18,12 @@ public interface ProcessModelRepository extends JpaRepository<KoProcessModel, St
             List<AssetOrigin> assetOrigins
     );
 
+    List<KoProcessModel> findByTenantIdAndStatusNotAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            ProcessModelStatus status,
+            List<AssetOrigin> assetOrigins
+    );
+
     List<KoProcessModel> findByTenantIdAndStatusAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
             String tenantId,
             ProcessModelStatus status,
@@ -34,6 +40,12 @@ public interface ProcessModelRepository extends JpaRepository<KoProcessModel, St
     long countByTenantIdAndStatusAndDeletedFalse(String tenantId, ProcessModelStatus status);
 
     long countByTenantIdAndAssetOriginInAndDeletedFalse(String tenantId, List<AssetOrigin> assetOrigins);
+
+    long countByTenantIdAndStatusNotAndAssetOriginInAndDeletedFalse(
+            String tenantId,
+            ProcessModelStatus status,
+            List<AssetOrigin> assetOrigins
+    );
 
     long countByTenantIdAndStatusAndAssetOriginInAndDeletedFalse(
             String tenantId,

@@ -260,7 +260,7 @@ async function waitForTask(session, instanceId, userId) {
   for (let attempt = 1; attempt <= 30; attempt += 1) {
     const page = await api("/tasks/my", {
       token: session.token,
-      query: { page: 1, pageSize: 100 },
+      query: { page: 1, pageSize: 100, includeNonProduction: true },
     });
     const task = page.items.find(
       (item) =>
@@ -296,7 +296,7 @@ async function completeTask(session, taskId, sequence) {
 async function doneTaskFor(session, instanceId) {
   const page = await api("/tasks/done", {
     token: session.token,
-    query: { page: 1, pageSize: 100 },
+    query: { page: 1, pageSize: 100, includeNonProduction: true },
   });
   const task = page.items.find((item) => item.processInstanceId === instanceId);
   if (!task) {

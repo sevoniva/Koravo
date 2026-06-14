@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ProcessOpsService {
@@ -27,14 +28,18 @@ public class ProcessOpsService {
     }
 
     public PageResult<ProcessInstanceDetailDTO> listInstances(int page, int pageSize, String keyword, String status) {
+        return listInstances(page, pageSize, keyword, status, false);
+    }
+
+    public PageResult<ProcessInstanceDetailDTO> listInstances(int page, int pageSize, String keyword, String status, boolean includeNonProduction) {
         return processFacade.listInstances(new InstanceQueryCommand(
                 TenantContextHolder.getTenantId(),
                 page,
                 pageSize,
                 keyword,
                 status,
-                RuntimeVisibilityPolicy.HIDDEN_PROCESS_DEFINITION_PATTERNS,
-                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
+                includeNonProduction ? Set.of() : RuntimeVisibilityPolicy.HIDDEN_PROCESS_DEFINITION_PATTERNS,
+                includeNonProduction ? Set.of() : RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         ));
     }
 

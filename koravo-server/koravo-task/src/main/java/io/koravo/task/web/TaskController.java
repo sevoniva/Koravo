@@ -31,9 +31,10 @@ public class TaskController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startTime,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endTime
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endTime,
+            @RequestParam(defaultValue = "false") boolean includeNonProduction
     ) {
-        return ApiResponse.success(taskAppService.queryMyTasks(page, pageSize, keyword, status, startTime, endTime));
+        return ApiResponse.success(taskAppService.queryMyTasks(page, pageSize, keyword, status, startTime, endTime, includeNonProduction));
     }
 
     @GetMapping("/api/v1/tasks/candidates")
@@ -44,9 +45,10 @@ public class TaskController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startTime,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endTime
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endTime,
+            @RequestParam(defaultValue = "false") boolean includeNonProduction
     ) {
-        return ApiResponse.success(taskAppService.queryCandidateTasks(page, pageSize, candidateGroup, keyword, status, startTime, endTime));
+        return ApiResponse.success(taskAppService.queryCandidateTasks(page, pageSize, candidateGroup, keyword, status, startTime, endTime, includeNonProduction));
     }
 
     @GetMapping("/api/v1/tasks/done")
@@ -56,9 +58,10 @@ public class TaskController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startTime,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endTime
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endTime,
+            @RequestParam(defaultValue = "false") boolean includeNonProduction
     ) {
-        return ApiResponse.success(taskAppService.queryDoneTasks(page, pageSize, keyword, status, startTime, endTime));
+        return ApiResponse.success(taskAppService.queryDoneTasks(page, pageSize, keyword, status, startTime, endTime, includeNonProduction));
     }
 
     @GetMapping("/api/v1/tasks/started")
@@ -68,9 +71,10 @@ public class TaskController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startTime,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endTime
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endTime,
+            @RequestParam(defaultValue = "false") boolean includeNonProduction
     ) {
-        return ApiResponse.success(taskAppService.queryStartedInstances(page, pageSize, keyword, status, startTime, endTime));
+        return ApiResponse.success(taskAppService.queryStartedInstances(page, pageSize, keyword, status, startTime, endTime, includeNonProduction));
     }
 
     @GetMapping("/api/v1/tasks/{taskId}")

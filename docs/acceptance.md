@@ -21,6 +21,7 @@ mvn -pl koravo-bootstrap -am test
 ```bash
 node --check scripts/verify-collaborative-approval.mjs
 node --check scripts/verify-enterprise-approval.mjs
+node --check scripts/cleanup-verification-assets.mjs
 git diff --check
 ```
 
@@ -51,7 +52,15 @@ node scripts/verify-enterprise-approval.mjs
 
 The collaborative check uses the running backend API. It initializes the default workflow assets, verifies permission-denied audit logging, starts `collaborativeApproval` as applicant, completes the parallel approvals as manager and finance, then checks trusted applicant data, form snapshots, process trace, completed tasks, audit records, failed jobs, and dead-letter jobs.
 
-The enterprise check logs in as admin, creates or updates 20 approver accounts across 10 departments, deploys the enterprise BPMN through `/api/v1/process-models/deploy`, starts `enterpriseApproval30` as applicant, completes all 34 tasks through assigned and candidate task APIs, then checks process trace, failed jobs, and dead-letter jobs.
+The enterprise check logs in as admin, creates or updates 20 approver accounts across 10 departments, deploys the enterprise BPMN through `/api/v1/process-models/deploy` with `assetOrigin=TEST_FIXTURE`, starts `enterpriseApproval30` as applicant, completes all 34 tasks through assigned and candidate task APIs, then checks process trace, failed jobs, and dead-letter jobs.
+
+After verification runs, reset the trial surface:
+
+```bash
+node scripts/cleanup-verification-assets.mjs
+```
+
+The cleanup script classifies historical verification models as `TEST_FIXTURE`, archives them, and reinitializes the default collaborative workflow assets. Product task and ops lists hide verification business keys by default; verification scripts pass `includeNonProduction=true` when they need to inspect their own runtime records.
 
 Useful environment overrides:
 

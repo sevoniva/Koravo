@@ -19,7 +19,10 @@ public final class RuntimeVisibilityPolicy {
             "SECURITY-CHECK-%",
             "COMPLETE-%",
             "HTTP-%",
-            "REQ-CODEX-%"
+            "REQ-CODEX-%",
+            "COLLAB-VERIFY-%",
+            "COLLAB-SINGLE-%",
+            "UI-CONTEXT-%"
     );
 
     private RuntimeVisibilityPolicy() {

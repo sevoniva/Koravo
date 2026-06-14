@@ -905,7 +905,10 @@ const ProcessModels: React.FC = () => {
         params={{ viewMode }}
         request={async (params) => {
           const [models, bindings, schemas] = await Promise.all([
-            listProcessModels(params.status as string | undefined),
+            listProcessModels(
+              params.status as string | undefined,
+              viewMode === 'all',
+            ),
             listFormBindings(),
             listFormSchemas(),
           ]);

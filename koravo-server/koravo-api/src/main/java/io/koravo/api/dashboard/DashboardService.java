@@ -69,7 +69,11 @@ public class DashboardService {
                 "UP",
                 version,
                 Instant.now(),
-                processModelRepository.countByTenantIdAndAssetOriginInAndDeletedFalse(tenantId, PRODUCTION_ASSET_ORIGINS),
+                processModelRepository.countByTenantIdAndStatusNotAndAssetOriginInAndDeletedFalse(
+                        tenantId,
+                        ProcessModelStatus.ARCHIVED,
+                        PRODUCTION_ASSET_ORIGINS
+                ),
                 processModelRepository.countByTenantIdAndStatusAndAssetOriginInAndDeletedFalse(tenantId, ProcessModelStatus.DEPLOYED, PRODUCTION_ASSET_ORIGINS),
                 runningInstances,
                 processFacade.queryMyTasks(new TaskQueryCommand(

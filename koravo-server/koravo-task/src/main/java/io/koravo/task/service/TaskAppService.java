@@ -67,14 +67,22 @@ public class TaskAppService {
     }
 
     public PageResult<TaskDTO> queryMyTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
-        return processFacade.queryMyTasks(taskQueryCommand(page, pageSize, keyword, status, startTime, endTime));
+        return queryMyTasks(page, pageSize, keyword, status, startTime, endTime, false);
+    }
+
+    public PageResult<TaskDTO> queryMyTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime, boolean includeNonProduction) {
+        return processFacade.queryMyTasks(taskQueryCommand(page, pageSize, keyword, status, startTime, endTime, includeNonProduction));
     }
 
     public PageResult<TaskDTO> queryCandidateTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
-        return queryCandidateTasks(page, pageSize, null, keyword, status, startTime, endTime);
+        return queryCandidateTasks(page, pageSize, null, keyword, status, startTime, endTime, false);
     }
 
     public PageResult<TaskDTO> queryCandidateTasks(int page, int pageSize, String candidateGroup, String keyword, String status, Instant startTime, Instant endTime) {
+        return queryCandidateTasks(page, pageSize, candidateGroup, keyword, status, startTime, endTime, false);
+    }
+
+    public PageResult<TaskDTO> queryCandidateTasks(int page, int pageSize, String candidateGroup, String keyword, String status, Instant startTime, Instant endTime, boolean includeNonProduction) {
         return processFacade.queryCandidateTasks(taskQueryCommand(
                 StringUtils.hasText(candidateGroup) ? candidateGroup.trim() : UserContextHolder.getRole(),
                 page,
@@ -82,20 +90,29 @@ public class TaskAppService {
                 keyword,
                 status,
                 startTime,
-                endTime
+                endTime,
+                includeNonProduction
         ));
     }
 
     public PageResult<TaskDTO> queryDoneTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
-        return processFacade.queryDoneTasks(taskQueryCommand(page, pageSize, keyword, status, startTime, endTime));
+        return queryDoneTasks(page, pageSize, keyword, status, startTime, endTime, false);
+    }
+
+    public PageResult<TaskDTO> queryDoneTasks(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime, boolean includeNonProduction) {
+        return processFacade.queryDoneTasks(taskQueryCommand(page, pageSize, keyword, status, startTime, endTime, includeNonProduction));
     }
 
     public PageResult<ProcessInstanceDetailDTO> queryStartedInstances(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
-        return processFacade.queryStartedInstances(taskQueryCommand(page, pageSize, keyword, status, startTime, endTime));
+        return queryStartedInstances(page, pageSize, keyword, status, startTime, endTime, false);
     }
 
-    private TaskQueryCommand taskQueryCommand(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime) {
-        return taskQueryCommand(null, page, pageSize, keyword, status, startTime, endTime);
+    public PageResult<ProcessInstanceDetailDTO> queryStartedInstances(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime, boolean includeNonProduction) {
+        return processFacade.queryStartedInstances(taskQueryCommand(page, pageSize, keyword, status, startTime, endTime, includeNonProduction));
+    }
+
+    private TaskQueryCommand taskQueryCommand(int page, int pageSize, String keyword, String status, Instant startTime, Instant endTime, boolean includeNonProduction) {
+        return taskQueryCommand(null, page, pageSize, keyword, status, startTime, endTime, includeNonProduction);
     }
 
     private TaskQueryCommand taskQueryCommand(
@@ -105,7 +122,8 @@ public class TaskAppService {
             String keyword,
             String status,
             Instant startTime,
-            Instant endTime
+            Instant endTime,
+            boolean includeNonProduction
     ) {
         return new TaskQueryCommand(
                 TenantContextHolder.getTenantId(),
@@ -117,12 +135,15 @@ public class TaskAppService {
                 status,
                 startTime,
                 endTime,
-                visibleProcessDefinitionKeys(),
-                RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
+                visibleProcessDefinitionKeys(includeNonProduction),
+                includeNonProduction ? Set.of() : RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS
         );
     }
 
-    private Set<String> visibleProcessDefinitionKeys() {
+    private Set<String> visibleProcessDefinitionKeys(boolean includeNonProduction) {
+        if (includeNonProduction) {
+            return Set.of();
+        }
         List<KoProcessModel> models = processModelRepository
                 .findByTenantIdAndStatusAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
                         TenantContextHolder.getTenantId(),

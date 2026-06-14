@@ -145,7 +145,7 @@ async function deployProcess(admin) {
   return api("/process-models/deploy", {
     method: "POST",
     token: admin.token,
-    query: { modelName },
+    query: { modelName, assetOrigin: "TEST_FIXTURE" },
     formData,
   });
 }

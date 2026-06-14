@@ -101,7 +101,11 @@ public class ProcessModelService {
                     : repository.findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(tenantId, status);
         } else {
             models = status == null
-                    ? repository.findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, PRODUCTION_ASSET_ORIGINS)
+                    ? repository.findByTenantIdAndStatusNotAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+                            tenantId,
+                            ProcessModelStatus.ARCHIVED,
+                            PRODUCTION_ASSET_ORIGINS
+                    )
                     : repository.findByTenantIdAndStatusAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(tenantId, status, PRODUCTION_ASSET_ORIGINS);
         }
         return models.stream().map(this::toResponse).toList();
@@ -196,7 +200,22 @@ public class ProcessModelService {
     }
 
     @Transactional
+    public ProcessModelResponse updateAssetOrigin(String id, AssetOrigin assetOrigin) {
+        KoProcessModel model = find(id);
+        model.setAssetOrigin(assetOrigin);
+        model.setUpdatedBy(UserContextHolder.getUserId());
+        repository.save(model);
+        auditLogService.record("PROCESS_MODEL_ASSET_ORIGIN_UPDATE", "PROCESS_MODEL", model.getId(), modelAuditDetail(model));
+        return toResponse(model);
+    }
+
+    @Transactional
     public ProcessDeploymentDTO deploy(String modelName, MultipartFile file) {
+        return deploy(modelName, file, AssetOrigin.USER_FLOW);
+    }
+
+    @Transactional
+    public ProcessDeploymentDTO deploy(String modelName, MultipartFile file, AssetOrigin assetOrigin) {
         String fileName = file.getOriginalFilename() == null ? "process.bpmn20.xml" : file.getOriginalFilename();
         String modelKey = fileName.replace(".bpmn20.xml", "").replaceAll("[^A-Za-z0-9_]", "_");
         String bpmnXml = readFile(file);
@@ -225,7 +244,7 @@ public class ProcessModelService {
         model.setFlowableDeploymentId(deployment.deploymentId());
         model.setFlowableDefinitionId(deployment.processDefinitionId());
         model.setStatus(ProcessModelStatus.DEPLOYED);
-        model.setAssetOrigin(AssetOrigin.USER_FLOW);
+        model.setAssetOrigin(assetOrigin == null ? AssetOrigin.USER_FLOW : assetOrigin);
         model.setBpmnXml(bpmnXml);
         repository.save(model);
 

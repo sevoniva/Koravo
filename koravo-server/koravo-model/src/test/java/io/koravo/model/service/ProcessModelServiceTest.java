@@ -145,6 +145,46 @@ class ProcessModelServiceTest {
     }
 
     @Test
+    void directDeployCanPersistVerificationAssetOrigin() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        String bpmnXml = "<definitions><process id=\"enterpriseApproval30\" /></definitions>";
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "enterprise-approval-30-node.bpmn20.xml",
+                "text/xml",
+                bpmnXml.getBytes()
+        );
+        when(validationService.validate(bpmnXml)).thenReturn(new BpmnValidationResult(true, List.of(), List.of()));
+        when(processFacade.deploy(new DeployProcessCommand(
+                "default",
+                "admin",
+                "enterprise_approval_30_node",
+                "企业级审批链路验收",
+                "enterprise-approval-30-node.bpmn20.xml",
+                bpmnXml
+        ))).thenReturn(new ProcessDeploymentDTO(
+                null,
+                "dep-fixture",
+                "enterpriseApproval30:1:pd",
+                "enterpriseApproval30",
+                1
+        ));
+        when(repository.save(any(KoProcessModel.class))).thenAnswer(invocation -> {
+            KoProcessModel saved = invocation.getArgument(0);
+            saved.setId("fixture-model-1");
+            return saved;
+        });
+
+        var response = service.deploy("企业级审批链路验收", file, AssetOrigin.TEST_FIXTURE);
+
+        assertThat(response.platformModelId()).isEqualTo("fixture-model-1");
+        ArgumentCaptor<KoProcessModel> modelCaptor = ArgumentCaptor.forClass(KoProcessModel.class);
+        verify(repository).save(modelCaptor.capture());
+        assertThat(modelCaptor.getValue().getAssetOrigin()).isEqualTo(AssetOrigin.TEST_FIXTURE);
+    }
+
+    @Test
     void directDeployAcceptsEnterpriseApprovalExampleFromUserUpload() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");
@@ -271,8 +311,9 @@ class ProcessModelServiceTest {
     void listHidesNonProductionAssetsByDefault() {
         TenantContextHolder.setTenantId("default");
         KoProcessModel model = model("model-1", ProcessModelStatus.DEPLOYED);
-        when(repository.findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+        when(repository.findByTenantIdAndStatusNotAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
+                ProcessModelStatus.ARCHIVED,
                 List.of(AssetOrigin.SYSTEM_TEMPLATE, AssetOrigin.USER_FLOW)
         )).thenReturn(List.of(model));
 
@@ -280,8 +321,9 @@ class ProcessModelServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().id()).isEqualTo("model-1");
-        verify(repository).findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+        verify(repository).findByTenantIdAndStatusNotAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
+                ProcessModelStatus.ARCHIVED,
                 List.of(AssetOrigin.SYSTEM_TEMPLATE, AssetOrigin.USER_FLOW)
         );
         verify(repository, never()).findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default");
@@ -300,6 +342,27 @@ class ProcessModelServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().assetOrigin()).isEqualTo("LEGACY_DEMO");
         verify(repository).findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc("default");
+    }
+
+    @Test
+    void updateAssetOriginWritesLifecycleAuditDetail() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = model("fixture-model", ProcessModelStatus.DEPLOYED);
+        when(repository.findByIdAndTenantIdAndDeletedFalse("fixture-model", "default")).thenReturn(Optional.of(model));
+        when(repository.save(any(KoProcessModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = service.updateAssetOrigin("fixture-model", AssetOrigin.TEST_FIXTURE);
+
+        assertThat(response.assetOrigin()).isEqualTo("TEST_FIXTURE");
+        assertThat(model.getUpdatedBy()).isEqualTo("admin");
+        verify(repository).save(model);
+        verify(auditLogService).record("PROCESS_MODEL_ASSET_ORIGIN_UPDATE", "PROCESS_MODEL", "fixture-model", Map.of(
+                "modelKey", "leaveApproval",
+                "version", 1,
+                "status", "DEPLOYED",
+                "assetOrigin", "TEST_FIXTURE"
+        ));
     }
 
     @Test
