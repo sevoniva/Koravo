@@ -1,5 +1,6 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { App, Button, Form, Input, Typography } from 'antd';
+import { ProForm, ProFormText } from '@ant-design/pro-components';
+import { App, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import { login } from '@/services/koravo/api';
@@ -82,56 +83,52 @@ const Login: React.FC = () => {
             使用组织成员账号进入工作流平台
           </Typography.Text>
         </div>
-        <Form<LoginFormValues>
+        <ProForm<LoginFormValues>
           layout="vertical"
           requiredMark={false}
           initialValues={{ tenantId: 'default' }}
           onFinish={handleFinish}
+          submitter={{
+            searchConfig: { submitText: '登录' },
+            resetButtonProps: false,
+            submitButtonProps: {
+              loading: submitting,
+              className: styles.submit,
+            },
+          }}
         >
-          <Form.Item
+          <ProFormText
             label="组织"
             name="tenantId"
             rules={[{ required: true, message: '请输入组织标识' }]}
-          >
-            <Input
-              allowClear
-              placeholder="请输入组织标识"
-              autoComplete="organization"
-            />
-          </Form.Item>
-          <Form.Item
+            fieldProps={{
+              allowClear: true,
+              autoComplete: 'organization',
+            }}
+          />
+          <ProFormText
             label="成员账号"
             name="userId"
             rules={[{ required: true, message: '请输入成员账号' }]}
-          >
-            <Input
-              allowClear
-              prefix={<UserOutlined />}
-              autoComplete="username"
-            />
-          </Form.Item>
-          <Form.Item
+            fieldProps={{
+              allowClear: true,
+              prefix: <UserOutlined />,
+              autoComplete: 'username',
+            }}
+          />
+          <ProFormText.Password
             label="登录密码"
             name="password"
             rules={[
               { required: true, message: '请输入登录密码' },
               ...passwordPolicyRules,
             ]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              autoComplete="current-password"
-            />
-          </Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            className={styles.submit}
-          >
-            登录
-          </Button>
-        </Form>
+            fieldProps={{
+              prefix: <LockOutlined />,
+              autoComplete: 'current-password',
+            }}
+          />
+        </ProForm>
       </section>
     </div>
   );
