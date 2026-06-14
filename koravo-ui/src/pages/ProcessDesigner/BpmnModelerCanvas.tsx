@@ -3,7 +3,16 @@ import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 
 import { LoadingOutlined } from '@ant-design/icons';
-import { App, Button, Result, Spin, Typography } from 'antd';
+import {
+  Alert,
+  App,
+  Button,
+  Collapse,
+  Result,
+  Space,
+  Spin,
+  Typography,
+} from 'antd';
 import { createStyles } from 'antd-style';
 import React, {
   forwardRef,
@@ -12,6 +21,10 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import {
+  normalizeBpmnImportWarnings,
+  type BpmnImportWarningView,
+} from './bpmnImportWarnings';
 import { flowableModdle } from './flowableModdle';
 
 type ModelerConstructor = new (options: Record<string, unknown>) => BpmnModeler;
@@ -165,6 +178,22 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 24px;
     background: ${token.colorBgContainer};
   `,
+  warningPanel: css`
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 4;
+    width: min(420px, calc(100% - 24px));
+
+    .ant-alert {
+      box-shadow: ${token.boxShadowSecondary};
+    }
+
+    .ant-collapse-header,
+    .ant-collapse-content-box {
+      padding-inline: 0 !important;
+    }
+  `,
 }));
 
 function normalizeElement(element?: BpmnElement): BpmnElement | undefined {
@@ -265,6 +294,9 @@ export const BpmnModelerCanvas = forwardRef<
   const onXmlChangeRef = useRef(onXmlChange);
   const [loading, setLoading] = useState(true);
   const [importError, setImportError] = useState<string>();
+  const [importWarnings, setImportWarnings] = useState<
+    BpmnImportWarningView[]
+  >([]);
 
   useEffect(() => {
     valueRef.current = value;
@@ -302,6 +334,7 @@ export const BpmnModelerCanvas = forwardRef<
 
     setLoading(true);
     setImportError(undefined);
+    setImportWarnings([]);
     try {
       const result = await modeler.importXML(xml);
       lastImportedXmlRef.current = xml;
@@ -309,9 +342,11 @@ export const BpmnModelerCanvas = forwardRef<
       onSelectionChangeRef.current?.(undefined);
       zoomToFit();
       if (result.warnings?.length) {
+        setImportWarnings(normalizeBpmnImportWarnings(result.warnings));
         message.warning('流程图已加载，存在需要关注的警告');
       }
     } catch (error) {
+      setImportWarnings([]);
       setImportError(error instanceof Error ? error.message : '流程文件加载失败');
     } finally {
       setLoading(false);
@@ -417,6 +452,37 @@ export const BpmnModelerCanvas = forwardRef<
               <Button type="primary" onClick={retryImport}>
                 重新加载
               </Button>
+            }
+          />
+        </div>
+      ) : null}
+      {!importError && importWarnings.length ? (
+        <div className={styles.warningPanel}>
+          <Alert
+            showIcon
+            closable
+            type="warning"
+            title={`流程图有 ${importWarnings.length} 条加载警告`}
+            description={
+              <Collapse
+                size="small"
+                ghost
+                defaultActiveKey={importWarnings[0]?.key}
+                items={importWarnings.slice(0, 5).map((warning) => ({
+                  key: warning.key,
+                  label: warning.reason,
+                  children: (
+                    <Space vertical size={4}>
+                      <Typography.Text type="secondary">
+                        位置：{warning.location}
+                      </Typography.Text>
+                      <Typography.Text type="secondary">
+                        处理：{warning.action}
+                      </Typography.Text>
+                    </Space>
+                  ),
+                }))}
+              />
             }
           />
         </div>

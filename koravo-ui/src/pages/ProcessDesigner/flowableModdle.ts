@@ -26,5 +26,13 @@ export const flowableModdle = {
         { name: 'resultVariable', isAttr: true, type: 'String' },
       ],
     },
+    {
+      name: 'MultiInstanceLoopCharacteristics',
+      extends: ['bpmn:MultiInstanceLoopCharacteristics'],
+      properties: [
+        { name: 'collection', isAttr: true, type: 'String' },
+        { name: 'elementVariable', isAttr: true, type: 'String' },
+      ],
+    },
   ],
 };
