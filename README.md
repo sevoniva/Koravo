@@ -147,7 +147,7 @@ Reset the local trial surface after acceptance runs:
 node scripts/reset-trial-data.mjs
 ```
 
-The script keeps the default organization, collaborative workflow, business request form, bindings, audit trail, and a small generic trial workload available. It moves verification-only process models out of the default product lists, checks that verification runtime records are hidden from default task and ops views, and creates one running request plus one completed request when the trial surface is empty.
+The script keeps the default organization, collaborative workflow, business request form, bindings, audit trail, and a small seed workload for verification. Default task and ops views hide verification records such as `TRIAL-SEED-*`; scripts use `includeNonProduction=true` when they need to inspect those records.
 
 ## Run Frontend
 

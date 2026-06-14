@@ -6,11 +6,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RuntimeVisibilityPolicyTest {
     @Test
-    void hidesVerificationBusinessKeysFromDefaultTrialViews() {
+    void hidesVerificationBusinessKeysFromDefaultProductViews() {
         assertThat(RuntimeVisibilityPolicy.HIDDEN_BUSINESS_KEY_PATTERNS)
                 .contains(
                         "EA-%",
                         "REQ-E2E-%",
+                        "TRIAL-SEED-%",
                         "COLLABORATIVE-APPROVAL-%",
                         "COLLAB-VERIFY-%",
                         "UI-CONTEXT-%"

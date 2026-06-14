@@ -353,9 +353,10 @@ class FlowableProcessFacadeTest {
         TaskQuery taskQuery = mock(TaskQuery.class, RETURNS_SELF);
         HistoricProcessInstance enterpriseCheck = mockHistoricInstance("pi-1", "collaborativeApproval:2", "EA-RUNTIME-1", "applicant", null);
         HistoricProcessInstance traceCheck = mockHistoricInstance("pi-2", "collaborativeApproval:2", "TRACE-1", "applicant", null);
-        HistoricProcessInstance userFlow = mockHistoricInstance("pi-3", "collaborativeApproval:2", "COLLABORATIVE-APPROVAL-1", "applicant", null);
+        HistoricProcessInstance trialSeed = mockHistoricInstance("pi-3", "collaborativeApproval:2", "TRIAL-SEED-ACTIVE", "applicant", null);
+        HistoricProcessInstance userFlow = mockHistoricInstance("pi-4", "collaborativeApproval:2", "BUSINESS-REQ-1", "applicant", null);
         when(historyService.createHistoricProcessInstanceQuery()).thenReturn(instanceQuery);
-        when(instanceQuery.list()).thenReturn(List.of(enterpriseCheck, traceCheck, userFlow));
+        when(instanceQuery.list()).thenReturn(List.of(enterpriseCheck, traceCheck, trialSeed, userFlow));
         when(runtimeService.createProcessInstanceQuery()).thenReturn(runtimeQuery);
         when(runtimeQuery.singleResult()).thenReturn(runtimeInstance);
         when(runtimeInstance.isSuspended()).thenReturn(false);
@@ -371,12 +372,13 @@ class FlowableProcessFacadeTest {
                 java.util.Set.of(),
                 java.util.Set.of(
                         "EA-%",
-                        "TRACE-%"
+                        "TRACE-%",
+                        "TRIAL-SEED-%"
                 )
         ));
 
         assertThat(result.total()).isEqualTo(1);
-        assertThat(result.items()).extracting("instanceId").containsExactly("pi-3");
+        assertThat(result.items()).extracting("instanceId").containsExactly("pi-4");
     }
 
     @Test
