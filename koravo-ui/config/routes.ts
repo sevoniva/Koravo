@@ -55,6 +55,7 @@ export default [
     key: 'process-center',
     name: '流程中心',
     icon: 'playCircle',
+    access: 'canStartProcess',
     routes: [
       {
         path: '/process-start',
@@ -68,23 +69,23 @@ export default [
         name: '我的申请',
         icon: 'profile',
         component: './Tasks',
-        access: 'canViewOwnWork',
-      },
-      {
-        path: '/process-instances',
-        name: '流程实例',
-        icon: 'profile',
-        component: './ProcessInstances',
-        access: 'canOperateSystem',
-      },
-      {
-        path: '/process-instances/:instanceId',
-        name: '实例详情',
-        hideInMenu: true,
-        component: './ProcessInstanceDetail',
-        access: 'canViewProcessContext',
+        access: 'canStartProcess',
       },
     ],
+  },
+  {
+    path: '/process-instances',
+    name: '流程实例',
+    hideInMenu: true,
+    component: './ProcessInstances',
+    access: 'canOperateSystem',
+  },
+  {
+    path: '/process-instances/:instanceId',
+    name: '实例详情',
+    hideInMenu: true,
+    component: './ProcessInstanceDetail',
+    access: 'canViewProcessContext',
   },
   {
     key: 'process-modeling',
