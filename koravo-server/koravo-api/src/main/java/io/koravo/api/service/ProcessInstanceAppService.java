@@ -193,7 +193,7 @@ public class ProcessInstanceAppService {
         ProcessInstanceDetailDTO instance = processFacade.getInstance(TenantContextHolder.getTenantId(), instanceId);
         return ProcessInstanceDetailResponse.from(
                 instance,
-                auditLogQueryService.queryByResource("PROCESS_INSTANCE", instanceId, 20)
+                auditLogQueryService.query(null, null, null, instanceId, null, null, null, 1, 20).items()
         );
     }
 

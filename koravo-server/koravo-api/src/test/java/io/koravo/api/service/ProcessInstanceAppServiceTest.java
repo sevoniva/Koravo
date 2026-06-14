@@ -4,6 +4,7 @@ import io.koravo.api.organization.KoOrganizationMember;
 import io.koravo.api.organization.OrganizationMemberRepository;
 import io.koravo.api.web.StartProcessRequest;
 import io.koravo.api.workflow.WorkflowEnablementDefaults;
+import io.koravo.common.api.PageResult;
 import io.koravo.common.web.RequestContextHolder;
 import io.koravo.engine.api.ProcessFacade;
 import io.koravo.engine.command.StartProcessCommand;
@@ -29,6 +30,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -419,7 +421,7 @@ class ProcessInstanceAppServiceTest {
     }
 
     @Test
-    void getReturnsInstanceDetailWithAuditLogs() {
+    void getReturnsInstanceDetailWithRelatedAuditLogs() {
         TenantContextHolder.setTenantId("tenant-a");
         ProcessInstanceDetailDTO instance = new ProcessInstanceDetailDTO(
                 "pi-1",
@@ -444,12 +446,33 @@ class ProcessInstanceAppServiceTest {
                 Instant.parse("2026-06-07T00:00:00Z")
         );
         when(processFacade.getInstance("tenant-a", "pi-1")).thenReturn(instance);
-        when(auditLogQueryService.queryByResource("PROCESS_INSTANCE", "pi-1", 20)).thenReturn(List.of(auditLog));
+        when(auditLogQueryService.query(
+                isNull(),
+                isNull(),
+                isNull(),
+                eq("pi-1"),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(1),
+                eq(20)
+        )).thenReturn(PageResult.of(List.of(auditLog), 1, 1, 20));
 
         var detail = service.get("pi-1");
 
         assertThat(detail.instanceId()).isEqualTo("pi-1");
         assertThat(detail.auditLogs()).containsExactly(auditLog);
+        verify(auditLogQueryService).query(
+                isNull(),
+                isNull(),
+                isNull(),
+                eq("pi-1"),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(1),
+                eq(20)
+        );
     }
 
     @Test
