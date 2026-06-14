@@ -15,7 +15,6 @@ import {
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { history, useLocation } from '@umijs/max';
-import { createStyles } from 'antd-style';
 import {
   Alert,
   App,
@@ -27,6 +26,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
+import { createStyles } from 'antd-style';
 import React from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import KoravoDrawer from '@/components/KoravoDrawer';
@@ -70,9 +70,9 @@ import {
   isWorkflowFieldVisible,
   parseWorkflowFormFields,
   visibleWorkflowFormFields,
+  type WorkflowFormField,
   workflowFieldRules,
   workflowNumberFieldProps,
-  type WorkflowFormField,
 } from '@/utils/workflowForm';
 
 interface StartInstanceForm {
@@ -90,6 +90,12 @@ interface ProcessPreviewTarget {
   instanceId: string;
   title: string;
   currentTasks?: TaskItem[];
+}
+
+interface StartEntryNotice {
+  title: string;
+  actionText?: string;
+  actionPath?: string;
 }
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -291,6 +297,26 @@ function formSchemaLabel(schema?: FormSchemaItem, version?: number) {
   return formSchemaOptionLabel(schema, version)
     .replace('（', ' ')
     .replace('）', '');
+}
+
+export function resolveStartEntryNotice(
+  initialProcessModelId: string | undefined,
+  startableWorkflows: StartableWorkflowItem[],
+  canConfigureWorkflow: boolean,
+): StartEntryNotice | undefined {
+  const requestedWorkflowFound = initialProcessModelId
+    ? startableWorkflows.some(
+        (workflow) => workflow.processModelId === initialProcessModelId,
+      )
+    : true;
+
+  if (startableWorkflows.length && requestedWorkflowFound) return undefined;
+
+  return {
+    title: initialProcessModelId ? '该流程暂不可发起' : '暂无可发起流程',
+    actionText: canConfigureWorkflow ? '查看配置' : undefined,
+    actionPath: canConfigureWorkflow ? '/process-models' : undefined,
+  };
 }
 
 function useQueryProcessModelId() {
@@ -638,9 +664,15 @@ function renderStartField(field: StartFormField, values?: JsonRecord) {
 const StartInstanceFields: React.FC<{
   initialProcessModelId?: string;
   startableWorkflows: StartableWorkflowItem[];
-}> = ({ initialProcessModelId, startableWorkflows }) => {
+  canConfigureWorkflow?: boolean;
+}> = ({ initialProcessModelId, startableWorkflows, canConfigureWorkflow }) => {
   const { styles } = useStyles();
   const form = Form.useFormInstance();
+  const startEntryNotice = resolveStartEntryNotice(
+    initialProcessModelId,
+    startableWorkflows,
+    Boolean(canConfigureWorkflow),
+  );
 
   const setProcessContext = React.useCallback(
     (processDefinitionKey?: string, processModelId?: string) => {
@@ -690,18 +722,20 @@ const StartInstanceFields: React.FC<{
 
   return (
     <>
-      {!startableWorkflows.length ? (
+      {startEntryNotice ? (
         <Alert
           showIcon
           type="warning"
-          title="暂无可发起流程"
+          title={startEntryNotice.title}
           action={
-            <Button
-              size="small"
-              onClick={() => history.push('/process-models')}
-            >
-              创建流程模型
-            </Button>
+            startEntryNotice.actionPath ? (
+              <Button
+                size="small"
+                onClick={() => history.push(startEntryNotice.actionPath || '')}
+              >
+                {startEntryNotice.actionText}
+              </Button>
+            ) : undefined
           }
           style={{ marginBottom: 16 }}
         />
@@ -895,6 +929,7 @@ const ProcessInstances: React.FC = () => {
             <StartInstanceFields
               initialProcessModelId={queryProcessModelId}
               startableWorkflows={startableWorkflows}
+              canConfigureWorkflow={canConfigureWorkflow}
             />
           </ProForm>
         </ProCard>
