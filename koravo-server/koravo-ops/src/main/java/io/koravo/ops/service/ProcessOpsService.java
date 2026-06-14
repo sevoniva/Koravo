@@ -13,6 +13,7 @@ import io.koravo.ops.dto.OpsSummaryResponse;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -174,22 +175,58 @@ public class ProcessOpsService {
     }
 
     public void retryFailedJob(String jobId, int retries) {
+        OpsJobDTO job = processFacade.getFailedJob(TenantContextHolder.getTenantId(), jobId);
+        int safeRetries = Math.max(retries, 1);
         processFacade.retryFailedJob(TenantContextHolder.getTenantId(), jobId, retries);
-        auditLogService.record("FAILED_JOB_RETRY", "FAILED_JOB", jobId, Map.of("retries", Math.max(retries, 1)));
+        Map<String, Object> detail = jobAuditDetail(job);
+        detail.put("retries", safeRetries);
+        auditLogService.record("FAILED_JOB_RETRY", "FAILED_JOB", jobId, detail);
     }
 
     public void retryDeadLetterJob(String jobId, int retries) {
+        OpsJobDTO job = processFacade.getDeadLetterJob(TenantContextHolder.getTenantId(), jobId);
+        int safeRetries = Math.max(retries, 1);
         processFacade.retryDeadLetterJob(TenantContextHolder.getTenantId(), jobId, retries);
-        auditLogService.record("DEAD_LETTER_JOB_RETRY", "DEAD_LETTER_JOB", jobId, Map.of("retries", Math.max(retries, 1)));
+        Map<String, Object> detail = jobAuditDetail(job);
+        detail.put("retries", safeRetries);
+        auditLogService.record("DEAD_LETTER_JOB_RETRY", "DEAD_LETTER_JOB", jobId, detail);
     }
 
     public void deleteFailedJob(String jobId) {
+        OpsJobDTO job = processFacade.getFailedJob(TenantContextHolder.getTenantId(), jobId);
         processFacade.deleteFailedJob(TenantContextHolder.getTenantId(), jobId);
-        auditLogService.record("FAILED_JOB_DELETE", "FAILED_JOB", jobId, Map.of());
+        auditLogService.record("FAILED_JOB_DELETE", "FAILED_JOB", jobId, jobAuditDetail(job));
     }
 
     public void deleteDeadLetterJob(String jobId) {
+        OpsJobDTO job = processFacade.getDeadLetterJob(TenantContextHolder.getTenantId(), jobId);
         processFacade.deleteDeadLetterJob(TenantContextHolder.getTenantId(), jobId);
-        auditLogService.record("DEAD_LETTER_JOB_DELETE", "DEAD_LETTER_JOB", jobId, Map.of());
+        auditLogService.record("DEAD_LETTER_JOB_DELETE", "DEAD_LETTER_JOB", jobId, jobAuditDetail(job));
+    }
+
+    private Map<String, Object> jobAuditDetail(OpsJobDTO job) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        if (job == null) {
+            return detail;
+        }
+        putIfPresent(detail, "jobType", job.type());
+        putIfPresent(detail, "processInstanceId", job.processInstanceId());
+        putIfPresent(detail, "processDefinitionId", job.processDefinitionId());
+        putIfPresent(detail, "executionId", job.executionId());
+        putIfPresent(detail, "elementId", job.elementId());
+        putIfPresent(detail, "elementName", job.elementName());
+        putIfPresent(detail, "handlerType", job.handlerType());
+        putIfPresent(detail, "exceptionMessage", job.exceptionMessage());
+        return detail;
+    }
+
+    private void putIfPresent(Map<String, Object> detail, String key, Object value) {
+        if (value == null) {
+            return;
+        }
+        if (value instanceof String text && text.isBlank()) {
+            return;
+        }
+        detail.put(key, value);
     }
 }

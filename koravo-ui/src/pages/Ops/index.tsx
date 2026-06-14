@@ -8,7 +8,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
-import { history } from '@umijs/max';
+import { history, useLocation } from '@umijs/max';
 import {
   Alert,
   App,
@@ -21,7 +21,7 @@ import {
   Tabs,
   Typography,
 } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -90,6 +90,10 @@ function jobTypeLabel(type?: string) {
   if (type === 'DEAD_LETTER') return '死信任务';
   if (type === 'FAILED') return '失败任务';
   return type || '-';
+}
+
+function jobKindFromType(type?: string): JobKind {
+  return type === 'DEAD_LETTER' ? 'dead-letter' : 'failed';
 }
 
 function buildInstanceColumns(
@@ -264,7 +268,7 @@ function jobColumns(
     {
       title: '操作',
       valueType: 'option',
-      width: 176,
+      width: 220,
       render: (_, record) => [
         <Button
           key="detail"
@@ -272,11 +276,20 @@ function jobColumns(
           onClick={() =>
             openDetail({
               id: record.id,
-              kind: record.type === 'DEAD_LETTER' ? 'dead-letter' : 'failed',
+              kind: jobKindFromType(record.type),
             })
           }
         >
           详情
+        </Button>,
+        <Button
+          key="audit"
+          type="link"
+          onClick={() =>
+            history.push(`/audit-logs?resourceId=${encodeURIComponent(record.id)}`)
+          }
+        >
+          审计
         </Button>,
         <Button
           key="retry"
@@ -453,6 +466,7 @@ const Ops: React.FC = () => {
   const failedRef = useRef<ActionType>(null);
   const deadLetterRef = useRef<ActionType>(null);
   const connectorRef = useRef<ActionType>(null);
+  const location = useLocation();
   const [selectedJob, setSelectedJob] = useState<SelectedJob>();
   const [selectedConnectorLogId, setSelectedConnectorLogId] =
     useState<string>();
@@ -468,13 +482,18 @@ const Ops: React.FC = () => {
     queryKey: ['ops-summary'],
     queryFn: getOpsSummary,
   });
-  const { data: jobDetail, isLoading: jobDetailLoading } = useQuery({
+  const {
+    data: jobDetail,
+    isError: jobDetailError,
+    isLoading: jobDetailLoading,
+  } = useQuery({
     queryKey: ['ops-job-detail', selectedJob?.kind, selectedJob?.id],
     queryFn: () =>
       selectedJob?.kind === 'dead-letter'
         ? getDeadLetterJob(selectedJob.id)
         : getFailedJob(selectedJob?.id || ''),
     enabled: Boolean(selectedJob?.id),
+    retry: false,
   });
   const {
     data: connectorDetail,
@@ -531,6 +550,32 @@ const Ops: React.FC = () => {
     (summary?.failedJobCount || 0) +
     (summary?.deadLetterJobCount || 0) +
     (summary?.connectorFailureCount || 0);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (
+      tab === 'instances' ||
+      tab === 'failed' ||
+      tab === 'dead-letter' ||
+      tab === 'connector-failures' ||
+      tab === 'capabilities'
+    ) {
+      setActiveTab(tab);
+    }
+
+    const jobId = params.get('jobId');
+    const jobKind = params.get('jobKind');
+    if (jobId && (jobKind === 'failed' || jobKind === 'dead-letter')) {
+      setSelectedJob({ id: jobId, kind: jobKind });
+    }
+
+    const connectorLogId = params.get('connectorLogId');
+    if (connectorLogId) {
+      setActiveTab('connector-failures');
+      setSelectedConnectorLogId(connectorLogId);
+    }
+  }, [location.search]);
 
   return (
     <PageContainer title="运维中心">
@@ -739,28 +784,42 @@ const Ops: React.FC = () => {
         loading={jobDetailLoading}
         onClose={() => setSelectedJob(undefined)}
         extra={
-          jobDetail?.processInstanceId ? (
-            <Space wrap>
+          jobDetail ? (
+            <Space wrap size={4}>
               <Button
                 type="link"
                 onClick={() =>
                   history.push(
-                    `/process-instances/${jobDetail.processInstanceId}`,
+                    `/audit-logs?resourceId=${encodeURIComponent(jobDetail.id)}`,
                   )
                 }
               >
-                查看流程实例
+                异常审计
               </Button>
-              <Button
-                type="link"
-                onClick={() =>
-                  history.push(
-                    `/audit-logs?resourceId=${encodeURIComponent(jobDetail.processInstanceId || '')}`,
-                  )
-                }
-              >
-                审计日志
-              </Button>
+              {jobDetail.processInstanceId ? (
+                <>
+                  <Button
+                    type="link"
+                    onClick={() =>
+                      history.push(
+                        `/process-instances/${jobDetail.processInstanceId}`,
+                      )
+                    }
+                  >
+                    查看流程实例
+                  </Button>
+                  <Button
+                    type="link"
+                    onClick={() =>
+                      history.push(
+                        `/audit-logs?resourceId=${encodeURIComponent(jobDetail.processInstanceId || '')}`,
+                      )
+                    }
+                  >
+                    流程审计
+                  </Button>
+                </>
+              ) : null}
             </Space>
           ) : null
         }
@@ -909,8 +968,15 @@ const Ops: React.FC = () => {
               ]}
             />
           </Space>
+        ) : !jobDetailLoading && selectedJob ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              jobDetailError ? '异常任务不存在或已处理' : '暂无异常任务详情'
+            }
+          />
         ) : (
-          <Empty description="暂无任务详情" />
+          <Empty description="正在读取异常任务" />
         )}
       </KoravoDrawer>
       <KoravoDrawer

@@ -130,6 +130,7 @@ interface AuditRelatedAccess {
   canOpenProcessInstance: boolean;
   canConfigureWorkflow: boolean;
   canManageIntegration: boolean;
+  canOperateSystem: boolean;
 }
 
 export function auditCanOpenProcessContext(
@@ -155,6 +156,8 @@ function auditRelatedAccess(): AuditRelatedAccess {
       session.permissions?.canConfigureWorkflow ?? session.role === 'admin',
     canManageIntegration:
       session.permissions?.canManageIntegration ?? session.role === 'admin',
+    canOperateSystem:
+      session.permissions?.canOperateSystem ?? session.role === 'operator',
   };
 }
 
@@ -235,13 +238,55 @@ function auditRelatedButtons(
         type="link"
         onClick={() =>
           history.push(
-            log.requestId
-              ? `/http-connector?requestId=${encodeURIComponent(log.requestId)}`
-              : '/http-connector',
+            log.resourceId
+              ? `/ops?tab=connector-failures&connectorLogId=${encodeURIComponent(log.resourceId)}`
+              : log.requestId
+                ? `/http-connector?requestId=${encodeURIComponent(log.requestId)}`
+                : '/http-connector',
           )
         }
       >
         查看连接器记录
+      </Button>,
+    );
+  }
+  if (
+    log?.resourceType === 'FAILED_JOB' &&
+    log.resourceId &&
+    access.canOperateSystem
+  ) {
+    const jobId = log.resourceId;
+    actions.push(
+      <Button
+        key="failed-job"
+        type="link"
+        onClick={() =>
+          history.push(
+            `/ops?tab=failed&jobKind=failed&jobId=${encodeURIComponent(jobId)}`,
+          )
+        }
+      >
+        查看异常任务
+      </Button>,
+    );
+  }
+  if (
+    log?.resourceType === 'DEAD_LETTER_JOB' &&
+    log.resourceId &&
+    access.canOperateSystem
+  ) {
+    const jobId = log.resourceId;
+    actions.push(
+      <Button
+        key="dead-letter-job"
+        type="link"
+        onClick={() =>
+          history.push(
+            `/ops?tab=dead-letter&jobKind=dead-letter&jobId=${encodeURIComponent(jobId)}`,
+          )
+        }
+      >
+        查看异常任务
       </Button>,
     );
   }
