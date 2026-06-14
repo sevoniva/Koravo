@@ -18,6 +18,7 @@ import { history, useLocation } from '@umijs/max';
 import {
   Alert,
   App,
+  Badge,
   Button,
   Empty,
   Flex,
@@ -102,17 +103,17 @@ interface StartEntryNotice {
 const useStyles = createStyles(({ css, token }) => ({
   startGrid: css`
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
-    gap: 24px;
+    grid-template-columns: minmax(560px, 1fr) minmax(360px, 420px);
+    gap: 20px;
     align-items: start;
 
-    @media (max-width: 1080px) {
+    @media (max-width: 1180px) {
       grid-template-columns: minmax(0, 1fr);
     }
   `,
   startMain: css`
     min-width: 0;
-    max-width: 760px;
+    width: 100%;
   `,
   startAside: css`
     position: sticky;
@@ -124,7 +125,7 @@ const useStyles = createStyles(({ css, token }) => ({
     padding-left: 20px;
     border-left: 1px solid ${token.colorBorderSecondary};
 
-    @media (max-width: 1080px) {
+    @media (max-width: 1180px) {
       position: static;
       padding-left: 0;
       border-left: 0;
@@ -132,6 +133,20 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   startPreview: css`
     min-width: 0;
+  `,
+  approvalSummary: css`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px 12px;
+    background: ${token.colorFillQuaternary};
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: ${token.borderRadius}px;
+
+    .ant-tag {
+      margin-inline-end: 0;
+    }
   `,
 }));
 
@@ -259,6 +274,7 @@ function selectedApprovalUsers(fields: StartFormField[], values?: JsonRecord) {
 const StartApprovalSummary: React.FC<{ fields: StartFormField[] }> = ({
   fields,
 }) => {
+  const { styles } = useStyles();
   const approvalFields = fields.filter(
     (field) => isStartAssigneeField(field) || isStartAssigneeMultiField(field),
   );
@@ -273,20 +289,22 @@ const StartApprovalSummary: React.FC<{ fields: StartFormField[] }> = ({
         );
         if (!users.length) return null;
         return (
-          <Alert
-            showIcon
-            type="success"
-            title={users.length > 1 ? `会签待办 ${users.length}` : '审批人'}
-            description={
-              <Space size={[0, 6]} wrap>
-                {users.map((userId) => (
-                  <Tag key={userId} color="processing">
-                    {organizationMemberName(userId)}
-                  </Tag>
-                ))}
-              </Space>
-            }
-          />
+          <div className={styles.approvalSummary}>
+            <Flex align="center" justify="space-between" gap={8} wrap>
+              <Badge
+                status={users.length > 1 ? 'processing' : 'success'}
+                text={users.length > 1 ? '会签' : '审批人'}
+              />
+              <Tag color="blue">{users.length} 人</Tag>
+            </Flex>
+            <Space size={[6, 6]} wrap>
+              {users.map((userId) => (
+                <Tag key={userId} color="processing">
+                  {organizationMemberName(userId)}
+                </Tag>
+              ))}
+            </Space>
+          </div>
         );
       }}
     </ProFormDependency>
