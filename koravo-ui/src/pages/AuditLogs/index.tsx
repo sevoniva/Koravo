@@ -4,13 +4,19 @@ import {
   ProDescriptions,
   ProTable,
 } from '@ant-design/pro-components';
+import { useQuery } from '@tanstack/react-query';
 import { history, useLocation } from '@umijs/max';
 import { Alert, Button, Empty, Space, Typography } from 'antd';
 import React, { useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import KoravoDrawer from '@/components/KoravoDrawer';
+import ProcessProgressCard from '@/components/ProcessProgressCard';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
-import { type AuditLogItem, listAuditLogs } from '@/services/koravo/api';
+import {
+  type AuditLogItem,
+  getProcessTrace,
+  listAuditLogs,
+} from '@/services/koravo/api';
 import {
   organizationMemberName,
   organizationMemberSelectOptions,
@@ -93,7 +99,7 @@ function auditDetailRecord(log?: AuditLogItem) {
   ) as Record<string, unknown>;
 }
 
-function auditProcessInstanceId(log?: AuditLogItem) {
+export function auditProcessInstanceId(log?: AuditLogItem) {
   const detail = auditDetailRecord(log);
   if (typeof detail.processInstanceId === 'string')
     return detail.processInstanceId;
@@ -257,6 +263,38 @@ const AuditRelatedActions: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
   return <Space wrap>{actions}</Space>;
 };
 
+const AuditProcessContext: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
+  const processInstanceId = auditProcessInstanceId(log);
+  const access = auditRelatedAccess();
+  const session = getSessionContext();
+  const trace = useQuery({
+    queryKey: ['audit-process-trace', processInstanceId],
+    queryFn: () => getProcessTrace(processInstanceId || ''),
+    enabled: Boolean(processInstanceId && access.canOpenProcessInstance),
+  });
+
+  if (!processInstanceId || !access.canOpenProcessInstance) return null;
+
+  if (trace.isError) {
+    return (
+      <Alert
+        showIcon
+        type="warning"
+        title="流程上下文读取失败"
+        style={{ marginBottom: 16 }}
+      />
+    );
+  }
+
+  return (
+    <ProcessProgressCard
+      trace={trace.data}
+      loading={trace.isLoading}
+      currentUserId={session.userId}
+    />
+  );
+};
+
 const AuditLogs: React.FC = () => {
   const [detail, setDetail] = useState<AuditLogItem>();
   const location = useLocation();
@@ -398,6 +436,7 @@ const AuditLogs: React.FC = () => {
         open={Boolean(detail)}
         onClose={() => setDetail(undefined)}
       >
+        <AuditProcessContext log={detail} />
         <ProDescriptions<AuditLogItem>
           column={1}
           dataSource={detail}
