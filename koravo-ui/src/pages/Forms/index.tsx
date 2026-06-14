@@ -199,8 +199,15 @@ const useStyles = createStyles(({ css, token }) => ({
       grid-template-columns: minmax(0, 1fr);
     }
   `,
-  fieldMain: css`
-    grid-column: span 6;
+  fieldIdentity: css`
+    grid-column: span 12;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(260px, 1fr));
+    gap: 12px;
+
+    .ant-form-item {
+      margin-bottom: 8px;
+    }
 
     .ant-form-item-control-input-content,
     .ant-input {
@@ -208,8 +215,8 @@ const useStyles = createStyles(({ css, token }) => ({
       max-width: 100%;
     }
 
-    @media (max-width: 560px) {
-      grid-column: span 1;
+    @media (max-width: 760px) {
+      grid-template-columns: minmax(0, 1fr);
     }
   `,
   fieldWide: css`
@@ -613,10 +620,16 @@ function fieldChanged(before: FormFieldConfig, after: FormFieldConfig) {
   );
 }
 
-function fieldChangeSummary(
+interface FieldChangeSummaryResult {
+  added: FormFieldConfig[];
+  removed: FormFieldConfig[];
+  changed: FormFieldConfig[];
+}
+
+export function fieldChangeSummary(
   originalFields: FormFieldConfig[],
   currentFields?: FormFieldConfig[],
-) {
+): FieldChangeSummaryResult {
   const original = originalFields.filter((field) => field.fieldKey?.trim());
   const current = (currentFields || []).filter((field) =>
     field.fieldKey?.trim(),
@@ -634,6 +647,10 @@ function fieldChangeSummary(
       return before ? fieldChanged(before, field) : false;
     }),
   };
+}
+
+export function fieldChangeCount(summary: FieldChangeSummaryResult) {
+  return summary.added.length + summary.removed.length + summary.changed.length;
 }
 
 const schemaToFields = (
@@ -1488,6 +1505,65 @@ function fieldDesignSummary(fields: FormFieldConfig[]) {
   };
 }
 
+const FieldReadinessDigest: React.FC<{ fields: FormFieldConfig[] }> = ({
+  fields,
+}) => {
+  const issues = formReadinessIssues(fields);
+  const errorCount = issues.filter((issue) => issue.level === 'error').length;
+  const warningCount = issues.length - errorCount;
+
+  if (!issues.length) {
+    return <Badge status="success" text="可发布" />;
+  }
+
+  return (
+    <Space size={[4, 4]} wrap>
+      {errorCount ? <Tag color="red">阻断 {errorCount}</Tag> : null}
+      {warningCount ? <Tag color="gold">提醒 {warningCount}</Tag> : null}
+      {issues.slice(0, 2).map((issue) => (
+        <Tag key={issue.key} color={issue.level === 'error' ? 'red' : 'gold'}>
+          {issue.text}
+        </Tag>
+      ))}
+    </Space>
+  );
+};
+
+const FieldDesignCheck: React.FC<{ fields?: FormFieldConfig[] }> = ({
+  fields = [],
+}) => {
+  const activeFields = fields.filter((field) => field.fieldKey?.trim());
+  const summary = fieldDesignSummary(activeFields);
+  const issues = formReadinessIssues(activeFields);
+  const errorCount = issues.filter((issue) => issue.level === 'error').length;
+  const warningCount = issues.length - errorCount;
+
+  return (
+    <Alert
+      showIcon
+      type={errorCount ? 'error' : warningCount ? 'warning' : 'success'}
+      title="字段检查"
+      description={
+        <Space size={[4, 6]} wrap>
+          <Tag color="blue">字段 {activeFields.length}</Tag>
+          <Tag>必填 {summary.required}</Tag>
+          <Tag>权限 {summary.protected}</Tag>
+          <Tag>条件 {summary.conditional}</Tag>
+          {issues.slice(0, 3).map((issue) => (
+            <Tag
+              key={issue.key}
+              color={issue.level === 'error' ? 'red' : 'gold'}
+            >
+              {issue.text}
+            </Tag>
+          ))}
+        </Space>
+      }
+      style={{ marginBottom: 16 }}
+    />
+  );
+};
+
 function renderFieldDesignState(record: FormSchemaItem) {
   const fields = schemaToFields(record.schemaJson, record.uiSchemaJson);
   if (!fields.length) return <Badge status="warning" text="无字段" />;
@@ -1557,7 +1633,7 @@ function renderFormLifecycle(
 interface FormFieldsEditorClassNames {
   fieldList: string;
   fieldGrid: string;
-  fieldMain: string;
+  fieldIdentity: string;
   fieldWide: string;
   fieldCompact: string;
   fieldSwitch: string;
@@ -1636,11 +1712,10 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
               usesOrganizationProfile({ fieldKey, title, widget }) ||
               usesOrganizationAssignee({ fieldKey, title, widget });
             return (
-              <>
+              <div className={classNames.fieldIdentity}>
                 <ProFormText
                   name="fieldKey"
                   label="业务字段"
-                  formItemProps={{ className: classNames.fieldMain }}
                   disabled={isSystemField}
                   tooltip={
                     isSystemField
@@ -1658,12 +1733,11 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 <ProFormText
                   name="title"
                   label="字段名称"
-                  formItemProps={{ className: classNames.fieldMain }}
                   disabled={isSystemField}
                   tooltip={isSystemField ? systemFieldTooltip : undefined}
                   rules={[{ required: true, message: '请输入字段名称' }]}
                 />
-              </>
+              </div>
             );
           }}
         </ProFormDependency>
@@ -1843,18 +1917,53 @@ const ChangeTagList: React.FC<{
   label: string;
   fields: FormFieldConfig[];
   color: string;
-}> = ({ label, fields, color }) => {
+  maxCount?: number;
+}> = ({ label, fields, color, maxCount = 4 }) => {
   if (!fields.length) return null;
   return (
     <Space size={[4, 4]} wrap>
       <Tag color={color}>
         {label} {fields.length}
       </Tag>
-      {fields.slice(0, 4).map((field) => (
+      {fields.slice(0, maxCount).map((field) => (
         <Tag key={`${label}-${field.fieldKey}`}>{fieldDisplayName(field)}</Tag>
       ))}
-      {fields.length > 4 ? <Tag>还有 {fields.length - 4} 个</Tag> : null}
+      {fields.length > maxCount ? (
+        <Tag>还有 {fields.length - maxCount} 个</Tag>
+      ) : null}
     </Space>
+  );
+};
+
+const FieldChangeDigest: React.FC<{
+  summary: FieldChangeSummaryResult;
+  emptyText?: string;
+}> = ({ summary, emptyText = '无变更' }) => {
+  if (!fieldChangeCount(summary)) {
+    return <Badge status="success" text={emptyText} />;
+  }
+
+  return (
+    <Flex vertical gap={4}>
+      <ChangeTagList
+        label="新增"
+        fields={summary.added}
+        color="green"
+        maxCount={2}
+      />
+      <ChangeTagList
+        label="删除"
+        fields={summary.removed}
+        color="red"
+        maxCount={2}
+      />
+      <ChangeTagList
+        label="修改"
+        fields={summary.changed}
+        color="gold"
+        maxCount={2}
+      />
+    </Flex>
   );
 };
 
@@ -1863,8 +1972,7 @@ const FieldChangeSummary: React.FC<{
   currentFields?: FormFieldConfig[];
 }> = ({ originalFields, currentFields }) => {
   const summary = fieldChangeSummary(originalFields, currentFields);
-  const changedCount =
-    summary.added.length + summary.removed.length + summary.changed.length;
+  const changedCount = fieldChangeCount(summary);
 
   if (!changedCount) {
     return (
@@ -2202,6 +2310,34 @@ const Forms: React.FC = () => {
         schemaToFields(record.schemaJson, record.uiSchemaJson).length,
     },
     {
+      title: '相对当前版本',
+      key: 'versionDiff',
+      width: 320,
+      render: (_, record) => {
+        const versionFields = schemaToFields(
+          record.schemaJson,
+          record.uiSchemaJson,
+        );
+        const summary = fieldChangeSummary(versionFields, previewFields);
+        return (
+          <FieldChangeDigest
+            summary={summary}
+            emptyText={record.version === preview?.version ? '当前版本' : '无差异'}
+          />
+        );
+      },
+    },
+    {
+      title: '发布检查',
+      key: 'versionReadiness',
+      width: 260,
+      render: (_, record) => (
+        <FieldReadinessDigest
+          fields={schemaToFields(record.schemaJson, record.uiSchemaJson)}
+        />
+      ),
+    },
+    {
       title: '创建人',
       dataIndex: 'createdBy',
       width: 120,
@@ -2294,6 +2430,13 @@ const Forms: React.FC = () => {
               label="表单名称"
               rules={[{ required: true, message: '请输入表单名称' }]}
             />
+            <ProFormDependency name={['fields']}>
+              {({ fields }) => (
+                <FieldDesignCheck
+                  fields={fields as FormFieldConfig[] | undefined}
+                />
+              )}
+            </ProFormDependency>
             {renderFormFieldsEditor(styles)}
           </ModalForm>,
         ]}
@@ -2334,14 +2477,19 @@ const Forms: React.FC = () => {
         {editing ? (
           <ProFormDependency name={['fields']}>
             {({ fields }) => (
-              <FieldChangeSummary
-                originalFields={schemaToFields(
-                  editing.schemaJson,
-                  editing.uiSchemaJson,
-                  defaultFields,
-                )}
-                currentFields={fields as FormFieldConfig[] | undefined}
-              />
+              <>
+                <FieldDesignCheck
+                  fields={fields as FormFieldConfig[] | undefined}
+                />
+                <FieldChangeSummary
+                  originalFields={schemaToFields(
+                    editing.schemaJson,
+                    editing.uiSchemaJson,
+                    defaultFields,
+                  )}
+                  currentFields={fields as FormFieldConfig[] | undefined}
+                />
+              </>
             )}
           </ProFormDependency>
         ) : null}
@@ -2440,6 +2588,7 @@ const Forms: React.FC = () => {
                         search={false}
                         pagination={false}
                         options={false}
+                        scroll={{ x: 1120 }}
                         request={async () => {
                           if (!preview?.id) {
                             return { data: [], success: true };

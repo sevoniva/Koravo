@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   conditionFieldOptions,
   conditionValueOptions,
+  fieldChangeCount,
+  fieldChangeSummary,
   formBlockingReadinessIssues,
   formReadinessIssues,
 } from './index';
@@ -203,5 +205,61 @@ describe('formReadinessIssues', () => {
         text: '补充说明的显示条件值不在可选项内',
       },
     ]);
+  });
+
+  it('summarizes field changes for version comparison', () => {
+    const summary = fieldChangeSummary(
+      [
+        {
+          fieldKey: 'subject',
+          title: '事项名称',
+          type: 'string',
+          widget: 'input',
+          required: true,
+        },
+        {
+          fieldKey: 'remark',
+          title: '备注',
+          type: 'string',
+          widget: 'textarea',
+        },
+        {
+          fieldKey: 'internalCode',
+          title: '内部编号',
+          type: 'string',
+          widget: 'input',
+        },
+      ] as ReadinessField[],
+      [
+        {
+          fieldKey: 'subject',
+          title: '事项标题',
+          type: 'string',
+          widget: 'input',
+          required: true,
+        },
+        {
+          fieldKey: 'amount',
+          title: '金额',
+          type: 'number',
+          widget: 'number',
+        },
+        {
+          fieldKey: 'remark',
+          title: '备注',
+          type: 'string',
+          widget: 'textarea',
+        },
+      ] as ReadinessField[],
+    );
+
+    expect(summary.added.map((field) => field.fieldKey)).toEqual(['amount']);
+    expect(summary.removed.map((field) => field.fieldKey)).toEqual([
+      'internalCode',
+    ]);
+    expect(summary.changed.map((field) => field.fieldKey)).toEqual([
+      'subject',
+    ]);
+    expect(fieldChangeCount(summary)).toBe(3);
   });
 });
