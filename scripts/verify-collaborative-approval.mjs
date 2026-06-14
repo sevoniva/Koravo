@@ -59,6 +59,10 @@ async function main() {
   assertListEquals(completedTrace.variables?.approvalUsers, approverIds, "trusted approvers");
 
   const detail = await api(`/process-instances/${instance.instanceId}`, { token: applicant.token });
+  const formSnapshots = await api("/forms/snapshots", {
+    token: applicant.token,
+    query: { processInstanceId: instance.instanceId },
+  });
   const failedJobs = await jobsForInstance(operator, "/ops/failed-jobs", instance.instanceId);
   const deadLetterJobs = await jobsForInstance(operator, "/ops/dead-letter-jobs", instance.instanceId);
   const completedTasks = await Promise.all(
@@ -91,6 +95,7 @@ async function main() {
 
   assertEquals(completedTrace.currentTasks.length, 0, "remaining task count");
   assertEquals(detail.status, "COMPLETED", "instance status");
+  assertFormSnapshots(formSnapshots, formData, applicant, approverIds, completedTasks);
   assertEquals(failedJobs.length, 0, "failed job count");
   assertEquals(deadLetterJobs.length, 0, "dead-letter job count");
 
@@ -107,6 +112,7 @@ async function main() {
         applicant: completedTrace.variables.applicant,
         department: completedTrace.variables.department,
         approvers: approverIds,
+        formSnapshotCount: formSnapshots.length,
         completedTasks: completedTasks.map((task) => task.taskId),
         startAuditCount: startAuditLogs.length,
         taskAuditCount: taskAuditLogs.flat().length,
@@ -117,6 +123,41 @@ async function main() {
       2,
     ),
   );
+}
+
+function assertFormSnapshots(snapshots, formData, applicant, approverIds, completedTasks) {
+  assertEquals(snapshots.length, approverIds.length + 1, "form snapshot count");
+  const startSnapshot = snapshots.find((snapshot) => !snapshot.taskId);
+  if (!startSnapshot) {
+    throw new Error("missing start form snapshot");
+  }
+  const startData = parseSnapshotData(startSnapshot);
+  assertEquals(startData.subject, formData.subject, "start snapshot subject");
+  assertEquals(startData.applicant, applicant.name, "start snapshot applicant");
+  assertEquals(startData.department, applicant.department, "start snapshot department");
+  assertListEquals(startData.approvalUsers, approverIds, "start snapshot approvers");
+
+  const completedTaskIds = new Set(completedTasks.map((task) => task.taskId));
+  const taskSnapshots = snapshots.filter((snapshot) => snapshot.taskId);
+  assertEquals(taskSnapshots.length, approverIds.length, "approval snapshot count");
+  for (const snapshot of taskSnapshots) {
+    if (!completedTaskIds.has(snapshot.taskId)) {
+      throw new Error(`unexpected approval snapshot task ${snapshot.taskId}`);
+    }
+    const data = parseSnapshotData(snapshot);
+    assertEquals(data.decision, "APPROVED", `approval decision ${snapshot.taskId}`);
+    if (data.approved !== true) {
+      throw new Error(`approval snapshot ${snapshot.taskId} must keep approved=true`);
+    }
+  }
+}
+
+function parseSnapshotData(snapshot) {
+  try {
+    return JSON.parse(snapshot.dataJson || "{}");
+  } catch (error) {
+    throw new Error(`invalid snapshot data ${snapshot.id}: ${error.message}`);
+  }
 }
 
 async function login(userId, expectedRole) {

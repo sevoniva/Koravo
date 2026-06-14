@@ -49,7 +49,7 @@ node scripts/verify-collaborative-approval.mjs
 node scripts/verify-enterprise-approval.mjs
 ```
 
-The collaborative check uses the running backend API. It initializes the default workflow assets, starts `collaborativeApproval` as applicant, completes the parallel approvals as manager and finance, then checks process trace, completed tasks, failed jobs, and dead-letter jobs.
+The collaborative check uses the running backend API. It initializes the default workflow assets, starts `collaborativeApproval` as applicant, completes the parallel approvals as manager and finance, then checks trusted applicant data, form snapshots, process trace, completed tasks, audit records, failed jobs, and dead-letter jobs.
 
 The enterprise check logs in as admin, creates or updates 20 approver accounts across 10 departments, deploys the enterprise BPMN through `/api/v1/process-models/deploy`, starts `enterpriseApproval30` as applicant, completes all 34 tasks through assigned and candidate task APIs, then checks process trace, failed jobs, and dead-letter jobs.
 
@@ -76,7 +76,7 @@ The console workflow check is:
 8. Log in as `applicant`, open `发起流程`, and start `collaborativeApproval` with multiple `approvalUsers`.
 9. Open `我的申请` to confirm the applicant can see the flow diagram, current node, handlers, and status.
 10. Log in as each approver, complete parallel approval tasks from `我的待办` with form data and comments.
-11. Inspect task detail, instance detail, form snapshots, trace, and audit logs. Operators can use `运维中心` for failed jobs, dead-letter jobs, and runtime actions.
+11. Inspect task detail, instance detail, business data, form snapshots, trace, and audit logs. Operators can use `运维中心` for failed jobs, dead-letter jobs, and runtime actions.
 12. Use `数据源管理` to create, update, test, and inspect datasource test logs.
 
 ## Connector Operations Check
