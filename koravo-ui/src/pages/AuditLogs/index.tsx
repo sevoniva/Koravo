@@ -26,7 +26,7 @@ import {
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
 
-const actionOptions = {
+export const actionOptions = {
   AUTH_LOGIN: { text: '登录系统' },
   AUTH_LOGOUT: { text: '退出登录' },
   ACCESS_DENIED: { text: '拦截接口访问' },
@@ -34,7 +34,7 @@ const actionOptions = {
   PROCESS_MODEL_CREATE: { text: '创建流程模型' },
   PROCESS_MODEL_IMPORT: { text: '导入流程模型' },
   PROCESS_MODEL_UPDATE: { text: '更新流程模型' },
-  PROCESS_MODEL_DEPLOY: { text: '部署流程模型' },
+  PROCESS_MODEL_DEPLOY: { text: '发布流程模型' },
   PROCESS_MODEL_DISABLE: { text: '停用流程模型' },
   PROCESS_MODEL_ARCHIVE: { text: '归档流程模型' },
   PROCESS_INSTANCE_START: { text: '发起流程实例' },
@@ -67,6 +67,7 @@ const actionOptions = {
   DEAD_LETTER_JOB_RETRY: { text: '重试死信任务' },
   DEAD_LETTER_JOB_DELETE: { text: '删除死信任务' },
   CONNECTOR_EXECUTE: { text: '执行连接器' },
+  CONNECTOR_RETRY: { text: '重试连接器' },
 };
 
 const resourceOptions = {
