@@ -64,6 +64,7 @@ export type BindingCompletionAction =
   | 'deploy'
   | 'bindStart'
   | 'bindTask'
+  | 'syncVersion'
   | 'start'
   | 'review'
   | 'none';
@@ -80,6 +81,7 @@ type BindingTableItem = FormBindingItem & {
 export interface ProcessBindingReadiness {
   hasStartBinding: boolean;
   missingTaskNames: string[];
+  outdatedBindingCount: number;
   readyToStart: boolean;
 }
 
@@ -214,6 +216,7 @@ export function buildBindingReadiness(
       .filter((schema) => schema.status === 'ACTIVE')
       .map((schema) => schema.id),
   );
+  const schemaMap = new Map(schemas.map((schema) => [schema.id, schema]));
   const modelBindings = bindings.filter((binding) =>
     bindingTargetsModel(binding, model),
   );
@@ -228,6 +231,13 @@ export function buildBindingReadiness(
       .filter((binding) => activeSchemaIds.has(binding.formSchemaId))
       .map((binding) => binding.taskDefinitionKey),
   );
+  const outdatedBindingCount = modelBindings.filter((binding) => {
+    const schema = schemaMap.get(binding.formSchemaId);
+    return (
+      schema?.status === 'ACTIVE' &&
+      binding.formSchemaVersion !== schema.version
+    );
+  }).length;
   const missingTaskNames = tasks
     .filter((task) => !boundTaskKeys.has(task.taskDefinitionKey))
     .map((task) => taskDefinitionLabel(task.taskDefinitionKey, task));
@@ -238,7 +248,12 @@ export function buildBindingReadiness(
   return {
     hasStartBinding,
     missingTaskNames,
-    readyToStart: published && hasStartBinding && missingTaskNames.length === 0,
+    outdatedBindingCount,
+    readyToStart:
+      published &&
+      hasStartBinding &&
+      missingTaskNames.length === 0 &&
+      outdatedBindingCount === 0,
   };
 }
 
@@ -313,6 +328,17 @@ export function resolveBindingCompletionState(
       nextAction: 'bindTask',
       description: `下一步：补 ${readiness.missingTaskNames.length} 个任务表单`,
       primaryText: '继续绑定',
+      primaryPath: bindingPath,
+      secondaryText: '查看配置',
+      secondaryPath: '/process-models',
+    };
+  }
+
+  if (readiness.outdatedBindingCount > 0) {
+    return {
+      nextAction: 'syncVersion',
+      description: `下一步：同步 ${readiness.outdatedBindingCount} 个表单版本`,
+      primaryText: '同步版本',
       primaryPath: bindingPath,
       secondaryText: '查看配置',
       secondaryPath: '/process-models',

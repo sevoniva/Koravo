@@ -143,6 +143,7 @@ export function resolveModelNextAction(
   record: ProcessModelItem,
   hasStartBinding: boolean,
   missingTaskKeys: string[],
+  outdatedBindingCount: number,
   deployReady: boolean,
   canStart: boolean,
 ): Pick<
@@ -190,6 +191,13 @@ export function resolveModelNextAction(
       nextAction: 'bind',
       nextActionText: '绑定任务表单',
       nextActionDescription: `剩 ${missingTaskKeys.length} 个节点`,
+    };
+  }
+  if (outdatedBindingCount > 0) {
+    return {
+      nextAction: 'bind',
+      nextActionText: '同步表单版本',
+      nextActionDescription: `待同步 ${outdatedBindingCount} 个`,
     };
   }
   if (canStart) {
@@ -253,7 +261,8 @@ export function buildModelReadiness(
   const bindingReady =
     hasStartBinding &&
     missingTaskKeys.length === 0 &&
-    invalidBindingCount === 0;
+    invalidBindingCount === 0 &&
+    outdatedBindingCount === 0;
   const deployReady = Boolean(record.bpmnXml);
   const canStart = record.status === 'DEPLOYED' && bindingReady;
   let statusText = '待配置';
@@ -262,6 +271,7 @@ export function buildModelReadiness(
     record,
     hasStartBinding,
     missingTaskKeys,
+    outdatedBindingCount,
     deployReady,
     canStart,
   );
@@ -283,6 +293,9 @@ export function buildModelReadiness(
   } else if (invalidBindingCount > 0) {
     statusText = '待配置';
     description = `有 ${invalidBindingCount} 个表单绑定失效`;
+  } else if (outdatedBindingCount > 0) {
+    statusText = '待同步';
+    description = `有 ${outdatedBindingCount} 个绑定版本待同步`;
   } else if (!hasStartBinding) {
     statusText = '待配置';
     description = '缺少发起表单';
@@ -310,7 +323,12 @@ export function buildModelReadiness(
 
 function readinessBadgeStatus(statusText: string) {
   if (statusText === '可发起') return 'success';
-  if (statusText === '待配置' || statusText === '草稿') return 'warning';
+  if (
+    statusText === '待配置' ||
+    statusText === '待同步' ||
+    statusText === '草稿'
+  )
+    return 'warning';
   return 'default';
 }
 
@@ -364,6 +382,7 @@ function renderReadinessSteps(record: ProcessModelTableItem) {
   const bindingBlocked =
     published &&
     (readiness.invalidBindingCount > 0 ||
+      readiness.outdatedBindingCount > 0 ||
       readiness.missingTaskKeys.length > 0 ||
       !readiness.hasStartBinding);
   const current = published

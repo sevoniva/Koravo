@@ -112,4 +112,29 @@ describe('ProcessModels readiness', () => {
     expect(readiness.canStart).toBe(true);
     expect(readiness.nextAction).toBe('start');
   });
+
+  it('routes outdated form bindings back to version sync before start', () => {
+    const readiness = buildModelReadiness(
+      model({
+        status: 'DEPLOYED',
+        flowableDefinitionId: 'collaborativeApproval:1:pd',
+      }),
+      [
+        binding({ taskDefinitionKey: '__START__', processModelId: 'model-1' }),
+        binding({
+          taskDefinitionKey: 'jointApprovalTask',
+          processModelId: 'model-1',
+        }),
+      ],
+      [task],
+      [schema({ version: 2 })],
+    );
+
+    expect(readiness.outdatedBindingCount).toBe(2);
+    expect(readiness.bindingReady).toBe(false);
+    expect(readiness.canStart).toBe(false);
+    expect(readiness.statusText).toBe('待同步');
+    expect(readiness.nextAction).toBe('bind');
+    expect(readiness.nextActionText).toBe('同步表单版本');
+  });
 });

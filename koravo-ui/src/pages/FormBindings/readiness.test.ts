@@ -133,4 +133,33 @@ describe('FormBindings readiness', () => {
       '/process-start?processModelId=model-1',
     );
   });
+
+  it('routes outdated bindings to version sync before start', () => {
+    const published = model({
+      status: 'DEPLOYED',
+      flowableDefinitionId: 'collaborativeApproval:1:pd',
+    });
+    const readiness = buildBindingReadiness(
+      published,
+      [
+        binding({ taskDefinitionKey: '__START__' }),
+        binding({ taskDefinitionKey: 'jointApprovalTask' }),
+      ],
+      [schema({ version: 2 })],
+      [task],
+    );
+    const completion = resolveBindingCompletionState(
+      published,
+      readiness,
+      true,
+    );
+
+    expect(readiness.outdatedBindingCount).toBe(2);
+    expect(readiness.readyToStart).toBe(false);
+    expect(completion.nextAction).toBe('syncVersion');
+    expect(completion.primaryText).toBe('同步版本');
+    expect(completion.primaryPath).toBe(
+      '/form-bindings?processModelId=model-1',
+    );
+  });
 });
