@@ -399,7 +399,7 @@ function buildColumns(
     {
       title: '业务对象',
       dataIndex: 'businessKey',
-      width: 180,
+      width: 220,
       render: (_, record) => (
         <CopyableText
           value={record.businessKey || record.instanceId}
@@ -414,20 +414,9 @@ function buildColumns(
     {
       title: '流程',
       dataIndex: 'processDefinitionId',
+      width: 220,
       ellipsis: true,
       renderText: (value) => processDefinitionLabel(value),
-    },
-    {
-      title: '实例追踪',
-      dataIndex: 'instanceId',
-      width: 140,
-      search: false,
-      render: (_, record) => (
-        <CopyableText
-          value={record.instanceId}
-          displayValue={shortTraceLabel(record.instanceId)}
-        />
-      ),
     },
     {
       title: '发起人',
@@ -949,7 +938,7 @@ const ProcessInstances: React.FC = () => {
         rowKey="instanceId"
         columns={columns}
         search={{ labelWidth: 'auto', defaultCollapsed: false }}
-        scroll={{ x: 1120 }}
+        scroll={{ x: 1000 }}
         request={async (params) => {
           const keyword = String(
             params.instanceId ||

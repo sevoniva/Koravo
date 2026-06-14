@@ -104,12 +104,13 @@ function buildTaskColumns(
     {
       title: '任务名称',
       dataIndex: 'name',
+      width: 180,
       renderText: (_, record) => taskNameLabel(record),
     },
     {
       title: '业务对象',
       dataIndex: 'businessKey',
-      width: 180,
+      width: 220,
       render: (_, record) => (
         <CopyableText
           value={record.businessKey || record.processInstanceId}
@@ -120,6 +121,7 @@ function buildTaskColumns(
     {
       title: '流程',
       dataIndex: 'processDefinitionId',
+      width: 220,
       ellipsis: true,
       search: false,
       renderText: (value) => processDefinitionLabel(value),
@@ -195,7 +197,7 @@ function buildInstanceColumns(
     {
       title: '业务对象',
       dataIndex: 'businessKey',
-      width: 180,
+      width: 220,
       render: (_, record) => (
         <CopyableText
           value={record.businessKey || record.instanceId}
@@ -206,20 +208,9 @@ function buildInstanceColumns(
     {
       title: '流程',
       dataIndex: 'processDefinitionId',
+      width: 220,
       ellipsis: true,
       renderText: (value) => processDefinitionLabel(value),
-    },
-    {
-      title: '实例追踪',
-      dataIndex: 'instanceId',
-      width: 140,
-      search: false,
-      render: (_, record) => (
-        <CopyableText
-          value={record.instanceId}
-          displayValue={shortTraceLabel(record.instanceId)}
-        />
-      ),
     },
     {
       title: '发起人',
@@ -482,7 +473,7 @@ const Tasks: React.FC = () => {
                 rowKey="taskId"
                 columns={taskColumns}
                 search={{ labelWidth: 'auto' }}
-                scroll={{ x: 1100 }}
+                scroll={{ x: 1040 }}
                 locale={{
                   emptyText: taskEmpty(
                     '暂无你的待办任务',
@@ -523,7 +514,7 @@ const Tasks: React.FC = () => {
                       rowKey="taskId"
                       columns={candidateColumns}
                       search={{ labelWidth: 'auto' }}
-                      scroll={{ x: 1100 }}
+                      scroll={{ x: 1040 }}
                       locale={{
                         emptyText: taskEmpty(
                           '暂无可认领任务',
@@ -561,7 +552,7 @@ const Tasks: React.FC = () => {
                 rowKey="taskId"
                 columns={taskColumns}
                 search={{ labelWidth: 'auto' }}
-                scroll={{ x: 1100 }}
+                scroll={{ x: 1040 }}
                 locale={{
                   emptyText: taskEmpty(
                     '暂无你的已办记录',
@@ -588,7 +579,7 @@ const Tasks: React.FC = () => {
                 rowKey="instanceId"
                 columns={instanceColumns}
                 search={{ labelWidth: 'auto' }}
-                scroll={{ x: 1100 }}
+                scroll={{ x: 1000 }}
                 locale={{
                   emptyText: taskEmpty(
                     '暂无申请记录',
