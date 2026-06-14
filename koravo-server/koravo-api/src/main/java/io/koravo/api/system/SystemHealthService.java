@@ -33,7 +33,7 @@ public class SystemHealthService {
                 "minio",
                 "MinIO",
                 "NOT_CONFIGURED",
-                "v0.1 未接入对象存储健康探测"
+                "对象存储健康探测暂未启用"
         ));
         boolean up = dependencies.stream().noneMatch(item -> "DOWN".equals(item.status()));
         return new SystemHealthResponse(
