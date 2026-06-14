@@ -323,6 +323,9 @@ class WorkflowEnablementServiceTest {
         assertThat(response.audit().count()).isEqualTo(3);
         assertThat(response.defaultStartVariables()).containsEntry("subject", "业务事项申请");
         assertThat(response.defaultStartVariables()).doesNotContainKeys("applicant", "department");
+        assertThat(response.defaultStartVariables()).doesNotContainKey("amount");
+        assertThat(response.defaultStartVariables()).containsEntry("businessDescription", "");
+        assertThat(response.defaultStartVariables()).containsEntry("expectedResult", "");
         assertThat(response.defaultStartVariables()).containsEntry("approvalUsers", List.of("manager", "finance"));
         verify(processFacade, never()).deploy(any());
     }
