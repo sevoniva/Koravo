@@ -274,8 +274,8 @@ const StartApprovalSummary: React.FC<{ fields: StartFormField[] }> = ({
         return (
           <Alert
             showIcon
-            type="info"
-            title={users.length > 1 ? `并行审批 ${users.length} 人` : '审批人'}
+            type="success"
+            title={users.length > 1 ? `会签待办 ${users.length}` : '审批人'}
             description={
               <Space size={[0, 6]} wrap>
                 {users.map((userId) => (
@@ -368,7 +368,11 @@ const ProcessStartReadiness: React.FC<{
         </Tag>
       </Flex>
       {workflow.bpmnXml ? (
-        <ProcessDiagramViewer bpmnXml={workflow.bpmnXml} height={260} />
+        <ProcessDiagramViewer
+          bpmnXml={workflow.bpmnXml}
+          currentActivityIds={['start']}
+          height={260}
+        />
       ) : (
         <Empty description="暂无流程图" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       )}
