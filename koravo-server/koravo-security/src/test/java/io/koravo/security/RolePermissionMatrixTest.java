@@ -11,6 +11,7 @@ class RolePermissionMatrixTest {
         var manager = RolePermissionMatrix.capabilitiesForRole(UserContextHolder.ROLE_MANAGER);
         var admin = RolePermissionMatrix.capabilitiesForRole(UserContextHolder.ROLE_ADMIN);
         var operator = RolePermissionMatrix.capabilitiesForRole(UserContextHolder.ROLE_OPERATOR);
+        var anonymous = RolePermissionMatrix.capabilitiesForRole(UserContextHolder.ROLE_ANONYMOUS);
 
         assertThat(applicant)
                 .containsEntry("canViewProcessContext", true)
@@ -36,6 +37,7 @@ class RolePermissionMatrixTest {
                 .containsEntry("canViewAudit", true)
                 .containsEntry("canOperateSystem", true)
                 .containsEntry("canConfigureWorkflow", false);
+        assertThat(anonymous).allSatisfy((key, value) -> assertThat(value).as(key).isFalse());
     }
 
     @Test

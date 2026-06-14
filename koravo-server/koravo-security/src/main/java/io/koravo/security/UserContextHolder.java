@@ -2,6 +2,7 @@ package io.koravo.security;
 
 public final class UserContextHolder {
     public static final String ANONYMOUS = "anonymous";
+    public static final String ROLE_ANONYMOUS = "anonymous";
     public static final String ROLE_ADMIN = "admin";
     public static final String ROLE_APPLICANT = "applicant";
     public static final String ROLE_MANAGER = "manager";
@@ -29,7 +30,7 @@ public final class UserContextHolder {
 
     public static String getRole() {
         UserContext context = CONTEXT.get();
-        return context == null ? ROLE_APPLICANT : context.role();
+        return context == null ? ROLE_ANONYMOUS : context.role();
     }
 
     public static boolean hasRole(String... roles) {
@@ -51,12 +52,15 @@ public final class UserContextHolder {
             return defaultRole(userId);
         }
         return switch (role.trim()) {
-            case ROLE_ADMIN, ROLE_APPLICANT, ROLE_MANAGER, ROLE_FINANCE, ROLE_OPERATOR -> role.trim();
+            case ROLE_ANONYMOUS, ROLE_ADMIN, ROLE_APPLICANT, ROLE_MANAGER, ROLE_FINANCE, ROLE_OPERATOR -> role.trim();
             default -> defaultRole(userId);
         };
     }
 
     private static String defaultRole(String userId) {
+        if (ANONYMOUS.equals(userId)) {
+            return ROLE_ANONYMOUS;
+        }
         if (ROLE_ADMIN.equals(userId)) {
             return ROLE_ADMIN;
         }
