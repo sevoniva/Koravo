@@ -35,6 +35,7 @@ describe('display helpers', () => {
     expect(processModelKeyLabel('purchaseApproval')).toBe('历史流程资产');
     expect(processModelKeyLabel('httpConnectorDemo')).toBe('历史流程资产');
     expect(processModelKeyLabel('designerDeployCheck')).toBe('历史流程资产');
+    expect(processModelKeyLabel('businessFlowmqd9g4uk')).toBe('业务流程');
     expect(formSchemaKeyLabel('leave-form')).toBe('历史表单资产');
   });
 

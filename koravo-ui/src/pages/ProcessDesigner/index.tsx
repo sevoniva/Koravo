@@ -46,6 +46,8 @@ import {
   deployProcessModelDraft,
   getProcessModel,
   importProcessModel,
+  type FormSchemaItem,
+  listFormSchemas,
   listFormBindings,
   listProcessModels,
   listProcessModelTaskDefinitions,
@@ -62,6 +64,7 @@ import {
 import { getSessionContext } from '@/services/koravo/session';
 import {
   bpmnValidationIssueText,
+  formSchemaOptionLabel,
   isBusinessProcessModel,
   processDisplayName,
   processModelKeyLabel,
@@ -212,6 +215,32 @@ function isServiceTask(element?: BpmnSelectedElement) {
   return element?.elementType === 'bpmn:ServiceTask';
 }
 
+function bpmnElementTypeLabel(type?: string) {
+  const mapping: Record<string, string> = {
+    'bpmn:StartEvent': '开始节点',
+    'bpmn:UserTask': '人工节点',
+    'bpmn:ServiceTask': '自动节点',
+    'bpmn:EndEvent': '结束节点',
+    'bpmn:ExclusiveGateway': '条件分支',
+    'bpmn:ParallelGateway': '并行分支',
+  };
+  return mapping[type || ''] || '流程节点';
+}
+
+function formOptions(forms?: FormSchemaItem[]) {
+  return (forms || [])
+    .filter((form) => form.status === 'ACTIVE')
+    .map((form) => ({
+      label: formSchemaOptionLabel(form),
+      value: form.formKey,
+    }));
+}
+
+function modelSecondaryText(model?: ProcessModelItem) {
+  if (!model) return '未保存草稿';
+  return `流程标识：${processModelKeyLabel(model.modelKey)}`;
+}
+
 function modelBindings(
   model: ProcessModelItem,
   bindings: FormBindingItem[],
@@ -285,6 +314,10 @@ const ProcessDesigner: React.FC = () => {
     queryKey: ['designer-models'],
     queryFn: () => listProcessModels(),
   });
+  const { data: forms, isLoading: formsLoading } = useQuery({
+    queryKey: ['designer-form-schemas'],
+    queryFn: () => listFormSchemas(),
+  });
   const { data: selected, refetch } = useQuery({
     queryKey: ['designer-model', selectedId],
     queryFn: () => getProcessModel(selectedId || ''),
@@ -297,6 +330,7 @@ const ProcessDesigner: React.FC = () => {
       : models || [];
   const handlerOptions = organizationHandlerOptions();
   const candidateGroupOptions = organizationGroupOptions();
+  const activeFormOptions = formOptions(forms);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -609,7 +643,7 @@ const ProcessDesigner: React.FC = () => {
               </Flex>
               <Flex align="center" justify="space-between" gap={8}>
                 <Typography.Text ellipsis className={styles.modelMeta}>
-                  {processModelKeyLabel(item.modelKey)}
+                  {modelSecondaryText(item)}
                 </Typography.Text>
                 <Typography.Text className={styles.modelMeta}>
                   {formatDateTime(item.updatedAt)}
@@ -649,8 +683,23 @@ const ProcessDesigner: React.FC = () => {
           column={1}
           dataSource={selectedElement}
           columns={[
-            { title: '节点 ID', dataIndex: 'elementId', copyable: true },
-            { title: '节点类型', dataIndex: 'elementType' },
+            {
+              title: '节点',
+              dataIndex: 'elementId',
+              render: (_, record) => (
+                <CopyableText
+                  value={record.elementId}
+                  displayValue={taskDefinitionLabel(record.elementId, {
+                    name: record.name,
+                  })}
+                />
+              ),
+            },
+            {
+              title: '类型',
+              dataIndex: 'elementType',
+              renderText: bpmnElementTypeLabel,
+            },
           ]}
           className={styles.meta}
         />
@@ -677,7 +726,7 @@ const ProcessDesigner: React.FC = () => {
             />
             <ProFormSelect
               name="candidateGroups"
-              label="候选组"
+              label="候选角色"
               options={candidateGroupOptions}
               fieldProps={{
                 allowClear: true,
@@ -687,7 +736,20 @@ const ProcessDesigner: React.FC = () => {
                 optionFilterProp: 'label',
               }}
             />
-            <ProFormText name="formKey" label="表单标识" />
+            <ProFormSelect
+              name="formKey"
+              label="绑定表单"
+              options={activeFormOptions}
+              placeholder={
+                activeFormOptions.length ? '选择表单' : '暂无可绑定表单'
+              }
+              fieldProps={{
+                allowClear: true,
+                loading: formsLoading,
+                showSearch: true,
+                optionFilterProp: 'label',
+              }}
+            />
           </>
         )}
         {isServiceTask(selectedElement) && (
@@ -719,7 +781,7 @@ const ProcessDesigner: React.FC = () => {
       { key: 'new', icon: <FileAddOutlined />, label: '新建模型' },
       { type: 'divider' },
       { key: 'export', icon: <DownloadOutlined />, label: '导出流程文件' },
-      { key: 'xml', icon: <CodeOutlined />, label: '查看源文件' },
+      { key: 'xml', icon: <CodeOutlined />, label: '查看流程文件' },
     ],
     onClick: ({ key }) => {
       if (key === 'new') handleNewModel();
@@ -793,9 +855,7 @@ const ProcessDesigner: React.FC = () => {
                   : modelForm.modelName}
               </Typography.Text>
               <Typography.Text type="secondary">
-                {processModelKeyLabel(
-                  activeModel?.modelKey || draftModelKeyRef.current,
-                )}
+                {modelSecondaryText(activeModel)}
               </Typography.Text>
             </Flex>
           </Flex>
@@ -947,7 +1007,7 @@ const ProcessDesigner: React.FC = () => {
       </KoravoDrawer>
 
       <KoravoDrawer
-        title="流程源文件"
+        title="流程文件"
         open={xmlDrawerOpen}
         size={720}
         resizable

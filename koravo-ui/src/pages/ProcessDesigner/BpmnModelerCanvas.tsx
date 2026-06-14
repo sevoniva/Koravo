@@ -412,7 +412,7 @@ export const BpmnModelerCanvas = forwardRef<
           <Result
             status="warning"
             title="流程图无法加载"
-            subTitle="当前流程文件不能渲染为流程图。可以切换模型、查看源文件，或修正后重新加载。"
+            subTitle="当前流程文件不能渲染为流程图。可以切换模型、查看流程文件，或修正后重新加载。"
             extra={
               <Button type="primary" onClick={retryImport}>
                 重新加载

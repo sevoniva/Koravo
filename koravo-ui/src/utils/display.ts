@@ -387,6 +387,7 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
 export function processModelKeyLabel(modelKey?: string | null) {
   if (!modelKey) return '-';
   if (LEGACY_PROCESS_KEYS.has(modelKey)) return '历史流程资产';
+  if (/^businessFlow[a-z0-9]+$/i.test(modelKey)) return '业务流程';
   return modelKey;
 }
 
