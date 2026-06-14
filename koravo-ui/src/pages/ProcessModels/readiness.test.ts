@@ -9,6 +9,7 @@ import {
   aggregateProcessModelVersions,
   buildModelReadiness,
   compareProcessModelVersionsDesc,
+  selectProcessModelVersionForStatus,
 } from './index';
 
 vi.mock('@ant-design/pro-components', () => ({
@@ -194,5 +195,34 @@ describe('ProcessModels version aggregation', () => {
     expect([older, newer].sort(compareProcessModelVersionsDesc)[0].id).toBe(
       'new',
     );
+  });
+
+  it('keeps full history when status filters select an older version', () => {
+    const [group] = aggregateProcessModelVersions([
+      model({
+        id: 'approval-v3',
+        modelKey: 'approval',
+        version: 3,
+        status: 'DRAFT',
+        updatedAt: '2026-01-03T00:00:00Z',
+      }),
+      model({
+        id: 'approval-v2',
+        modelKey: 'approval',
+        version: 2,
+        status: 'DEPLOYED',
+        updatedAt: '2026-01-02T00:00:00Z',
+      }),
+    ]);
+
+    const selected = selectProcessModelVersionForStatus(group, 'DEPLOYED');
+
+    expect(selected.id).toBe('approval-v2');
+    expect(selected.latestVersion).toBe(3);
+    expect(selected.versionCount).toBe(2);
+    expect(selected.versions.map((item) => item.id)).toEqual([
+      'approval-v3',
+      'approval-v2',
+    ]);
   });
 });
