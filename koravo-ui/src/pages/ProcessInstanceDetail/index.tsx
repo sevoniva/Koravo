@@ -8,8 +8,8 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
-import { history, useParams } from '@umijs/max';
-import { App, Badge, Button, Empty, Flex, Space, Tag, Typography } from 'antd';
+import { history, useLocation, useParams } from '@umijs/max';
+import { Alert, App, Badge, Button, Empty, Flex, Space, Tag, Typography } from 'antd';
 import React from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
@@ -48,6 +48,10 @@ import {
   type ProcessTraceNodeRow,
   withProcessTraceRowKeys,
 } from '@/utils/processTraceRows';
+import {
+  isStartSuccessRedirect,
+  startSuccessDescription,
+} from '@/utils/processStartNotice';
 
 function snapshotData(record: FormSnapshotItem) {
   return parseJsonSafe(record.dataJson, {}) as Record<string, unknown>;
@@ -278,7 +282,9 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
 
 const ProcessInstanceDetail: React.FC = () => {
   const params = useParams();
+  const location = useLocation();
   const instanceId = params.instanceId || '';
+  const startedFromCreate = isStartSuccessRedirect(location.search);
   const session = getSessionContext();
   const canOperateInstance =
     session.permissions?.canOperateSystem ?? session.role === 'operator';
@@ -491,6 +497,20 @@ const ProcessInstanceDetail: React.FC = () => {
         </Space>
       }
     >
+      {startedFromCreate ? (
+        <Alert
+          showIcon
+          type="success"
+          title="已发起"
+          description={startSuccessDescription(currentTasks)}
+          action={
+            <Button size="small" onClick={() => history.push('/started-instances')}>
+              我的申请
+            </Button>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
       <ProCard loading={isLoading} style={{ marginBottom: 16 }}>
         <ProDescriptions
           column={{ xs: 1, sm: 1, md: 2 }}

@@ -74,6 +74,7 @@ import {
   workflowFieldRules,
   workflowNumberFieldProps,
 } from '@/utils/workflowForm';
+import { processInstanceDetailPath } from '@/utils/processStartNotice';
 
 interface StartInstanceForm {
   processDefinitionKey: string;
@@ -917,7 +918,11 @@ const ProcessInstances: React.FC = () => {
                 formData,
               });
               message.success('已发起');
-              history.push(`/process-instances/${instance.instanceId}`);
+              history.push(
+                processInstanceDetailPath(instance.instanceId, {
+                  started: true,
+                }),
+              );
               return true;
             }}
           >
