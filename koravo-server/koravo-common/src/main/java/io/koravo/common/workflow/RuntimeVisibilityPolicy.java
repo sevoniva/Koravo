@@ -20,6 +20,8 @@ public final class RuntimeVisibilityPolicy {
             "COMPLETE-%",
             "HTTP-%",
             "REQ-CODEX-%",
+            "REQ-E2E-%",
+            "COLLABORATIVE-APPROVAL-%",
             "COLLAB-VERIFY-%",
             "COLLAB-SINGLE-%",
             "UI-CONTEXT-%"

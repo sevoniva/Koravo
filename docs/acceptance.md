@@ -60,7 +60,7 @@ After verification runs, reset the trial surface:
 node scripts/cleanup-verification-assets.mjs
 ```
 
-The cleanup script classifies historical verification models as `TEST_FIXTURE`, archives them, and reinitializes the default collaborative workflow assets. Product task and ops lists hide verification business keys by default; verification scripts pass `includeNonProduction=true` when they need to inspect their own runtime records.
+The cleanup script classifies historical verification models as `TEST_FIXTURE`, archives them, reinitializes the default collaborative workflow assets, and checks the default trial lists. Product task and ops lists hide verification business keys such as `EA-*`, `REQ-E2E-*`, `COLLAB-VERIFY-*`, `COLLABORATIVE-APPROVAL-*`, and `UI-CONTEXT-*`; verification scripts pass `includeNonProduction=true` when they need to inspect their own runtime records.
 
 Useful environment overrides:
 

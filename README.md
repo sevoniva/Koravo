@@ -147,7 +147,7 @@ Reset the local trial surface after acceptance runs:
 node scripts/cleanup-verification-assets.mjs
 ```
 
-The script keeps the default organization, collaborative workflow, business request form, bindings, and audit trail available while moving verification-only process models out of the default product lists.
+The script keeps the default organization, collaborative workflow, business request form, bindings, and audit trail available while moving verification-only process models out of the default product lists. It also checks that verification runtime records are hidden from the default task and ops views.
 
 ## Run Frontend
 
