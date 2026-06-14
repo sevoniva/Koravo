@@ -16,6 +16,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { history, useParams } from '@umijs/max';
 import {
+  Alert,
   App,
   Badge,
   Button,
@@ -72,7 +73,11 @@ import {
   taskNameLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
-import { taskActionAccess, taskHandlingInstruction } from '@/utils/taskAccess';
+import {
+  taskActionAccess,
+  taskHandlingSummary,
+  type TaskHandlingState,
+} from '@/utils/taskAccess';
 import {
   filterWorkflowFormValues,
   isWorkflowFieldVisible,
@@ -223,6 +228,32 @@ function taskStatusLabel(status?: string) {
   return status || '-';
 }
 
+const taskHandlingBadgeStatus: Record<
+  TaskHandlingState,
+  'success' | 'processing' | 'default' | 'error' | 'warning'
+> = {
+  loading: 'default',
+  done: 'success',
+  ready: 'processing',
+  blocked: 'warning',
+  claimable: 'warning',
+  unassigned: 'default',
+  waiting: 'default',
+};
+
+const taskHandlingAlertType: Record<
+  TaskHandlingState,
+  'success' | 'info' | 'warning' | 'error'
+> = {
+  loading: 'info',
+  done: 'success',
+  ready: 'info',
+  blocked: 'warning',
+  claimable: 'warning',
+  unassigned: 'info',
+  waiting: 'info',
+};
+
 function taskActionVerb(action?: string) {
   const normalized = String(action || '').toUpperCase();
   const mapping: Record<string, string> = {
@@ -262,19 +293,20 @@ function taskStepItems(
   task: TaskItem | undefined,
   hasForm?: boolean,
   currentUserId?: string,
+  canClaimTask?: boolean,
 ) {
   const isDone = task?.status === 'COMPLETED';
   const hasAssignee = Boolean(task?.assignee);
   const canHandle = Boolean(
     hasAssignee && task?.assignee && task.assignee === currentUserId,
   );
-  const handleText = canHandle
-    ? hasForm
-      ? '填写表单'
-      : '缺少表单'
-    : hasAssignee
-      ? '等待处理人'
-      : '等待认领';
+  const summary = taskHandlingSummary({
+    task,
+    currentUserId,
+    hasForm,
+    canClaimTask,
+  });
+  const handleText = isDone ? '已提交' : summary.requirement;
   return [
     {
       title: hasAssignee ? '已分配' : '待认领',
@@ -323,50 +355,69 @@ const TaskHandlingContext: React.FC<{
   task?: TaskItem;
   hasForm?: boolean;
   currentUserId?: string;
+  canClaimTask?: boolean;
   logs?: AuditLogItem[];
-}> = ({ task, hasForm, currentUserId, logs }) => {
+}> = ({ task, hasForm, currentUserId, canClaimTask, logs }) => {
   const isDone = task?.status === 'COMPLETED';
   const hasAssignee = Boolean(task?.assignee);
-  const nextInstruction = taskHandlingInstruction({
+  const summary = taskHandlingSummary({
     task,
     currentUserId,
     hasForm,
+    canClaimTask,
   });
   return (
     <ProCard
-      title="办理"
+      title="当前任务"
       extra={
         <Badge
-          status={isDone ? 'success' : hasForm ? 'processing' : 'warning'}
-          text={nextInstruction}
+          status={taskHandlingBadgeStatus[summary.state]}
+          text={summary.instruction}
         />
       }
       style={{ marginBottom: 16 }}
     >
       <Flex vertical gap={14}>
+        <Alert
+          type={taskHandlingAlertType[summary.state]}
+          showIcon
+          title={
+            <Space size={8} wrap>
+              <Typography.Text strong>{summary.instruction}</Typography.Text>
+              <Tag color={taskHandlingBadgeStatus[summary.state]}>
+                {summary.assigneeText}
+              </Tag>
+            </Space>
+          }
+          description={summary.requirement}
+        />
         <ProDescriptions
           size="small"
           column={{ xs: 1, sm: 2, md: 4 }}
           dataSource={{
             node: taskDefinitionLabel(task?.taskDefinitionKey),
-            assignee: task?.assignee
-              ? organizationMemberName(task.assignee)
-              : '未分配',
-            status: taskStatusLabel(task?.status),
-            next: nextInstruction,
+            assignee: summary.assigneeText,
+            requirement: summary.requirement,
+            next: summary.nextStep,
           }}
           columns={[
             { title: '当前节点', dataIndex: 'node' },
             { title: '处理人', dataIndex: 'assignee' },
-            { title: '状态', dataIndex: 'status' },
-            { title: '下一步', dataIndex: 'next' },
+            { title: '办理要求', dataIndex: 'requirement' },
+            { title: '后续去向', dataIndex: 'next' },
           ]}
         />
         <Steps
           size="small"
           current={isDone ? 2 : hasAssignee ? 1 : 0}
-          status={hasForm || isDone ? 'process' : 'wait'}
-          items={taskStepItems(task, hasForm, currentUserId)}
+          status={
+            summary.state === 'blocked'
+              ? 'error'
+              : hasForm || isDone || summary.state === 'claimable'
+                ? 'process'
+                : 'wait'
+          }
+          items={taskStepItems(task, hasForm, currentUserId, canClaimTask)}
         />
         <TaskActionTimeline logs={logs} />
       </Flex>
@@ -1027,6 +1078,7 @@ const TaskDetail: React.FC = () => {
         task={task}
         hasForm={Boolean(data?.formSchema)}
         currentUserId={session.userId}
+        canClaimTask={canClaimDetailTask}
         logs={data?.auditLogs}
       />
       {task && instance?.currentTasks

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { taskActionAccess, taskHandlingInstruction } from './taskAccess';
+import {
+  taskActionAccess,
+  taskHandlingInstruction,
+  taskHandlingSummary,
+} from './taskAccess';
 
 describe('taskActionAccess', () => {
   it('allows only the current assignee to complete and manage an assigned task', () => {
@@ -61,7 +65,7 @@ describe('taskActionAccess', () => {
         currentUserId: 'manager',
         hasForm: true,
       }),
-    ).toBe('填写意见并提交');
+    ).toBe('待你办理');
 
     expect(
       taskHandlingInstruction({
@@ -78,5 +82,44 @@ describe('taskActionAccess', () => {
         hasForm: true,
       }),
     ).toBe('待认领');
+  });
+
+  it('summarizes the action state needed by the task detail page', () => {
+    expect(
+      taskHandlingSummary({
+        task: { status: 'RUNNING', assignee: 'manager' },
+        currentUserId: 'manager',
+        hasForm: true,
+      }),
+    ).toMatchObject({
+      state: 'ready',
+      assigneeText: '你',
+      requirement: '填写表单并提交',
+      nextStep: '提交后进入下一节点',
+    });
+
+    expect(
+      taskHandlingSummary({
+        task: { status: 'RUNNING', assignee: 'manager' },
+        currentUserId: 'manager',
+        hasForm: false,
+      }),
+    ).toMatchObject({
+      state: 'blocked',
+      instruction: '表单未配置',
+      requirement: '联系管理员配置表单',
+    });
+
+    expect(
+      taskHandlingSummary({
+        task: { status: 'RUNNING', assignee: '' },
+        currentUserId: 'manager',
+        canClaimTask: true,
+      }),
+    ).toMatchObject({
+      state: 'claimable',
+      instruction: '可认领',
+      nextStep: '认领后办理',
+    });
   });
 });
