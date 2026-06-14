@@ -29,12 +29,15 @@ import ProcessContextSummary from '@/components/ProcessContextSummary';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
+  type ConnectorExecutionLogItem,
   deleteDeadLetterJob,
   deleteFailedJob,
+  getConnectorExecutionLog,
   getDeadLetterJob,
   getFailedJob,
   getOpsProcessTrace,
   getOpsSummary,
+  listConnectorExecutionLogs,
   listDeadLetterJobs,
   listFailedJobs,
   listOpsCapabilities,
@@ -42,16 +45,25 @@ import {
   type OpsCapabilityItem,
   type OpsJobItem,
   type OpsProcessInstance,
+  retryConnectorExecutionLog,
   retryDeadLetterJob,
   retryFailedJob,
 } from '@/services/koravo/api';
 import { organizationMemberName } from '@/services/koravo/organization';
 import {
+  connectorExecutionResultSummary,
+  connectorExecutionStatusTitle,
+  connectorExecutionTitle,
+  connectorTraceDisplay,
+} from '@/utils/connectorExecution';
+import {
   businessKeyLabel,
+  connectionAddressLabel,
+  connectorTypeLabel,
   processDefinitionLabel,
   shortTraceLabel,
 } from '@/utils/display';
-import { formatDateTime } from '@/utils/format';
+import { formatDateTime, formatDuration } from '@/utils/format';
 
 type JobKind = 'failed' | 'dead-letter';
 
@@ -310,6 +322,104 @@ function jobColumns(
   ];
 }
 
+function connectorColumns(
+  retryLog: (record: ConnectorExecutionLogItem) => Promise<void>,
+  modal: ReturnType<typeof Modal.useModal>[0],
+  openDetail: (id: string) => void,
+): ProColumns<ConnectorExecutionLogItem>[] {
+  return [
+    {
+      title: '连接器',
+      dataIndex: 'connectorType',
+      width: 120,
+      renderText: connectorTypeLabel,
+    },
+    { title: '方法', dataIndex: 'method', width: 96 },
+    {
+      title: '地址',
+      dataIndex: 'url',
+      ellipsis: true,
+      render: (_, record) => (
+        <CopyableText
+          value={record.url}
+          displayValue={connectionAddressLabel(record.url)}
+        />
+      ),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 110,
+      render: (_, record) => <KoravoStatusTag status={record.status} />,
+    },
+    { title: '状态码', dataIndex: 'statusCode', width: 100 },
+    {
+      title: '耗时',
+      dataIndex: 'elapsedMillis',
+      width: 110,
+      renderText: formatDuration,
+    },
+    {
+      title: '业务追踪号',
+      dataIndex: 'requestId',
+      width: 160,
+      render: (_, record) => (
+        <CopyableText
+          value={record.requestId}
+          displayValue={connectorTraceDisplay(record.requestId)}
+        />
+      ),
+    },
+    {
+      title: '时间',
+      dataIndex: 'createdAt',
+      width: 170,
+      renderText: formatDateTime,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 210,
+      render: (_, record) => [
+        <Button key="detail" type="link" onClick={() => openDetail(record.id)}>
+          详情
+        </Button>,
+        record.status === 'FAILED' ? (
+          <Button
+            key="retry"
+            type="link"
+            onClick={() => {
+              modal.confirm({
+                title: '重试连接器',
+                content: '确认按该失败记录再次调用？',
+                okText: '重试',
+                cancelText: '取消',
+                onOk: async () => {
+                  await retryLog(record);
+                },
+              });
+            }}
+          >
+            重试
+          </Button>
+        ) : null,
+        <Button
+          key="audit"
+          type="link"
+          disabled={!record.requestId}
+          onClick={() =>
+            history.push(
+              `/audit-logs?requestId=${encodeURIComponent(record.requestId || '')}`,
+            )
+          }
+        >
+          审计
+        </Button>,
+      ],
+    },
+  ];
+}
+
 const capabilityColumns: ProColumns<OpsCapabilityItem>[] = [
   { title: '能力', dataIndex: 'name' },
   {
@@ -329,15 +439,32 @@ function jobEmpty(description: string) {
   );
 }
 
+const DetailBlock: React.FC<{ title: string; value?: string | null }> = ({
+  title,
+  value,
+}) => (
+  <>
+    <Typography.Title level={5}>{title}</Typography.Title>
+    <StructuredDetailTable value={value} emptyText="无" />
+  </>
+);
+
 const Ops: React.FC = () => {
   const failedRef = useRef<ActionType>(null);
   const deadLetterRef = useRef<ActionType>(null);
+  const connectorRef = useRef<ActionType>(null);
   const [selectedJob, setSelectedJob] = useState<SelectedJob>();
+  const [selectedConnectorLogId, setSelectedConnectorLogId] =
+    useState<string>();
   const [previewTarget, setPreviewTarget] = useState<ProcessPreviewTarget>();
   const [activeTab, setActiveTab] = useState('instances');
   const [modal, contextHolder] = Modal.useModal();
   const { message } = App.useApp();
-  const { data: summary, isLoading } = useQuery({
+  const {
+    data: summary,
+    isLoading,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: ['ops-summary'],
     queryFn: getOpsSummary,
   });
@@ -348,6 +475,15 @@ const Ops: React.FC = () => {
         ? getDeadLetterJob(selectedJob.id)
         : getFailedJob(selectedJob?.id || ''),
     enabled: Boolean(selectedJob?.id),
+  });
+  const {
+    data: connectorDetail,
+    isLoading: connectorDetailLoading,
+    refetch: refetchConnectorDetail,
+  } = useQuery({
+    queryKey: ['ops-connector-execution-detail', selectedConnectorLogId],
+    queryFn: () => getConnectorExecutionLog(selectedConnectorLogId || ''),
+    enabled: Boolean(selectedConnectorLogId),
   });
   const previewTrace = useQuery({
     queryKey: ['ops-process-trace', previewTarget?.instanceId],
@@ -374,6 +510,27 @@ const Ops: React.FC = () => {
       ),
     [],
   );
+  const retryConnectorLog = React.useCallback(
+    async (record: ConnectorExecutionLogItem) => {
+      await retryConnectorExecutionLog(record.id);
+      message.success('已提交重试');
+      connectorRef.current?.reload();
+      await Promise.all(
+        selectedConnectorLogId
+          ? [refetchSummary(), refetchConnectorDetail()]
+          : [refetchSummary()],
+      );
+    },
+    [message, refetchConnectorDetail, refetchSummary, selectedConnectorLogId],
+  );
+  const connectorFailureColumns = React.useMemo(
+    () => connectorColumns(retryConnectorLog, modal, setSelectedConnectorLogId),
+    [modal, retryConnectorLog],
+  );
+  const exceptionTotal =
+    (summary?.failedJobCount || 0) +
+    (summary?.deadLetterJobCount || 0) +
+    (summary?.connectorFailureCount || 0);
 
   return (
     <PageContainer title="运维中心">
@@ -406,12 +563,11 @@ const Ops: React.FC = () => {
           />
         </ProCard>
       </ProCard>
-      {(summary?.failedJobCount || 0) + (summary?.deadLetterJobCount || 0) >
-      0 ? (
+      {exceptionTotal > 0 ? (
         <Alert
           showIcon
           type="warning"
-          title="存在待处理的异常任务"
+          title="存在待处理的异常"
           action={
             <Space wrap>
               {summary?.failedJobCount ? (
@@ -425,6 +581,14 @@ const Ops: React.FC = () => {
                   onClick={() => setActiveTab('dead-letter')}
                 >
                   查看死信任务
+                </Button>
+              ) : null}
+              {summary?.connectorFailureCount ? (
+                <Button
+                  size="small"
+                  onClick={() => setActiveTab('connector-failures')}
+                >
+                  查看连接器异常
                 </Button>
               ) : null}
             </Space>
@@ -512,6 +676,32 @@ const Ops: React.FC = () => {
                 search={false}
                 request={async (params) => {
                   const result = await listDeadLetterJobs({
+                    page: Number(params.current || 1),
+                    pageSize: Number(params.pageSize || 10),
+                  });
+                  return {
+                    data: result.items,
+                    total: result.total,
+                    success: true,
+                  };
+                }}
+              />
+            ),
+          },
+          {
+            key: 'connector-failures',
+            label: '连接器异常',
+            children: (
+              <ProTable<ConnectorExecutionLogItem>
+                actionRef={connectorRef}
+                rowKey="id"
+                locale={{ emptyText: jobEmpty('暂无连接器异常') }}
+                columns={connectorFailureColumns}
+                scroll={{ x: 1280 }}
+                search={false}
+                request={async (params) => {
+                  const result = await listConnectorExecutionLogs({
+                    status: 'FAILED',
                     page: Number(params.current || 1),
                     pageSize: Number(params.pageSize || 10),
                   });
@@ -721,6 +911,152 @@ const Ops: React.FC = () => {
           </Space>
         ) : (
           <Empty description="暂无任务详情" />
+        )}
+      </KoravoDrawer>
+      <KoravoDrawer
+        title={
+          connectorDetail
+            ? connectorExecutionTitle(connectorDetail)
+            : '连接器异常详情'
+        }
+        size={720}
+        open={Boolean(selectedConnectorLogId)}
+        loading={connectorDetailLoading}
+        onClose={() => setSelectedConnectorLogId(undefined)}
+        extra={
+          connectorDetail ? (
+            <Space wrap>
+              {connectorDetail.status === 'FAILED' ? (
+                <Button
+                  type="primary"
+                  onClick={() => retryConnectorLog(connectorDetail)}
+                >
+                  重试
+                </Button>
+              ) : null}
+              <Button
+                type="link"
+                disabled={!connectorDetail.requestId}
+                onClick={() =>
+                  history.push(
+                    `/audit-logs?requestId=${encodeURIComponent(connectorDetail.requestId || '')}`,
+                  )
+                }
+              >
+                审计日志
+              </Button>
+              <Button
+                type="link"
+                onClick={() =>
+                  history.push(
+                    connectorDetail.requestId
+                      ? `/http-connector?requestId=${encodeURIComponent(
+                          connectorDetail.requestId,
+                        )}`
+                      : '/http-connector',
+                  )
+                }
+              >
+                执行记录
+              </Button>
+            </Space>
+          ) : null
+        }
+      >
+        {connectorDetail ? (
+          <Space vertical size={16} style={{ width: '100%' }}>
+            <Alert
+              showIcon
+              type={connectorDetail.status === 'SUCCESS' ? 'success' : 'error'}
+              title={connectorExecutionStatusTitle(connectorDetail.status)}
+              description={connectorExecutionResultSummary(connectorDetail)}
+            />
+            <ProDescriptions<ConnectorExecutionLogItem>
+              column={1}
+              dataSource={connectorDetail}
+              columns={[
+                {
+                  title: '连接器',
+                  dataIndex: 'connectorType',
+                  renderText: connectorTypeLabel,
+                },
+                { title: '方法', dataIndex: 'method' },
+                {
+                  title: '地址',
+                  dataIndex: 'url',
+                  render: (_, record) => (
+                    <CopyableText
+                      value={record.url}
+                      displayValue={connectionAddressLabel(record.url)}
+                    />
+                  ),
+                },
+                {
+                  title: '状态',
+                  dataIndex: 'status',
+                  render: (_, record) => (
+                    <KoravoStatusTag status={record.status} />
+                  ),
+                },
+                { title: '状态码', dataIndex: 'statusCode' },
+                {
+                  title: '耗时',
+                  dataIndex: 'elapsedMillis',
+                  renderText: formatDuration,
+                },
+                {
+                  title: '业务追踪号',
+                  dataIndex: 'requestId',
+                  render: (_, record) => (
+                    <CopyableText
+                      value={record.requestId}
+                      displayValue={connectorTraceDisplay(record.requestId)}
+                    />
+                  ),
+                },
+                {
+                  title: '时间',
+                  dataIndex: 'createdAt',
+                  renderText: formatDateTime,
+                },
+              ]}
+            />
+            <DetailBlock
+              title="请求摘要"
+              value={connectorDetail.requestSummary}
+            />
+            <DetailBlock
+              title="响应摘要"
+              value={connectorDetail.responseSummary}
+            />
+            <DetailBlock
+              title="错误信息"
+              value={connectorDetail.errorMessage}
+            />
+            <Collapse
+              size="small"
+              items={[
+                {
+                  key: 'diagnostics',
+                  label: '技术诊断信息',
+                  children: (
+                    <StructuredDetailTable
+                      value={{
+                        connectorType: connectorDetail.connectorType,
+                        id: connectorDetail.id,
+                        requestId: connectorDetail.requestId,
+                        status: connectorDetail.status,
+                        statusCode: connectorDetail.statusCode,
+                      }}
+                      emptyText="暂无技术诊断信息"
+                    />
+                  ),
+                },
+              ]}
+            />
+          </Space>
+        ) : (
+          <Empty description="暂无连接器异常详情" />
         )}
       </KoravoDrawer>
       <KoravoDrawer

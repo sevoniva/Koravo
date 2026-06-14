@@ -2,35 +2,43 @@ import {
   type ActionType,
   PageContainer,
   ProCard,
+  type ProColumns,
   ProDescriptions,
   ProTable,
-  type ProColumns,
 } from '@ant-design/pro-components';
-import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, App, Button, Flex, Popconfirm, Statistic, Typography } from 'antd';
+import { history, useLocation } from '@umijs/max';
+import {
+  Alert,
+  App,
+  Button,
+  Flex,
+  Popconfirm,
+  Statistic,
+  Typography,
+} from 'antd';
 import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
+  type ConnectorExecutionLogItem,
   getConnectorExecutionSummary,
   listConnectorExecutionLogs,
   retryConnectorExecutionLog,
-  type ConnectorExecutionLogItem,
 } from '@/services/koravo/api';
-import { connectionAddressLabel, connectorTypeLabel, shortTraceLabel } from '@/utils/display';
+import {
+  connectorExecutionResultSummary,
+  connectorExecutionStatusTitle,
+  connectorTraceDisplay,
+} from '@/utils/connectorExecution';
+import { connectionAddressLabel, connectorTypeLabel } from '@/utils/display';
 import { formatDateTime, formatDuration } from '@/utils/format';
 
 function openAuditByRequestId(requestId?: string) {
   if (!requestId) return;
   history.push(`/audit-logs?requestId=${encodeURIComponent(requestId)}`);
-}
-
-function connectorTraceDisplay(requestId?: string) {
-  if (!requestId) return '';
-  return shortTraceLabel(requestId);
 }
 
 function useQueryRequestId() {
@@ -55,7 +63,11 @@ const HttpConnector: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [detail, setDetail] = useState<ConnectorExecutionLogItem>();
   const queryRequestId = useQueryRequestId();
-  const { data: summary, isLoading, refetch: refetchSummary } = useQuery({
+  const {
+    data: summary,
+    isLoading,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: ['connector-summary', 'http'],
     queryFn: () => getConnectorExecutionSummary('http'),
   });
@@ -163,7 +175,12 @@ const HttpConnector: React.FC = () => {
 
   return (
     <PageContainer title="集成动作">
-      <ProCard gutter={16} wrap loading={isLoading} style={{ marginBottom: 16 }}>
+      <ProCard
+        gutter={16}
+        wrap
+        loading={isLoading}
+        style={{ marginBottom: 16 }}
+      >
         <ProCard colSpan={{ xs: 24, sm: 8 }}>
           <Statistic title="调用总数" value={summary?.total ?? 0} />
         </ProCard>
@@ -186,7 +203,8 @@ const HttpConnector: React.FC = () => {
           const result = await listConnectorExecutionLogs({
             connectorType: params.connectorType as string | undefined,
             status: params.status as string | undefined,
-            requestId: (params.requestId as string | undefined) || queryRequestId,
+            requestId:
+              (params.requestId as string | undefined) || queryRequestId,
             page: Number(params.current || 1),
             pageSize: Number(params.pageSize || 10),
           });
@@ -227,23 +245,19 @@ const HttpConnector: React.FC = () => {
             <Alert
               showIcon
               type={detail.status === 'SUCCESS' ? 'success' : 'error'}
-              title={
-                detail.status === 'SUCCESS'
-                  ? '连接器调用成功'
-                  : '连接器调用失败'
-              }
-              description={
-                detail.statusCode
-                  ? `状态码 ${detail.statusCode}，耗时 ${formatDuration(detail.elapsedMillis)}。`
-                  : `耗时 ${formatDuration(detail.elapsedMillis)}。`
-              }
+              title={connectorExecutionStatusTitle(detail.status)}
+              description={connectorExecutionResultSummary(detail)}
             />
           ) : null}
           <ProDescriptions<ConnectorExecutionLogItem>
             column={1}
             dataSource={detail}
             columns={[
-              { title: '连接器', dataIndex: 'connectorType', renderText: connectorTypeLabel },
+              {
+                title: '连接器',
+                dataIndex: 'connectorType',
+                renderText: connectorTypeLabel,
+              },
               { title: '方法', dataIndex: 'method' },
               {
                 title: '地址',
@@ -255,11 +269,25 @@ const HttpConnector: React.FC = () => {
                   />
                 ),
               },
-              { title: '状态', dataIndex: 'status', render: (_, record) => <KoravoStatusTag status={record.status} /> },
+              {
+                title: '状态',
+                dataIndex: 'status',
+                render: (_, record) => (
+                  <KoravoStatusTag status={record.status} />
+                ),
+              },
               { title: '状态码', dataIndex: 'statusCode' },
-              { title: '耗时', dataIndex: 'elapsedMillis', renderText: formatDuration },
+              {
+                title: '耗时',
+                dataIndex: 'elapsedMillis',
+                renderText: formatDuration,
+              },
               { title: '业务追踪号', dataIndex: 'requestId', copyable: true },
-              { title: '时间', dataIndex: 'createdAt', renderText: formatDateTime },
+              {
+                title: '时间',
+                dataIndex: 'createdAt',
+                renderText: formatDateTime,
+              },
             ]}
           />
           <DetailBlock title="请求摘要" value={detail?.requestSummary} />
