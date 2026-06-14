@@ -229,6 +229,78 @@ class WorkflowEnablementServiceTest {
     }
 
     @Test
+    void initMigratesLeaveApprovalFallbackToCollaborativeWorkflow() {
+        TenantContextHolder.setTenantId("default");
+        UserContextHolder.setUserId("admin");
+        KoProcessModel model = deployedModel("legacy-model", "leaveApproval", "历史流程资产");
+        model.setBpmnXml(legacyManagerApprovalBpmn());
+        KoFormSchema form = activeForm();
+        when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                WorkflowEnablementDefaults.PROCESS_KEY
+        )).thenReturn(Optional.empty());
+        when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "multiAcceptance"
+        )).thenReturn(Optional.empty());
+        when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "purchaseApproval"
+        )).thenReturn(Optional.empty());
+        when(processModelRepository.findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                "leaveApproval"
+        )).thenReturn(Optional.of(model));
+        when(formSchemaRepository.findFirstByTenantIdAndFormKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                "default",
+                WorkflowEnablementDefaults.FORM_KEY
+        )).thenReturn(Optional.of(form));
+        when(processFacade.deploy(new DeployProcessCommand(
+                "default",
+                "admin",
+                WorkflowEnablementDefaults.PROCESS_KEY,
+                WorkflowEnablementDefaults.PROCESS_NAME,
+                WorkflowEnablementDefaults.PROCESS_KEY + ".bpmn20.xml",
+                WorkflowEnablementDefaults.businessRequestBpmn()
+        ))).thenReturn(new ProcessDeploymentDTO(null, "dep-2", "pd-2", WorkflowEnablementDefaults.PROCESS_KEY, 2));
+        when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                eq("default"),
+                eq("pd-2"),
+                any()
+        )).thenReturn(Optional.empty());
+        when(formBindingRepository.findFirstByTenantIdAndProcessModelIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
+                eq("default"),
+                eq("legacy-model"),
+                any()
+        )).thenReturn(Optional.empty());
+        when(formBindingRepository.save(any(KoFormBinding.class))).thenAnswer(invocation -> {
+            KoFormBinding binding = invocation.getArgument(0);
+            binding.setId(binding.getTaskDefinitionKey() + "-binding");
+            return binding;
+        });
+        when(processModelRepository.save(any(KoProcessModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(processModelRepository.findByTenantIdAndModelKeyInAndDeletedFalseOrderByUpdatedAtDesc(eq("default"), any()))
+                .thenReturn(List.of(model));
+        when(formSchemaRepository.findByTenantIdAndFormKeyInAndDeletedFalseOrderByUpdatedAtDesc(eq("default"), any()))
+                .thenReturn(List.of(form));
+
+        WorkflowEnablementInitResponse response = service.init();
+
+        assertThat(model.getModelKey()).isEqualTo(WorkflowEnablementDefaults.PROCESS_KEY);
+        assertThat(model.getModelName()).isEqualTo(WorkflowEnablementDefaults.PROCESS_NAME);
+        assertThat(model.getFlowableDefinitionId()).isEqualTo("pd-2");
+        assertThat(model.getAssetOrigin()).isEqualTo(AssetOrigin.SYSTEM_TEMPLATE);
+        assertThat(response.processModelId()).isEqualTo("legacy-model");
+        assertThat(response.actions()).contains(
+                "更新协同审批流程定义",
+                "迁移协同审批流程标识",
+                "部署协同审批流程",
+                "绑定发起表单",
+                "绑定业务申请表到多人会签"
+        );
+    }
+
+    @Test
     void initMigratesLegacyApprovalFieldsToApprovalUsers() {
         TenantContextHolder.setTenantId("default");
         UserContextHolder.setUserId("admin");

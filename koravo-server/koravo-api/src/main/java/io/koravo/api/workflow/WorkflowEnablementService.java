@@ -40,7 +40,7 @@ import java.util.Set;
 
 @Service
 public class WorkflowEnablementService {
-    private static final List<String> LEGACY_PROCESS_KEYS = List.of("multiAcceptance", "purchaseApproval");
+    private static final List<String> LEGACY_PROCESS_KEYS = List.of("multiAcceptance", "purchaseApproval", "leaveApproval");
     private static final List<String> LEGACY_FORM_KEYS = List.of("acceptance-request-form", "purchase-request-form");
     private static final List<String> RETIRED_PROCESS_KEYS = List.of(
             "multiAcceptance",
