@@ -18,6 +18,7 @@ import {
   Modal,
   Space,
   Statistic,
+  Steps,
   Tabs,
   Typography,
 } from 'antd';
@@ -64,6 +65,11 @@ import {
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDateTime, formatDuration } from '@/utils/format';
+import {
+  connectorGuidanceSteps,
+  type OpsGuidanceStep,
+  opsJobGuidanceSteps,
+} from './opsGuidance';
 
 type JobKind = 'failed' | 'dead-letter';
 
@@ -462,6 +468,23 @@ const DetailBlock: React.FC<{ title: string; value?: string | null }> = ({
   </>
 );
 
+const OpsGuidancePanel: React.FC<{ steps: OpsGuidanceStep[] }> = ({
+  steps,
+}) => (
+  <ProCard title="处理建议" size="small">
+    <Steps
+      orientation="vertical"
+      size="small"
+      current={1}
+      items={steps.map((step, index) => ({
+        title: step.title,
+        description: step.description,
+        status: index === 0 ? 'finish' : index === 1 ? 'process' : 'wait',
+      }))}
+    />
+  </ProCard>
+);
+
 const Ops: React.FC = () => {
   const failedRef = useRef<ActionType>(null);
   const deadLetterRef = useRef<ActionType>(null);
@@ -834,6 +857,7 @@ const Ops: React.FC = () => {
                 description={jobDetail.exceptionMessage}
               />
             ) : null}
+            <OpsGuidancePanel steps={opsJobGuidanceSteps(jobDetail)} />
             <ProDescriptions<OpsJobItem>
               column={1}
               dataSource={jobDetail}
@@ -1037,6 +1061,7 @@ const Ops: React.FC = () => {
               title={connectorExecutionStatusTitle(connectorDetail.status)}
               description={connectorExecutionResultSummary(connectorDetail)}
             />
+            <OpsGuidancePanel steps={connectorGuidanceSteps(connectorDetail)} />
             <ProDescriptions<ConnectorExecutionLogItem>
               column={1}
               dataSource={connectorDetail}
