@@ -84,7 +84,7 @@ describe('ProcessProgressCard', () => {
     expect(screen.getByTestId('process-diagram-viewer')).toBeInTheDocument();
     expect(screen.getByText('会签 2 人')).toBeInTheDocument();
     expect(screen.getByText('审批主管、复核专员')).toBeInTheDocument();
-    expect(screen.getByText('待审批主管、复核专员会签')).toBeInTheDocument();
+    expect(screen.getByText('会签中')).toBeInTheDocument();
     expect(
       screen.getByText('多人会签 · 审批主管、复核专员 · 会签 2 人'),
     ).toBeInTheDocument();
@@ -106,7 +106,8 @@ describe('ProcessProgressCard', () => {
 
     expect(screen.getByText('已完成')).toBeInTheDocument();
     expect(screen.queryByText('待你处理')).not.toBeInTheDocument();
-    expect(screen.getByText('待复核专员处理')).toBeInTheDocument();
+    expect(screen.getByText('复核专员')).toBeInTheDocument();
+    expect(screen.getByText('处理中')).toBeInTheDocument();
   });
 
   it('shows the end state instead of an empty current node after completion', () => {

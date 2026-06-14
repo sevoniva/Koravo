@@ -24,7 +24,6 @@ import {
   taskDefinitionLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
-import { taskHandlingInstruction } from '@/utils/taskAccess';
 import ProcessDiagramViewer from './ProcessDiagramViewer';
 
 interface ProcessProgressCardProps {
@@ -308,22 +307,18 @@ function nextStepText(
   const status = String(trace?.status || '').toUpperCase();
   if (status === 'COMPLETED') return '无待办';
   if (status === 'TERMINATED') return '已终止';
-  if (status === 'SUSPENDED') return '等待恢复';
+  if (status === 'SUSPENDED') return '待恢复';
   if (!pendingTasks.length) return '待流转';
   if (activeTask && !isCompletedTask(activeTask)) {
-    return taskHandlingInstruction({
-      task: activeTask,
-      currentUserId,
-      hasForm: true,
-    });
+    const assignee = String(activeTask.assignee || '').trim();
+    if (!assignee) return '待认领';
+    return assignee === currentUserId ? '待你处理' : '处理中';
   }
   const jointGroup = taskGroups.find((group) => group.activeTaskIds.length > 1);
-  if (jointGroup) return `待${jointGroup.handlers.join('、')}会签`;
-  if (pendingTasks.length > 1) return `并行 ${pendingTasks.length} 人`;
+  if (jointGroup) return '会签中';
+  if (pendingTasks.length > 1) return '并行审批';
   const task = pendingTasks[0];
-  return task.assignee
-    ? `待${organizationMemberName(task.assignee)}处理`
-    : '等待认领';
+  return task.assignee ? '处理中' : '待认领';
 }
 
 function taskNodeLabel(task: TaskItem, trace?: ProcessTrace) {
@@ -438,7 +433,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
       key: 'pending',
       label: (
         <Space size={8}>
-          <Typography.Text strong>待处理</Typography.Text>
+          <Typography.Text strong>当前待办</Typography.Text>
           <Badge count={taskGroups.length} showZero={false} />
         </Space>
       ),
@@ -468,7 +463,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
       key: 'timeline',
       label: (
         <Space size={8}>
-          <Typography.Text strong>已办记录</Typography.Text>
+          <Typography.Text strong>流转记录</Typography.Text>
           <Badge count={recentTimelineNodes(timeline).length} />
         </Space>
       ),
@@ -503,10 +498,10 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
           />
           <Metric label="当前节点" value={nodeText} />
           <Metric
-            label={groupSummary ? '待处理' : '办理人'}
+            label={groupSummary ? '当前待办' : '办理人'}
             value={handlerMetric}
           />
-          <Metric label="下一步" value={nextStep} />
+          <Metric label="处理状态" value={nextStep} />
         </div>
         <ProcessDiagramViewer
           bpmnXml={trace?.bpmnXml}
