@@ -74,6 +74,11 @@ import {
   workflowNumberFieldProps,
 } from '@/utils/workflowForm';
 
+interface FieldOption {
+  label: string;
+  value: string;
+}
+
 interface FormSchemaForm {
   formKey: string;
   formName: string;
@@ -513,6 +518,52 @@ function fieldDisplayName(field: Pick<FormFieldConfig, 'fieldKey' | 'title'>) {
   return field.title?.trim() || field.fieldKey;
 }
 
+const fieldKey = (field: Pick<FormFieldConfig, 'fieldKey'>) =>
+  field.fieldKey?.trim() || '';
+
+export function conditionFieldOptions(
+  fields: FormFieldConfig[] = [],
+  currentFieldKey?: string,
+): FieldOption[] {
+  const currentKey = currentFieldKey?.trim();
+  return fields
+    .filter((field) => {
+      const key = fieldKey(field);
+      return key && key !== currentKey && field.permission !== 'hidden';
+    })
+    .map((field) => ({
+      label: `${fieldDisplayName(field)}（${fieldKey(field)}）`,
+      value: fieldKey(field),
+    }));
+}
+
+const conditionSourceField = (
+  fields: FormFieldConfig[] = [],
+  sourceFieldKey?: string,
+) => {
+  const sourceKey = sourceFieldKey?.trim();
+  if (!sourceKey) return undefined;
+  return fields.find((field) => fieldKey(field) === sourceKey);
+};
+
+export function conditionValueOptions(
+  fields: FormFieldConfig[] = [],
+  sourceFieldKey?: string,
+): FieldOption[] {
+  const sourceField = conditionSourceField(fields, sourceFieldKey);
+  if (!sourceField) return [];
+  if (sourceField.type === 'boolean' || sourceField.widget === 'switch') {
+    return [
+      { label: '是', value: 'true' },
+      { label: '否', value: 'false' },
+    ];
+  }
+  return (normalizeOptionValues(sourceField.options) || []).map((option) => ({
+    label: option,
+    value: option,
+  }));
+}
+
 function comparableField(field: FormFieldConfig) {
   return {
     title: field.title?.trim() || '',
@@ -692,6 +743,8 @@ const buildPayload = (values: FormSchemaForm) => {
     const permission = isProfileField
       ? 'readonly'
       : field.permission || 'editable';
+    const visibleWhenField = field.visibleWhenField?.trim();
+    const visibleWhenValue = field.visibleWhenValue?.trim();
     return {
       ...field,
       fieldKey: field.fieldKey.trim(),
@@ -700,6 +753,10 @@ const buildPayload = (values: FormSchemaForm) => {
       widget,
       permission,
       options,
+      visibleWhenField:
+        visibleWhenField && visibleWhenValue ? visibleWhenField : undefined,
+      visibleWhenValue:
+        visibleWhenField && visibleWhenValue ? visibleWhenValue : undefined,
       placeholder:
         isProfileField || isAssigneeField ? undefined : field.placeholder,
       format: isProfileField || isAssigneeField ? undefined : field.format,
@@ -830,6 +887,12 @@ const hasDuplicatedFieldKey = (fields: FormFieldConfig[]) => {
 };
 
 const fieldConfigError = (fields: FormFieldConfig[]) => {
+  const fieldsByKey = new Map(
+    fields
+      .map((field) => [fieldKey(field), field] as const)
+      .filter(([key]) => key),
+  );
+
   for (const field of fields) {
     const label = fieldDisplayName(field);
     const minLength = finiteNumber(field.minLength);
@@ -846,6 +909,26 @@ const fieldConfigError = (fields: FormFieldConfig[]) => {
     }
     if (minimum !== undefined && maximum !== undefined && minimum > maximum) {
       return `${label}的最小值不能大于最大值`;
+    }
+    const visibleWhenField = field.visibleWhenField?.trim();
+    const visibleWhenValue = field.visibleWhenValue?.trim();
+    if (visibleWhenField || visibleWhenValue) {
+      if (!visibleWhenField) return `${label}请选择显示条件字段`;
+      if (!visibleWhenValue) return `${label}请选择显示条件值`;
+      if (visibleWhenField === fieldKey(field)) {
+        return `${label}不能以自身作为显示条件`;
+      }
+      const sourceField = fieldsByKey.get(visibleWhenField);
+      if (!sourceField || sourceField.permission === 'hidden') {
+        return `${label}的显示条件字段不可用`;
+      }
+      const valueOptions = conditionValueOptions(fields, visibleWhenField);
+      if (
+        valueOptions.length &&
+        !valueOptions.some((option) => option.value === visibleWhenValue)
+      ) {
+        return `${label}的显示条件值不在可选项内`;
+      }
     }
     if (field.pattern?.trim()) {
       try {
@@ -967,7 +1050,24 @@ const fieldRuleTags = (field: FormFieldConfig) => {
   );
 };
 
-const fieldColumns: ProColumns<FormFieldConfig>[] = [
+function visibleConditionText(
+  fields: FormFieldConfig[],
+  record: FormFieldConfig,
+) {
+  const sourceKey = record.visibleWhenField?.trim();
+  const conditionValue = record.visibleWhenValue?.trim();
+  if (!sourceKey || !conditionValue) return '-';
+  const sourceField = conditionSourceField(fields, sourceKey);
+  const sourceName = sourceField ? fieldDisplayName(sourceField) : sourceKey;
+  const valueOption = conditionValueOptions(fields, sourceKey).find(
+    (option) => option.value === conditionValue,
+  );
+  return `${sourceName} = ${valueOption?.label || conditionValue}`;
+}
+
+const fieldColumns = (
+  fields: FormFieldConfig[],
+): ProColumns<FormFieldConfig>[] => [
   { title: '字段名称', dataIndex: 'title', width: 180 },
   {
     title: '业务字段',
@@ -1034,10 +1134,7 @@ const fieldColumns: ProColumns<FormFieldConfig>[] = [
     title: '显示条件',
     key: 'visibleWhen',
     width: 180,
-    renderText: (_, record) =>
-      record.visibleWhenField && record.visibleWhenValue
-        ? `${record.visibleWhenField} = ${record.visibleWhenValue}`
-        : '-',
+    renderText: (_, record) => visibleConditionText(fields, record),
   },
 ];
 
@@ -1444,6 +1541,59 @@ interface FormFieldsEditorClassNames {
   lifecycleSteps: string;
 }
 
+const FieldConditionEditor: React.FC<{
+  classNames: FormFieldsEditorClassNames;
+  currentFieldKey?: string;
+  visibleWhenField?: string;
+}> = ({ classNames, currentFieldKey, visibleWhenField }) => {
+  const form = Form.useFormInstance();
+  const fields = (Form.useWatch('fields', form) || []) as FormFieldConfig[];
+  const sourceOptions = conditionFieldOptions(fields, currentFieldKey);
+  const valueOptions = conditionValueOptions(fields, visibleWhenField);
+  const hasSource = Boolean(visibleWhenField?.trim());
+
+  return (
+    <>
+      <ProFormSelect
+        name="visibleWhenField"
+        label="显示条件"
+        formItemProps={{ className: classNames.fieldWide }}
+        allowClear
+        disabled={!sourceOptions.length}
+        options={sourceOptions}
+        placeholder={sourceOptions.length ? '选择字段' : '暂无可选字段'}
+        fieldProps={{
+          showSearch: true,
+          optionFilterProp: 'label',
+        }}
+      />
+      {valueOptions.length ? (
+        <ProFormSelect
+          name="visibleWhenValue"
+          label="条件值"
+          formItemProps={{ className: classNames.fieldWide }}
+          allowClear
+          disabled={!hasSource}
+          options={valueOptions}
+          placeholder="选择值"
+          fieldProps={{
+            showSearch: true,
+            optionFilterProp: 'label',
+          }}
+        />
+      ) : (
+        <ProFormText
+          name="visibleWhenValue"
+          label="条件值"
+          formItemProps={{ className: classNames.fieldWide }}
+          disabled={!hasSource}
+          placeholder={hasSource ? '输入匹配值' : '先选择字段'}
+        />
+      )}
+    </>
+  );
+};
+
 const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
   <div className={classNames.fieldList}>
     <ProFormList
@@ -1645,18 +1795,15 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
           width="xs"
           options={permissionOptions}
         />
-        <ProFormText
-          name="visibleWhenField"
-          label="显示字段"
-          formItemProps={{ className: classNames.fieldWide }}
-          placeholder="字段名"
-        />
-        <ProFormText
-          name="visibleWhenValue"
-          label="显示值"
-          formItemProps={{ className: classNames.fieldWide }}
-          placeholder="字段值"
-        />
+        <ProFormDependency name={['fieldKey', 'visibleWhenField']}>
+          {({ fieldKey, visibleWhenField }) => (
+            <FieldConditionEditor
+              classNames={classNames}
+              currentFieldKey={fieldKey as string | undefined}
+              visibleWhenField={visibleWhenField as string | undefined}
+            />
+          )}
+        </ProFormDependency>
         <ProFormSwitch
           name="required"
           label="必填"
@@ -2226,7 +2373,7 @@ const Forms: React.FC = () => {
                     children: (
                       <ProTable<FormFieldConfig>
                         rowKey="fieldKey"
-                        columns={fieldColumns}
+                        columns={fieldColumns(previewFields)}
                         dataSource={previewFields}
                         search={false}
                         pagination={false}

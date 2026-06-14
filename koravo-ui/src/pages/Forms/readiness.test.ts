@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { formBlockingReadinessIssues, formReadinessIssues } from './index';
+import {
+  conditionFieldOptions,
+  conditionValueOptions,
+  formBlockingReadinessIssues,
+  formReadinessIssues,
+} from './index';
 
 vi.mock('@ant-design/pro-components', () => ({
   ModalForm: () => null,
@@ -116,5 +121,87 @@ describe('formReadinessIssues', () => {
     ] as ReadinessField[]);
 
     expect(warningOnlyIssues).toEqual([]);
+  });
+
+  it('builds product condition options from current fields', () => {
+    const fields = [
+      {
+        fieldKey: 'subject',
+        title: '事项名称',
+        type: 'string',
+        widget: 'input',
+      },
+      {
+        fieldKey: 'approvalResult',
+        title: '审批结果',
+        type: 'string',
+        widget: 'select',
+        options: ['通过', '退回'],
+      },
+      {
+        fieldKey: 'internalCode',
+        title: '内部字段',
+        type: 'string',
+        widget: 'input',
+        permission: 'hidden',
+      },
+    ] as ReadinessField[];
+
+    expect(conditionFieldOptions(fields, 'subject')).toEqual([
+      { label: '审批结果（approvalResult）', value: 'approvalResult' },
+    ]);
+    expect(conditionValueOptions(fields, 'approvalResult')).toEqual([
+      { label: '通过', value: '通过' },
+      { label: '退回', value: '退回' },
+    ]);
+  });
+
+  it('blocks invalid conditional display rules', () => {
+    expect(
+      formBlockingReadinessIssues([
+        {
+          fieldKey: 'subject',
+          title: '事项名称',
+          type: 'string',
+          widget: 'input',
+          required: true,
+          visibleWhenField: 'subject',
+          visibleWhenValue: '1',
+        },
+      ] as ReadinessField[]),
+    ).toEqual([
+      {
+        key: 'config',
+        level: 'error',
+        text: '事项名称不能以自身作为显示条件',
+      },
+    ]);
+
+    expect(
+      formBlockingReadinessIssues([
+        {
+          fieldKey: 'result',
+          title: '审批结果',
+          type: 'string',
+          widget: 'select',
+          options: ['通过'],
+          required: true,
+        },
+        {
+          fieldKey: 'remark',
+          title: '补充说明',
+          type: 'string',
+          widget: 'textarea',
+          visibleWhenField: 'result',
+          visibleWhenValue: '退回',
+        },
+      ] as ReadinessField[]),
+    ).toEqual([
+      {
+        key: 'config',
+        level: 'error',
+        text: '补充说明的显示条件值不在可选项内',
+      },
+    ]);
   });
 });
