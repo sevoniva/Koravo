@@ -57,6 +57,7 @@ async function main() {
   const completedTrace = await waitForTrace(applicant, instance.instanceId, "COMPLETED");
   assertEquals(completedTrace.variables?.applicant, applicant.name, "trusted applicant");
   assertEquals(completedTrace.variables?.department, applicant.department, "trusted department");
+  assertEquals(completedTrace.variables?.position, roleLabel(applicant.role), "trusted position");
   assertListEquals(completedTrace.variables?.approvalUsers, approverIds, "trusted approvers");
 
   const detail = await api(`/process-instances/${instance.instanceId}`, { token: applicant.token });
@@ -112,6 +113,7 @@ async function main() {
         status: completedTrace.status,
         applicant: completedTrace.variables.applicant,
         department: completedTrace.variables.department,
+        position: completedTrace.variables.position,
         approvers: approverIds,
         formSnapshotCount: formSnapshots.length,
         completedTasks: completedTasks.map((task) => task.taskId),
@@ -137,6 +139,7 @@ function assertFormSnapshots(snapshots, formData, applicant, approverIds, comple
   assertEquals(startData.subject, formData.subject, "start snapshot subject");
   assertEquals(startData.applicant, applicant.name, "start snapshot applicant");
   assertEquals(startData.department, applicant.department, "start snapshot department");
+  assertEquals(startData.position, roleLabel(applicant.role), "start snapshot position");
   assertListEquals(startData.approvalUsers, approverIds, "start snapshot approvers");
 
   const completedTaskIds = new Set(completedTasks.map((task) => task.taskId));
@@ -152,6 +155,16 @@ function assertFormSnapshots(snapshots, formData, applicant, approverIds, comple
       throw new Error(`approval snapshot ${snapshot.taskId} must keep approved=true`);
     }
   }
+}
+
+function roleLabel(role) {
+  return {
+    admin: "管理员",
+    applicant: "发起人",
+    manager: "审批人",
+    finance: "复核人",
+    operator: "运维审计人",
+  }[role] || role || "-";
 }
 
 function parseSnapshotData(snapshot) {

@@ -14,6 +14,7 @@ import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.form.repo.FormSchemaRepository;
 import io.koravo.form.service.FormSchemaService;
+import io.koravo.form.web.FormSchemaRequest;
 import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
@@ -467,6 +468,7 @@ public class WorkflowEnablementService {
 
     private void ensureFormSchema(KoFormSchema form, String userId, List<String> actions) {
         boolean changed = false;
+        boolean schemaChanged = false;
         if (!WorkflowEnablementDefaults.FORM_KEY.equals(form.getFormKey())) {
             form.setFormKey(WorkflowEnablementDefaults.FORM_KEY);
             actions.add("迁移业务申请表标识");
@@ -479,15 +481,15 @@ public class WorkflowEnablementService {
         if (needsDefaultFormSchemaMigration(form)) {
             form.setSchemaJson(WorkflowEnablementDefaults.businessRequestFormSchema());
             form.setUiSchemaJson(WorkflowEnablementDefaults.businessRequestFormUiSchema());
-            form.setVersion(Math.max(1, form.getVersion() + 1));
             actions.add("更新业务申请表为多人会签");
             changed = true;
+            schemaChanged = true;
         }
         if (!StringUtils.hasText(form.getUiSchemaJson()) || !form.getUiSchemaJson().contains("organizationProfile")) {
             form.setUiSchemaJson(WorkflowEnablementDefaults.businessRequestFormUiSchema());
-            form.setVersion(Math.max(1, form.getVersion() + 1));
             actions.add("更新业务申请表组织字段");
             changed = true;
+            schemaChanged = true;
         }
         if (form.getStatus() != FormStatus.ACTIVE) {
             form.setStatus(FormStatus.ACTIVE);
@@ -496,6 +498,15 @@ public class WorkflowEnablementService {
         if (form.getAssetOrigin() != AssetOrigin.SYSTEM_TEMPLATE) {
             form.setAssetOrigin(AssetOrigin.SYSTEM_TEMPLATE);
             changed = true;
+        }
+        if (schemaChanged) {
+            FormSchemaResponse updated = formSchemaService.update(form.getId(), new FormSchemaRequest(
+                    form.getFormKey(),
+                    form.getFormName(),
+                    form.getSchemaJson(),
+                    form.getUiSchemaJson()
+            ));
+            form.setVersion(updated.version());
         }
         if (changed) {
             form.setUpdatedBy(userId);
@@ -508,12 +519,14 @@ public class WorkflowEnablementService {
         String uiSchemaJson = form.getUiSchemaJson();
         return !StringUtils.hasText(schemaJson)
                 || !schemaJson.contains("事项内容")
+                || !schemaJson.contains("\"position\"")
                 || !schemaJson.contains("\"approvalUsers\"")
                 || schemaJson.contains("\"managerApprover\"")
                 || schemaJson.contains("\"financeApprover\"")
                 || schemaJson.contains("\"approved\"")
                 || schemaJson.contains("\"reviewComment\"")
                 || !StringUtils.hasText(uiSchemaJson)
+                || !uiSchemaJson.contains("\"position\"")
                 || !uiSchemaJson.contains("\"approvalUsers\"")
                 || !uiSchemaJson.contains("\"permission\": \"readonly\"")
                 || uiSchemaJson.contains("\"managerApprover\"")

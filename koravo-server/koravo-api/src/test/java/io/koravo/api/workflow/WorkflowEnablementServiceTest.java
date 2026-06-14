@@ -13,6 +13,7 @@ import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.repo.FormBindingRepository;
 import io.koravo.form.repo.FormSchemaRepository;
 import io.koravo.form.service.FormSchemaService;
+import io.koravo.form.web.FormSchemaRequest;
 import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.model.domain.KoProcessModel;
 import io.koravo.model.domain.ProcessModelStatus;
@@ -319,6 +320,24 @@ class WorkflowEnablementServiceTest {
                 WorkflowEnablementDefaults.FORM_KEY
         )).thenReturn(Optional.of(form));
         when(formSchemaRepository.save(form)).thenReturn(form);
+        when(formSchemaService.update(eq("form-1"), any(FormSchemaRequest.class))).thenAnswer(invocation -> {
+            FormSchemaRequest request = invocation.getArgument(1);
+            form.setFormKey(request.formKey());
+            form.setFormName(request.formName());
+            form.setSchemaJson(request.schemaJson());
+            form.setUiSchemaJson(request.uiSchemaJson());
+            form.setVersion(form.getVersion() + 1);
+            return new FormSchemaResponse(
+                    form.getId(),
+                    form.getFormKey(),
+                    form.getFormName(),
+                    form.getVersion(),
+                    form.getSchemaJson(),
+                    form.getUiSchemaJson(),
+                    form.getStatus().name(),
+                    form.getAssetOrigin().name()
+            );
+        });
         when(formBindingRepository.findFirstByTenantIdAndProcessDefinitionIdAndTaskDefinitionKeyAndDeletedFalseOrderByUpdatedAtDesc(
                 "default",
                 "pd-1",
@@ -334,6 +353,7 @@ class WorkflowEnablementServiceTest {
         WorkflowEnablementInitResponse response = service.init();
 
         assertThat(form.getSchemaJson()).contains("\"approvalUsers\"");
+        assertThat(form.getSchemaJson()).contains("\"position\"");
         assertThat(form.getSchemaJson()).contains("\"readOnly\": true");
         assertThat(form.getSchemaJson()).doesNotContain(
                 "\"managerApprover\"",
@@ -342,6 +362,7 @@ class WorkflowEnablementServiceTest {
                 "\"reviewComment\""
         );
         assertThat(form.getUiSchemaJson()).contains("\"approvalUsers\"");
+        assertThat(form.getUiSchemaJson()).contains("\"position\"");
         assertThat(form.getUiSchemaJson()).contains("\"permission\": \"readonly\"");
         assertThat(form.getVersion()).isEqualTo(3);
         assertThat(startBinding.getFormSchemaVersion()).isEqualTo(3);
@@ -394,7 +415,7 @@ class WorkflowEnablementServiceTest {
         assertThat(response.binding().ready()).isTrue();
         assertThat(response.audit().count()).isEqualTo(3);
         assertThat(response.defaultStartVariables()).containsEntry("subject", "业务事项申请");
-        assertThat(response.defaultStartVariables()).doesNotContainKeys("applicant", "department");
+        assertThat(response.defaultStartVariables()).doesNotContainKeys("applicant", "department", "position");
         assertThat(response.defaultStartVariables()).doesNotContainKey("amount");
         assertThat(response.defaultStartVariables()).containsEntry("businessDescription", "");
         assertThat(response.defaultStartVariables()).containsEntry("expectedResult", "");

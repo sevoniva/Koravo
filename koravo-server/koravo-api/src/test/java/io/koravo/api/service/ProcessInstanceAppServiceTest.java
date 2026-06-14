@@ -132,12 +132,14 @@ class ProcessInstanceAppServiceTest {
         Map<String, Object> submitted = Map.of(
                 "applicant", "伪造申请人",
                 "department", "伪造部门",
+                "position", "伪造岗位",
                 "subject", "生产发布",
                 "approvalUsers", List.of("manager-1", "finance-1")
         );
         Map<String, Object> trusted = Map.of(
                 "applicant", "真实申请专员",
                 "department", "业务二部",
+                "position", "发起人",
                 "subject", "生产发布",
                 "approvalUsers", List.of("manager-1", "finance-1")
         );
@@ -194,14 +196,17 @@ class ProcessInstanceAppServiceTest {
         Map<String, Object> submitted = Map.of(
                 "requester", "伪造发起人",
                 "dept", "伪造部门",
+                "role", "伪造岗位",
                 "subject", "生产发布",
                 "approvalUsers", List.of("manager-1", "finance-1")
         );
         Map<String, Object> trusted = Map.of(
                 "applicant", "真实申请专员",
                 "department", "业务二部",
+                "position", "发起人",
                 "requester", "真实申请专员",
                 "dept", "业务二部",
+                "role", "发起人",
                 "subject", "生产发布",
                 "approvalUsers", List.of("manager-1", "finance-1")
         );
@@ -258,14 +263,17 @@ class ProcessInstanceAppServiceTest {
         Map<String, Object> submitted = Map.of(
                 "applicantName", "伪造发起人",
                 "applicantDepartment", "伪造部门",
+                "applicantRole", "伪造岗位",
                 "subject", "通用事项",
                 "approver", "outsider"
         );
         Map<String, Object> trusted = Map.of(
                 "applicant", "真实申请专员",
                 "department", "业务二部",
+                "position", "发起人",
                 "applicantName", "真实申请专员",
                 "applicantDepartment", "业务二部",
+                "applicantRole", "发起人",
                 "subject", "通用事项",
                 "approver", "manager-1",
                 "approvalUsers", List.of("manager-1")
@@ -307,6 +315,7 @@ class ProcessInstanceAppServiceTest {
         Map<String, Object> validSubmitted = Map.of(
                 "applicantName", "伪造发起人",
                 "applicantDepartment", "伪造部门",
+                "applicantRole", "伪造岗位",
                 "subject", "通用事项",
                 "approver", "manager-1"
         );

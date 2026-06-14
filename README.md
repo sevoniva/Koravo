@@ -199,7 +199,7 @@ The same workflow can be started through the API with `processDefinitionKey = co
 }
 ```
 
-`applicant` and `department` are written from the authenticated organization member and do not need to be submitted by the caller.
+`applicant`, `department`, and `position` are written from the authenticated organization member and do not need to be submitted by the caller.
 
 The API loop below mirrors the same collaborative approval path. For a repeatable runtime check:
 

@@ -62,7 +62,7 @@ public final class WorkflowEnablementDefaults {
         return """
                 {
                   "type": "object",
-                  "required": ["applicant", "department", "subject", "businessDescription", "approvalUsers"],
+                  "required": ["applicant", "department", "position", "subject", "businessDescription", "approvalUsers"],
                   "properties": {
                     "applicant": {
                       "type": "string",
@@ -72,6 +72,11 @@ public final class WorkflowEnablementDefaults {
                     "department": {
                       "type": "string",
                       "title": "申请部门",
+                      "readOnly": true
+                    },
+                    "position": {
+                      "type": "string",
+                      "title": "岗位职责",
                       "readOnly": true
                     },
                     "subject": {
@@ -117,6 +122,10 @@ public final class WorkflowEnablementDefaults {
                     "permission": "readonly"
                   },
                   "department": {
+                    "widget": "organizationProfile",
+                    "permission": "readonly"
+                  },
+                  "position": {
                     "widget": "organizationProfile",
                     "permission": "readonly"
                   },

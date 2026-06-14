@@ -36,6 +36,7 @@ public class ProcessInstanceAppService {
     private static final String ACTIVE = "ACTIVE";
     private static final String APPLICANT_FIELD = "applicant";
     private static final String DEPARTMENT_FIELD = "department";
+    private static final String POSITION_FIELD = "position";
     private static final String MANAGER_APPROVER_FIELD = "managerApprover";
     private static final String FINANCE_APPROVER_FIELD = "financeApprover";
     private static final String APPROVAL_USERS_FIELD = "approvalUsers";
@@ -100,6 +101,30 @@ public class ProcessInstanceAppService {
             "submitUnit",
             "submitUnitName",
             "organizationUnit"
+    );
+    private static final List<String> POSITION_FIELD_ALIASES = List.of(
+            POSITION_FIELD,
+            "positionName",
+            "jobTitle",
+            "jobPosition",
+            "jobRole",
+            "role",
+            "roleName",
+            "roleCode",
+            "post",
+            "postName",
+            "duty",
+            "dutyName",
+            "responsibility",
+            "responsibilityName",
+            "applicantPosition",
+            "applicantRole",
+            "requesterPosition",
+            "requesterRole",
+            "submitPosition",
+            "submitRole",
+            "startPosition",
+            "startRole"
     );
     private static final List<String> APPROVAL_USER_FIELDS = List.of(
             APPROVAL_USERS_FIELD,
@@ -230,6 +255,7 @@ public class ProcessInstanceAppService {
         return new TrustedStartIdentity(
                 starter.getName(),
                 starter.getDepartment(),
+                roleLabel(starter.getRole()),
                 approvalUsers
         );
     }
@@ -245,6 +271,7 @@ public class ProcessInstanceAppService {
         return data != null && (
                 containsAnyField(data, APPLICANT_FIELD_ALIASES)
                         || containsAnyField(data, DEPARTMENT_FIELD_ALIASES)
+                        || containsAnyField(data, POSITION_FIELD_ALIASES)
                         || containsAnyField(data, APPROVAL_USER_FIELDS)
         );
     }
@@ -321,8 +348,10 @@ public class ProcessInstanceAppService {
         }
         result.put(APPLICANT_FIELD, identity.applicantName());
         result.put(DEPARTMENT_FIELD, identity.department());
+        result.put(POSITION_FIELD, identity.position());
         applyIdentityAliases(source, result, APPLICANT_FIELD_ALIASES, identity.applicantName());
         applyIdentityAliases(source, result, DEPARTMENT_FIELD_ALIASES, identity.department());
+        applyIdentityAliases(source, result, POSITION_FIELD_ALIASES, identity.position());
         applyApprovalAliases(source, result, identity.approvalUsers());
         result.put(APPROVAL_USERS_FIELD, identity.approvalUsers());
         result.remove(MANAGER_APPROVER_FIELD);
@@ -360,9 +389,21 @@ public class ProcessInstanceAppService {
         return approvalUsers.isEmpty() ? "" : approvalUsers.getFirst();
     }
 
+    private String roleLabel(String role) {
+        return switch (role) {
+            case UserContextHolder.ROLE_ADMIN -> "管理员";
+            case UserContextHolder.ROLE_MANAGER -> "审批人";
+            case UserContextHolder.ROLE_FINANCE -> "复核人";
+            case UserContextHolder.ROLE_OPERATOR -> "运维审计人";
+            case UserContextHolder.ROLE_APPLICANT -> "发起人";
+            default -> "发起人";
+        };
+    }
+
     private record TrustedStartIdentity(
             String applicantName,
             String department,
+            String position,
             List<String> approvalUsers
     ) {
     }

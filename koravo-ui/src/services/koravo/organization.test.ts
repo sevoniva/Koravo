@@ -40,15 +40,16 @@ describe('organization display helpers', () => {
     expect(organizationMemberName('${managerApprover}')).toBe('按流程变量分配');
   });
 
-  it('fills applicant and department from the current organization member', () => {
+  it('fills applicant, department, and position from the current organization member', () => {
     const session = { userId: 'applicant', role: 'applicant' as const };
     expect(organizationProfileFieldValue('applicant', undefined, session)).toBe(
       '业务申请专员',
     );
     expect(organizationProfileFieldValue('department', undefined, session)).toBe('业务一部');
+    expect(organizationProfileFieldValue('position', undefined, session)).toBe('发起人');
   });
 
-  it('recognizes applicant and department fields by business titles', () => {
+  it('recognizes applicant, department, and position fields by business titles', () => {
     const session = { userId: 'applicant', role: 'applicant' as const };
     expect(isOrganizationProfileField('applyUserName', '申请人')).toBe(true);
     expect(isOrganizationProfileField('applyDeptName', '申请部门')).toBe(true);
@@ -62,11 +63,16 @@ describe('organization display helpers', () => {
     expect(isOrganizationProfileField('operatorDepartment', '所在单位')).toBe(true);
     expect(isOrganizationProfileField('applyUnitName', '申请单位')).toBe(true);
     expect(isOrganizationProfileField('requesterUnitName', '所属科室')).toBe(true);
+    expect(isOrganizationProfileField('applicantRole', '岗位职责')).toBe(true);
+    expect(isOrganizationProfileField('jobTitle', '职务')).toBe(true);
     expect(organizationProfileFieldValue('applyUserName', undefined, session, '申请人')).toBe(
       '业务申请专员',
     );
     expect(organizationProfileFieldValue('applyDeptName', undefined, session, '申请部门')).toBe(
       '业务一部',
+    );
+    expect(organizationProfileFieldValue('applicantRole', undefined, session, '岗位职责')).toBe(
+      '发起人',
     );
   });
 
@@ -85,11 +91,13 @@ describe('organization display helpers', () => {
         [
           { fieldKey: 'requester', title: '发起人' },
           { fieldKey: 'department', title: '所属部门' },
+          { fieldKey: 'position', title: '岗位职责' },
           { fieldKey: 'subject', title: '事项名称' },
         ],
         {
           requester: '手工输入',
           department: '手工部门',
+          position: '手工岗位',
           subject: '合同审批',
         },
         undefined,
@@ -98,6 +106,7 @@ describe('organization display helpers', () => {
     ).toEqual({
       requester: '业务申请专员',
       department: '业务一部',
+      position: '发起人',
       subject: '合同审批',
     });
   });
@@ -110,6 +119,7 @@ describe('organization display helpers', () => {
         [
           { fieldKey: 'requester', title: '发起人' },
           { fieldKey: 'department', title: '所属部门' },
+          { fieldKey: 'position', title: '岗位职责' },
           { fieldKey: 'subject', title: '事项名称' },
         ],
         { subject: '合同审批' },
@@ -119,6 +129,7 @@ describe('organization display helpers', () => {
     ).toEqual({
       requester: '业务申请专员',
       department: '业务一部',
+      position: '发起人',
       subject: '合同审批',
     });
   });

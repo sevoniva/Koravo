@@ -190,7 +190,7 @@ export function isPlatformIdentitySynced(userId?: string | null) {
   return Boolean(userId && userId !== 'anonymous');
 }
 
-type OrganizationProfileFieldKind = 'applicant' | 'department';
+type OrganizationProfileFieldKind = 'applicant' | 'department' | 'role';
 
 interface OrganizationProfileFieldLike {
   fieldKey: string;
@@ -321,6 +321,40 @@ function organizationProfileFieldKind(
     return 'department';
   }
 
+  if (
+    !assigneeLike &&
+    ([
+      'position',
+      'positionname',
+      'jobtitle',
+      'jobposition',
+      'jobrole',
+      'role',
+      'rolename',
+      'rolecode',
+      'post',
+      'postname',
+      'duty',
+      'dutyname',
+      'responsibility',
+      'responsibilityname',
+      'applicantposition',
+      'applicantrole',
+      'requesterposition',
+      'requesterrole',
+      'startposition',
+      'startrole',
+      'submitposition',
+      'submitrole',
+    ].includes(key) ||
+      /岗位|岗位职责|职务|职责|角色|发起角色|申请角色|提交角色|经办角色/.test(
+        title,
+      ) ||
+      /position|jobtitle|role|post|duty|responsibility/.test(combined))
+  ) {
+    return 'role';
+  }
+
   return undefined;
 }
 
@@ -377,13 +411,18 @@ export function organizationProfileFieldValue(
   const kind = organizationProfileFieldKind(fieldKey, fieldTitle);
   const existing = fieldKey ? readableOrganizationValue(values?.[fieldKey]) : undefined;
   if (existing) {
-    return kind === 'applicant'
-      ? organizationMemberByUserId(existing)?.name || existing
-      : existing;
+    if (kind === 'applicant') {
+      return organizationMemberByUserId(existing)?.name || existing;
+    }
+    if (kind === 'role') {
+      return roleLabels[existing as SessionRole] || existing;
+    }
+    return existing;
   }
 
   const member = organizationMemberByUserId(session.userId);
   if (kind === 'department') return member?.department || '-';
+  if (kind === 'role') return organizationRoleLabel(session.role);
   if (kind === 'applicant') {
     return member?.name || organizationMemberName(session.userId);
   }
