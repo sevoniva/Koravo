@@ -20,6 +20,8 @@ public interface FormSchemaRepository extends JpaRepository<KoFormSchema, String
             List<String> formKeys
     );
 
+    List<KoFormSchema> findByTenantIdAndIdInAndDeletedFalse(String tenantId, List<String> ids);
+
     Optional<KoFormSchema> findByIdAndTenantIdAndDeletedFalse(String id, String tenantId);
 
     long countByTenantIdAndDeletedFalse(String tenantId);

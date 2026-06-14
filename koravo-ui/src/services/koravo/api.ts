@@ -235,6 +235,8 @@ export interface FormSnapshotItem {
   processInstanceId: string
   taskId?: string
   formSchemaId: string
+  formKey?: string
+  formName?: string
   formSchemaVersion?: number
   schemaJson?: string
   uiSchemaJson?: string

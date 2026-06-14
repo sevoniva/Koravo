@@ -65,6 +65,7 @@ import {
   auditResourceLabel,
   businessKeyLabel,
   formSchemaNameLabel,
+  formSchemaOptionLabel,
   processDefinitionLabel,
   shortTraceLabel,
   taskDefinitionLabel,
@@ -120,28 +121,23 @@ const commentColumns: ProColumns<TaskCommentItem>[] = [
   { title: '时间', dataIndex: 'time', width: 170, renderText: formatDateTime },
 ];
 
+function snapshotFormLabel(record: FormSnapshotItem) {
+  if (record.formName) {
+    return formSchemaOptionLabel({
+      formKey: record.formKey,
+      formName: record.formName,
+      version: record.formSchemaVersion,
+    });
+  }
+  return `表单 v${record.formSchemaVersion || 1}`;
+}
+
 const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
-  {
-    title: '快照',
-    dataIndex: 'id',
-    width: 140,
-    render: (_, record) => (
-      <CopyableText
-        value={record.id}
-        displayValue={shortTraceLabel(record.id)}
-      />
-    ),
-  },
   {
     title: '表单',
     dataIndex: 'formSchemaId',
     width: 220,
-    render: (_, record) => (
-      <CopyableText
-        value={record.formSchemaId}
-        displayValue={shortTraceLabel(record.formSchemaId)}
-      />
-    ),
+    render: (_, record) => snapshotFormLabel(record),
   },
   {
     title: '版本',

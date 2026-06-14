@@ -7,6 +7,8 @@ public record FormSnapshotResponse(
         String processInstanceId,
         String taskId,
         String formSchemaId,
+        String formKey,
+        String formName,
         Integer formSchemaVersion,
         String schemaJson,
         String uiSchemaJson,

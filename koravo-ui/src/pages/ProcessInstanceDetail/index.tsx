@@ -37,6 +37,7 @@ import {
   auditActionLabel,
   auditResourceLabel,
   businessKeyLabel,
+  formSchemaOptionLabel,
   processDefinitionLabel,
   processStatusLabel,
   shortTraceLabel,
@@ -54,6 +55,17 @@ function snapshotTaskLabel(record: FormSnapshotItem) {
   const taskDefinitionKey = String(data.taskDefinitionKey || '');
   if (taskDefinitionKey) return taskDefinitionLabel(taskDefinitionKey);
   return record.taskId ? '任务表单' : '发起表单';
+}
+
+function snapshotFormLabel(record: FormSnapshotItem) {
+  if (record.formName) {
+    return formSchemaOptionLabel({
+      formKey: record.formKey,
+      formName: record.formName,
+      version: record.formSchemaVersion,
+    });
+  }
+  return `表单 v${record.formSchemaVersion || 1}`;
 }
 
 function snapshotSummary(record: FormSnapshotItem) {
@@ -388,12 +400,7 @@ const ProcessInstanceDetail: React.FC = () => {
       title: '表单',
       dataIndex: 'formSchemaId',
       width: 220,
-      render: (_, record) => (
-        <CopyableText
-          value={record.formSchemaId}
-          displayValue={shortTraceLabel(record.formSchemaId)}
-        />
-      ),
+      render: (_, record) => snapshotFormLabel(record),
     },
     {
       title: '版本',

@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.koravo.common.exception.BusinessException;
 import io.koravo.common.exception.ErrorCode;
+import io.koravo.form.domain.KoFormSchema;
 import io.koravo.form.domain.KoFormSnapshot;
+import io.koravo.form.repo.FormSchemaRepository;
 import io.koravo.form.repo.FormSnapshotRepository;
 import io.koravo.form.web.FormSchemaResponse;
 import io.koravo.form.web.FormSnapshotResponse;
@@ -12,17 +14,26 @@ import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class FormSnapshotService {
     private final FormSnapshotRepository repository;
+    private final FormSchemaRepository formSchemaRepository;
     private final ObjectMapper objectMapper;
 
-    public FormSnapshotService(FormSnapshotRepository repository, ObjectMapper objectMapper) {
+    public FormSnapshotService(
+            FormSnapshotRepository repository,
+            FormSchemaRepository formSchemaRepository,
+            ObjectMapper objectMapper
+    ) {
         this.repository = repository;
+        this.formSchemaRepository = formSchemaRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -51,21 +62,40 @@ public class FormSnapshotService {
 
     @Transactional(readOnly = true)
     public List<FormSnapshotResponse> listByProcessInstance(String processInstanceId) {
-        return repository.findByTenantIdAndProcessInstanceIdOrderByCreatedAtAsc(
+        List<KoFormSnapshot> snapshots = repository.findByTenantIdAndProcessInstanceIdOrderByCreatedAtAsc(
                         TenantContextHolder.getTenantId(),
                         processInstanceId
-                )
+                );
+        Map<String, KoFormSchema> schemaById = formSchemaMap(snapshots);
+        return snapshots
                 .stream()
-                .map(this::toResponse)
+                .map(snapshot -> toResponse(snapshot, schemaById.get(snapshot.getFormSchemaId())))
                 .toList();
     }
 
-    private FormSnapshotResponse toResponse(KoFormSnapshot snapshot) {
+    private Map<String, KoFormSchema> formSchemaMap(List<KoFormSnapshot> snapshots) {
+        List<String> formSchemaIds = snapshots.stream()
+                .map(KoFormSnapshot::getFormSchemaId)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+        if (formSchemaIds.isEmpty()) {
+            return Map.of();
+        }
+        return formSchemaRepository
+                .findByTenantIdAndIdInAndDeletedFalse(TenantContextHolder.getTenantId(), formSchemaIds)
+                .stream()
+                .collect(Collectors.toMap(KoFormSchema::getId, Function.identity()));
+    }
+
+    private FormSnapshotResponse toResponse(KoFormSnapshot snapshot, KoFormSchema formSchema) {
         return new FormSnapshotResponse(
                 snapshot.getId(),
                 snapshot.getProcessInstanceId(),
                 snapshot.getTaskId(),
                 snapshot.getFormSchemaId(),
+                formSchema == null ? null : formSchema.getFormKey(),
+                formSchema == null ? null : formSchema.getFormName(),
                 snapshot.getFormSchemaVersion(),
                 snapshot.getSchemaJson(),
                 snapshot.getUiSchemaJson(),
