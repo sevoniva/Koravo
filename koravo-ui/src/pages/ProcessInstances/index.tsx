@@ -37,7 +37,7 @@ import ProcessDiagramViewer from '@/components/ProcessDiagramViewer';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
   type FormSchemaItem,
-  getOpsProcessTrace,
+  getProcessTrace,
   type JsonRecord,
   listOpsInstances,
   listStartableWorkflows,
@@ -861,7 +861,7 @@ const ProcessInstances: React.FC = () => {
     React.useState<ProcessPreviewTarget>();
   const previewTrace = useQuery({
     queryKey: ['process-instance-list-trace', previewTarget?.instanceId],
-    queryFn: () => getOpsProcessTrace(previewTarget?.instanceId || ''),
+    queryFn: () => getProcessTrace(previewTarget?.instanceId || ''),
     enabled: Boolean(previewTarget?.instanceId),
   });
   const openPreview = React.useCallback((instance: OpsProcessInstance) => {
