@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons';
+import { MoreOutlined, PlusOutlined } from '@ant-design/icons';
 import {
   type ActionType,
   ModalForm,
@@ -23,6 +23,7 @@ import {
   Button,
   Checkbox,
   Descriptions,
+  Dropdown,
   Empty,
   Flex,
   Form,
@@ -61,7 +62,6 @@ import {
   organizationProfileFieldValue,
 } from '@/services/koravo/organization';
 import {
-  ASSET_ORIGIN_LABELS,
   assetOriginColor,
   assetOriginLabel,
   formSchemaKeyLabel,
@@ -1951,21 +1951,34 @@ const Forms: React.FC = () => {
 
   const columns: ProColumns<FormSchemaItem>[] = [
     {
-      title: '表单名称',
+      title: '表单',
       dataIndex: 'formName',
-      width: 180,
-      renderText: (value) => formSchemaNameLabel(value),
+      width: 320,
+      render: (_, record) => {
+        const formName = formSchemaNameLabel(record.formName);
+        return (
+          <Flex vertical gap={4} style={{ minWidth: 0 }}>
+            <Typography.Text strong ellipsis={{ tooltip: formName }}>
+              {formName}
+            </Typography.Text>
+            <Space size={[4, 4]} wrap>
+              <CopyableText
+                value={record.formKey}
+                displayValue={formSchemaKeyLabel(record.formKey)}
+              />
+              <Tag color="blue">v{record.version || 1}</Tag>
+              <Tag color={assetOriginColor(record.assetOrigin)}>
+                {assetOriginLabel(record.assetOrigin)}
+              </Tag>
+            </Space>
+          </Flex>
+        );
+      },
     },
     {
       title: '表单标识',
       dataIndex: 'formKey',
-      width: 220,
-      render: (_, record) => (
-        <CopyableText
-          value={record.formKey}
-          displayValue={formSchemaKeyLabel(record.formKey)}
-        />
-      ),
+      hideInTable: true,
     },
     {
       title: '状态',
@@ -1977,14 +1990,14 @@ const Forms: React.FC = () => {
     {
       title: '设计状态',
       key: 'designState',
-      width: 240,
+      width: 220,
       search: false,
       render: (_, record) => renderFieldDesignState(record),
     },
     {
       title: '使用路径',
       key: 'lifecycle',
-      width: 360,
+      width: 300,
       search: false,
       render: (_, record) =>
         renderFormLifecycle(
@@ -1995,34 +2008,9 @@ const Forms: React.FC = () => {
         ),
     },
     {
-      title: '版本',
-      dataIndex: 'version',
-      width: 72,
-      search: false,
-      renderText: (value) => `v${value || 1}`,
-    },
-    {
-      title: '来源',
-      dataIndex: 'assetOrigin',
-      width: 110,
-      search: false,
-      valueType: 'select',
-      valueEnum: Object.fromEntries(
-        Object.entries(ASSET_ORIGIN_LABELS).map(([value, text]) => [
-          value,
-          { text },
-        ]),
-      ),
-      render: (_, record) => (
-        <Tag color={assetOriginColor(record.assetOrigin)}>
-          {assetOriginLabel(record.assetOrigin)}
-        </Tag>
-      ),
-    },
-    {
       title: '绑定影响',
       key: 'bindingImpact',
-      width: 190,
+      width: 170,
       search: false,
       render: (_, record) => (
         <BindingImpactSummary
@@ -2034,7 +2022,7 @@ const Forms: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 320,
+      width: 300,
       fixed: 'right',
       search: false,
       render: (_, record) => {
@@ -2069,10 +2057,10 @@ const Forms: React.FC = () => {
                   }
                 : {
                     text: '查看表单',
-                    description: '配置可用',
+                    description: '已就绪',
                     onClick: () => setPreview(record),
                   };
-        return [
+        const actions: React.ReactNode[] = [
           <Flex key="next" vertical gap={2}>
             <Button
               size="small"
@@ -2085,22 +2073,54 @@ const Forms: React.FC = () => {
               {nextAction.description}
             </Typography.Text>
           </Flex>,
-          <Button key="preview" type="link" onClick={() => setPreview(record)}>
-            查看
-          </Button>,
+        ];
+
+        if (nextAction.text !== '查看表单') {
+          actions.push(
+            <Button
+              key="preview"
+              type="link"
+              onClick={() => setPreview(record)}
+            >
+              查看
+            </Button>,
+          );
+        }
+
+        actions.push(
           <Button key="edit" type="link" onClick={() => setEditing(record)}>
             编辑
           </Button>,
-          <Button
-            key="bind"
-            type="link"
-            disabled={record.status === 'DISABLED'}
-            onClick={() =>
-              history.push(`/form-bindings?formSchemaId=${record.id}`)
-            }
-          >
-            绑定节点
-          </Button>,
+        );
+
+        if (nextAction.text !== '绑定节点') {
+          actions.push(
+            <Dropdown
+              key="more"
+              menu={{
+                items: [
+                  {
+                    key: 'bind',
+                    label: '绑定节点',
+                    disabled: record.status === 'DISABLED',
+                  },
+                ],
+                onClick: ({ key }) => {
+                  if (key === 'bind') {
+                    history.push(`/form-bindings?formSchemaId=${record.id}`);
+                  }
+                },
+              }}
+              trigger={['click']}
+            >
+              <Button type="link" icon={<MoreOutlined />}>
+                更多
+              </Button>
+            </Dropdown>,
+          );
+        }
+
+        actions.push(
           <Popconfirm
             key="status"
             title={willActivate ? '发布表单' : '停用表单'}
@@ -2125,7 +2145,9 @@ const Forms: React.FC = () => {
               {willActivate ? '发布' : '停用'}
             </Button>
           </Popconfirm>,
-        ];
+        );
+
+        return actions;
       },
     },
   ];
@@ -2198,7 +2220,7 @@ const Forms: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 1600 }}
+        scroll={{ x: 1280 }}
         request={async (params) => {
           const [data, bindings] = await Promise.all([
             listFormSchemas(),
