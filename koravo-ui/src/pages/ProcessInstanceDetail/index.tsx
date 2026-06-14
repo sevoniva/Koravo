@@ -508,7 +508,7 @@ const ProcessInstanceDetail: React.FC = () => {
               renderText: processDefinitionLabel,
             },
             {
-              title: '实例追踪',
+              title: '流程追踪号',
               dataIndex: 'instanceId',
               render: (_, record) => (
                 <CopyableText

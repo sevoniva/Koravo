@@ -1071,7 +1071,7 @@ const TaskDetail: React.FC = () => {
                 renderText: processDefinitionLabel,
               },
               {
-                title: '实例追踪',
+                title: '流程追踪号',
                 dataIndex: 'processInstanceId',
                 render: (_, record) => (
                   <Flex align="center" gap={8} wrap>
