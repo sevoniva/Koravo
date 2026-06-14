@@ -8,6 +8,7 @@ import io.koravo.connector.core.ConnectorRequest;
 import io.koravo.connector.core.ConnectorResponse;
 import io.koravo.connector.domain.KoConnectorExecutionLog;
 import io.koravo.connector.repo.ConnectorExecutionLogRepository;
+import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
@@ -21,15 +22,18 @@ public class ConnectorExecutionRetryService {
     private final ConnectorExecutionLogRepository repository;
     private final ConnectorRegistry connectorRegistry;
     private final ConnectorExecutionLogService logService;
+    private final AuditLogService auditLogService;
 
     public ConnectorExecutionRetryService(
             ConnectorExecutionLogRepository repository,
             ConnectorRegistry connectorRegistry,
-            ConnectorExecutionLogService logService
+            ConnectorExecutionLogService logService,
+            AuditLogService auditLogService
     ) {
         this.repository = repository;
         this.connectorRegistry = connectorRegistry;
         this.logService = logService;
+        this.auditLogService = auditLogService;
     }
 
     public KoConnectorExecutionLog retry(String id) {
@@ -57,23 +61,36 @@ public class ConnectorExecutionRetryService {
         long started = System.currentTimeMillis();
         try {
             ConnectorResponse response = connectorRegistry.get(source.getConnectorType()).execute(request, context);
-            return logService.recordSuccess(
+            KoConnectorExecutionLog retryLog = logService.recordSuccess(
                     source.getConnectorType(),
                     context,
                     request,
                     response,
                     System.currentTimeMillis() - started
             );
+            recordRetryAudit(source, retryLog);
+            return retryLog;
         } catch (RuntimeException e) {
-            logService.recordFailure(
+            KoConnectorExecutionLog retryLog = logService.recordFailure(
                     source.getConnectorType(),
                     context,
                     request,
                     e,
                     System.currentTimeMillis() - started
             );
+            recordRetryAudit(source, retryLog);
             throw e;
         }
+    }
+
+    private void recordRetryAudit(KoConnectorExecutionLog source, KoConnectorExecutionLog retryLog) {
+        auditLogService.record("CONNECTOR_RETRY", "CONNECTOR_EXECUTION", retryLog.getId(), Map.of(
+                "sourceLogId", source.getId(),
+                "retryLogId", retryLog.getId(),
+                "connectorType", retryLog.getConnectorType(),
+                "status", retryLog.getStatus(),
+                "requestId", retryLog.getRequestId() == null ? "" : retryLog.getRequestId()
+        ));
     }
 
     private String requestBody(String requestSummary) {

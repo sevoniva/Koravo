@@ -179,6 +179,7 @@ describe('display helpers', () => {
     expect(auditActionLabel('ORG_MEMBER_PASSWORD_RESET')).toBe('重置成员密码');
     expect(auditActionLabel('FAILED_JOB_RETRY')).toBe('重试失败任务');
     expect(auditActionLabel('DEAD_LETTER_JOB_DELETE')).toBe('删除死信任务');
+    expect(auditActionLabel('CONNECTOR_RETRY')).toBe('重试连接器');
     expect(auditResourceLabel('ORGANIZATION_MEMBER')).toBe('组织成员');
   });
 

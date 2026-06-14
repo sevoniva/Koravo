@@ -8,6 +8,7 @@ import io.koravo.connector.core.ConnectorRequest;
 import io.koravo.connector.core.ConnectorResponse;
 import io.koravo.connector.domain.KoConnectorExecutionLog;
 import io.koravo.connector.repo.ConnectorExecutionLogRepository;
+import io.koravo.ops.audit.AuditLogService;
 import io.koravo.security.UserContextHolder;
 import io.koravo.tenant.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -29,11 +30,13 @@ import static org.mockito.Mockito.when;
 class ConnectorExecutionRetryServiceTest {
     private final ConnectorExecutionLogRepository repository = mock(ConnectorExecutionLogRepository.class);
     private final ConnectorExecutionLogService logService = mock(ConnectorExecutionLogService.class);
+    private final AuditLogService auditLogService = mock(AuditLogService.class);
     private final TestConnector connector = new TestConnector();
     private final ConnectorExecutionRetryService service = new ConnectorExecutionRetryService(
             repository,
             new ConnectorRegistry(List.of(connector)),
-            logService
+            logService,
+            auditLogService
     );
 
     @AfterEach
@@ -50,6 +53,8 @@ class ConnectorExecutionRetryServiceTest {
         KoConnectorExecutionLog saved = new KoConnectorExecutionLog();
         saved.setId("retry-log-1");
         saved.setStatus("SUCCESS");
+        saved.setConnectorType("http");
+        saved.setRequestId("req-1");
         when(repository.findByIdAndTenantId("log-1", "default")).thenReturn(Optional.of(source));
         when(logService.recordSuccess(eq("http"), any(), any(), any(), anyLong())).thenReturn(saved);
 
@@ -60,6 +65,7 @@ class ConnectorExecutionRetryServiceTest {
         assertThat(connector.request.url()).isEqualTo("https://example.com/hook");
         assertThat(connector.request.body()).isEqualTo("{\"ok\":true}");
         verify(logService).recordSuccess(eq("http"), any(ConnectorContext.class), any(ConnectorRequest.class), any(ConnectorResponse.class), anyLong());
+        verify(auditLogService).record(eq("CONNECTOR_RETRY"), eq("CONNECTOR_EXECUTION"), eq("retry-log-1"), any(Map.class));
     }
 
     @Test
@@ -80,13 +86,20 @@ class ConnectorExecutionRetryServiceTest {
         UserContextHolder.setUser("operator", "operator");
         connector.error = new BusinessException(io.koravo.common.exception.ErrorCode.BAD_REQUEST, "still failed");
         KoConnectorExecutionLog source = failedLog();
+        KoConnectorExecutionLog failed = new KoConnectorExecutionLog();
+        failed.setId("retry-log-2");
+        failed.setConnectorType("http");
+        failed.setStatus("FAILED");
+        failed.setRequestId("req-1");
         when(repository.findByIdAndTenantId("log-1", "default")).thenReturn(Optional.of(source));
+        when(logService.recordFailure(eq("http"), any(), any(), eq(connector.error), anyLong())).thenReturn(failed);
 
         assertThatThrownBy(() -> service.retry("log-1"))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("still failed");
 
         verify(logService).recordFailure(eq("http"), any(ConnectorContext.class), any(ConnectorRequest.class), eq(connector.error), anyLong());
+        verify(auditLogService).record(eq("CONNECTOR_RETRY"), eq("CONNECTOR_EXECUTION"), eq("retry-log-2"), any(Map.class));
     }
 
     private KoConnectorExecutionLog failedLog() {

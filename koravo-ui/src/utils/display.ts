@@ -41,6 +41,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   DEAD_LETTER_JOB_RETRY: '重试死信任务',
   DEAD_LETTER_JOB_DELETE: '删除死信任务',
   CONNECTOR_EXECUTE: '执行连接器',
+  CONNECTOR_RETRY: '重试连接器',
 };
 
 const AUDIT_RESOURCE_LABELS: Record<string, string> = {
