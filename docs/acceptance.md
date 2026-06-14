@@ -22,6 +22,7 @@ mvn -pl koravo-bootstrap -am test
 node --check scripts/verify-collaborative-approval.mjs
 node --check scripts/verify-enterprise-approval.mjs
 node --check scripts/cleanup-verification-assets.mjs
+node --check scripts/reset-trial-data.mjs
 git diff --check
 ```
 
@@ -57,10 +58,10 @@ The enterprise check logs in as admin, creates or updates 20 approver accounts a
 After verification runs, reset the trial surface:
 
 ```bash
-node scripts/cleanup-verification-assets.mjs
+node scripts/reset-trial-data.mjs
 ```
 
-The cleanup script classifies historical verification models as `TEST_FIXTURE`, archives them, reinitializes the default collaborative workflow assets, and checks the default trial lists. Product task and ops lists hide verification business keys such as `EA-*`, `REQ-E2E-*`, `COLLAB-VERIFY-*`, `COLLABORATIVE-APPROVAL-*`, and `UI-CONTEXT-*`; verification scripts pass `includeNonProduction=true` when they need to inspect their own runtime records.
+The reset script classifies historical verification models as `TEST_FIXTURE`, archives them, reinitializes the default collaborative workflow assets, and checks the default trial lists. It also keeps a small generic workload for development: one running request for pending-task checks and one completed request for done-task, audit, and trace checks. Product task and ops lists hide verification business keys such as `EA-*`, `REQ-E2E-*`, `COLLAB-VERIFY-*`, `COLLABORATIVE-APPROVAL-*`, and `UI-CONTEXT-*`; verification scripts pass `includeNonProduction=true` when they need to inspect their own runtime records.
 
 Useful environment overrides:
 

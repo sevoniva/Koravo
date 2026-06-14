@@ -144,10 +144,10 @@ curl -H 'X-Koravo-Tenant-Id: default' \
 Reset the local trial surface after acceptance runs:
 
 ```bash
-node scripts/cleanup-verification-assets.mjs
+node scripts/reset-trial-data.mjs
 ```
 
-The script keeps the default organization, collaborative workflow, business request form, bindings, and audit trail available while moving verification-only process models out of the default product lists. It also checks that verification runtime records are hidden from the default task and ops views.
+The script keeps the default organization, collaborative workflow, business request form, bindings, audit trail, and a small generic trial workload available. It moves verification-only process models out of the default product lists, checks that verification runtime records are hidden from default task and ops views, and creates one running request plus one completed request when the trial surface is empty.
 
 ## Run Frontend
 

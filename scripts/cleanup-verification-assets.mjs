@@ -103,6 +103,7 @@ function isVerificationModel(model) {
   const key = String(model.modelKey ?? "");
   const name = String(model.modelName ?? "");
   return model.assetOrigin === "TEST_FIXTURE"
+    || model.assetOrigin === "SAMPLE"
     || /^enterpriseApproval\d*$/i.test(key)
     || /^koravoProcess/i.test(key)
     || name.includes("越权访问验收");
