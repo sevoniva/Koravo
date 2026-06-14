@@ -4,18 +4,25 @@ import io.koravo.common.api.ApiResponse;
 import io.koravo.common.api.PageResult;
 import io.koravo.connector.log.ConnectorExecutionLogQueryService;
 import io.koravo.connector.log.ConnectorExecutionLogResponse;
+import io.koravo.connector.log.ConnectorExecutionRetryService;
 import io.koravo.connector.log.ConnectorExecutionSummaryResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class ConnectorExecutionLogController {
     private final ConnectorExecutionLogQueryService queryService;
+    private final ConnectorExecutionRetryService retryService;
 
-    public ConnectorExecutionLogController(ConnectorExecutionLogQueryService queryService) {
+    public ConnectorExecutionLogController(
+            ConnectorExecutionLogQueryService queryService,
+            ConnectorExecutionRetryService retryService
+    ) {
         this.queryService = queryService;
+        this.retryService = retryService;
     }
 
     @GetMapping("/api/v1/connector-execution-logs")
@@ -39,5 +46,10 @@ public class ConnectorExecutionLogController {
     @GetMapping("/api/v1/connector-execution-logs/{id}")
     public ApiResponse<ConnectorExecutionLogResponse> get(@PathVariable String id) {
         return ApiResponse.success(queryService.get(id));
+    }
+
+    @PostMapping("/api/v1/connector-execution-logs/{id}/retry")
+    public ApiResponse<ConnectorExecutionLogResponse> retry(@PathVariable String id) {
+        return ApiResponse.success(queryService.toResponse(retryService.retry(id)));
     }
 }

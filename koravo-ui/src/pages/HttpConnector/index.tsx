@@ -1,4 +1,5 @@
 import {
+  type ActionType,
   PageContainer,
   ProCard,
   ProDescriptions,
@@ -7,8 +8,8 @@ import {
 } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Flex, Statistic, Typography } from 'antd';
-import React, { useState } from 'react';
+import { Alert, App, Button, Flex, Popconfirm, Statistic, Typography } from 'antd';
+import React, { useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
 import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
@@ -16,6 +17,7 @@ import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   getConnectorExecutionSummary,
   listConnectorExecutionLogs,
+  retryConnectorExecutionLog,
   type ConnectorExecutionLogItem,
 } from '@/services/koravo/api';
 import { connectionAddressLabel, connectorTypeLabel, shortTraceLabel } from '@/utils/display';
@@ -49,12 +51,21 @@ const DetailBlock: React.FC<{ title: string; value?: string | null }> = ({
 );
 
 const HttpConnector: React.FC = () => {
+  const { message } = App.useApp();
+  const actionRef = useRef<ActionType>(null);
   const [detail, setDetail] = useState<ConnectorExecutionLogItem>();
   const queryRequestId = useQueryRequestId();
-  const { data: summary, isLoading } = useQuery({
+  const { data: summary, isLoading, refetch: refetchSummary } = useQuery({
     queryKey: ['connector-summary', 'http'],
     queryFn: () => getConnectorExecutionSummary('http'),
   });
+
+  const retryLog = async (record: ConnectorExecutionLogItem) => {
+    await retryConnectorExecutionLog(record.id);
+    message.success('已重试');
+    actionRef.current?.reload();
+    await refetchSummary();
+  };
 
   const columns: ProColumns<ConnectorExecutionLogItem>[] = [
     {
@@ -121,8 +132,20 @@ const HttpConnector: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 144,
+      width: 190,
       render: (_, record) => [
+        record.status === 'FAILED' ? (
+          <Popconfirm
+            key="retry"
+            title="重试连接器"
+            description="将按该失败记录再次调用。"
+            okText="重试"
+            cancelText="取消"
+            onConfirm={() => retryLog(record)}
+          >
+            <Button type="link">重试</Button>
+          </Popconfirm>
+        ) : null,
         <Button key="detail" type="link" onClick={() => setDetail(record)}>
           查看
         </Button>,
@@ -153,6 +176,7 @@ const HttpConnector: React.FC = () => {
       </ProCard>
 
       <ProTable<ConnectorExecutionLogItem>
+        actionRef={actionRef}
         rowKey="id"
         columns={columns}
         scroll={{ x: 1280 }}
@@ -174,13 +198,26 @@ const HttpConnector: React.FC = () => {
         title="执行详情"
         size={720}
         extra={
-          <Button
-            type="link"
-            disabled={!detail?.requestId}
-            onClick={() => openAuditByRequestId(detail?.requestId)}
-          >
-            查看审计日志
-          </Button>
+          <Flex gap={8} wrap>
+            {detail?.status === 'FAILED' ? (
+              <Popconfirm
+                title="重试连接器"
+                description="将按该失败记录再次调用。"
+                okText="重试"
+                cancelText="取消"
+                onConfirm={() => retryLog(detail)}
+              >
+                <Button type="primary">重试</Button>
+              </Popconfirm>
+            ) : null}
+            <Button
+              type="link"
+              disabled={!detail?.requestId}
+              onClick={() => openAuditByRequestId(detail?.requestId)}
+            >
+              查看审计日志
+            </Button>
+          </Flex>
         }
         open={Boolean(detail)}
         onClose={() => setDetail(undefined)}

@@ -746,3 +746,7 @@ export function getConnectorExecutionSummary(connectorType?: string) {
 export function getConnectorExecutionLog(id: string) {
   return apiData<ConnectorExecutionLogItem>(http.get(`/connector-execution-logs/${id}`))
 }
+
+export function retryConnectorExecutionLog(id: string) {
+  return apiData<ConnectorExecutionLogItem>(http.post(`/connector-execution-logs/${id}/retry`))
+}

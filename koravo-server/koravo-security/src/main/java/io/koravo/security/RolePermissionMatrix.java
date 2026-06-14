@@ -70,7 +70,8 @@ public final class RolePermissionMatrix {
                     prefix("/api/v1/form-bindings", ADMIN_ROLES),
                     prefix("/api/v1/datasources", ADMIN_ROLES),
                     prefix("/api/v1/workflow-enablement", ADMIN_ROLES),
-                    prefix("/api/v1/ops", OPS_ROLES)
+                    prefix("/api/v1/ops", OPS_ROLES),
+                    prefix("/api/v1/connector-execution-logs", AUDIT_ROLES)
             ),
             "PUT", List.of(
                     rule("/api/v1/organization/members/[^/]+", ADMIN_ROLES),

@@ -71,6 +71,18 @@ class RolePermissionMatrixTest {
                 UserContextHolder.ROLE_OPERATOR
         )).isTrue();
         assertThat(RolePermissionMatrix.isAllowed(
+                "POST",
+                "/api/v1/connector-execution-logs/log-1/retry",
+                "operator",
+                UserContextHolder.ROLE_OPERATOR
+        )).isTrue();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "POST",
+                "/api/v1/connector-execution-logs/log-1/retry",
+                "applicant",
+                UserContextHolder.ROLE_APPLICANT
+        )).isFalse();
+        assertThat(RolePermissionMatrix.isAllowed(
                 "GET",
                 "/api/v1/audit-logs",
                 "admin",

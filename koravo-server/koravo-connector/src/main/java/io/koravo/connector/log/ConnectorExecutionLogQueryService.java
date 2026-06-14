@@ -76,7 +76,7 @@ public class ConnectorExecutionLogQueryService {
         };
     }
 
-    private ConnectorExecutionLogResponse toResponse(KoConnectorExecutionLog log) {
+    public ConnectorExecutionLogResponse toResponse(KoConnectorExecutionLog log) {
         return new ConnectorExecutionLogResponse(
                 log.getId(),
                 log.getConnectorType(),
