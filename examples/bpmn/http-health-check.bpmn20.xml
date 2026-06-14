@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="https://koravo.io/examples">
+  <process id="httpHealthCheck" name="HTTP Health Check" isExecutable="true">
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="flow_start_http" sourceRef="start" targetRef="callKoravoHealth"/>
+
+    <serviceTask id="callKoravoHealth"
+                 name="Call Koravo Health"
+                 flowable:delegateExpression="${koravoConnectorDelegate}">
+      <extensionElements>
+        <flowable:field name="connectorType" stringValue="http"/>
+        <flowable:field name="method" stringValue="GET"/>
+        <flowable:field name="url" stringValue="http://localhost:8080/api/v1/health"/>
+        <flowable:field name="headers" stringValue="{&quot;X-Koravo-Tenant-Id&quot;:&quot;default&quot;}"/>
+        <flowable:field name="timeoutMillis" stringValue="3000"/>
+        <flowable:field name="outputVariable" stringValue="healthResult"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_http_review" sourceRef="callKoravoHealth" targetRef="reviewTask"/>
+
+    <userTask id="reviewTask" name="Review HTTP Result" flowable:assignee="${approver}"/>
+    <sequenceFlow id="flow_review_end" sourceRef="reviewTask" targetRef="end"/>
+
+    <endEvent id="end" name="Done"/>
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_httpHealthCheck">
+    <bpmndi:BPMNPlane id="BPMNPlane_httpHealthCheck" bpmnElement="httpHealthCheck">
+      <bpmndi:BPMNShape id="Shape_start" bpmnElement="start">
+        <omgdc:Bounds x="80" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_callKoravoHealth" bpmnElement="callKoravoHealth">
+        <omgdc:Bounds x="170" y="78" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_reviewTask" bpmnElement="reviewTask">
+        <omgdc:Bounds x="390" y="78" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_end" bpmnElement="end">
+        <omgdc:Bounds x="610" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_flow_start_http" bpmnElement="flow_start_http">
+        <omgdi:waypoint x="116" y="118"/>
+        <omgdi:waypoint x="170" y="118"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_flow_http_review" bpmnElement="flow_http_review">
+        <omgdi:waypoint x="320" y="118"/>
+        <omgdi:waypoint x="390" y="118"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_flow_review_end" bpmnElement="flow_review_end">
+        <omgdi:waypoint x="540" y="118"/>
+        <omgdi:waypoint x="610" y="118"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

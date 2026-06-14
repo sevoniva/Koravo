@@ -1,0 +1,571 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0001-create-platform-tables
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_tenant
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_process_model
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: model_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: model_name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: model_type, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: version, type: int, constraints: { nullable: false } }
+              - column: { name: flowable_deployment_id, type: varchar(128) }
+              - column: { name: flowable_definition_id, type: varchar(128) }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: description, type: varchar(1024) }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_form_schema
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: form_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: form_name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: version, type: int, constraints: { nullable: false } }
+              - column: { name: schema_json, type: clob, constraints: { nullable: false } }
+              - column: { name: ui_schema_json, type: clob }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_form_snapshot
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: process_instance_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: task_id, type: varchar(128) }
+              - column: { name: form_schema_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: data_json, type: clob, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_datasource
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: type, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: jdbc_url, type: varchar(1024), constraints: { nullable: false } }
+              - column: { name: username, type: varchar(256) }
+              - column: { name: password_cipher, type: clob }
+              - column: { name: driver_class_name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: read_only, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: pool_config_json, type: clob }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_connector_config
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: connector_type, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: connector_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: config_json, type: clob, constraints: { nullable: false } }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createTable:
+            tableName: ko_audit_log
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: user_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: action, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: resource_type, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: resource_id, type: varchar(128) }
+              - column: { name: request_id, type: varchar(128) }
+              - column: { name: client_ip, type: varchar(128) }
+              - column: { name: detail_json, type: clob }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - insert:
+            tableName: ko_tenant
+            columns:
+              - column: { name: id, value: default }
+              - column: { name: tenant_id, value: default }
+              - column: { name: name, value: Default Tenant }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
+        - createIndex:
+            tableName: ko_process_model
+            indexName: idx_ko_process_model_tenant_key
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: model_key }
+        - createIndex:
+            tableName: ko_datasource
+            indexName: idx_ko_datasource_tenant
+            columns:
+              - column: { name: tenant_id }
+        - createIndex:
+            tableName: ko_audit_log
+            indexName: idx_ko_audit_log_tenant_action
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: action }
+  - changeSet:
+      id: 0002-add-process-model-bpmn-xml
+      author: koravo
+      changes:
+        - addColumn:
+            tableName: ko_process_model
+            columns:
+              - column:
+                  name: bpmn_xml
+                  type: clob
+  - changeSet:
+      id: 0003-create-datasource-test-log
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_datasource_test_log
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: datasource_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: success, type: boolean, constraints: { nullable: false } }
+              - column: { name: message, type: clob }
+              - column: { name: elapsed_millis, type: bigint, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createIndex:
+            tableName: ko_datasource_test_log
+            indexName: idx_ko_datasource_test_log_tenant_ds
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: datasource_id }
+  - changeSet:
+      id: 0004-create-form-binding
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_form_binding
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: process_model_id, type: varchar(64) }
+              - column: { name: process_definition_id, type: varchar(128) }
+              - column: { name: task_definition_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: form_schema_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: form_schema_version, type: int, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createIndex:
+            tableName: ko_form_binding
+            indexName: idx_ko_form_binding_tenant_model_task
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: process_model_id }
+              - column: { name: task_definition_key }
+        - createIndex:
+            tableName: ko_form_binding
+            indexName: idx_ko_form_binding_tenant_def_task
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: process_definition_id }
+              - column: { name: task_definition_key }
+  - changeSet:
+      id: 0005-create-connector-execution-log
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_connector_execution_log
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: connector_type, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: method, type: varchar(16) }
+              - column: { name: url, type: varchar(1024) }
+              - column: { name: status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: status_code, type: int }
+              - column: { name: elapsed_millis, type: bigint, constraints: { nullable: false } }
+              - column: { name: request_id, type: varchar(128) }
+              - column: { name: request_summary, type: clob }
+              - column: { name: response_summary, type: clob }
+              - column: { name: error_message, type: clob }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - createIndex:
+            tableName: ko_connector_execution_log
+            indexName: idx_ko_connector_execution_log_tenant_type
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: connector_type }
+  - changeSet:
+      id: 0006-add-form-snapshot-schema-copy
+      author: koravo
+      changes:
+        - addColumn:
+            tableName: ko_form_snapshot
+            columns:
+              - column: { name: form_schema_version, type: int }
+              - column: { name: schema_json, type: clob }
+              - column: { name: ui_schema_json, type: clob }
+  - changeSet:
+      id: 0007-convert-legacy-lob-oids-to-text
+      author: koravo
+      dbms: postgresql
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              do $$
+              declare
+                column_ref record;
+              begin
+                for column_ref in
+                  select *
+                  from (values
+                    ('ko_process_model', 'bpmn_xml'),
+                    ('ko_form_schema', 'schema_json'),
+                    ('ko_form_schema', 'ui_schema_json'),
+                    ('ko_form_snapshot', 'data_json'),
+                    ('ko_form_snapshot', 'schema_json'),
+                    ('ko_form_snapshot', 'ui_schema_json'),
+                    ('ko_datasource', 'password_cipher'),
+                    ('ko_datasource', 'pool_config_json'),
+                    ('ko_datasource_test_log', 'message'),
+                    ('ko_connector_config', 'config_json'),
+                    ('ko_connector_execution_log', 'request_summary'),
+                    ('ko_connector_execution_log', 'response_summary'),
+                    ('ko_connector_execution_log', 'error_message'),
+                    ('ko_audit_log', 'detail_json')
+                  ) as target(table_name, column_name)
+                loop
+                  execute format(
+                    'update %I set %I = convert_from(lo_get(%I::oid), ''UTF8'') where %I ~ ''^[0-9]+$'' and exists (select 1 from pg_largeobject_metadata where oid = %I::oid)',
+                    column_ref.table_name,
+                    column_ref.column_name,
+                    column_ref.column_name,
+                    column_ref.column_name,
+                    column_ref.column_name
+                  );
+                end loop;
+              end $$;
+  - changeSet:
+      id: 0008-create-organization-member
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: user_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: department, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: role, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: status, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - addUniqueConstraint:
+            tableName: ko_organization_member
+            columnNames: tenant_id,user_id
+            constraintName: uk_ko_org_member_tenant_user
+        - createIndex:
+            tableName: ko_organization_member
+            indexName: idx_ko_org_member_tenant_role
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: role }
+        - insert:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, value: default-admin }
+              - column: { name: tenant_id, value: default }
+              - column: { name: user_id, value: admin }
+              - column: { name: name, value: 流程平台负责人 }
+              - column: { name: department, value: 流程平台组 }
+              - column: { name: role, value: admin }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
+        - insert:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, value: default-applicant }
+              - column: { name: tenant_id, value: default }
+              - column: { name: user_id, value: applicant }
+              - column: { name: name, value: 业务申请专员 }
+              - column: { name: department, value: 业务一部 }
+              - column: { name: role, value: applicant }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
+        - insert:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, value: default-manager }
+              - column: { name: tenant_id, value: default }
+              - column: { name: user_id, value: manager }
+              - column: { name: name, value: 业务审批主管 }
+              - column: { name: department, value: 业务一部 }
+              - column: { name: role, value: manager }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
+        - insert:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: id, value: default-finance }
+              - column: { name: tenant_id, value: default }
+              - column: { name: user_id, value: finance }
+              - column: { name: name, value: 财务复核专员 }
+              - column: { name: department, value: 财务部门 }
+              - column: { name: role, value: finance }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_by, value: system }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_by, value: system }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: deleted, valueBoolean: false }
+  - changeSet:
+      id: 0009-add-workflow-asset-origin
+      author: koravo
+      changes:
+        - addColumn:
+            tableName: ko_process_model
+            columns:
+              - column:
+                  name: asset_origin
+                  type: varchar(64)
+                  defaultValue: USER_FLOW
+                  constraints:
+                    nullable: false
+        - addColumn:
+            tableName: ko_form_schema
+            columns:
+              - column:
+                  name: asset_origin
+                  type: varchar(64)
+                  defaultValue: USER_FLOW
+                  constraints:
+                    nullable: false
+        - update:
+            tableName: ko_process_model
+            columns:
+              - column: { name: asset_origin, value: SYSTEM_TEMPLATE }
+            where: model_key = 'collaborativeApproval'
+        - update:
+            tableName: ko_form_schema
+            columns:
+              - column: { name: asset_origin, value: SYSTEM_TEMPLATE }
+            where: form_key = 'business-request-form'
+        - update:
+            tableName: ko_process_model
+            columns:
+              - column: { name: asset_origin, value: LEGACY_DEMO }
+            where: model_key in ('multiAcceptance', 'purchaseApproval', 'leaveApproval', 'httpConnectorDemo', 'designerDeployCheck')
+        - update:
+            tableName: ko_form_schema
+            columns:
+              - column: { name: asset_origin, value: LEGACY_DEMO }
+            where: form_key in ('acceptance-request-form', 'purchase-request-form', 'leave-form')
+        - update:
+            tableName: ko_process_model
+            columns:
+              - column: { name: asset_origin, value: TEST_FIXTURE }
+            where: model_key like 'koravoProcess%'
+  - changeSet:
+      id: 0010-add-default-operator-member
+      author: koravo
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              insert into ko_organization_member (
+                id, tenant_id, user_id, name, department, role, status,
+                created_by, created_at, updated_by, updated_at, deleted
+              )
+              select
+                'default-operator', 'default', 'operator', '运行审计专员', '运维审计组', 'operator', 'ACTIVE',
+                'system', timestamp '2026-01-01 00:00:00', 'system', timestamp '2026-01-01 00:00:00', false
+              where not exists (
+                select 1 from ko_organization_member
+                where tenant_id = 'default' and user_id = 'operator' and deleted = false
+              );
+  - changeSet:
+      id: 0011-add-login-session-and-member-credentials
+      author: koravo
+      changes:
+        - addColumn:
+            tableName: ko_organization_member
+            columns:
+              - column: { name: password_hash, type: varchar(128) }
+              - column: { name: last_login_at, type: timestamp }
+        - createTable:
+            tableName: ko_login_session
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: token_hash, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: user_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: role, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: expires_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: last_seen_at, type: timestamp }
+              - column: { name: revoked_at, type: timestamp }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - addUniqueConstraint:
+            tableName: ko_login_session
+            columnNames: token_hash
+            constraintName: uk_ko_login_session_token
+        - createIndex:
+            tableName: ko_login_session
+            indexName: idx_ko_login_session_tenant_user
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: user_id }
+        - createIndex:
+            tableName: ko_login_session
+            indexName: idx_ko_login_session_expires
+            columns:
+              - column: { name: expires_at }
+  - changeSet:
+      id: 0012-create-form-schema-version
+      author: koravo
+      changes:
+        - createTable:
+            tableName: ko_form_schema_version
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: tenant_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: form_schema_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: version, type: int, constraints: { nullable: false } }
+              - column: { name: form_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: form_name, type: varchar(256), constraints: { nullable: false } }
+              - column: { name: schema_json, type: clob, constraints: { nullable: false } }
+              - column: { name: ui_schema_json, type: clob }
+              - column: { name: created_by, type: varchar(128) }
+              - column: { name: created_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(128) }
+              - column: { name: updated_at, type: timestamp, constraints: { nullable: false } }
+              - column: { name: deleted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+        - addUniqueConstraint:
+            tableName: ko_form_schema_version
+            columnNames: tenant_id,form_schema_id,version
+            constraintName: uk_ko_form_schema_version
+        - createIndex:
+            tableName: ko_form_schema_version
+            indexName: idx_ko_form_schema_version_schema
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: form_schema_id }
+              - column: { name: version }
+        - sql:
+            sql: |
+              insert into ko_form_schema_version (
+                id, tenant_id, form_schema_id, version, form_key, form_name,
+                schema_json, ui_schema_json, created_by, created_at, updated_by, updated_at, deleted
+              )
+              select
+                id, tenant_id, id, version, form_key, form_name,
+                schema_json, ui_schema_json, created_by, created_at, updated_by, updated_at, deleted
+              from ko_form_schema
+              where deleted = false;
+  - changeSet:
+      id: 0013-backfill-bound-form-schema-versions
+      author: koravo
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              insert into ko_form_schema_version (
+                id, tenant_id, form_schema_id, version, form_key, form_name,
+                schema_json, ui_schema_json, created_by, created_at, updated_by, updated_at, deleted
+              )
+              select
+                md5(bound.tenant_id || ':' || bound.form_schema_id || ':' || bound.form_schema_version),
+                schema.tenant_id,
+                schema.id,
+                bound.form_schema_version,
+                schema.form_key,
+                schema.form_name,
+                schema.schema_json,
+                schema.ui_schema_json,
+                schema.updated_by,
+                schema.updated_at,
+                schema.updated_by,
+                schema.updated_at,
+                false
+              from (
+                select distinct tenant_id, form_schema_id, form_schema_version
+                from ko_form_binding
+                where deleted = false
+              ) bound
+              join ko_form_schema schema
+                on schema.tenant_id = bound.tenant_id
+               and schema.id = bound.form_schema_id
+               and schema.deleted = false
+              where not exists (
+                select 1
+                from ko_form_schema_version version
+                where version.tenant_id = bound.tenant_id
+                  and version.form_schema_id = bound.form_schema_id
+                  and version.version = bound.form_schema_version
+                  and version.deleted = false
+              );

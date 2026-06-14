@@ -2,6 +2,20 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+## Project Direction: Ant Design Pro V6
+
+The frontend migration target is official Ant Design Pro V6, not a hand-written lookalike.
+
+- Use React 19, antd 6, Umi Max 4, `@ant-design/pro-components`, utoopack, `antd-style`, React Query, and Biome.
+- Use official Ant Design Pro skills installed in `.claude/skills/` and `.agents/skills/`.
+- Use the antd MCP configured in `.mcp.json` when the environment supports MCP.
+- Before writing an antd or ProComponents component, query the official CLI first:
+  `npm exec --package @ant-design/cli -- antd info <Component> --format json --lang zh`
+- Prefer official components: `PageContainer`, `ProTable`, `ProForm`, `ModalForm`, `DrawerForm`, `StepsForm`, `ProDescriptions`, `ProCard`, `StatisticCard`, and antd primitives.
+- Do not preserve template sample pages or sample copy. Do not add AI-sounding explanatory text.
+- Do not hand-roll UI controls when an official antd or ProComponents component exists.
+- Commit and push in small verified checkpoints on `feat/` branches.
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**

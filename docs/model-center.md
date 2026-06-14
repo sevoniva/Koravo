@@ -1,0 +1,69 @@
+# Model Center
+
+Koravo stores process model metadata and BPMN XML in platform tables before deploying to Flowable. The model center is the product boundary for draft, validation, deployment, export, and lifecycle state.
+
+## Status
+
+Supported model states:
+
+- `DRAFT`
+- `DEPLOYED`
+- `DISABLED`
+- `ARCHIVED`
+
+The model API writes `ko_process_model` rows with model key, name, version, status, BPMN XML, Flowable deployment ID, and Flowable process definition ID.
+Only `DRAFT` models can be deployed from storage. Updating a `DEPLOYED` model returns it to `DRAFT` for review and redeploy; `DISABLED` and `ARCHIVED` models are not deployable.
+
+## APIs
+
+- `POST /api/v1/process-models`: create a draft model
+- `POST /api/v1/process-models/import`: import BPMN XML as a draft model
+- `GET /api/v1/process-models?status=DRAFT`: list models
+- `GET /api/v1/process-models/{id}`: get model detail
+- `PUT /api/v1/process-models/{id}`: update draft content
+- `POST /api/v1/process-models/{id}/validate`: validate stored BPMN XML
+- `POST /api/v1/process-models/validate`: validate raw BPMN XML
+- `POST /api/v1/process-models/{id}/deploy`: deploy stored draft BPMN XML
+- `POST /api/v1/process-models/{id}/disable`: disable a model
+- `POST /api/v1/process-models/{id}/archive`: archive a model
+- `GET /api/v1/process-models/{id}/export`: download BPMN XML as `{modelKey}.bpmn20.xml`
+- `POST /api/v1/process-models/deploy`: legacy multipart deploy shortcut for examples
+
+Validation returns structured `errors` and `warnings`, not a boolean-only result.
+
+## Audit
+
+The model service records audit events:
+
+- `PROCESS_MODEL_CREATE`
+- `PROCESS_MODEL_IMPORT`
+- `PROCESS_MODEL_UPDATE`
+- `PROCESS_MODEL_DEPLOY`
+- `PROCESS_MODEL_DISABLE`
+- `PROCESS_MODEL_ARCHIVE`
+
+Creating a blank/default draft writes `PROCESS_MODEL_CREATE`; importing BPMN XML writes `PROCESS_MODEL_IMPORT`. Both stored draft deployment and the legacy multipart deploy shortcut write `PROCESS_MODEL_DEPLOY`.
+Model lifecycle audit details include model key, version, current status, and Flowable deployment/definition IDs when available. BPMN XML is intentionally not written into audit details.
+
+## Console
+
+Use `/process-models` to list models by status, inspect metadata, validate stored BPMN XML, open a model in the designer, deploy stored drafts, export BPMN XML, disable models, and archive models.
+
+Use `/process-designer` to create, edit, import, export, validate, save, and deploy BPMN with `bpmn-js`. `/process-designer?modelId={id}` opens a stored model directly from the model center.
+The designer enables deployment only for `DRAFT` models, matching the backend lifecycle rule.
+
+The default new process is:
+
+```text
+startEvent -> userTask -> endEvent
+```
+
+The default user task assignee is `${approver}`.
+
+For newly created drafts, the designer synchronizes the BPMN process `id` and `name` with the Model key and Model name fields before validation or saving. Existing models keep their stored BPMN identity unless edited directly in the canvas/XML.
+The designer property panel can also edit the selected BPMN element `id` and `name`. For `bpmn:UserTask` elements, it can edit `flowable:assignee`, which keeps simple approval workflows configurable without opening raw BPMN XML.
+
+## Current Limits
+
+- Visual property editing is still minimal. Advanced extension editing beyond user task assignee is done through BPMN XML or bpmn-js canvas editing.
+- Model version branching is represented by incremented version metadata, not by a full diff/merge UI.

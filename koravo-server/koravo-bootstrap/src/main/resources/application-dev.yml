@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:koravo}
+    username: ${POSTGRES_USER:koravo}
+    password: ${POSTGRES_PASSWORD:koravo}
+
+koravo:
+  security:
+    allow-unsigned-platform-headers: true
+
+logging:
+  level:
+    io.koravo: DEBUG

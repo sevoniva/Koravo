@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "antd": {
+      "command": "npx",
+      "args": ["--yes", "--package", "@ant-design/cli", "antd", "mcp"],
+      "env": {
+        "NPM_CONFIG_REGISTRY": "https://registry.npmmirror.com"
+      }
+    }
+  }
+}

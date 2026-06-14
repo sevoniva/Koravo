@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" role="img" aria-label="Koravo">
+  <rect width="200" height="200" rx="36" fill="#ffffff"/>
+  <rect x="18" y="18" width="164" height="164" rx="28" fill="#1677ff"/>
+  <path d="M58 50h26v42l42-42h34l-49 48 53 52h-36l-44-44v44H58V50z" fill="#ffffff"/>
+</svg>

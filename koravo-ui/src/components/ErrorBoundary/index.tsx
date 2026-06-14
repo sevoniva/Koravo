@@ -1,0 +1,133 @@
+import { Button, Card, Result } from 'antd';
+import React from 'react';
+
+function isChunkLoadError(error: Error): boolean {
+  return (
+    error.name === 'ChunkLoadError' ||
+    /(?:loading|failed to load) (?:css )?chunk/i.test(error.message) ||
+    /Failed to fetch dynamically imported module/i.test(error.message)
+  );
+}
+
+function renderErrorFallback(
+  error: Error,
+  isOnline: boolean,
+  onRetry: () => void,
+  onReload: () => void,
+) {
+  const isOffline = !isOnline;
+  const isChunkError = isChunkLoadError(error);
+
+  return (
+    <Card variant="borderless" style={{ margin: 24 }}>
+      <Result
+        status="error"
+        title={isChunkError ? '页面资源加载失败' : '页面渲染异常'}
+        subTitle={
+          isChunkError && isOffline
+            ? '网络连接已中断，请恢复连接后刷新页面。'
+            : isChunkError
+              ? '页面资源加载失败，请刷新后重试。'
+              : '当前页面发生异常，请刷新页面或返回总览。'
+        }
+        extra={[
+          isChunkError && (
+            <Button type="primary" key="retry" onClick={onRetry}>
+              重试
+            </Button>
+          ),
+          <Button
+            type={isChunkError ? 'default' : 'primary'}
+            key="reload"
+            onClick={onReload}
+          >
+            刷新页面
+          </Button>,
+          <Button href="/" key="home">
+            返回总览
+          </Button>,
+        ].filter(Boolean)}
+      />
+    </Card>
+  );
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  isOnline: boolean;
+  retryCount: number;
+}
+
+export default class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  ErrorBoundaryState
+> {
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null,
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    retryCount: 0,
+  };
+
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return { hasError: true, error };
+  }
+
+  componentDidMount() {
+    window.addEventListener('online', this.handleOnline);
+    window.addEventListener('offline', this.handleOffline);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('online', this.handleOnline);
+    window.removeEventListener('offline', this.handleOffline);
+  }
+
+  handleOnline = () => {
+    this.setState({ isOnline: true });
+    if (
+      this.state.hasError &&
+      this.state.error &&
+      isChunkLoadError(this.state.error)
+    ) {
+      window.location.reload();
+    }
+  };
+
+  handleOffline = () => {
+    this.setState({ isOnline: false });
+  };
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[ErrorBoundary]', error, info.componentStack);
+  }
+
+  handleRetry = () => {
+    this.setState((prev) => ({
+      hasError: false,
+      error: null,
+      retryCount: prev.retryCount + 1,
+    }));
+  };
+
+  handleReload = () => {
+    window.location.reload();
+  };
+
+  render() {
+    if (!this.state.hasError || !this.state.error) {
+      return (
+        <React.Fragment key={this.state.retryCount}>
+          {this.props.children}
+        </React.Fragment>
+      );
+    }
+    return renderErrorFallback(
+      this.state.error,
+      this.state.isOnline,
+      this.handleRetry,
+      this.handleReload,
+    );
+  }
+}

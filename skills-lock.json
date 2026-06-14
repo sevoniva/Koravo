@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "antd": {
+      "source": "ant-design/ant-design-pro",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/antd/SKILL.md",
+      "computedHash": "895b18ba67ccfabc32f55eab78210da5324da7540bece3fe7cd07ad3fff659d2"
+    },
+    "pro-upgrade": {
+      "source": "ant-design/ant-design-pro",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/pro-upgrade/SKILL.md",
+      "computedHash": "ed8d648877b01a33142e7fa8760796f187826d57f845541c1a47e8279444e85b"
+    }
+  }
+}

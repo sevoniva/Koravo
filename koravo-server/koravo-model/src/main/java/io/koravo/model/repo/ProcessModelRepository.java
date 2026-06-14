@@ -1,0 +1,55 @@
+package io.koravo.model.repo;
+
+import io.koravo.common.model.AssetOrigin;
+import io.koravo.model.domain.KoProcessModel;
+import io.koravo.model.domain.ProcessModelStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface ProcessModelRepository extends JpaRepository<KoProcessModel, String> {
+    List<KoProcessModel> findByTenantIdAndDeletedFalseOrderByUpdatedAtDesc(String tenantId);
+
+    List<KoProcessModel> findByTenantIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(String tenantId, ProcessModelStatus status);
+
+    List<KoProcessModel> findByTenantIdAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            List<AssetOrigin> assetOrigins
+    );
+
+    List<KoProcessModel> findByTenantIdAndStatusAndAssetOriginInAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            ProcessModelStatus status,
+            List<AssetOrigin> assetOrigins
+    );
+
+    List<KoProcessModel> findByTenantIdAndModelKeyInAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            List<String> modelKeys
+    );
+
+    long countByTenantIdAndDeletedFalse(String tenantId);
+
+    long countByTenantIdAndStatusAndDeletedFalse(String tenantId, ProcessModelStatus status);
+
+    long countByTenantIdAndAssetOriginInAndDeletedFalse(String tenantId, List<AssetOrigin> assetOrigins);
+
+    long countByTenantIdAndStatusAndAssetOriginInAndDeletedFalse(
+            String tenantId,
+            ProcessModelStatus status,
+            List<AssetOrigin> assetOrigins
+    );
+
+    Optional<KoProcessModel> findByIdAndTenantIdAndDeletedFalse(String id, String tenantId);
+
+    Optional<KoProcessModel> findFirstByTenantIdAndModelKeyAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            String modelKey
+    );
+
+    Optional<KoProcessModel> findFirstByTenantIdAndFlowableDefinitionIdAndDeletedFalseOrderByUpdatedAtDesc(
+            String tenantId,
+            String flowableDefinitionId
+    );
+}

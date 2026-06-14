@@ -1,0 +1,173 @@
+package io.koravo.security;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Optional;
+
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE + 30)
+public class PlatformAuthenticationFilter extends OncePerRequestFilter {
+    public static final String HEADER_USER_ID = "X-Koravo-User-Id";
+    public static final String HEADER_USER_ROLE = "X-Koravo-User-Role";
+    public static final String HEADER_PLATFORM_TOKEN = "X-Koravo-Platform-Token";
+    public static final String HEADER_AUTHORIZATION = "Authorization";
+
+    private final String trustedToken;
+    private final boolean allowUnsignedPlatformHeaders;
+    private final String defaultTenantId;
+    private final PlatformIdentityVerifier identityVerifier;
+
+    @Autowired
+    public PlatformAuthenticationFilter(
+            @Value("${koravo.security.platform-token:}") String trustedToken,
+            @Value("${koravo.security.allow-unsigned-platform-headers:false}") boolean allowUnsignedPlatformHeaders,
+            @Value("${koravo.tenant.platform-tenant-id:default}") String defaultTenantId,
+            ObjectProvider<PlatformIdentityVerifier> identityVerifierProvider
+    ) {
+        this(
+                trustedToken,
+                allowUnsignedPlatformHeaders,
+                defaultTenantId,
+                identityVerifierProvider.getIfAvailable(PlatformIdentityVerifier::allowAll)
+        );
+    }
+
+    PlatformAuthenticationFilter(
+            String trustedToken,
+            boolean allowUnsignedPlatformHeaders,
+            String defaultTenantId,
+            PlatformIdentityVerifier identityVerifier
+    ) {
+        this.trustedToken = trustedToken == null ? "" : trustedToken.trim();
+        this.allowUnsignedPlatformHeaders = allowUnsignedPlatformHeaders;
+        this.defaultTenantId = defaultTenantId == null || defaultTenantId.isBlank() ? "default" : defaultTenantId.trim();
+        this.identityVerifier = identityVerifier;
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+        try {
+            String bearerToken = bearerToken(request);
+            if (!bearerToken.isBlank()) {
+                Optional<VerifiedPlatformIdentity> verifiedIdentity = identityVerifier.verifyToken(bearerToken);
+                if (verifiedIdentity.isEmpty()) {
+                    unauthorized(response, "登录会话已失效");
+                    return;
+                }
+                VerifiedPlatformIdentity identity = verifiedIdentity.get();
+                if (!tenantId(request).equals(identity.tenantId())) {
+                    unauthorized(response, "登录会话不属于当前组织");
+                    return;
+                }
+                authenticate(identity);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String userId = request.getHeader(HEADER_USER_ID);
+            if (userId == null || userId.isBlank()) {
+                if (isPublicRequest(request)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                unauthorized(response, "平台身份缺失");
+                return;
+            }
+            if (!hasTrustedPlatformToken(request)) {
+                unauthorized(response);
+                return;
+            }
+
+            Optional<VerifiedPlatformIdentity> verifiedIdentity = identityVerifier.verify(new PlatformIdentityRequest(
+                    tenantId(request),
+                    userId.trim(),
+                    request.getHeader(HEADER_USER_ROLE)
+            ));
+            if (verifiedIdentity.isEmpty()) {
+                unauthorized(response, "平台身份未同步到当前租户");
+                return;
+            }
+
+            VerifiedPlatformIdentity identity = verifiedIdentity.get();
+            authenticate(identity);
+            filterChain.doFilter(request, response);
+        } finally {
+            UserContextHolder.clear();
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    private void authenticate(VerifiedPlatformIdentity identity) {
+        UserContextHolder.setUser(identity.userId(), identity.role());
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        UserContextHolder.getUserId(),
+                        "N/A",
+                        AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_" + UserContextHolder.getRole().toUpperCase())
+                )
+        );
+    }
+
+    private String bearerToken(HttpServletRequest request) {
+        String authorization = request.getHeader(HEADER_AUTHORIZATION);
+        if (authorization == null || authorization.isBlank()) {
+            return "";
+        }
+        String prefix = "Bearer ";
+        return authorization.startsWith(prefix) ? authorization.substring(prefix.length()).trim() : "";
+    }
+
+    private boolean hasTrustedPlatformToken(HttpServletRequest request) {
+        if (trustedToken.isBlank()) {
+            return allowUnsignedPlatformHeaders;
+        }
+        String requestToken = request.getHeader(HEADER_PLATFORM_TOKEN);
+        return trustedToken.equals(requestToken);
+    }
+
+    private boolean isPublicRequest(HttpServletRequest request) {
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            return true;
+        }
+        String path = request.getRequestURI();
+        return path.startsWith("/swagger-ui/")
+                || path.equals("/v3/api-docs")
+                || path.startsWith("/v3/api-docs/")
+                || path.equals("/api/v1/health")
+                || path.equals("/api/v1/auth/login");
+    }
+
+    private void unauthorized(HttpServletResponse response) throws IOException {
+        unauthorized(response, "平台身份凭证无效");
+    }
+
+    private void unauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("""
+                {"success":false,"code":"UNAUTHORIZED","message":"%s"}
+                """.formatted(message));
+    }
+
+    private String tenantId(HttpServletRequest request) {
+        String tenantId = request.getHeader("X-Koravo-Tenant-Id");
+        return tenantId == null || tenantId.isBlank() ? defaultTenantId : tenantId.trim();
+    }
+}
