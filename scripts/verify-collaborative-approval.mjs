@@ -20,6 +20,7 @@ async function main() {
 
   const applicant = await login("applicant", "applicant");
   const operator = await login("operator", "operator");
+  const accessDeniedAuditLogs = await assertAccessDeniedAudited(applicant, operator);
   const approvers = new Map();
   for (const userId of approverIds) {
     approvers.set(userId, await login(userId));
@@ -116,6 +117,7 @@ async function main() {
         completedTasks: completedTasks.map((task) => task.taskId),
         startAuditCount: startAuditLogs.length,
         taskAuditCount: taskAuditLogs.flat().length,
+        accessDeniedAuditCount: accessDeniedAuditLogs.length,
         failedJobs: failedJobs.length,
         deadLetterJobs: deadLetterJobs.length,
       },
@@ -198,6 +200,32 @@ async function assertSingleApproverRejected(session, workflow) {
     throw error;
   }
   throw new Error("single approver collaborative start should be rejected");
+}
+
+async function assertAccessDeniedAudited(applicant, operator) {
+  const denied = await apiFailure("/process-models", {
+    method: "POST",
+    token: applicant.token,
+    body: {
+      modelKey: `forbiddenModel${Date.now()}`,
+      modelName: "越权访问验收",
+      description: "申请人不能维护流程模型",
+    },
+  });
+  assertEquals(denied.status, 403, "forbidden model write status");
+  if (denied.payload?.code !== "FORBIDDEN") {
+    throw new Error(`expected FORBIDDEN code, got ${JSON.stringify(denied.payload)}`);
+  }
+  return waitForAuditLogs(
+    operator,
+    {
+      action: "ACCESS_DENIED",
+      resourceType: "API_ENDPOINT",
+      resourceId: "POST /api/v1/process-models",
+      userId: applicant.userId,
+    },
+    "access denied audit",
+  );
 }
 
 async function startProcess(session, workflow, businessKey, formData) {
@@ -331,6 +359,37 @@ async function api(pathname, options = {}) {
     );
   }
   return payload?.data ?? payload;
+}
+
+async function apiFailure(pathname, options = {}) {
+  const url = new URL(`${baseUrl}${pathname}`);
+  for (const [key, value] of Object.entries(options.query ?? {})) {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  }
+
+  const headers = { "X-Koravo-Tenant-Id": tenantId };
+  if (options.token) {
+    headers.Authorization = `Bearer ${options.token}`;
+  }
+  let body;
+  if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    body = JSON.stringify(options.body);
+  }
+
+  const response = await fetch(url, {
+    method: options.method ?? "GET",
+    headers,
+    body,
+  });
+  const text = await response.text();
+  const payload = text ? JSON.parse(text) : null;
+  if (response.ok && payload?.success !== false) {
+    throw new Error(`${options.method ?? "GET"} ${url.pathname} should fail`);
+  }
+  return { status: response.status, payload };
 }
 
 function stripTrailingSlash(value) {

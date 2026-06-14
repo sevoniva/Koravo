@@ -49,7 +49,7 @@ node scripts/verify-collaborative-approval.mjs
 node scripts/verify-enterprise-approval.mjs
 ```
 
-The collaborative check uses the running backend API. It initializes the default workflow assets, starts `collaborativeApproval` as applicant, completes the parallel approvals as manager and finance, then checks trusted applicant data, form snapshots, process trace, completed tasks, audit records, failed jobs, and dead-letter jobs.
+The collaborative check uses the running backend API. It initializes the default workflow assets, verifies permission-denied audit logging, starts `collaborativeApproval` as applicant, completes the parallel approvals as manager and finance, then checks trusted applicant data, form snapshots, process trace, completed tasks, audit records, failed jobs, and dead-letter jobs.
 
 The enterprise check logs in as admin, creates or updates 20 approver accounts across 10 departments, deploys the enterprise BPMN through `/api/v1/process-models/deploy`, starts `enterpriseApproval30` as applicant, completes all 34 tasks through assigned and candidate task APIs, then checks process trace, failed jobs, and dead-letter jobs.
 

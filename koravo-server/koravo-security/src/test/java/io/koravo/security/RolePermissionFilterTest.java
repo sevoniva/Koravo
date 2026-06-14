@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RolePermissionFilterTest {
-    private final RolePermissionFilter filter = new RolePermissionFilter();
+    private final RolePermissionFilter filter = new RolePermissionFilter(List.of());
 
     @AfterEach
     void tearDown() {
@@ -81,15 +81,13 @@ class RolePermissionFilterTest {
 
     @Test
     void deniedRequestsPublishAccessDeniedAuditEvent() throws Exception {
-        List<Object> events = new ArrayList<>();
-        RolePermissionFilter auditFilter = new RolePermissionFilter(events::add);
+        List<AccessDeniedAuditEvent> events = new ArrayList<>();
+        RolePermissionFilter auditFilter = new RolePermissionFilter(List.of(events::add));
         UserContextHolder.setUser("starter", UserContextHolder.ROLE_APPLICANT);
 
         assertThat(allows(auditFilter, "GET", "/api/v1/process-models")).isFalse();
 
-        assertThat(events).singleElement().satisfies(event -> {
-            assertThat(event).isInstanceOf(AccessDeniedAuditEvent.class);
-            AccessDeniedAuditEvent auditEvent = (AccessDeniedAuditEvent) event;
+        assertThat(events).singleElement().satisfies(auditEvent -> {
             assertThat(auditEvent.method()).isEqualTo("GET");
             assertThat(auditEvent.path()).isEqualTo("/api/v1/process-models");
             assertThat(auditEvent.userId()).isEqualTo("starter");

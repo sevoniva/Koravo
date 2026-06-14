@@ -172,9 +172,14 @@ async function startProcess(applicant, definition, businessKey) {
 
 async function completeStep(sessions, step, instanceId, sequence) {
   const session = await sessionFor(sessions, step.approverUser, step.systemRole);
-  const task = step.pooled
-    ? await claimPooledTask(session, step, instanceId)
-    : await waitForTask(() => assignedTask(session, step, instanceId), step);
+  const task = await waitForTask(() => currentTraceTask(sessions.get("operator"), step, instanceId), step);
+  if (step.pooled) {
+    await api(`/tasks/${task.taskId}/actions`, {
+      method: "POST",
+      token: session.token,
+      body: { action: "CLAIM", comment: `${step.name}已认领` },
+    });
+  }
   await api(`/tasks/${task.taskId}/complete`, {
     method: "POST",
     token: session.token,
@@ -190,34 +195,11 @@ async function completeStep(sessions, step, instanceId, sequence) {
   });
 }
 
-async function claimPooledTask(session, step, instanceId) {
-  const task = await waitForTask(() => candidateTask(session, step, instanceId), step);
-  return api(`/tasks/${task.taskId}/actions`, {
-    method: "POST",
-    token: session.token,
-    body: { action: "CLAIM", comment: `${step.name}已认领` },
+async function currentTraceTask(operator, step, instanceId) {
+  const trace = await api(`/ops/process-instances/${instanceId}/trace`, {
+    token: operator.token,
   });
-}
-
-async function assignedTask(session, step, instanceId) {
-  const page = await api("/tasks/my", {
-    token: session.token,
-    query: { page: 1, pageSize: 200, keyword: step.taskDefinitionKey },
-  });
-  return findStepTask(page.items, step, instanceId);
-}
-
-async function candidateTask(session, step, instanceId) {
-  const page = await api("/tasks/candidates", {
-    token: session.token,
-    query: {
-      page: 1,
-      pageSize: 200,
-      candidateGroup: step.candidateGroup,
-      keyword: step.taskDefinitionKey,
-    },
-  });
-  return findStepTask(page.items, step, instanceId);
+  return findStepTask(trace.currentTasks, step, instanceId);
 }
 
 async function waitForTask(findTask, step) {
