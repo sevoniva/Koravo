@@ -566,6 +566,8 @@ export function taskDefinitionLabel(
   if (generatedKeyLabel) return generatedKeyLabel;
   const generatedNameLabel = generatedWorkflowNodeLabel(task?.name);
   if (generatedNameLabel) return generatedNameLabel;
+  const taskName = productCopy(task?.name);
+  if (taskName) return taskName;
   const roleApproval = key.match(/^role[-_]?(\d+)(?:Task|Approval)?$/i);
   if (roleApproval) return `审批角色 ${Number(roleApproval[1])}`;
   return mapping[key] || productCopy(task?.name) || readableIdentifier(key);

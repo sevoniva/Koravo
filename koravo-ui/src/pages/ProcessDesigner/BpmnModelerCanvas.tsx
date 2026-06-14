@@ -60,6 +60,15 @@ type EventBus = {
 
 type Canvas = {
   zoom: (value: string, center?: string) => void;
+  scrollToElement?: (element: BpmnElement) => void;
+};
+
+type ElementRegistry = {
+  get: (id: string) => BpmnElement | undefined;
+};
+
+type Selection = {
+  select: (element: BpmnElement) => void;
 };
 
 type Modeling = {
@@ -97,6 +106,7 @@ export interface BpmnSelectedElementPatch {
 
 export interface BpmnModelerCanvasHandle {
   applySelectedElement: (values: BpmnSelectedElementPatch) => Promise<string>;
+  focusElement: (elementId: string) => void;
   saveXml: () => Promise<string>;
   zoomToFit: () => void;
 }
@@ -111,7 +121,7 @@ const useStyles = createStyles(({ css, token }) => ({
   canvas: css`
     position: relative;
     height: 100%;
-    min-height: 640px;
+    min-height: 560px;
     overflow: hidden;
     background: ${token.colorBgContainer};
     border: 1px solid ${token.colorBorderSecondary};
@@ -157,7 +167,7 @@ const useStyles = createStyles(({ css, token }) => ({
   mount: css`
     width: 100%;
     height: 100%;
-    min-height: 640px;
+    min-height: 560px;
   `,
   loading: css`
     position: absolute;
@@ -328,6 +338,27 @@ export const BpmnModelerCanvas = forwardRef<
     }
   };
 
+  const focusElement = (elementId: string) => {
+    try {
+      const elementRegistry = modelerRef.current?.get('elementRegistry') as
+        | ElementRegistry
+        | undefined;
+      const selection = modelerRef.current?.get('selection') as
+        | Selection
+        | undefined;
+      const canvas = modelerRef.current?.get('canvas') as Canvas | undefined;
+      const element = elementRegistry?.get(elementId);
+      if (!element) return;
+
+      selectedElementRef.current = element;
+      selection?.select(element);
+      canvas?.scrollToElement?.(element);
+      onSelectionChangeRef.current?.(toSelectedElement(element));
+    } catch {
+      // The modeler may still be importing when a release-check action runs.
+    }
+  };
+
   const importDiagram = async (xml: string) => {
     const modeler = modelerRef.current;
     if (!modeler || !xml || xml === lastImportedXmlRef.current) return;
@@ -371,6 +402,7 @@ export const BpmnModelerCanvas = forwardRef<
       onSelectionChangeRef.current?.(toSelectedElement(element));
       return saveXml();
     },
+    focusElement,
     saveXml,
     zoomToFit,
   }));

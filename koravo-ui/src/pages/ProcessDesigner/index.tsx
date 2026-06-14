@@ -51,8 +51,6 @@ import {
   listFormBindings,
   listProcessModels,
   listProcessModelTaskDefinitions,
-  type BpmnTaskDefinition,
-  type FormBindingItem,
   type ProcessModelItem,
   updateProcessModel,
   validateProcessModelXml,
@@ -63,7 +61,6 @@ import {
 } from '@/services/koravo/organization';
 import { getSessionContext } from '@/services/koravo/session';
 import {
-  bpmnValidationIssueText,
   formSchemaOptionLabel,
   isBusinessProcessModel,
   processDisplayName,
@@ -79,6 +76,12 @@ import {
   type BpmnSelectedElementPatch,
 } from './BpmnModelerCanvas';
 import { createDefaultBpmnXml, resolveDesignerXml } from './modelerXml';
+import {
+  buildReleaseCheckState,
+  extractUserTasksFromBpmnXml,
+  type ReleaseCheckItem,
+  type ReleaseCheckState,
+} from './releaseCheck';
 
 interface ModelFormValues {
   modelName: string;
@@ -86,13 +89,12 @@ interface ModelFormValues {
 }
 
 type ModelViewMode = 'business' | 'all';
-const START_FORM_TASK_KEY = '__START__';
 
 const useStyles = createStyles(({ css, token }) => ({
   workbench: css`
     position: relative;
     height: calc(100vh - 132px);
-    min-height: 720px;
+    min-height: 820px;
     overflow: hidden;
     background: ${token.colorBgLayout};
     border: 1px solid ${token.colorBorderSecondary};
@@ -112,8 +114,38 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 0 4px;
   `,
   canvasRegion: css`
+    display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+
+    [data-testid='bpmn-modeler-canvas'] {
+      flex: 1 1 auto;
+      min-height: 560px;
+    }
+  `,
+  releaseCheck: css`
+    flex: 0 0 auto;
+    margin-bottom: 12px;
+
+    .ant-alert {
+      background: ${token.colorBgContainer};
+    }
+
+    .release-check-items {
+      max-height: 190px;
+      margin-top: 10px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .release-check-item {
+      padding: 8px 0;
+
+      & + & {
+        border-top: 1px solid ${token.colorBorderSecondary};
+      }
+    }
   `,
   meta: css`
     margin-bottom: 16px;
@@ -241,47 +273,105 @@ function modelSecondaryText(model?: ProcessModelItem) {
   return `流程标识：${processModelKeyLabel(model.modelKey)}`;
 }
 
-function modelBindings(
-  model: ProcessModelItem,
-  bindings: FormBindingItem[],
-) {
-  return bindings.filter(
-    (binding) =>
-      binding.processModelId === model.id ||
-      Boolean(
-        model.flowableDefinitionId &&
-          binding.processDefinitionId === model.flowableDefinitionId,
-      ),
-  );
+function releaseCheckAlertType(status: ReleaseCheckState['status']) {
+  if (status === 'success') return 'success';
+  if (status === 'warning') return 'warning';
+  return 'error';
 }
 
-function missingTaskBindings(
-  bindings: FormBindingItem[],
-  tasks: BpmnTaskDefinition[],
-) {
-  const taskBindings = bindings.filter(
-    (binding) => binding.taskDefinitionKey !== START_FORM_TASK_KEY,
-  );
-  return tasks.filter(
-    (task) =>
-      !taskBindings.some(
-        (binding) => binding.taskDefinitionKey === task.taskDefinitionKey,
-      ),
-  );
+function releaseCheckBadgeStatus(status: ReleaseCheckItem['status']) {
+  if (status === 'success') return 'success';
+  if (status === 'warning') return 'warning';
+  return 'error';
 }
 
-function renderReleaseCheckItem(
-  label: string,
-  ready: boolean,
-  description: React.ReactNode,
-) {
+function releaseCheckActionText(item: ReleaseCheckItem) {
+  if (item.action === 'bind') return '去绑定';
+  if (item.action === 'inspect') return '定位节点';
+  if (item.action === 'xml') return '查看文件';
+  return undefined;
+}
+
+interface ReleaseCheckPanelProps {
+  className?: string;
+  loading?: boolean;
+  state?: ReleaseCheckState;
+  onRun: () => void;
+  onAction: (item: ReleaseCheckItem) => void;
+}
+
+const ReleaseCheckPanel: React.FC<ReleaseCheckPanelProps> = ({
+  className,
+  loading,
+  state,
+  onRun,
+  onAction,
+}) => {
+  if (!state) {
+    return (
+      <Alert
+        className={className}
+        showIcon
+        type="info"
+        title="发布前检查"
+        description="检查流程结构、办理人和表单绑定。"
+        action={
+          <Button size="small" loading={loading} onClick={onRun}>
+            检查
+          </Button>
+        }
+      />
+    );
+  }
+
   return (
-    <Flex key={label} vertical gap={2}>
-      <Badge status={ready ? 'success' : 'error'} text={label} />
-      <Typography.Text type="secondary">{description}</Typography.Text>
-    </Flex>
+    <Alert
+      className={className}
+      showIcon
+      type={releaseCheckAlertType(state.status)}
+      title={state.title}
+      description={
+        <Flex vertical>
+          <Typography.Text type="secondary">{state.summary}</Typography.Text>
+          <Flex vertical className="release-check-items">
+            {state.items.map((item) => {
+              const actionText = releaseCheckActionText(item);
+              return (
+                <Flex
+                  key={item.key}
+                  align="flex-start"
+                  justify="space-between"
+                  gap={12}
+                  className="release-check-item"
+                >
+                  <Flex vertical gap={2}>
+                    <Badge
+                      status={releaseCheckBadgeStatus(item.status)}
+                      text={item.title}
+                    />
+                    <Typography.Text type="secondary">
+                      {item.description}
+                    </Typography.Text>
+                  </Flex>
+                  {actionText ? (
+                    <Button size="small" onClick={() => onAction(item)}>
+                      {actionText}
+                    </Button>
+                  ) : null}
+                </Flex>
+              );
+            })}
+          </Flex>
+        </Flex>
+      }
+      action={
+        <Button size="small" loading={loading} onClick={onRun}>
+          重新检查
+        </Button>
+      }
+    />
   );
-}
+};
 
 const ProcessDesigner: React.FC = () => {
   const location = useLocation();
@@ -304,6 +394,8 @@ const ProcessDesigner: React.FC = () => {
   const [validating, setValidating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
+  const [releaseChecking, setReleaseChecking] = useState(false);
+  const [releaseCheck, setReleaseCheck] = useState<ReleaseCheckState>();
   const [modelViewMode, setModelViewMode] = useState<ModelViewMode>('business');
 
   const {
@@ -359,6 +451,7 @@ const ProcessDesigner: React.FC = () => {
       ),
     );
     setSelectedElement(undefined);
+    setReleaseCheck(undefined);
   }, [activeModel]);
 
   useEffect(() => {
@@ -369,6 +462,7 @@ const ProcessDesigner: React.FC = () => {
       createDefaultBpmnXml(draftModelKeyRef.current, '新流程模型'),
     );
     setSelectedElement(undefined);
+    setReleaseCheck(undefined);
   }, [selectedId]);
 
   const getCurrentXml = useCallback(async () => {
@@ -383,6 +477,7 @@ const ProcessDesigner: React.FC = () => {
       createDefaultBpmnXml(draftModelKeyRef.current, '新流程模型'),
     );
     setSelectedElement(undefined);
+    setReleaseCheck(undefined);
     setInspectorDrawerOpen(true);
   }, []);
 
@@ -391,15 +486,65 @@ const ProcessDesigner: React.FC = () => {
     if (element) setInspectorDrawerOpen(true);
   }, []);
 
+  const runReleaseCheck = useCallback(async () => {
+    setReleaseChecking(true);
+    try {
+      const currentXml = await getCurrentXml();
+      const validation = await validateProcessModelXml(currentXml);
+      const [bindings, savedTasks, schemas] = activeModel
+        ? await Promise.all([
+            listFormBindings({ processModelId: activeModel.id }),
+            listProcessModelTaskDefinitions(activeModel.id).catch(() => []),
+            forms ? Promise.resolve(forms) : listFormSchemas(),
+          ])
+        : [[], [], forms || []];
+      const xmlTasks = extractUserTasksFromBpmnXml(currentXml);
+      const nextCheck = buildReleaseCheckState({
+        activeModel,
+        validation,
+        bindings,
+        schemas,
+        tasks: xmlTasks.length ? xmlTasks : savedTasks,
+        bpmnXml: currentXml,
+      });
+      setReleaseCheck(nextCheck);
+      return nextCheck;
+    } finally {
+      setReleaseChecking(false);
+    }
+  }, [activeModel, forms, getCurrentXml]);
+
+  const handleReleaseCheckAction = useCallback(
+    (item: ReleaseCheckItem) => {
+      if (item.action === 'bind' && item.actionPath) {
+        history.push(item.actionPath);
+        return;
+      }
+      if (item.action === 'inspect') {
+        if (item.elementId) modelerRef.current?.focusElement(item.elementId);
+        setInspectorDrawerOpen(true);
+        return;
+      }
+      if (item.action === 'xml') {
+        setXmlDrawerOpen(true);
+      }
+    },
+    [],
+  );
+
   const handleValidate = useCallback(async () => {
     setValidating(true);
     try {
-      await validateProcessModelXml(await getCurrentXml());
-      message.success('校验通过');
+      const check = await runReleaseCheck();
+      if (check.deployable && !check.warningCount) {
+        message.success('检查通过');
+      } else {
+        message.warning(check.title);
+      }
     } finally {
       setValidating(false);
     }
-  }, [getCurrentXml]);
+  }, [message, runReleaseCheck]);
 
   const handleSave = useCallback(async () => {
     if (!modelForm.modelName?.trim()) {
@@ -445,83 +590,9 @@ const ProcessDesigner: React.FC = () => {
 
     setDeploying(true);
     try {
-      const currentXml = await getCurrentXml();
-      const validation = await validateProcessModelXml(currentXml);
-      const [bindings, tasks] = await Promise.all([
-        listFormBindings({ processModelId: activeModel.id }),
-        listProcessModelTaskDefinitions(activeModel.id).catch(() => []),
-      ]);
-      const scopedBindings = modelBindings(activeModel, bindings);
-      const hasStartBinding = scopedBindings.some(
-        (binding) => binding.taskDefinitionKey === START_FORM_TASK_KEY,
-      );
-      const missingTasks = missingTaskBindings(scopedBindings, tasks);
-      const releaseReady =
-        validation.valid && hasStartBinding && missingTasks.length === 0;
-
-      if (!releaseReady) {
-        modal.warning({
-          title: '发布检查未通过',
-          width: 620,
-          okText: '知道了',
-          content: (
-            <Flex vertical gap={12}>
-              <Alert
-                showIcon
-                type="warning"
-                title="先完善发布条件"
-                description="处理未通过项后再部署，避免发起后缺表单或缺办理人。"
-              />
-              {renderReleaseCheckItem(
-                '流程结构',
-                validation.valid,
-                validation.valid
-                  ? '流程结构可解析'
-                  : `发现 ${validation.errors.length} 个错误`,
-              )}
-              {validation.errors.length ? (
-                <Typography.Text type="secondary">
-                  {validation.errors.map(bpmnValidationIssueText).join('；')}
-                </Typography.Text>
-              ) : null}
-              {renderReleaseCheckItem(
-                '发起表单',
-                hasStartBinding,
-                hasStartBinding ? '已绑定发起表单' : '缺少发起表单绑定',
-              )}
-              {renderReleaseCheckItem(
-                '任务表单',
-                missingTasks.length === 0,
-                tasks.length
-                  ? `已绑定 ${tasks.length - missingTasks.length}/${tasks.length} 个任务节点`
-                  : '当前流程没有用户任务',
-              )}
-              {missingTasks.length ? (
-                <Typography.Text type="secondary">
-                  未绑定节点：
-                  {missingTasks
-                    .map((task) =>
-                      taskDefinitionLabel(task.taskDefinitionKey, task),
-                    )
-                    .join('、')}
-                </Typography.Text>
-              ) : null}
-              <Space wrap>
-                <Button
-                  type="primary"
-                  onClick={() =>
-                    history.push(`/form-bindings?processModelId=${activeModel.id}`)
-                  }
-                >
-                  绑定表单
-                </Button>
-                <Button onClick={() => history.push('/process-models')}>
-                  查看模型列表
-                </Button>
-              </Space>
-            </Flex>
-          ),
-        });
+      const check = await runReleaseCheck();
+      if (!check.deployable) {
+        message.warning('发布检查未通过');
         return;
       }
       await handleSave();
@@ -585,6 +656,7 @@ const ProcessDesigner: React.FC = () => {
     modelForm,
     refetch,
     reloadModels,
+    runReleaseCheck,
   ]);
 
   const handleExport = useCallback(async () => {
@@ -860,6 +932,13 @@ const ProcessDesigner: React.FC = () => {
             </Flex>
           </Flex>
           <div className={styles.canvasRegion}>
+            <ReleaseCheckPanel
+              className={styles.releaseCheck}
+              loading={releaseChecking || validating}
+              state={releaseCheck}
+              onRun={() => void handleValidate()}
+              onAction={handleReleaseCheckAction}
+            />
             <BpmnModelerCanvas
               ref={modelerRef}
               value={designerXml}
@@ -870,7 +949,7 @@ const ProcessDesigner: React.FC = () => {
           <FloatButton.Group
             shape="square"
             className={styles.canvasTools}
-            style={{ top: 156, right: 32, bottom: 'auto' }}
+            style={{ top: 220, right: 32, bottom: 'auto' }}
           >
             <FloatButton
               icon={<BarsOutlined />}
