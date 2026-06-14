@@ -89,7 +89,7 @@ describe('BusinessDataDescriptions', () => {
     expect(screen.queryByText(/"applicantName"/)).not.toBeInTheDocument();
   });
 
-  it('keeps task decision fields when they are outside the bound form schema', () => {
+  it('hides task decision fields from business data', () => {
     render(
       <BusinessDataDescriptions
         schemaJson={JSON.stringify({
@@ -114,10 +114,9 @@ describe('BusinessDataDescriptions', () => {
 
     expect(screen.getByText('申请主题')).toBeInTheDocument();
     expect(screen.getByText('生产发布')).toBeInTheDocument();
-    expect(screen.getByText('处理结论')).toBeInTheDocument();
-    expect(screen.getAllByText('同意').length).toBeGreaterThan(0);
-    expect(screen.getByText('处理意见')).toBeInTheDocument();
-    expect(screen.getByText('同意发布')).toBeInTheDocument();
+    expect(screen.queryByText('处理结论')).not.toBeInTheDocument();
+    expect(screen.queryByText('处理意见')).not.toBeInTheDocument();
+    expect(screen.queryByText('同意发布')).not.toBeInTheDocument();
     expect(screen.queryByText(/nrOfInstances/)).not.toBeInTheDocument();
     expect(screen.queryByText(/loopCounter/)).not.toBeInTheDocument();
     expect(screen.queryByText('复核专员')).not.toBeInTheDocument();
@@ -147,6 +146,8 @@ describe('BusinessDataDescriptions', () => {
     expect(screen.queryByText('业务追踪号')).not.toBeInTheDocument();
     expect(screen.queryByText('组织')).not.toBeInTheDocument();
     expect(screen.queryByText('流程实例编号')).not.toBeInTheDocument();
-    expect(screen.queryByText('331b0d7404b6457f96b47d41c18ed77f')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('331b0d7404b6457f96b47d41c18ed77f'),
+    ).not.toBeInTheDocument();
   });
 });

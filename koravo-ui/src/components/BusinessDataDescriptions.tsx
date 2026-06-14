@@ -68,6 +68,13 @@ const INTERNAL_BUSINESS_DATA_KEYS = new Set([
   'nrOfCompletedInstances',
   'nrOfTerminatedInstances',
   'loopCounter',
+  'accepted',
+  'approved',
+  'decision',
+  'decisionText',
+  'reviewComment',
+  'approvalComment',
+  'opinion',
 ]);
 
 function isInternalBusinessDataField(key: string) {
@@ -158,10 +165,18 @@ function decisionValueText(value: unknown) {
   if (value === false) return '不同意';
   if (typeof value !== 'string') return undefined;
   const normalized = value.trim().toUpperCase();
-  if (['APPROVED', 'APPROVE', 'ACCEPTED', 'AGREE', 'YES', 'TRUE'].includes(normalized)) {
+  if (
+    ['APPROVED', 'APPROVE', 'ACCEPTED', 'AGREE', 'YES', 'TRUE'].includes(
+      normalized,
+    )
+  ) {
     return '同意';
   }
-  if (['REJECTED', 'REJECT', 'DENIED', 'DISAGREE', 'NO', 'FALSE'].includes(normalized)) {
+  if (
+    ['REJECTED', 'REJECT', 'DENIED', 'DISAGREE', 'NO', 'FALSE'].includes(
+      normalized,
+    )
+  ) {
     return '不同意';
   }
   if (['RETURNED', 'RETURN', 'BACK'].includes(normalized)) return '退回';
@@ -241,10 +256,9 @@ function renderValue(field: BusinessField, value: unknown) {
   if (normalized === undefined || normalized === null || normalized === '')
     return '-';
   if (isDecisionField(field)) {
-    const text = decisionValueText(normalized) || fieldValueText(field, normalized);
-    return (
-      <Tag color={text === '同意' ? 'success' : 'default'}>{text}</Tag>
-    );
+    const text =
+      decisionValueText(normalized) || fieldValueText(field, normalized);
+    return <Tag color={text === '同意' ? 'success' : 'default'}>{text}</Tag>;
   }
   if (typeof normalized === 'boolean') {
     return (
