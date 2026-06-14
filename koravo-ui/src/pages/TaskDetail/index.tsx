@@ -22,6 +22,7 @@ import {
   Button,
   Empty,
   Flex,
+  Form,
   Modal,
   Space,
   Steps,
@@ -53,11 +54,8 @@ import {
   getOrganizationMembers,
   isOrganizationAssigneeField,
   isOrganizationProfileField,
-  organizationApprovalMemberSelectOptions,
   organizationAssigneeFieldValue,
-  organizationAssigneeRole,
   organizationMemberName,
-  organizationMemberSelectOptions,
   organizationProfileFieldValue,
 } from '@/services/koravo/organization';
 import { getSessionContext } from '@/services/koravo/session';
@@ -87,7 +85,10 @@ import {
   workflowFieldRules,
   workflowNumberFieldProps,
 } from '@/utils/workflowForm';
-import { completionFieldReadOnly } from './completionFieldState';
+import {
+  completionAssigneeDisplayLabels,
+  completionFieldReadOnly,
+} from './completionFieldState';
 
 interface CompleteTaskForm {
   decision?: 'APPROVED' | 'REJECTED' | 'RETURNED';
@@ -656,35 +657,48 @@ function renderCompletionField(
   const initialValue = completionFieldInitialValue(field, sourceValues);
 
   if (isCompletionAssigneeMultiField(field)) {
+    const displayLabels = completionAssigneeDisplayLabels(initialValue);
     return (
-      <ProFormSelect
+      <Form.Item
         key={field.fieldKey}
-        name={name}
         label={field.title}
-        initialValue={initialValue}
-        options={organizationApprovalMemberSelectOptions()}
-        disabled
-        fieldProps={{ mode: 'multiple', maxTagCount: 'responsive' }}
-        formItemProps={formItemProps}
-        rules={completionFieldRules(field, '请选择')}
-      />
+        required={field.required}
+      >
+        {displayLabels.length ? (
+          <Space size={[6, 6]} wrap>
+            {displayLabels.map((label) => (
+              <Tag key={label} color="processing">
+                {label}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          <Typography.Text type="secondary">未选择</Typography.Text>
+        )}
+      </Form.Item>
     );
   }
 
   if (isCompletionAssigneeField(field)) {
+    const displayLabels = completionAssigneeDisplayLabels(initialValue);
     return (
-      <ProFormSelect
+      <Form.Item
         key={field.fieldKey}
-        name={name}
         label={field.title}
-        initialValue={initialValue}
-        options={organizationMemberSelectOptions(
-          organizationAssigneeRole(field.fieldKey, field.title),
+        required={field.required}
+      >
+        {displayLabels.length ? (
+          <Space size={[6, 6]} wrap>
+            {displayLabels.map((label) => (
+              <Tag key={label} color="processing">
+                {label}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          <Typography.Text type="secondary">未选择</Typography.Text>
         )}
-        disabled
-        formItemProps={formItemProps}
-        rules={completionFieldRules(field, '请选择')}
-      />
+      </Form.Item>
     );
   }
 
