@@ -59,35 +59,25 @@ function snapshotTaskLabel(record: FormSnapshotItem) {
 function snapshotSummary(record: FormSnapshotItem) {
   const data = snapshotData(record);
   const approved = data.approved;
-  const opinion = typeof data.opinion === 'string' ? data.opinion : '';
-  const taskName =
-    typeof data.taskName === 'string'
-      ? data.taskName
-      : snapshotTaskLabel(record);
+  const opinion = [data.opinion, data.reviewComment, data.approvalComment].find(
+    (value) => typeof value === 'string' && value.trim(),
+  );
 
   if (approved === undefined && !opinion) {
-    return (
-      <Flex gap={8} align="center" wrap>
-        <Typography.Text>{taskName}</Typography.Text>
-        <Typography.Text type="secondary">
-          {Object.keys(data).length
-            ? `${Object.keys(data).length} 个字段`
-            : '暂无字段'}
-        </Typography.Text>
-      </Flex>
-    );
+    return Object.keys(data).length
+      ? `${Object.keys(data).length} 个字段`
+      : '暂无字段';
   }
 
   return (
     <Flex gap={8} align="center" wrap>
-      <Typography.Text>{taskName}</Typography.Text>
       {approved !== undefined ? (
         <Tag color={approved ? 'success' : 'error'}>
           {approved ? '同意' : '不同意'}
         </Tag>
       ) : null}
       {opinion ? (
-        <Typography.Text type="secondary">{opinion}</Typography.Text>
+        <Typography.Text type="secondary">{String(opinion)}</Typography.Text>
       ) : null}
     </Flex>
   );
