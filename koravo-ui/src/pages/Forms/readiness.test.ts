@@ -3,6 +3,7 @@ import {
   conditionFieldOptions,
   conditionValueOptions,
   fieldEditorSummaryTags,
+  fieldEditorPanelOpenKeys,
   fieldChangeCount,
   fieldChangeSummary,
   formBlockingReadinessIssues,
@@ -292,5 +293,9 @@ describe('formReadinessIssues', () => {
         visibleWhenField: 'approvalResult',
       }),
     ).toEqual(['多选', '组织成员多选', '必填', '只读', '有条件']);
+  });
+
+  it('keeps every field editor panel open by default', () => {
+    expect(fieldEditorPanelOpenKeys).toEqual(['field']);
   });
 });

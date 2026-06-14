@@ -131,6 +131,7 @@ interface JsonSchemaProperty {
 }
 
 const START_FORM_TASK_KEY = '__START__';
+export const fieldEditorPanelOpenKeys = ['field'];
 
 const useStyles = createStyles(({ css, token }) => ({
   fieldList: css`
@@ -1820,7 +1821,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
       itemRender={(dom, meta) => (
         <Collapse
           className={classNames.fieldPanel}
-          defaultActiveKey={meta.index === 0 ? ['field'] : undefined}
+          defaultActiveKey={fieldEditorPanelOpenKeys}
           destroyOnHidden
           expandIconPlacement="end"
           items={[
