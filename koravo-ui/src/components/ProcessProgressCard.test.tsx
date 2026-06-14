@@ -108,4 +108,32 @@ describe('ProcessProgressCard', () => {
     expect(screen.queryByText('待你处理')).not.toBeInTheDocument();
     expect(screen.getByText('待复核专员处理')).toBeInTheDocument();
   });
+
+  it('shows the end state instead of an empty current node after completion', () => {
+    render(
+      <ProcessProgressCard
+        trace={{
+          ...trace,
+          status: 'COMPLETED',
+          currentActivityIds: [],
+          timeline: [
+            ...trace.timeline,
+            {
+              activityId: 'end',
+              activityName: '完成',
+              activityType: 'endEvent',
+              startTime: '2026-06-13T09:10:00Z',
+              endTime: '2026-06-13T09:10:00Z',
+              status: 'COMPLETED',
+            },
+          ],
+        }}
+        currentTasks={[]}
+      />,
+    );
+
+    expect(screen.getByText('结束')).toBeInTheDocument();
+    expect(screen.getByText('无待办')).toBeInTheDocument();
+    expect(screen.queryByText('当前节点')).toBeInTheDocument();
+  });
 });

@@ -400,9 +400,12 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const pendingTasks = currentTasks.filter(
     (task) => task.status !== 'COMPLETED',
   );
-  const nodeText = currentNodeText(activeTask, activeNodes);
-  const currentHandlerText = handlerText(activeTask, pendingTasks);
   const isCompleted = String(trace?.status || '').toUpperCase() === 'COMPLETED';
+  const rawNodeText = currentNodeText(activeTask, activeNodes);
+  const nodeText = isCompleted && rawNodeText === '-' ? '结束' : rawNodeText;
+  const currentHandlerText = isCompleted
+    ? '无'
+    : handlerText(activeTask, pendingTasks);
   const activeTaskCompleted = isCompletedTask(activeTask);
   const activeTaskOwned = Boolean(
     activeTask?.assignee && activeTask.assignee === currentUserId,
