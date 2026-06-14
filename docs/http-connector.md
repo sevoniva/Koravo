@@ -55,6 +55,8 @@ Each connector call also writes a platform audit event:
 - resource type: `CONNECTOR_EXECUTION`
 - resource ID: connector execution log ID
 
+Retrying a failed connector execution writes a separate `CONNECTOR_RETRY` audit event. The retry audit points at the retry log and keeps the source log ID in the detail payload.
+
 Audit details intentionally keep only connector type, status, status code, request ID, and elapsed time. URL, headers, request body, response body, and error payloads stay out of audit records to reduce secret leakage risk.
 
 Query logs with:
@@ -75,6 +77,7 @@ Query the corresponding audit events with:
 
 ```http
 GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
+GET /api/v1/audit-logs?action=CONNECTOR_RETRY&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
 ```
 
 ## URL Access Policy

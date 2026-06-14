@@ -32,7 +32,6 @@ async function main() {
     subject: "通用业务申请验收",
     businessDescription: "验证通用业务申请可以流转给多个审批人并完成会签。",
     expectedResult: "全部审批人完成后流程结束。",
-    amount: 12800,
     approvalUsers: approverIds,
     remark: "自动验收",
   };

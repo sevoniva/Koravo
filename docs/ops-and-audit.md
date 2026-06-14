@@ -78,6 +78,7 @@ Ops actions write audit records:
 - `DEAD_LETTER_JOB_RETRY`
 - `DEAD_LETTER_JOB_DELETE`
 - `CONNECTOR_EXECUTE`
+- `CONNECTOR_RETRY`
 
 Query audit logs with:
 
@@ -111,6 +112,7 @@ Connector audit events can be queried with:
 
 ```http
 GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
+GET /api/v1/audit-logs?action=CONNECTOR_RETRY&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
 ```
 
 Time range filters use ISO-8601 instants:

@@ -87,6 +87,7 @@ Use a connector-enabled workflow model from the designer or a local fixture:
 2. Start the workflow with an `X-Request-Id`.
 3. Complete the user task after the connector step.
 4. Inspect process trace, connector execution logs, connector execution detail, and `CONNECTOR_EXECUTE` audit events filtered by the same request ID.
+5. Retry a failed connector execution from `集成动作`, then verify the retry log and `CONNECTOR_RETRY` audit event share the same operational context.
 
 ## Security And Boundary Checks
 

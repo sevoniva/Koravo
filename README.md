@@ -185,9 +185,8 @@ The same workflow can be started through the API with `processDefinitionKey = co
 ```json
 {
   "subject": "通用业务申请",
-  "businessDescription": "说明申请事项、背景和需要审批的内容",
-  "expectedResult": "所有审批人完成会签后流程结束",
-  "amount": 12800,
+  "businessDescription": "提交需要多人会签的业务事项",
+  "expectedResult": "完成会签后归档",
   "approvalUsers": ["manager", "finance"]
 }
 ```
@@ -230,7 +229,7 @@ curl -X POST http://localhost:8080/api/v1/process-instances/start \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $APPLICANT_TOKEN" \
   -H 'X-Koravo-Tenant-Id: default' \
-  -d '{"processDefinitionKey":"collaborativeApproval","businessKey":"REQ-001","variables":{"subject":"通用业务申请","businessDescription":"说明申请事项、背景和需要审批的内容","expectedResult":"所有审批人完成会签后流程结束","amount":12800,"approvalUsers":["manager","finance"]}}'
+  -d '{"processDefinitionKey":"collaborativeApproval","businessKey":"REQ-001","variables":{"subject":"通用业务申请","businessDescription":"提交需要多人会签的业务事项","expectedResult":"完成会签后归档","approvalUsers":["manager","finance"]}}'
 ```
 
 Complete a task:
@@ -268,6 +267,7 @@ GET /api/v1/connector-execution-logs?connectorType=http&requestId=connector-requ
 GET /api/v1/connector-execution-logs/summary?connectorType=http
 GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&page=1&pageSize=20
 GET /api/v1/audit-logs?action=CONNECTOR_EXECUTE&resourceType=CONNECTOR_EXECUTION&requestId=connector-request-1&page=1&pageSize=20
+GET /api/v1/audit-logs?action=CONNECTOR_RETRY&resourceType=CONNECTOR_EXECUTION&requestId=connector-request-1&page=1&pageSize=20
 ```
 
 ## Tests
