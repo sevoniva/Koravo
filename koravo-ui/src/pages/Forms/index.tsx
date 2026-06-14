@@ -506,7 +506,7 @@ const normalizePermission = (
     ? permission
     : readOnly === true || readOnly === 'true'
       ? 'readonly'
-    : 'editable';
+      : 'editable';
 };
 
 function fieldDisplayName(field: Pick<FormFieldConfig, 'fieldKey' | 'title'>) {
@@ -894,7 +894,11 @@ export function formReadinessIssues(fields: FormFieldConfig[]) {
   }
 
   if (!fields.some((field) => field.required)) {
-    issues.push({ key: 'required', level: 'warning', text: '建议设置必填字段' });
+    issues.push({
+      key: 'required',
+      level: 'warning',
+      text: '建议设置必填字段',
+    });
   }
   if (!fields.some(usesOrganizationProfile)) {
     issues.push({
@@ -912,6 +916,10 @@ export function formReadinessIssues(fields: FormFieldConfig[]) {
   }
 
   return issues;
+}
+
+export function formBlockingReadinessIssues(fields: FormFieldConfig[]) {
+  return formReadinessIssues(fields).filter((issue) => issue.level === 'error');
 }
 
 const fieldRuleTags = (field: FormFieldConfig) => {
@@ -932,7 +940,11 @@ const fieldRuleTags = (field: FormFieldConfig) => {
         </Tag>,
       );
     }
-    return <Space size={[4, 4]} wrap>{tags}</Space>;
+    return (
+      <Space size={[4, 4]} wrap>
+        {tags}
+      </Space>
+    );
   }
   if (field.minLength !== undefined || field.maxLength !== undefined) {
     tags.push(
@@ -948,7 +960,11 @@ const fieldRuleTags = (field: FormFieldConfig) => {
       </Tag>,
     );
   }
-  return <Space size={[4, 4]} wrap>{tags}</Space>;
+  return (
+    <Space size={[4, 4]} wrap>
+      {tags}
+    </Space>
+  );
 };
 
 const fieldColumns: ProColumns<FormFieldConfig>[] = [
@@ -1360,7 +1376,9 @@ function renderFieldDesignState(record: FormSchemaItem) {
   return (
     <Space size={[0, 4]} wrap>
       <Badge status="processing" text={`${fields.length} 字段`} />
-      {summary.required ? <Tag color="blue">必填 {summary.required}</Tag> : null}
+      {summary.required ? (
+        <Tag color="blue">必填 {summary.required}</Tag>
+      ) : null}
       {summary.protected ? (
         <Tag color="purple">权限 {summary.protected}</Tag>
       ) : null}
@@ -1373,7 +1391,7 @@ function renderFieldDesignState(record: FormSchemaItem) {
 
 function formStepStatus(done: boolean, active: boolean) {
   if (active) return 'process' as const;
-  return done ? 'finish' as const : 'wait' as const;
+  return done ? ('finish' as const) : ('wait' as const);
 }
 
 function renderFormLifecycle(
@@ -1535,9 +1553,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                   label="输入提示"
                   formItemProps={{ className: classNames.fieldWide }}
                   disabled={isSystemField}
-                  placeholder={
-                    isSystemField ? '自动联动' : '请输入事项说明'
-                  }
+                  placeholder={isSystemField ? '自动联动' : '请输入事项说明'}
                 />
                 <ProFormSelect
                   name="format"
@@ -1758,6 +1774,16 @@ const Forms: React.FC = () => {
 
   const changeFormStatus = async (record: FormSchemaItem) => {
     if (record.status === 'DISABLED') {
+      const blockingIssues = formBlockingReadinessIssues(
+        schemaToFields(record.schemaJson, record.uiSchemaJson),
+      );
+      if (blockingIssues.length) {
+        message.error(
+          `发布检查未通过：${blockingIssues.map((issue) => issue.text).join('、')}`,
+        );
+        setPreview(record);
+        return;
+      }
       await activateFormSchema(record.id);
       message.success('已发布');
     } else {
@@ -1868,37 +1894,42 @@ const Forms: React.FC = () => {
         const impact = bindingImpact(record.id, formBindings);
         const fields = schemaToFields(record.schemaJson, record.uiSchemaJson);
         const willActivate = record.status === 'DISABLED';
+        const blockingIssues = formBlockingReadinessIssues(fields);
         const nextAction = !fields.length
           ? {
               text: '编辑字段',
               description: '完善字段',
               onClick: () => setEditing(record),
             }
-          : willActivate
+          : willActivate && blockingIssues.length
             ? {
-                text: '发布表单',
-                description: '发布后可绑定',
-                onClick: () => changeFormStatus(record),
+                text: '修复检查',
+                description: blockingIssues[0].text,
+                onClick: () => setEditing(record),
               }
-            : !impact.total
+            : willActivate
               ? {
-                  text: '绑定节点',
-                  description: '接入流程',
-                  onClick: () =>
-                    history.push(`/form-bindings?formSchemaId=${record.id}`),
+                  text: '发布表单',
+                  description: '发布后可绑定',
+                  onClick: () => changeFormStatus(record),
                 }
-              : {
-                  text: '查看表单',
-                  description: '配置可用',
-                  onClick: () => setPreview(record),
-                };
+              : !impact.total
+                ? {
+                    text: '绑定节点',
+                    description: '接入流程',
+                    onClick: () =>
+                      history.push(`/form-bindings?formSchemaId=${record.id}`),
+                  }
+                : {
+                    text: '查看表单',
+                    description: '配置可用',
+                    onClick: () => setPreview(record),
+                  };
         return [
           <Flex key="next" vertical gap={2}>
             <Button
               size="small"
-              type={
-                nextAction.text === '查看表单' ? 'default' : 'primary'
-              }
+              type={nextAction.text === '查看表单' ? 'default' : 'primary'}
               onClick={nextAction.onClick}
             >
               {nextAction.text}
@@ -1936,9 +1967,14 @@ const Forms: React.FC = () => {
             okText={willActivate ? '发布' : '停用'}
             cancelText="取消"
             okType={willActivate ? 'primary' : 'danger'}
+            disabled={willActivate && Boolean(blockingIssues.length)}
             onConfirm={() => changeFormStatus(record)}
           >
-            <Button type="link" danger={!willActivate}>
+            <Button
+              type="link"
+              danger={!willActivate}
+              disabled={willActivate && Boolean(blockingIssues.length)}
+            >
               {willActivate ? '发布' : '停用'}
             </Button>
           </Popconfirm>,

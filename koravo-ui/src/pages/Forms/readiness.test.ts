@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { formReadinessIssues } from './index';
+import { formBlockingReadinessIssues, formReadinessIssues } from './index';
 
 vi.mock('@ant-design/pro-components', () => ({
   ModalForm: () => null,
@@ -83,5 +83,38 @@ describe('formReadinessIssues', () => {
         },
       ] as ReadinessField[]),
     ).toEqual([]);
+  });
+
+  it('blocks release only on error-level readiness issues', () => {
+    const blockingIssues = formBlockingReadinessIssues([
+      {
+        fieldKey: 'subject',
+        title: '事项名称',
+        type: 'string',
+        widget: 'input',
+        required: true,
+        permission: 'hidden',
+      },
+    ] as ReadinessField[]);
+
+    expect(blockingIssues).toEqual([
+      {
+        key: 'hiddenRequired',
+        level: 'error',
+        text: '隐藏必填字段：事项名称',
+      },
+    ]);
+
+    const warningOnlyIssues = formBlockingReadinessIssues([
+      {
+        fieldKey: 'subject',
+        title: '事项名称',
+        type: 'string',
+        widget: 'input',
+        required: true,
+      },
+    ] as ReadinessField[]);
+
+    expect(warningOnlyIssues).toEqual([]);
   });
 });
