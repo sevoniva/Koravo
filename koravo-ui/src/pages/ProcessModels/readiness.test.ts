@@ -1,0 +1,115 @@
+import { describe, expect, it, vi } from 'vitest';
+import type {
+  BpmnTaskDefinition,
+  FormBindingItem,
+  FormSchemaItem,
+  ProcessModelItem,
+} from '@/services/koravo/api';
+import { buildModelReadiness } from './index';
+
+vi.mock('@ant-design/pro-components', () => ({
+  ModalForm: () => null,
+  PageContainer: ({ children }: { children?: unknown }) => children,
+  ProFormText: () => null,
+  ProFormTextArea: () => null,
+  ProFormUploadButton: () => null,
+  ProTable: () => null,
+}));
+
+vi.mock('@umijs/max', () => ({
+  history: { push: vi.fn() },
+}));
+
+const task: BpmnTaskDefinition = {
+  taskDefinitionKey: 'jointApprovalTask',
+  name: '多人会签',
+  type: 'userTask',
+};
+
+function model(overrides: Partial<ProcessModelItem> = {}): ProcessModelItem {
+  return {
+    id: 'model-1',
+    tenantId: 'default',
+    modelKey: 'collaborativeApproval',
+    modelName: '协同审批流程',
+    modelType: 'BPMN',
+    version: 1,
+    status: 'DRAFT',
+    bpmnXml:
+      '<definitions><process id="collaborativeApproval" /></definitions>',
+    ...overrides,
+  };
+}
+
+function schema(overrides: Partial<FormSchemaItem> = {}): FormSchemaItem {
+  return {
+    id: 'form-1',
+    formKey: 'business-request-form',
+    formName: '业务申请表',
+    version: 1,
+    schemaJson: '{"type":"object","properties":{"subject":{"type":"string"}}}',
+    status: 'ACTIVE',
+    ...overrides,
+  };
+}
+
+function binding(overrides: Partial<FormBindingItem>): FormBindingItem {
+  return {
+    id: `binding-${overrides.taskDefinitionKey}`,
+    formSchemaId: 'form-1',
+    formSchemaVersion: 1,
+    ...overrides,
+  } as FormBindingItem;
+}
+
+describe('ProcessModels readiness', () => {
+  it('keeps draft workflow publishable before form binding', () => {
+    const readiness = buildModelReadiness(model(), [], [task], [schema()]);
+
+    expect(readiness.deployReady).toBe(true);
+    expect(readiness.bindingReady).toBe(false);
+    expect(readiness.canStart).toBe(false);
+    expect(readiness.nextAction).toBe('deploy');
+    expect(readiness.nextActionText).toBe('校验发布');
+  });
+
+  it('requires form binding after workflow is published', () => {
+    const readiness = buildModelReadiness(
+      model({
+        status: 'DEPLOYED',
+        flowableDefinitionId: 'collaborativeApproval:1:pd',
+      }),
+      [],
+      [task],
+      [schema()],
+    );
+
+    expect(readiness.deployReady).toBe(true);
+    expect(readiness.bindingReady).toBe(false);
+    expect(readiness.canStart).toBe(false);
+    expect(readiness.nextAction).toBe('bind');
+    expect(readiness.description).toBe('缺少发起表单');
+  });
+
+  it('opens start only after published workflow has active start and task forms', () => {
+    const readiness = buildModelReadiness(
+      model({
+        status: 'DEPLOYED',
+        flowableDefinitionId: 'collaborativeApproval:1:pd',
+      }),
+      [
+        binding({ taskDefinitionKey: '__START__', processModelId: 'model-1' }),
+        binding({
+          taskDefinitionKey: 'jointApprovalTask',
+          processModelId: 'model-1',
+        }),
+      ],
+      [task],
+      [schema()],
+    );
+
+    expect(readiness.bindingReady).toBe(true);
+    expect(readiness.canStart).toBe(true);
+    expect(readiness.nextAction).toBe('start');
+  });
+});
