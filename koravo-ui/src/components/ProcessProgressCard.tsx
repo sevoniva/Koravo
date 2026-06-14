@@ -1,4 +1,5 @@
 import { ProCard } from '@ant-design/pro-components';
+import type { CollapseProps } from 'antd';
 import {
   Badge,
   Collapse,
@@ -9,7 +10,6 @@ import {
   Timeline,
   Typography,
 } from 'antd';
-import type { CollapseProps } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import type {
@@ -20,7 +20,6 @@ import type {
 import { organizationMemberName } from '@/services/koravo/organization';
 import {
   businessKeyLabel,
-  processDefinitionLabel,
   processStatusLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
@@ -42,9 +41,6 @@ const useStyles = createStyles(({ css, token }) => ({
     flex-direction: column;
     gap: 12px;
     min-width: 0;
-  `,
-  titleMeta: css`
-    max-width: 520px;
   `,
   statusStrip: css`
     display: grid;
@@ -186,11 +182,13 @@ function taskGroupsSummary(
   pendingTasks: TaskItem[],
 ) {
   if (!pendingTasks.length) return undefined;
-  const jointGroups = taskGroups.filter((group) => group.activeTaskIds.length > 1);
+  const jointGroups = taskGroups.filter(
+    (group) => group.activeTaskIds.length > 1,
+  );
   if (jointGroups.length) {
-    return `会签 ${pendingTasks.length}人`;
+    return `会签 ${pendingTasks.length} 人`;
   }
-  if (pendingTasks.length > 1) return `并行 ${taskGroups.length}节点`;
+  if (pendingTasks.length > 1) return `并行 ${taskGroups.length} 节点`;
   return undefined;
 }
 
@@ -199,7 +197,8 @@ function pendingHandlersText(
   fallback: string,
 ) {
   if (!taskGroups.length) return fallback;
-  if (taskGroups.length === 1) return taskGroups[0].handlers.join('、') || fallback;
+  if (taskGroups.length === 1)
+    return taskGroups[0].handlers.join('、') || fallback;
   return taskGroups
     .map((group) => `${group.label}：${group.handlers.join('、') || '-'}`)
     .join('；');
@@ -316,7 +315,7 @@ function nextStepText(
   }
   const jointGroup = taskGroups.find((group) => group.activeTaskIds.length > 1);
   if (jointGroup) return `待${jointGroup.handlers.join('、')}会签`;
-  if (pendingTasks.length > 1) return `并行待办 ${pendingTasks.length}`;
+  if (pendingTasks.length > 1) return `并行 ${pendingTasks.length} 人`;
   const task = pendingTasks[0];
   return task.assignee
     ? `待${organizationMemberName(task.assignee)}处理`
@@ -367,9 +366,9 @@ function diagramHeight(trace?: ProcessTrace) {
     bpmnNodeCount(trace?.bpmnXml),
   );
   if (nodeCount > 32) return 720;
-  if (nodeCount > 24) return 640;
-  if (nodeCount > 14) return 560;
-  return 460;
+  if (nodeCount > 24) return 600;
+  if (nodeCount > 14) return 480;
+  return 360;
 }
 
 const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({
@@ -411,7 +410,8 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
       ? activeTaskOwned
         ? '待你处理'
         : '查看中'
-      : groupSummary || `待办 ${pendingTasks.length}`;
+      : groupSummary ||
+        (pendingTasks.length ? `待办 ${pendingTasks.length}` : '无待办');
   const nextStep = nextStepText(
     trace,
     pendingTasks,
@@ -445,7 +445,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             >
               {group.label} · {group.handlers.join('、')}
               {group.activeTaskIds.length > 1
-                ? ` · 会签${group.activeTaskIds.length}人`
+                ? ` · 会签 ${group.activeTaskIds.length} 人`
                 : ''}
             </Tag>
           ))}
@@ -472,20 +472,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
 
   return (
     <ProCard
-      title={
-        <Space size={8} wrap>
-          <span>流程进度</span>
-          {trace?.processDefinitionId ? (
-            <Typography.Text
-              className={styles.titleMeta}
-              ellipsis={{ tooltip: processDefinitionLabel(trace.processDefinitionId) }}
-              type="secondary"
-            >
-              {processDefinitionLabel(trace.processDefinitionId)}
-            </Typography.Text>
-          ) : null}
-        </Space>
-      }
+      title="审批上下文"
       loading={loading}
       extra={
         <Space size={8} wrap>
@@ -499,6 +486,18 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
       style={{ marginBottom: 16 }}
     >
       <div className={styles.content}>
+        <div className={styles.statusStrip}>
+          <Metric
+            label="业务对象"
+            value={businessKeyLabel(trace?.businessKey)}
+          />
+          <Metric label="当前节点" value={nodeText} />
+          <Metric
+            label={groupSummary ? '待处理' : '办理人'}
+            value={handlerMetric}
+          />
+          <Metric label="下一步" value={nextStep} />
+        </div>
         <ProcessDiagramViewer
           bpmnXml={trace?.bpmnXml}
           currentActivityIds={progressCurrentActivityIds(
@@ -509,12 +508,6 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
           timeline={trace?.timeline}
           height={diagramHeight(trace)}
         />
-        <div className={styles.statusStrip}>
-          <Metric label="业务对象" value={businessKeyLabel(trace?.businessKey)} />
-          <Metric label="当前位置" value={nodeText} />
-          <Metric label={groupSummary ? '待处理' : '办理人'} value={handlerMetric} />
-          <Metric label="下一步" value={nextStep} />
-        </div>
         {detailItems.length ? (
           <Collapse
             className={styles.details}

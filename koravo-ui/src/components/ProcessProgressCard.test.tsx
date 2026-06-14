@@ -82,11 +82,11 @@ describe('ProcessProgressCard', () => {
     );
 
     expect(screen.getByTestId('process-diagram-viewer')).toBeInTheDocument();
-    expect(screen.getByText('会签 2人')).toBeInTheDocument();
+    expect(screen.getByText('会签 2 人')).toBeInTheDocument();
     expect(screen.getByText('审批主管、复核专员')).toBeInTheDocument();
     expect(screen.getByText('待审批主管、复核专员会签')).toBeInTheDocument();
     expect(
-      screen.getByText('多人会签 · 审批主管、复核专员 · 会签2人'),
+      screen.getByText('多人会签 · 审批主管、复核专员 · 会签 2 人'),
     ).toBeInTheDocument();
   });
 });
