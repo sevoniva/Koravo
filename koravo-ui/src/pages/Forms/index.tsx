@@ -858,6 +858,62 @@ const fieldConfigError = (fields: FormFieldConfig[]) => {
   return '';
 };
 
+type FormReadinessIssueLevel = 'error' | 'warning';
+
+interface FormReadinessIssue {
+  key: string;
+  level: FormReadinessIssueLevel;
+  text: string;
+}
+
+export function formReadinessIssues(fields: FormFieldConfig[]) {
+  const issues: FormReadinessIssue[] = [];
+
+  if (!fields.length) {
+    issues.push({ key: 'empty', level: 'error', text: '请先配置字段' });
+    return issues;
+  }
+  if (hasDuplicatedFieldKey(fields)) {
+    issues.push({ key: 'duplicate', level: 'error', text: '业务字段不能重复' });
+  }
+
+  const configError = fieldConfigError(fields);
+  if (configError) {
+    issues.push({ key: 'config', level: 'error', text: configError });
+  }
+
+  const hiddenRequiredFields = fields.filter(
+    (field) => field.required && field.permission === 'hidden',
+  );
+  if (hiddenRequiredFields.length) {
+    issues.push({
+      key: 'hiddenRequired',
+      level: 'error',
+      text: `隐藏必填字段：${hiddenRequiredFields.map(fieldDisplayName).join('、')}`,
+    });
+  }
+
+  if (!fields.some((field) => field.required)) {
+    issues.push({ key: 'required', level: 'warning', text: '建议设置必填字段' });
+  }
+  if (!fields.some(usesOrganizationProfile)) {
+    issues.push({
+      key: 'profile',
+      level: 'warning',
+      text: '建议配置申请人或部门联动字段',
+    });
+  }
+  if (!fields.some(usesOrganizationAssignee)) {
+    issues.push({
+      key: 'assignee',
+      level: 'warning',
+      text: '建议配置审批人组织成员字段',
+    });
+  }
+
+  return issues;
+}
+
 const fieldRuleTags = (field: FormFieldConfig) => {
   const tags = [
     field.required ? (
@@ -1170,6 +1226,9 @@ const FormReadiness: React.FC<{
     (field) => field.visibleWhenField && field.visibleWhenValue,
   );
   const hiddenFields = fields.filter((field) => field.permission === 'hidden');
+  const issues = formReadinessIssues(fields);
+  const errorCount = issues.filter((issue) => issue.level === 'error').length;
+  const warningCount = issues.length - errorCount;
 
   const tagGroup = (items: FormFieldConfig[], emptyText: string) =>
     items.length ? (
@@ -1184,6 +1243,33 @@ const FormReadiness: React.FC<{
 
   return (
     <Flex vertical gap={16}>
+      <Alert
+        showIcon
+        type={errorCount ? 'error' : warningCount ? 'warning' : 'success'}
+        title={
+          errorCount
+            ? '发布检查未通过'
+            : warningCount
+              ? '发布检查有提醒'
+              : '发布检查通过'
+        }
+        description={
+          issues.length ? (
+            <Space size={[4, 6]} wrap>
+              {issues.map((issue) => (
+                <Tag
+                  key={issue.key}
+                  color={issue.level === 'error' ? 'red' : 'gold'}
+                >
+                  {issue.text}
+                </Tag>
+              ))}
+            </Space>
+          ) : (
+            '字段、权限、校验和组织联动已配置。'
+          )
+        }
+      />
       <Descriptions
         size="small"
         column={{ xs: 1, sm: 2 }}
