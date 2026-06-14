@@ -73,6 +73,7 @@ export const defaultOrganizationMembers: OrganizationMember[] = [
 let runtimeOrganizationMembers: OrganizationMember[] = defaultOrganizationMembers;
 
 export const roleLabels: Record<SessionRole, string> = {
+  anonymous: '未登录',
   admin: '管理员',
   applicant: '发起人',
   manager: '审批人',

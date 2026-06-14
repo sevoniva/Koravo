@@ -9,7 +9,13 @@ export interface SessionContext {
   lastRequestId?: string;
 }
 
-export type SessionRole = 'admin' | 'applicant' | 'manager' | 'finance' | 'operator';
+export type SessionRole =
+  | 'anonymous'
+  | 'admin'
+  | 'applicant'
+  | 'manager'
+  | 'finance'
+  | 'operator';
 export type SessionPermissionKey =
   | 'canAdmin'
   | 'canViewDashboard'
@@ -33,7 +39,7 @@ const LAST_REQUEST_STORAGE_KEY = 'koravo.lastRequestId';
 const defaultSession: SessionContext = {
   tenantId: 'default',
   userId: 'anonymous',
-  role: 'applicant',
+  role: 'anonymous',
   requestId: '',
 };
 
@@ -46,6 +52,7 @@ function canUseStorage() {
 function normalizeRole(role?: string): SessionRole {
   if (
     role === 'admin' ||
+    role === 'anonymous' ||
     role === 'applicant' ||
     role === 'manager' ||
     role === 'finance' ||

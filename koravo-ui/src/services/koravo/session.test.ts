@@ -108,7 +108,7 @@ describe('session context', () => {
     expect(getSessionContext()).toMatchObject({
       tenantId: 'default',
       userId: 'anonymous',
-      role: 'applicant',
+      role: 'anonymous',
     });
     expect(sessionRequestHeaders()).toEqual({
       'X-Koravo-Tenant-Id': 'default',
@@ -120,7 +120,7 @@ describe('session context', () => {
 
     expect(getSessionContext()).toMatchObject({
       userId: 'anonymous',
-      role: 'applicant',
+      role: 'anonymous',
     });
   });
 
