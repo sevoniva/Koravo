@@ -64,6 +64,30 @@ async function main() {
   const completedTasks = await Promise.all(
     approverIds.map((userId) => doneTaskFor(approvers.get(userId), instance.instanceId)),
   );
+  const startAuditLogs = await waitForAuditLogs(
+    operator,
+    {
+      action: "PROCESS_INSTANCE_START",
+      resourceType: "PROCESS_INSTANCE",
+      resourceId: instance.instanceId,
+      userId: applicant.userId,
+    },
+    "process start audit",
+  );
+  const taskAuditLogs = await Promise.all(
+    completedTasks.map((task) =>
+      waitForAuditLogs(
+        operator,
+        {
+          action: "TASK_COMPLETE",
+          resourceType: "TASK",
+          resourceId: task.taskId,
+          userId: task.assignee,
+        },
+        `task complete audit ${task.taskId}`,
+      ),
+    ),
+  );
 
   assertEquals(completedTrace.currentTasks.length, 0, "remaining task count");
   assertEquals(detail.status, "COMPLETED", "instance status");
@@ -84,6 +108,8 @@ async function main() {
         department: completedTrace.variables.department,
         approvers: approverIds,
         completedTasks: completedTasks.map((task) => task.taskId),
+        startAuditCount: startAuditLogs.length,
+        taskAuditCount: taskAuditLogs.flat().length,
         failedJobs: failedJobs.length,
         deadLetterJobs: deadLetterJobs.length,
       },
@@ -216,6 +242,21 @@ async function jobsForInstance(operator, pathname, instanceId) {
     query: { page: 1, pageSize: 200 },
   });
   return result.items.filter((job) => job.processInstanceId === instanceId);
+}
+
+async function waitForAuditLogs(session, query, label) {
+  for (let attempt = 1; attempt <= 20; attempt += 1) {
+    const result = await api("/audit-logs", {
+      token: session.token,
+      query: { page: 1, pageSize: 100, ...query },
+    });
+    const items = result.items ?? [];
+    if (items.length > 0) {
+      return items;
+    }
+    await sleep(150);
+  }
+  throw new Error(`Missing ${label}`);
 }
 
 async function api(pathname, options = {}) {
