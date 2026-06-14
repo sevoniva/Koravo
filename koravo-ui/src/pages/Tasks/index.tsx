@@ -42,8 +42,14 @@ import {
   taskNameLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
-
-type TaskTabKey = 'todo' | 'candidate' | 'done' | 'started';
+import {
+  resolveTaskTab,
+  type TaskTabKey,
+  taskTabMeta,
+  taskTabRoutes,
+  tabFromPath,
+  visibleTaskTabs,
+} from './taskTabs';
 
 type ProcessPreviewTarget = {
   instanceId: string;
@@ -51,35 +57,6 @@ type ProcessPreviewTarget = {
   activeTask?: TaskItem;
   currentTasks?: TaskItem[];
 };
-
-const taskTabRoutes: Record<TaskTabKey, string> = {
-  todo: '/tasks',
-  candidate: '/task-claims',
-  done: '/done-tasks',
-  started: '/started-instances',
-};
-
-const taskTabMeta: Record<TaskTabKey, { title: string }> = {
-  todo: {
-    title: '我的待办',
-  },
-  candidate: {
-    title: '待认领',
-  },
-  done: {
-    title: '已办任务',
-  },
-  started: {
-    title: '我的申请',
-  },
-};
-
-function tabFromPath(pathname: string): TaskTabKey {
-  if (pathname === taskTabRoutes.candidate) return 'candidate';
-  if (pathname === taskTabRoutes.done) return 'done';
-  if (pathname === taskTabRoutes.started) return 'started';
-  return 'todo';
-}
 
 function taskBusinessObject(
   task: Pick<TaskItem, 'businessKey' | 'processInstanceId'>,
@@ -304,8 +281,7 @@ const Tasks: React.FC = () => {
   const identitySynced = isPlatformIdentitySynced(session.userId);
   const [previewTarget, setPreviewTarget] =
     React.useState<ProcessPreviewTarget>();
-  const activeTab = tabFromPath(location.pathname);
-  const pageMeta = taskTabMeta[activeTab];
+  const requestedTab = tabFromPath(location.pathname);
   const candidateGroupOptions = React.useMemo(
     () => organizationGroupOptions(),
     [],
@@ -318,8 +294,18 @@ const Tasks: React.FC = () => {
   const canClaimTask =
     session.permissions?.canClaimTask ??
     (session.role === 'manager' || session.role === 'finance');
+  const canHandleTask =
+    session.permissions?.canHandleTask ??
+    (session.role === 'manager' || session.role === 'finance');
   const canStartProcess =
     session.permissions?.canStartProcess ?? session.role === 'applicant';
+  const visibleTabs = visibleTaskTabs({
+    canHandleTask,
+    canClaimTask,
+    canStartProcess,
+  });
+  const activeTab = resolveTaskTab(requestedTab, visibleTabs);
+  const pageMeta = taskTabMeta[activeTab];
 
   const reloadTables = React.useCallback(() => {
     todoRef.current?.reload();
@@ -438,32 +424,25 @@ const Tasks: React.FC = () => {
     [location.pathname],
   );
 
-  return (
-    <PageContainer title={pageMeta.title}>
-      <ProCard
-        size="small"
-        title="工作身份"
-        extra={
-          <Button size="small" onClick={reloadTables}>
-            刷新
-          </Button>
-        }
-        style={{ marginBottom: 16 }}
-      >
-        <Space wrap size={8}>
-          <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
-          <Tag color={identitySynced ? 'blue' : 'warning'}>
-            {identitySynced
-              ? organizationRoleLabel(session.role)
-              : '身份未同步'}
-          </Tag>
-          <Tag>{tenantDisplayName(session.tenantId)}</Tag>
-        </Space>
-      </ProCard>
-      <Tabs
-        activeKey={activeTab}
-        onChange={switchTab}
-        items={[
+  React.useEffect(() => {
+    if (!visibleTabs.length) return;
+    const path = taskTabRoutes[activeTab];
+    if (path !== location.pathname) {
+      history.replace(path);
+    }
+  }, [activeTab, location.pathname, visibleTabs.length]);
+
+  if (!visibleTabs.length) {
+    return (
+      <PageContainer title="工作台">
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无可用入口" />
+      </PageContainer>
+    );
+  }
+
+  const tabItems: NonNullable<React.ComponentProps<typeof Tabs>['items']> = [
+    ...(visibleTabs.includes('todo')
+      ? [
           {
             key: 'todo',
             label: '待办',
@@ -486,9 +465,11 @@ const Tasks: React.FC = () => {
                           发起流程
                         </Button>
                       ) : null}
-                      <Button onClick={() => switchTab('started')}>
-                        查看我的申请
-                      </Button>
+                      {visibleTabs.includes('started') ? (
+                        <Button onClick={() => switchTab('started')}>
+                          查看我的申请
+                        </Button>
+                      ) : null}
                     </Space>,
                   ),
                 }}
@@ -503,46 +484,48 @@ const Tasks: React.FC = () => {
               />
             ),
           },
-          ...(canClaimTask
-            ? [
-                {
-                  key: 'candidate',
-                  label: '待认领',
-                  children: (
-                    <ProTable<TaskItem>
-                      actionRef={candidateRef}
-                      rowKey="taskId"
-                      columns={candidateColumns}
-                      search={{ labelWidth: 'auto' }}
-                      scroll={{ x: 1040 }}
-                      locale={{
-                        emptyText: taskEmpty(
-                          '暂无可认领任务',
-                          <Space wrap>
-                            <Button onClick={() => switchTab('todo')}>
-                              查看待办
-                            </Button>
-                            <Button onClick={() => switchTab('done')}>
-                              查看已办
-                            </Button>
-                          </Space>,
-                        ),
-                      }}
-                      request={async (params) => {
-                        const result = await listCandidateTasks(
-                          taskParams(params),
-                        );
-                        return {
-                          data: result.items,
-                          total: result.total,
-                          success: true,
-                        };
-                      }}
-                    />
+        ]
+      : []),
+    ...(visibleTabs.includes('candidate')
+      ? [
+          {
+            key: 'candidate',
+            label: '待认领',
+            children: (
+              <ProTable<TaskItem>
+                actionRef={candidateRef}
+                rowKey="taskId"
+                columns={candidateColumns}
+                search={{ labelWidth: 'auto' }}
+                scroll={{ x: 1040 }}
+                locale={{
+                  emptyText: taskEmpty(
+                    '暂无可认领任务',
+                    <Space wrap>
+                      <Button onClick={() => switchTab('todo')}>
+                        查看待办
+                      </Button>
+                      <Button onClick={() => switchTab('done')}>
+                        查看已办
+                      </Button>
+                    </Space>,
                   ),
-                },
-              ]
-            : []),
+                }}
+                request={async (params) => {
+                  const result = await listCandidateTasks(taskParams(params));
+                  return {
+                    data: result.items,
+                    total: result.total,
+                    success: true,
+                  };
+                }}
+              />
+            ),
+          },
+        ]
+      : []),
+    ...(visibleTabs.includes('done')
+      ? [
           {
             key: 'done',
             label: '已办',
@@ -570,6 +553,10 @@ const Tasks: React.FC = () => {
               />
             ),
           },
+        ]
+      : []),
+    ...(visibleTabs.includes('started')
+      ? [
           {
             key: 'started',
             label: '我的申请',
@@ -604,7 +591,36 @@ const Tasks: React.FC = () => {
               />
             ),
           },
-        ]}
+        ]
+      : []),
+  ];
+
+  return (
+    <PageContainer title={pageMeta.title}>
+      <ProCard
+        size="small"
+        title="工作身份"
+        extra={
+          <Button size="small" onClick={reloadTables}>
+            刷新
+          </Button>
+        }
+        style={{ marginBottom: 16 }}
+      >
+        <Space wrap size={8}>
+          <Tag color="processing">{organizationMemberName(session.userId)}</Tag>
+          <Tag color={identitySynced ? 'blue' : 'warning'}>
+            {identitySynced
+              ? organizationRoleLabel(session.role)
+              : '身份未同步'}
+          </Tag>
+          <Tag>{tenantDisplayName(session.tenantId)}</Tag>
+        </Space>
+      </ProCard>
+      <Tabs
+        activeKey={activeTab}
+        onChange={switchTab}
+        items={tabItems}
       />
       <KoravoDrawer
         title={previewTarget?.title || '流程预览'}
