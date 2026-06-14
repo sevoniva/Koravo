@@ -68,7 +68,7 @@ import {
 import { formatDateTime } from '@/utils/format';
 
 interface ProcessModelForm {
-  modelKey: string;
+  modelKey?: string;
   modelName: string;
   description?: string;
 }
@@ -104,6 +104,12 @@ type ProcessModelTableItem = ProcessModelItem & {
 
 const START_FORM_TASK_KEY = '__START__';
 const assigneeRequiredCode = 'BPMN_USER_TASK_ASSIGNEE_REQUIRED';
+
+function createProcessModelKey() {
+  return `businessFlow${Date.now().toString(36)}${Math.random()
+    .toString(36)
+    .slice(2, 6)}`;
+}
 
 function downloadModelFile(record: ProcessModelItem, blob: Blob) {
   const url = URL.createObjectURL(blob);
@@ -455,7 +461,10 @@ const ProcessModels: React.FC = () => {
     session.permissions?.canStartProcess ?? session.role === 'applicant';
 
   const saveProcessModel = async (values: ProcessModelForm) => {
-    const model = await createProcessModel(values);
+    const model = await createProcessModel({
+      ...values,
+      modelKey: values.modelKey || createProcessModelKey(),
+    });
     message.success('已创建');
     setCreateOpen(false);
     actionRef.current?.reload();
@@ -663,17 +672,6 @@ const ProcessModels: React.FC = () => {
         <Typography.Text ellipsis={{ tooltip: true }}>
           {processDisplayName(record.modelKey, record.modelName)}
         </Typography.Text>
-      ),
-    },
-    {
-      title: '流程标识',
-      dataIndex: 'modelKey',
-      width: 180,
-      render: (_, record) => (
-        <CopyableText
-          value={record.modelKey}
-          displayValue={processModelKeyLabel(record.modelKey)}
-        />
       ),
     },
     {
@@ -903,7 +901,7 @@ const ProcessModels: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 1440 }}
+        scroll={{ x: 1260 }}
         params={{ viewMode }}
         request={async (params) => {
           const [models, bindings, schemas] = await Promise.all([
@@ -915,12 +913,10 @@ const ProcessModels: React.FC = () => {
             viewMode === 'business'
               ? models.filter(isActiveBusinessProcessModel)
               : models;
-          const keyword = String(
-            params.modelName || params.modelKey || '',
-          ).trim();
+          const keyword = String(params.modelName || '').trim();
           const filteredModels = keyword
             ? visibleModels.filter((item) =>
-                [item.modelName, item.modelKey, item.description]
+                [item.modelName, item.description]
                   .filter(Boolean)
                   .some((value) => String(value).includes(keyword)),
               )
@@ -1027,17 +1023,6 @@ const ProcessModels: React.FC = () => {
         onOpenChange={setCreateOpen}
         onFinish={saveProcessModel}
       >
-        <ProFormText
-          name="modelKey"
-          label="流程标识"
-          rules={[
-            { required: true, message: '请输入流程标识' },
-            {
-              pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
-              message: '仅支持字母、数字、下划线，且不能以数字开头',
-            },
-          ]}
-        />
         <ProFormText
           name="modelName"
           label="模型名称"
