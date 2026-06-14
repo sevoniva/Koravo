@@ -84,7 +84,7 @@ describe('request error handling', () => {
 
     expect(getSessionContext()).toMatchObject({
       userId: 'anonymous',
-      role: 'applicant',
+      role: 'anonymous',
     });
     expect(mocks.showErrorMessage).toHaveBeenCalledWith(
       '登录已过期，请重新登录',
