@@ -77,10 +77,11 @@ import {
   isWorkflowFieldVisible,
   parseWorkflowFormFields,
   visibleWorkflowFormFields,
+  type WorkflowFormField,
   workflowFieldRules,
   workflowNumberFieldProps,
-  type WorkflowFormField,
 } from '@/utils/workflowForm';
+import { completionFieldReadOnly } from './completionFieldState';
 
 interface CompleteTaskForm {
   decision?: 'APPROVED' | 'REJECTED' | 'RETURNED';
@@ -590,22 +591,9 @@ function completionFieldInitialValue(field: SchemaField, values?: JsonRecord) {
   }
   if (rawValue !== undefined && rawValue !== null) return rawValue;
   if (isCompletionAssigneeField(field)) {
-    return organizationAssigneeFieldValue(
-      field.fieldKey,
-      values,
-      field.title,
-    );
+    return organizationAssigneeFieldValue(field.fieldKey, values, field.title);
   }
   return undefined;
-}
-
-function completionFieldReadOnly(field: SchemaField, values?: JsonRecord) {
-  if (field.permission === 'readonly') return true;
-  if (!values || !Object.hasOwn(values, field.fieldKey)) return false;
-  const value = values[field.fieldKey];
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return Boolean(value.trim());
-  return true;
 }
 
 function renderCompletionField(
@@ -616,7 +604,7 @@ function renderCompletionField(
   if (!isWorkflowFieldVisible(field, values)) return null;
 
   const name = ['formValues', field.fieldKey];
-  const readOnly = completionFieldReadOnly(field, sourceValues);
+  const readOnly = completionFieldReadOnly();
   const formItemProps = { preserve: false };
   const initialValue = completionFieldInitialValue(field, sourceValues);
 
@@ -891,16 +879,13 @@ const TaskDetail: React.FC = () => {
           session.permissions.canConfigureWorkflow,
       )
     : session.role === 'admin' || session.role === 'operator';
-  const {
-    canCompleteTask,
-    canManageAssignedTask,
-    canClaimDetailTask,
-  } = taskActionAccess({
-    task,
-    currentUserId: session.userId,
-    hasForm: Boolean(data?.formSchema),
-    canClaimTask,
-  });
+  const { canCompleteTask, canManageAssignedTask, canClaimDetailTask } =
+    taskActionAccess({
+      task,
+      currentUserId: session.userId,
+      hasForm: Boolean(data?.formSchema),
+      canClaimTask,
+    });
   const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
   const showComments =
     canViewOperationalContext || Boolean(data?.comments?.length);
@@ -1191,10 +1176,7 @@ const TaskDetail: React.FC = () => {
                       title: '操作',
                       valueType: 'option',
                       render: (_, record) => (
-                        <Button
-                          type="link"
-                          onClick={() => setSnapshot(record)}
-                        >
+                        <Button type="link" onClick={() => setSnapshot(record)}>
                           查看
                         </Button>
                       ),

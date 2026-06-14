@@ -89,4 +89,23 @@ describe('ProcessProgressCard', () => {
       screen.getByText('多人会签 · 审批主管、复核专员 · 会签 2 人'),
     ).toBeInTheDocument();
   });
+
+  it('does not mark a completed active task as pending for the current user', () => {
+    render(
+      <ProcessProgressCard
+        trace={trace}
+        currentUserId="manager"
+        activeTask={task({
+          taskId: 'task-manager',
+          assignee: 'manager',
+          status: 'COMPLETED',
+        })}
+        currentTasks={[task({ taskId: 'task-finance', assignee: 'finance' })]}
+      />,
+    );
+
+    expect(screen.getByText('已完成')).toBeInTheDocument();
+    expect(screen.queryByText('待你处理')).not.toBeInTheDocument();
+    expect(screen.getByText('待复核专员处理')).toBeInTheDocument();
+  });
 });

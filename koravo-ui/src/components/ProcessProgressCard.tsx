@@ -272,6 +272,10 @@ function badgeStatus(status?: string) {
   return 'default' as const;
 }
 
+function isCompletedTask(task?: TaskItem) {
+  return String(task?.status || '').toUpperCase() === 'COMPLETED';
+}
+
 function buildTimelineItems(timeline: ProcessTraceNode[]) {
   return recentTimelineNodes(timeline).map((node, index) => ({
     key: `${node.activityId}-${node.startTime || index}`,
@@ -306,7 +310,7 @@ function nextStepText(
   if (status === 'TERMINATED') return '已终止';
   if (status === 'SUSPENDED') return '等待恢复';
   if (!pendingTasks.length) return '待流转';
-  if (activeTask && activeTask.status !== 'COMPLETED') {
+  if (activeTask && !isCompletedTask(activeTask)) {
     return taskHandlingInstruction({
       task: activeTask,
       currentUserId,
@@ -399,6 +403,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const nodeText = currentNodeText(activeTask, activeNodes);
   const currentHandlerText = handlerText(activeTask, pendingTasks);
   const isCompleted = String(trace?.status || '').toUpperCase() === 'COMPLETED';
+  const activeTaskCompleted = isCompletedTask(activeTask);
   const activeTaskOwned = Boolean(
     activeTask?.assignee && activeTask.assignee === currentUserId,
   );
@@ -407,9 +412,11 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const pendingLabel = isCompleted
     ? '已完成'
     : activeTask
-      ? activeTaskOwned
-        ? '待你处理'
-        : '查看中'
+      ? activeTaskCompleted
+        ? '已完成'
+        : activeTaskOwned
+          ? '待你处理'
+          : '查看中'
       : groupSummary ||
         (pendingTasks.length ? `待办 ${pendingTasks.length}` : '无待办');
   const nextStep = nextStepText(
