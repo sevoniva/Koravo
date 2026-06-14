@@ -371,6 +371,7 @@ const ProcessStartReadiness: React.FC<{
         <ProcessDiagramViewer
           bpmnXml={workflow.bpmnXml}
           currentActivityIds={['start']}
+          fitMode="fit"
           height={260}
         />
       ) : (

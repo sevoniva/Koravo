@@ -57,6 +57,7 @@ type ElementRegistry = {
 interface ProcessDiagramViewerProps {
   bpmnXml?: string;
   currentActivityIds?: string[];
+  fitMode?: 'readable' | 'fit';
   timeline?: ProcessTraceNode[];
   height?: number;
 }
@@ -623,6 +624,7 @@ const GeneratedFlow: React.FC<{
 const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   bpmnXml,
   currentActivityIds = [],
+  fitMode = 'readable',
   timeline = [],
   height = 360,
 }) => {
@@ -738,16 +740,21 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
         const elementRegistry = viewerRef.current.get(
           'elementRegistry',
         ) as ElementRegistry;
-        const elements = applyReadableViewport(canvas, elementRegistry);
+        const elements =
+          fitMode === 'fit'
+            ? fitDiagramViewport(canvas, elementRegistry)
+            : applyReadableViewport(canvas, elementRegistry);
         if (!elements.length) {
           throw new Error('流程图没有可显示节点');
         }
         applyMarkers();
-        focusDiagramElement(
-          canvas,
-          elementRegistry,
-          currentDiagramElementId(currentActivityIds, timeline),
-        );
+        if (fitMode !== 'fit') {
+          focusDiagramElement(
+            canvas,
+            elementRegistry,
+            currentDiagramElementId(currentActivityIds, timeline),
+          );
+        }
         setDiagramReady(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : '流程图加载失败');
@@ -761,7 +768,14 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     return () => {
       disposed = true;
     };
-  }, [applyMarkers, currentActivityIds, hasXml, normalizedBpmnXml, timeline]);
+  }, [
+    applyMarkers,
+    currentActivityIds,
+    fitMode,
+    hasXml,
+    normalizedBpmnXml,
+    timeline,
+  ]);
 
   React.useEffect(() => {
     applyMarkers();
