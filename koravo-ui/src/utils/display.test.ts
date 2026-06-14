@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  auditActionLabel,
-  auditResourceLabel,
   assetOriginColor,
   assetOriginLabel,
+  auditActionLabel,
+  auditResourceLabel,
   bpmnValidationIssueText,
   buildVersionLabel,
   businessFieldLabel,
@@ -11,11 +11,11 @@ import {
   connectionAddressLabel,
   formSchemaKeyLabel,
   genericStatusLabel,
-  isBusinessProcessModel,
   isActiveBusinessProcessModel,
+  isBusinessProcessModel,
   normalizeBpmnXmlLabels,
-  processDescriptionLabel,
   processDefinitionLabel,
+  processDescriptionLabel,
   processDisplayName,
   processModelKeyLabel,
   processNameLabel,
@@ -26,19 +26,35 @@ import {
 
 describe('display helpers', () => {
   it('uses product process identifiers for visible process model labels', () => {
-    expect(processModelKeyLabel('collaborativeApproval')).toBe('collaborativeApproval');
-    expect(processModelKeyLabel('koravoProcessmq5amzdq')).toBe('koravoProcessmq5amzdq');
+    expect(processModelKeyLabel('collaborativeApproval')).toBe(
+      'collaborativeApproval',
+    );
+    expect(processModelKeyLabel('koravoProcessmq5amzdq')).toBe(
+      'koravoProcessmq5amzdq',
+    );
     expect(processModelKeyLabel('purchaseApproval')).toBe('历史流程资产');
+    expect(processModelKeyLabel('httpConnectorDemo')).toBe('历史流程资产');
+    expect(processModelKeyLabel('designerDeployCheck')).toBe('历史流程资产');
     expect(formSchemaKeyLabel('leave-form')).toBe('历史表单资产');
   });
 
   it('normalizes process names and definitions', () => {
-    expect(processDisplayName('koravo Processmq5amzdq')).toBe('koravo Processmq5amzdq');
+    expect(processDisplayName('koravo Processmq5amzdq')).toBe(
+      'koravo Processmq5amzdq',
+    );
     expect(processDisplayName('collaborativeApproval')).toBe('协同审批流程');
-    expect(processDisplayName('leaveApproval', '请假审批')).toBe('历史流程资产');
-    expect(processDefinitionLabel('collaborativeApproval:1:5fed0551')).toBe('协同审批流程 v1');
-    expect(processDefinitionLabel('purchaseApproval:1:5fed0551')).toBe('历史流程资产 v1');
-    expect(processNameLabel('koravo Processmq5amzdq')).toBe('koravo Processmq5amzdq');
+    expect(processDisplayName('leaveApproval', '请假审批')).toBe(
+      '历史流程资产',
+    );
+    expect(processDefinitionLabel('collaborativeApproval:1:5fed0551')).toBe(
+      '协同审批流程 v1',
+    );
+    expect(processDefinitionLabel('purchaseApproval:1:5fed0551')).toBe(
+      '历史流程资产 v1',
+    );
+    expect(processNameLabel('koravo Processmq5amzdq')).toBe(
+      'koravo Processmq5amzdq',
+    );
   });
 
   it('formats generic workflow business numbers without hiding cleanup markers', () => {
@@ -173,7 +189,9 @@ describe('display helpers', () => {
   });
 
   it('uses product labels for production audit actions', () => {
-    expect(auditActionLabel('FORM_SCHEMA_RESTORE_VERSION')).toBe('恢复表单版本');
+    expect(auditActionLabel('FORM_SCHEMA_RESTORE_VERSION')).toBe(
+      '恢复表单版本',
+    );
     expect(auditActionLabel('FORM_SCHEMA_ACTIVATE')).toBe('启用表单');
     expect(auditActionLabel('FORM_SCHEMA_DISABLE')).toBe('停用表单');
     expect(auditActionLabel('ORG_MEMBER_PASSWORD_RESET')).toBe('重置成员密码');

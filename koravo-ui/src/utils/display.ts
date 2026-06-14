@@ -135,6 +135,8 @@ const LEGACY_PROCESS_KEYS = new Set([
   'multiAcceptance',
   'purchaseApproval',
   'leaveApproval',
+  'httpConnectorDemo',
+  'designerDeployCheck',
 ]);
 
 const LEGACY_FORM_KEYS = new Set([
@@ -353,7 +355,9 @@ export function processDisplayName(modelKey?: string, fallback?: string) {
   if (/^enterpriseApproval\d*$/i.test(modelKey || '')) {
     return '企业级审批流程';
   }
-  return processNameLabel(mapping[modelKey || ''] || fallback || readableIdentifier(modelKey));
+  return processNameLabel(
+    mapping[modelKey || ''] || fallback || readableIdentifier(modelKey),
+  );
 }
 
 export function processModelKeyLabel(modelKey?: string | null) {
@@ -418,9 +422,7 @@ export function buildVersionLabel(value?: string | null) {
 }
 
 function generatedBusinessKeyLabel(value: string) {
-  const match = value.match(
-    /^(?:COLLABORATIVE-APPROVAL|REQ)-(\d{8})-(\d{6})$/,
-  );
+  const match = value.match(/^(?:COLLABORATIVE-APPROVAL|REQ)-(\d{8})-(\d{6})$/);
   if (!match) return '';
   const [, date, time] = match;
   return `业务申请 ${date.slice(0, 4)}/${date.slice(4, 6)}/${date.slice(6, 8)} ${time.slice(0, 2)}:${time.slice(2, 4)}:${time.slice(4, 6)}`;
@@ -519,7 +521,9 @@ export function taskDefinitionLabel(
   task?: Pick<BpmnTaskDefinition, 'name'>,
 ) {
   if (!key) {
-    return generatedWorkflowNodeLabel(task?.name) || productCopy(task?.name) || '-';
+    return (
+      generatedWorkflowNodeLabel(task?.name) || productCopy(task?.name) || '-'
+    );
   }
   const mapping: Record<string, string> = {
     managerApprovalTask: '主管审批',
@@ -571,11 +575,17 @@ export function bpmnValidationIssueText(issue?: {
 
 export function normalizeBpmnXmlLabels(bpmnXml?: string) {
   if (!bpmnXml) return '';
-  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+  if (
+    typeof DOMParser === 'undefined' ||
+    typeof XMLSerializer === 'undefined'
+  ) {
     return bpmnXml;
   }
   try {
-    const document = new DOMParser().parseFromString(bpmnXml, 'application/xml');
+    const document = new DOMParser().parseFromString(
+      bpmnXml,
+      'application/xml',
+    );
     if (document.querySelector('parsererror')) return bpmnXml;
     Array.from(document.getElementsByTagName('*')).forEach((element) => {
       const label =
