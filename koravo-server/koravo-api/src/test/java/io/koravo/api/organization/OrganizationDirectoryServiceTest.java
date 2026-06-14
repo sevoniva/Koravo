@@ -124,6 +124,32 @@ class OrganizationDirectoryServiceTest {
     }
 
     @Test
+    void updateRejectsRenamingCurrentMemberAccount() {
+        TenantContextHolder.setTenantId("tenant-a");
+        UserContextHolder.setUser("admin", UserContextHolder.ROLE_ADMIN);
+        KoOrganizationMember existing = member(
+                "admin",
+                "tenant-a",
+                "流程平台负责人",
+                "流程平台组",
+                UserContextHolder.ROLE_ADMIN
+        );
+        when(repository.findById(existing.getId())).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.update(existing.getId(), new OrganizationMemberUpsertRequest(
+                "admin-renamed",
+                "流程平台负责人",
+                "流程平台组",
+                UserContextHolder.ROLE_ADMIN,
+                "ACTIVE",
+                null
+        )))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("不能修改当前登录成员账号");
+        verify(repository, never()).save(any(KoOrganizationMember.class));
+    }
+
+    @Test
     void updateRejectsDisablingLastActiveAdmin() {
         TenantContextHolder.setTenantId("tenant-a");
         UserContextHolder.setUser("operator", UserContextHolder.ROLE_OPERATOR);

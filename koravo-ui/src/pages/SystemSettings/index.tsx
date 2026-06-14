@@ -41,6 +41,7 @@ import {
   getOrganizationMembers,
   isPlatformIdentitySynced,
   normalizeOrganizationMembers,
+  organizationCoverageSummary,
   type OrganizationMember,
   organizationMemberName,
   organizationRoleLabel,
@@ -318,17 +319,24 @@ function roleLabel(role: SessionRole) {
   return organizationRoleLabel(role);
 }
 
+function tableFilterOptions(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)))
+    .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
+    .map((value) => ({ text: value, value }));
+}
+
 const MemberFormFields: React.FC<{
   passwordRequired?: boolean;
   roleDisabled?: boolean;
   statusDisabled?: boolean;
-}> = ({ passwordRequired, roleDisabled, statusDisabled }) => (
+  userIdDisabled?: boolean;
+}> = ({ passwordRequired, roleDisabled, statusDisabled, userIdDisabled }) => (
   <>
     <ProFormText
       name="userId"
       label="成员账号"
       rules={[{ required: true, message: '请输入成员账号' }]}
-      fieldProps={{ maxLength: 64 }}
+      fieldProps={{ maxLength: 64, disabled: userIdDisabled }}
     />
     <ProFormText
       name="name"
@@ -397,12 +405,15 @@ const SystemSettings: React.FC = () => {
     queryFn: getWorkflowEnablementStatus,
     enabled: !isOrganizationPage,
   });
-  const { data: organizationMembers, refetch: refetchOrganizationMembers } =
-    useQuery({
-      queryKey: ['organization-members'],
-      queryFn: listOrganizationMembers,
-      enabled: isOrganizationPage,
-    });
+  const {
+    data: organizationMembers,
+    isLoading: organizationMembersLoading,
+    refetch: refetchOrganizationMembers,
+  } = useQuery({
+    queryKey: ['organization-members'],
+    queryFn: listOrganizationMembers,
+    enabled: isOrganizationPage,
+  });
 
   React.useEffect(() => {
     if (organizationMembers) {
@@ -415,6 +426,14 @@ const SystemSettings: React.FC = () => {
         ? normalizeOrganizationMembers(organizationMembers)
         : getOrganizationMembers(),
     [organizationMembers],
+  );
+  const organizationCoverage = useMemo(
+    () => organizationCoverageSummary(members),
+    [members],
+  );
+  const departmentFilters = useMemo(
+    () => tableFilterOptions(members.map((member) => member.department)),
+    [members],
   );
   const activeAdminCount = useMemo(
     () =>
@@ -551,11 +570,23 @@ const SystemSettings: React.FC = () => {
       width: 120,
       renderText: (value) => value || '-',
     },
-    { title: '部门', dataIndex: 'department', width: 120, ellipsis: true },
+    {
+      title: '部门',
+      dataIndex: 'department',
+      width: 120,
+      ellipsis: true,
+      filters: departmentFilters,
+      onFilter: (value, record) => record.department === value,
+    },
     {
       title: '角色',
       dataIndex: 'role',
       width: 112,
+      filters: roleOptions.map((item) => ({
+        text: item.label,
+        value: item.value,
+      })),
+      onFilter: (value, record) => record.role === value,
       render: (_, record) => (
         <Tag color="processing">{roleLabel(record.role)}</Tag>
       ),
@@ -564,6 +595,11 @@ const SystemSettings: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       width: 90,
+      filters: [
+        { text: '启用', value: '启用' },
+        { text: '停用', value: '停用' },
+      ],
+      onFilter: (value, record) => record.status === value,
       render: (_, record) => (
         <Tag color={record.status === '启用' ? 'success' : 'default'}>
           {record.status}
@@ -622,6 +658,7 @@ const SystemSettings: React.FC = () => {
               />
             ) : null}
             <MemberFormFields
+              userIdDisabled={isCurrentMember(record)}
               roleDisabled={memberEditLocked(record)}
               statusDisabled={memberEditLocked(record)}
             />
@@ -696,11 +733,46 @@ const SystemSettings: React.FC = () => {
     <>
       <Alert
         showIcon
-        type="info"
-        title="组织成员是审批身份源"
-        description="成员、部门和岗位职责会影响登录权限、待办分配、审批人选择和审计记录。"
+        type={
+          organizationCoverage.missingRoles.length ? 'warning' : 'success'
+        }
+        title={
+          organizationCoverage.missingRoles.length
+            ? '关键岗位未覆盖'
+            : '组织目录可用'
+        }
+        description={
+          organizationCoverage.missingRoles.length ? (
+            <Space size={[4, 6]} wrap>
+              {organizationCoverage.missingRoles.map((role) => (
+                <Tag key={role} color="warning">
+                  {roleLabel(role)}
+                </Tag>
+              ))}
+            </Space>
+          ) : (
+            '成员、部门、岗位和登录权限已关联。'
+          )
+        }
         style={{ marginBottom: 16 }}
       />
+      <ProCard gutter={16} wrap style={{ marginBottom: 16 }}>
+        <ProCard colSpan={{ xs: 24, sm: 6 }}>
+          <Statistic title="启用成员" value={organizationCoverage.active} />
+        </ProCard>
+        <ProCard colSpan={{ xs: 24, sm: 6 }}>
+          <Statistic title="部门" value={organizationCoverage.departmentCount} />
+        </ProCard>
+        <ProCard colSpan={{ xs: 24, sm: 6 }}>
+          <Statistic
+            title="审批岗位"
+            value={organizationCoverage.approvalRoleCount}
+          />
+        </ProCard>
+        <ProCard colSpan={{ xs: 24, sm: 6 }}>
+          <Statistic title="停用成员" value={organizationCoverage.disabled} />
+        </ProCard>
+      </ProCard>
       <ProCard title="组织权限" split="vertical" gutter={16} wrap>
         <ProCard
           title="成员清单"
@@ -729,8 +801,13 @@ const SystemSettings: React.FC = () => {
             rowKey="key"
             columns={memberColumns}
             dataSource={members}
+            loading={organizationMembersLoading}
             search={false}
-            pagination={false}
+            pagination={
+              members.length > 10
+                ? { pageSize: 10, showSizeChanger: true }
+                : false
+            }
             options={false}
             scroll={{ x: 1120 }}
             size="small"

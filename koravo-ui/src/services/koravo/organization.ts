@@ -13,7 +13,24 @@ export interface OrganizationMember {
   lastLoginAt?: string;
 }
 
+export interface OrganizationCoverageSummary {
+  total: number;
+  active: number;
+  disabled: number;
+  departmentCount: number;
+  approvalRoleCount: number;
+  missingRoles: SessionRole[];
+  roleCounts: Partial<Record<SessionRole, number>>;
+}
+
 const expression = (name: string) => '$' + `{${name}}`;
+const requiredOrganizationRoles: SessionRole[] = [
+  'admin',
+  'applicant',
+  'manager',
+  'finance',
+  'operator',
+];
 const generatedDepartmentNames = [
   '一',
   '二',
@@ -170,6 +187,33 @@ export function setOrganizationMembers(members?: Array<OrganizationMemberItem | 
 
 export function getOrganizationMembers() {
   return runtimeOrganizationMembers;
+}
+
+export function organizationCoverageSummary(
+  members: OrganizationMember[],
+): OrganizationCoverageSummary {
+  const activeMembers = members.filter((member) => member.status === '启用');
+  const roleCounts = activeMembers.reduce<Partial<Record<SessionRole, number>>>(
+    (result, member) => {
+      result[member.role] = (result[member.role] || 0) + 1;
+      return result;
+    },
+    {},
+  );
+  const departments = new Set(
+    activeMembers.map((member) => member.department).filter(Boolean),
+  );
+  return {
+    total: members.length,
+    active: activeMembers.length,
+    disabled: members.length - activeMembers.length,
+    departmentCount: departments.size,
+    approvalRoleCount: (roleCounts.manager || 0) + (roleCounts.finance || 0),
+    missingRoles: requiredOrganizationRoles.filter(
+      (role) => !roleCounts[role],
+    ),
+    roleCounts,
+  };
 }
 
 export function organizationMemberByUserId(userId?: string | null) {

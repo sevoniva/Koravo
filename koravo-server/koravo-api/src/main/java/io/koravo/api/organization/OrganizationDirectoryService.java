@@ -97,6 +97,7 @@ public class OrganizationDirectoryService {
         String nextUserId = normalizedRequiredText(request.userId(), "成员账号");
         String nextRole = normalizedRole(request.role());
         String nextStatus = normalizedStatus(request.status());
+        assertCurrentMemberKeepsAccount(member, nextUserId);
         assertCurrentMemberKeepsAccess(member, nextRole, nextStatus);
         assertTenantKeepsActiveAdmin(member, nextRole, nextStatus);
         if (!member.getUserId().equals(nextUserId)
@@ -241,6 +242,12 @@ public class OrganizationDirectoryService {
         }
         if (!ACTIVE.equals(nextStatus) || !UserContextHolder.ROLE_ADMIN.equals(nextRole)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "不能移除当前登录成员的管理员权限");
+        }
+    }
+
+    private void assertCurrentMemberKeepsAccount(KoOrganizationMember member, String nextUserId) {
+        if (member.getUserId().equals(UserContextHolder.getUserId()) && !member.getUserId().equals(nextUserId)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "不能修改当前登录成员账号");
         }
     }
 

@@ -8,6 +8,7 @@ import {
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
   organizationApprovalMemberSelectOptions,
+  organizationCoverageSummary,
   organizationGroupOptions,
   organizationHandlerOptions,
   organizationMemberName,
@@ -195,6 +196,57 @@ describe('organization display helpers', () => {
         status: '启用',
       },
     ]);
+  });
+
+  it('summarizes organization coverage for permission operations', () => {
+    const members = setOrganizationMembers([
+      {
+        key: 'admin',
+        name: '平台负责人',
+        userId: 'admin',
+        department: '平台组',
+        role: 'admin',
+        status: 'ACTIVE',
+      },
+      {
+        key: 'applicant',
+        name: '业务发起人',
+        userId: 'applicant',
+        department: '业务部',
+        role: 'applicant',
+        status: 'ACTIVE',
+      },
+      {
+        key: 'manager',
+        name: '审批主管',
+        userId: 'manager',
+        department: '审批中心',
+        role: 'manager',
+        status: 'ACTIVE',
+      },
+      {
+        key: 'operator',
+        name: '审计专员',
+        userId: 'operator',
+        department: '运维组',
+        role: 'operator',
+        status: 'DISABLED',
+      },
+    ]);
+
+    expect(organizationCoverageSummary(members)).toMatchObject({
+      total: 4,
+      active: 3,
+      disabled: 1,
+      departmentCount: 3,
+      approvalRoleCount: 1,
+      missingRoles: ['finance', 'operator'],
+      roleCounts: {
+        admin: 1,
+        applicant: 1,
+        manager: 1,
+      },
+    });
   });
 
   it('does not fall back to default members after an empty server directory sync', () => {
