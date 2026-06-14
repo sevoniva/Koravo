@@ -58,6 +58,11 @@ import { permissionsForRole } from '@/access';
 import { buildVersionLabel, productCopy } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
 import { passwordPolicyRules } from '@/utils/passwordPolicy';
+import {
+  organizationMemberCreatePayload,
+  type OrganizationMemberFormValues,
+  organizationMemberProfilePayload,
+} from './memberPayload';
 
 const dependencyColumns: ProColumns<SystemHealthItem>[] = [
   { title: '依赖', dataIndex: 'name' },
@@ -85,15 +90,6 @@ interface PermissionMatrixItem {
   manager: boolean;
   finance: boolean;
   operator: boolean;
-}
-
-interface OrganizationMemberFormValues {
-  userId: string;
-  name: string;
-  department: string;
-  role: SessionRole;
-  status?: 'ACTIVE' | 'DISABLED';
-  password?: string;
 }
 
 interface ResetPasswordFormValues {
@@ -328,9 +324,16 @@ function tableFilterOptions(values: string[]) {
 const MemberFormFields: React.FC<{
   passwordRequired?: boolean;
   roleDisabled?: boolean;
+  showPassword?: boolean;
   statusDisabled?: boolean;
   userIdDisabled?: boolean;
-}> = ({ passwordRequired, roleDisabled, statusDisabled, userIdDisabled }) => (
+}> = ({
+  passwordRequired,
+  roleDisabled,
+  showPassword = Boolean(passwordRequired),
+  statusDisabled,
+  userIdDisabled,
+}) => (
   <>
     <ProFormText
       name="userId"
@@ -370,19 +373,21 @@ const MemberFormFields: React.FC<{
       fieldProps={{ disabled: statusDisabled }}
       rules={[{ required: true, message: '请选择成员状态' }]}
     />
-    <ProFormText.Password
-      name="password"
-      label={passwordRequired ? '初始密码' : '新密码'}
-      fieldProps={{ autoComplete: 'new-password' }}
-      rules={
-        passwordRequired
-          ? [
-              { required: true, message: '请输入初始密码' },
-              ...passwordPolicyRules,
-            ]
-          : passwordPolicyRules
-      }
-    />
+    {showPassword ? (
+      <ProFormText.Password
+        name="password"
+        label={passwordRequired ? '初始密码' : '新密码'}
+        fieldProps={{ autoComplete: 'new-password' }}
+        rules={
+          passwordRequired
+            ? [
+                { required: true, message: '请输入初始密码' },
+                ...passwordPolicyRules,
+              ]
+            : passwordPolicyRules
+        }
+      />
+    ) : null}
   </>
 );
 
@@ -643,7 +648,10 @@ const SystemSettings: React.FC = () => {
               searchConfig: { submitText: '保存', resetText: '取消' },
             }}
             onFinish={async (values) => {
-              await updateOrganizationMember(record.key, values);
+              await updateOrganizationMember(
+                record.key,
+                organizationMemberProfilePayload(values),
+              );
               message.success('成员已更新');
               await refetchOrganizationMembers();
               return true;
@@ -787,7 +795,9 @@ const SystemSettings: React.FC = () => {
                 searchConfig: { submitText: '创建', resetText: '取消' },
               }}
               onFinish={async (values) => {
-                await createOrganizationMember(values);
+                await createOrganizationMember(
+                  organizationMemberCreatePayload(values),
+                );
                 message.success('成员已创建');
                 await refetchOrganizationMembers();
                 return true;
