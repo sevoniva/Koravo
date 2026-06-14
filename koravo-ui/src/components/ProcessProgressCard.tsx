@@ -5,6 +5,7 @@ import {
   Collapse,
   Empty,
   Flex,
+  Progress,
   Space,
   Tag,
   Timeline,
@@ -53,6 +54,21 @@ const useStyles = createStyles(({ css, token }) => ({
     @media (max-width: 900px) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    @media (max-width: 560px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `,
+  progressLine: css`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    min-width: 0;
+    padding: 8px 12px;
+    background: ${token.colorFillQuaternary};
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: ${token.borderRadius}px;
 
     @media (max-width: 560px) {
       grid-template-columns: minmax(0, 1fr);
@@ -252,6 +268,31 @@ function bpmnNodeCount(bpmnXml?: string) {
   }
 }
 
+function progressCounts(trace?: ProcessTrace) {
+  const nodes = visibleTimelineNodes(trace?.timeline || []);
+  const status = String(trace?.status || '').toUpperCase();
+  const completedIds = new Set(
+    nodes
+      .filter(
+        (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
+      )
+      .map((node) => node.activityId)
+      .filter(Boolean),
+  );
+  const total = Math.max(nodes.length, bpmnNodeCount(trace?.bpmnXml));
+  const completed =
+    total && status === 'COMPLETED'
+      ? total
+      : total
+        ? Math.min(completedIds.size, total)
+        : 0;
+  return {
+    completed,
+    total,
+    percent: total ? Math.round((completed / total) * 100) : 0,
+  };
+}
+
 function timelineColor(status?: string) {
   const normalized = String(status || '').toUpperCase();
   if (normalized === 'COMPLETED') return 'green';
@@ -427,6 +468,10 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   const timeline = trace?.timeline || [];
   const hasTimeline = timeline.length > 0;
   const handlerMetric = pendingHandlersText(taskGroups, currentHandlerText);
+  const counts = progressCounts(trace);
+  const progressText = counts.total
+    ? `${counts.completed}/${counts.total} 节点`
+    : '暂无节点';
   const detailItems: CollapseProps['items'] = [];
   if (taskGroups.length) {
     detailItems.push({
@@ -477,7 +522,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
 
   return (
     <ProCard
-      title="审批上下文"
+      title="审批进度"
       loading={loading}
       extra={
         <Space size={8} wrap>
@@ -485,6 +530,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             status={badgeStatus(trace?.status)}
             text={processStatusLabel(trace?.status)}
           />
+          <Tag color="blue">{progressText}</Tag>
           <Tag>{pendingLabel}</Tag>
         </Space>
       }
@@ -501,7 +547,20 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             label={groupSummary ? '当前待办' : '办理人'}
             value={handlerMetric}
           />
-          <Metric label="处理状态" value={nextStep} />
+          <Metric label="下一步" value={nextStep} />
+        </div>
+        <div className={styles.progressLine}>
+          <Progress
+            percent={counts.percent}
+            showInfo={false}
+            size="small"
+            status={
+              String(trace?.status || '').toUpperCase() === 'TERMINATED'
+                ? 'exception'
+                : undefined
+            }
+          />
+          <Typography.Text type="secondary">{progressText}</Typography.Text>
         </div>
         <ProcessDiagramViewer
           bpmnXml={trace?.bpmnXml}

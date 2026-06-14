@@ -100,6 +100,11 @@ describe('ProcessProgressCard', () => {
       'data-height',
       '260',
     );
+    expect(screen.getByText('审批进度')).toBeInTheDocument();
+    expect(screen.queryByText('审批上下文')).not.toBeInTheDocument();
+    expect(screen.getAllByText('1/2 节点').length).toBeGreaterThan(0);
+    expect(screen.getByText('下一步')).toBeInTheDocument();
+    expect(screen.queryByText('处理状态')).not.toBeInTheDocument();
     expect(screen.getByText('会签 2 人')).toBeInTheDocument();
     expect(screen.getByText('审批主管、复核专员')).toBeInTheDocument();
     expect(screen.getByText('会签中')).toBeInTheDocument();
@@ -153,6 +158,7 @@ describe('ProcessProgressCard', () => {
 
     expect(screen.getByText('结束')).toBeInTheDocument();
     expect(screen.getByText('无待办')).toBeInTheDocument();
+    expect(screen.getAllByText('3/3 节点').length).toBeGreaterThan(0);
     expect(screen.queryByText('当前节点')).toBeInTheDocument();
   });
 });

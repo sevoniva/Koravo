@@ -309,8 +309,8 @@ function currentDiagramNode(
   };
 }
 
-function diagramStatusCounts(timeline: ProcessTraceNode[]) {
-  const nodes = visibleFlowNodes(timeline);
+function diagramStatusCounts(timeline: ProcessTraceNode[], bpmnXml?: string) {
+  const nodes = generatedFlowNodes(timeline, bpmnXml);
   const completed = nodes.filter(
     (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
   ).length;
@@ -555,14 +555,15 @@ function generatedStepItems(
 }
 
 const DiagramStatusOverlay: React.FC<{
+  bpmnXml?: string;
   currentActivityIds: string[];
   timeline: ProcessTraceNode[];
-}> = ({ currentActivityIds, timeline }) => {
+}> = ({ bpmnXml, currentActivityIds, timeline }) => {
   const { styles } = useStyles();
   if (!timeline.length) return null;
 
   const current = currentDiagramNode(currentActivityIds, timeline);
-  const counts = diagramStatusCounts(timeline);
+  const counts = diagramStatusCounts(timeline, bpmnXml);
 
   return (
     <div className={styles.diagramStatus}>
@@ -862,6 +863,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     >
       <div ref={mountRef} className={styles.mount} />
       <DiagramStatusOverlay
+        bpmnXml={normalizedBpmnXml}
         currentActivityIds={currentActivityIds}
         timeline={timeline}
       />
