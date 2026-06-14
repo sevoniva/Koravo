@@ -3,6 +3,16 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ProcessTrace, TaskItem } from '@/services/koravo/api';
 import ProcessProgressCard from './ProcessProgressCard';
 
+const processDiagramViewerMock = vi.hoisted(() =>
+  vi.fn((props: { viewMode?: string; height?: number }) => (
+    <div
+      data-height={props.height}
+      data-testid="process-diagram-viewer"
+      data-view-mode={props.viewMode || 'bpmn'}
+    />
+  )),
+);
+
 vi.mock('@ant-design/pro-components', async () => {
   const React = await import('react');
   return {
@@ -25,7 +35,7 @@ vi.mock('@ant-design/pro-components', async () => {
 });
 
 vi.mock('./ProcessDiagramViewer', () => ({
-  default: () => <div data-testid="process-diagram-viewer" />,
+  default: processDiagramViewerMock,
 }));
 
 function task(partial: Partial<TaskItem>): TaskItem {
@@ -82,6 +92,14 @@ describe('ProcessProgressCard', () => {
     );
 
     expect(screen.getByTestId('process-diagram-viewer')).toBeInTheDocument();
+    expect(screen.getByTestId('process-diagram-viewer')).toHaveAttribute(
+      'data-view-mode',
+      'bpmn',
+    );
+    expect(screen.getByTestId('process-diagram-viewer')).toHaveAttribute(
+      'data-height',
+      '260',
+    );
     expect(screen.getByText('会签 2 人')).toBeInTheDocument();
     expect(screen.getByText('审批主管、复核专员')).toBeInTheDocument();
     expect(screen.getByText('会签中')).toBeInTheDocument();

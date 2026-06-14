@@ -373,8 +373,7 @@ const ProcessStartReadiness: React.FC<{
           bpmnXml={workflow.bpmnXml}
           currentActivityIds={['start']}
           fitMode="fit"
-          height={180}
-          viewMode="steps"
+          height={260}
         />
       ) : (
         <Empty description="暂无流程图" image={Empty.PRESENTED_IMAGE_SIMPLE} />

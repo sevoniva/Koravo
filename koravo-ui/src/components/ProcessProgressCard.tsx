@@ -364,10 +364,10 @@ function diagramHeight(trace?: ProcessTrace) {
     visibleTimelineNodes(trace?.timeline || []).length,
     bpmnNodeCount(trace?.bpmnXml),
   );
-  if (nodeCount > 32) return 320;
-  if (nodeCount > 24) return 280;
-  if (nodeCount > 14) return 240;
-  return 180;
+  if (nodeCount > 32) return 380;
+  if (nodeCount > 24) return 340;
+  if (nodeCount > 14) return 300;
+  return 260;
 }
 
 const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({
@@ -512,7 +512,6 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
           )}
           timeline={trace?.timeline}
           height={diagramHeight(trace)}
-          viewMode="steps"
         />
         {detailItems.length ? (
           <Collapse
