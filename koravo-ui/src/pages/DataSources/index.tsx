@@ -1,15 +1,15 @@
 import { PlusOutlined } from '@ant-design/icons';
 import {
+  type ActionType,
   ModalForm,
   PageContainer,
+  type ProColumns,
   ProDescriptions,
   ProFormDigit,
   ProFormSelect,
   ProFormSwitch,
   ProFormText,
   ProTable,
-  type ActionType,
-  type ProColumns,
 } from '@ant-design/pro-components';
 import { App, Button, Empty, Modal, Space } from 'antd';
 import React, { useRef, useState } from 'react';
@@ -18,18 +18,18 @@ import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   createDataSource,
-  deleteDataSource,
-  listDataSourceTestLogs,
-  listDataSources,
-  testDataSource,
-  updateDataSource,
   type DataSourceItem,
   type DataSourceTestLogItem,
+  deleteDataSource,
+  listDataSources,
+  listDataSourceTestLogs,
+  testDataSource,
+  updateDataSource,
 } from '@/services/koravo/api';
 import { connectionAddressLabel, dataSourceTypeLabel } from '@/utils/display';
 import { formatDateTime, formatDuration } from '@/utils/format';
 
-interface DataSourceForm extends Record<string, unknown> {
+export interface DataSourceForm extends Record<string, unknown> {
   name: string;
   type: string;
   jdbcUrl: string;
@@ -48,13 +48,13 @@ const typeOptions = [
   { label: 'H2', value: 'H2' },
 ];
 
-const defaultPoolConfig = {
+export const defaultPoolConfig = {
   maximumPoolSize: 10,
   minimumIdle: 2,
   connectionTimeout: 30000,
 };
 
-function parsePoolConfig(poolConfigJson?: string) {
+export function dataSourcePoolConfig(poolConfigJson?: string) {
   if (!poolConfigJson?.trim()) return defaultPoolConfig;
   try {
     const value = JSON.parse(poolConfigJson) as Record<string, unknown>;
@@ -77,17 +77,17 @@ function parsePoolConfig(poolConfigJson?: string) {
   }
 }
 
-function toFormValues(record?: DataSourceItem): Partial<DataSourceForm> {
+export function toFormValues(record?: DataSourceItem): Partial<DataSourceForm> {
   if (!record) {
     return { type: 'POSTGRESQL', readOnly: true, ...defaultPoolConfig };
   }
   return {
     ...record,
-    ...parsePoolConfig(record.poolConfigJson),
+    ...dataSourcePoolConfig(record.poolConfigJson),
   };
 }
 
-function buildDataSourcePayload(values: DataSourceForm) {
+export function buildDataSourcePayload(values: DataSourceForm) {
   return {
     name: values.name,
     type: values.type,
@@ -97,15 +97,17 @@ function buildDataSourcePayload(values: DataSourceForm) {
     driverClassName: values.driverClassName,
     readOnly: values.readOnly,
     poolConfigJson: JSON.stringify({
-      maximumPoolSize: values.maximumPoolSize ?? defaultPoolConfig.maximumPoolSize,
+      maximumPoolSize:
+        values.maximumPoolSize ?? defaultPoolConfig.maximumPoolSize,
       minimumIdle: values.minimumIdle ?? defaultPoolConfig.minimumIdle,
-      connectionTimeout: values.connectionTimeout ?? defaultPoolConfig.connectionTimeout,
+      connectionTimeout:
+        values.connectionTimeout ?? defaultPoolConfig.connectionTimeout,
     }),
   };
 }
 
-function poolConfigText(record: DataSourceItem) {
-  const config = parsePoolConfig(record.poolConfigJson);
+export function dataSourcePoolConfigSummary(record: DataSourceItem) {
+  const config = dataSourcePoolConfig(record.poolConfigJson);
   return `最大 ${config.maximumPoolSize} / 空闲 ${config.minimumIdle} / 超时 ${formatDuration(config.connectionTimeout)}`;
 }
 
@@ -169,17 +171,22 @@ const DataSources: React.FC = () => {
     },
     {
       title: '连接池',
-      dataIndex: 'poolConfigJson',
+      key: 'poolConfig',
       width: 210,
       search: false,
-      renderText: (_, record) => poolConfigText(record),
+      renderText: (_, record) => dataSourcePoolConfigSummary(record),
     },
     {
       title: '只读',
       dataIndex: 'readOnly',
       width: 90,
       search: false,
-      render: (_, record) => <KoravoStatusTag status={record.readOnly} text={record.readOnly ? '只读' : '可写'} />,
+      render: (_, record) => (
+        <KoravoStatusTag
+          status={record.readOnly}
+          text={record.readOnly ? '只读' : '可写'}
+        />
+      ),
     },
     {
       title: '状态',
@@ -406,7 +413,11 @@ const DataSources: React.FC = () => {
           dataSource={detail}
           columns={[
             { title: '名称', dataIndex: 'name' },
-            { title: '类型', dataIndex: 'type', renderText: dataSourceTypeLabel },
+            {
+              title: '类型',
+              dataIndex: 'type',
+              renderText: dataSourceTypeLabel,
+            },
             {
               title: '连接地址',
               dataIndex: 'jdbcUrl',
@@ -427,21 +438,23 @@ const DataSources: React.FC = () => {
             { title: '状态', dataIndex: 'status' },
             {
               title: '最大连接数',
-              dataIndex: 'poolConfigJson',
+              key: 'maximumPoolSize',
               renderText: (_, record) =>
-                parsePoolConfig(record.poolConfigJson).maximumPoolSize,
+                dataSourcePoolConfig(record.poolConfigJson).maximumPoolSize,
             },
             {
               title: '最小空闲连接',
-              dataIndex: 'poolConfigJson',
+              key: 'minimumIdle',
               renderText: (_, record) =>
-                parsePoolConfig(record.poolConfigJson).minimumIdle,
+                dataSourcePoolConfig(record.poolConfigJson).minimumIdle,
             },
             {
               title: '连接超时',
-              dataIndex: 'poolConfigJson',
+              key: 'connectionTimeout',
               renderText: (_, record) =>
-                formatDuration(parsePoolConfig(record.poolConfigJson).connectionTimeout),
+                formatDuration(
+                  dataSourcePoolConfig(record.poolConfigJson).connectionTimeout,
+                ),
             },
           ]}
         />
