@@ -228,6 +228,28 @@ const useStyles = createStyles(({ css, token }) => ({
       grid-column: span 1;
     }
   `,
+  fieldCompact: css`
+    grid-column: span 3;
+
+    .ant-form-item-control-input-content,
+    .ant-select,
+    .ant-input-number {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    @media (max-width: 960px) {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 760px) {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 560px) {
+      grid-column: span 1;
+    }
+  `,
   fieldSwitch: css`
     .ant-form-item-control-input {
       min-height: 34px;
@@ -1537,6 +1559,7 @@ interface FormFieldsEditorClassNames {
   fieldGrid: string;
   fieldMain: string;
   fieldWide: string;
+  fieldCompact: string;
   fieldSwitch: string;
   lifecycleSteps: string;
 }
@@ -1662,7 +1685,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 <ProFormSelect
                   name="type"
                   label="类型"
-                  width="xs"
+                  formItemProps={{ className: classNames.fieldCompact }}
                   disabled={isSystemField}
                   options={fieldTypeOptions}
                   rules={[{ required: true, message: '请选择类型' }]}
@@ -1670,7 +1693,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 <ProFormSelect
                   name="widget"
                   label="控件"
-                  width="sm"
+                  formItemProps={{ className: classNames.fieldCompact }}
                   disabled={isSystemField}
                   options={
                     isProfileField
@@ -1708,7 +1731,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 <ProFormSelect
                   name="format"
                   label="格式"
-                  width="xs"
+                  formItemProps={{ className: classNames.fieldCompact }}
                   allowClear
                   disabled={isSystemField}
                   options={formatOptions}
@@ -1752,13 +1775,13 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                   <ProFormDigit
                     name="minimum"
                     label="最小值"
-                    width="xs"
+                    formItemProps={{ className: classNames.fieldCompact }}
                     fieldProps={{ precision: 2 }}
                   />
                   <ProFormDigit
                     name="maximum"
                     label="最大值"
-                    width="xs"
+                    formItemProps={{ className: classNames.fieldCompact }}
                     fieldProps={{ precision: 2 }}
                   />
                 </>
@@ -1770,13 +1793,13 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 <ProFormDigit
                   name="minLength"
                   label="最少字符"
-                  width="xs"
+                  formItemProps={{ className: classNames.fieldCompact }}
                   fieldProps={{ min: 0, precision: 0 }}
                 />
                 <ProFormDigit
                   name="maxLength"
                   label="最多字符"
-                  width="xs"
+                  formItemProps={{ className: classNames.fieldCompact }}
                   fieldProps={{ min: 0, precision: 0 }}
                 />
                 <ProFormText
@@ -1792,7 +1815,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
         <ProFormSelect
           name="permission"
           label="权限"
-          width="xs"
+          formItemProps={{ className: classNames.fieldCompact }}
           options={permissionOptions}
         />
         <ProFormDependency name={['fieldKey', 'visibleWhenField']}>
@@ -1807,7 +1830,9 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
         <ProFormSwitch
           name="required"
           label="必填"
-          formItemProps={{ className: classNames.fieldSwitch }}
+          formItemProps={{
+            className: `${classNames.fieldCompact} ${classNames.fieldSwitch}`,
+          }}
         />
       </div>
     </ProFormList>
