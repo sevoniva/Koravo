@@ -9,6 +9,10 @@ async function main() {
   const admin = await login("admin", "admin");
   const applicant = await login("applicant", "applicant");
   const operator = await login("operator", "operator");
+  const auditCleanup = await api("/ops/trial-data/audit-cleanup", {
+    method: "POST",
+    token: operator.token,
+  });
   const models = await api("/process-models", {
     token: admin.token,
     query: { includeNonProduction: true },
@@ -56,6 +60,7 @@ async function main() {
     workflowReady: enablement.initialized,
     retainedProcessKey: enablement.processDefinitionKey,
     retainedFormSchemaId: enablement.formSchemaId,
+    auditCleanup,
     trialSurface,
   }, null, 2));
 }

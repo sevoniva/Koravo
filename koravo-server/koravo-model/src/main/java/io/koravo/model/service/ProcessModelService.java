@@ -174,7 +174,8 @@ public class ProcessModelService {
         auditLogService.record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", model.getId(), Map.of(
                 "deploymentId", deployment.deploymentId(),
                 "processDefinitionId", deployment.processDefinitionId(),
-                "processDefinitionKey", deployment.processDefinitionKey()
+                "processDefinitionKey", deployment.processDefinitionKey(),
+                "assetOrigin", model.getAssetOrigin().name()
         ));
         return new ProcessModelDeployResponse(toResponse(model), deployment.withPlatformModelId(model.getId()));
     }
@@ -275,7 +276,8 @@ public class ProcessModelService {
         auditLogService.record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", model.getId(), Map.of(
                 "deploymentId", deployment.deploymentId(),
                 "processDefinitionId", deployment.processDefinitionId(),
-                "processDefinitionKey", deployment.processDefinitionKey()
+                "processDefinitionKey", deployment.processDefinitionKey(),
+                "assetOrigin", model.getAssetOrigin().name()
         ));
         return deployment.withPlatformModelId(model.getId());
     }

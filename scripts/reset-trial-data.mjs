@@ -16,6 +16,10 @@ async function main() {
   const finance = await login("finance", "finance");
   const operator = await login("operator", "operator");
 
+  const auditCleanup = await api("/ops/trial-data/audit-cleanup", {
+    method: "POST",
+    token: operator.token,
+  });
   const governance = await cleanupVerificationAssets(admin);
   const enablement = await api("/workflow-enablement/init", {
     method: "POST",
@@ -34,6 +38,7 @@ async function main() {
     retainedProcessKey: enablement.processDefinitionKey,
     retainedFormSchemaId: enablement.formSchemaId,
     governance,
+    auditCleanup,
     seeds: {
       active: activeSeed,
       completed: completedSeed,

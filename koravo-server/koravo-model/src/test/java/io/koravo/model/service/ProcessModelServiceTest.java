@@ -140,7 +140,8 @@ class ProcessModelServiceTest {
         verify(auditLogService).record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "model-1", Map.of(
                 "deploymentId", "dep-1",
                 "processDefinitionId", "pd-1",
-                "processDefinitionKey", "leaveApproval"
+                "processDefinitionKey", "leaveApproval",
+                "assetOrigin", "USER_FLOW"
         ));
     }
 
@@ -238,7 +239,8 @@ class ProcessModelServiceTest {
         verify(auditLogService).record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "enterprise-model-1", Map.of(
                 "deploymentId", "dep-enterprise",
                 "processDefinitionId", "enterpriseApproval30:1:pd",
-                "processDefinitionKey", "enterpriseApproval30"
+                "processDefinitionKey", "enterpriseApproval30",
+                "assetOrigin", "USER_FLOW"
         ));
     }
 
@@ -503,7 +505,8 @@ class ProcessModelServiceTest {
         verify(auditLogService).record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "model-1", Map.of(
                 "deploymentId", "dep-1",
                 "processDefinitionId", "pd-1",
-                "processDefinitionKey", "leaveApproval"
+                "processDefinitionKey", "leaveApproval",
+                "assetOrigin", "USER_FLOW"
         ));
     }
 
@@ -534,7 +537,8 @@ class ProcessModelServiceTest {
         verify(auditLogService, never()).record("PROCESS_MODEL_DEPLOY", "PROCESS_MODEL", "model-1", Map.of(
                 "deploymentId", "dep-1",
                 "processDefinitionId", "pd-1",
-                "processDefinitionKey", "leaveApproval"
+                "processDefinitionKey", "leaveApproval",
+                "assetOrigin", "USER_FLOW"
         ));
     }
 

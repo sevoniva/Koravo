@@ -665,6 +665,7 @@ export function listAuditLogs(params: {
   requestId?: string
   startTime?: string
   endTime?: string
+  includeNonProduction?: boolean
   page?: number
   pageSize?: number
 }) {

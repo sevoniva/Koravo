@@ -5,6 +5,7 @@ const baseUrl = stripTrailingSlash(process.env.KORAVO_BASE_URL ?? "http://localh
 const tenantId = process.env.KORAVO_TENANT_ID ?? "default";
 const password = process.env.KORAVO_PASSWORD ?? "Koravo@2026";
 const processKey = "collaborativeApproval";
+const verificationRequestId = `COLLAB-VERIFY-${Date.now()}`;
 const approverIds = (process.env.KORAVO_APPROVERS ?? "manager,finance")
   .split(",")
   .map((value) => value.trim())
@@ -28,7 +29,7 @@ async function main() {
 
   const workflow = await startableWorkflow(applicant);
   await assertSingleApproverRejected(applicant, workflow);
-  const businessKey = `COLLAB-VERIFY-${Date.now()}`;
+  const businessKey = verificationRequestId;
   const formData = {
     subject: "通用业务申请验收",
     businessDescription: "验证通用业务申请可以流转给多个审批人并完成会签。",
@@ -330,7 +331,7 @@ async function waitForAuditLogs(session, query, label) {
   for (let attempt = 1; attempt <= 20; attempt += 1) {
     const result = await api("/audit-logs", {
       token: session.token,
-      query: { page: 1, pageSize: 100, ...query },
+      query: { page: 1, pageSize: 100, includeNonProduction: true, ...query },
     });
     const items = result.items ?? [];
     if (items.length > 0) {
@@ -350,6 +351,7 @@ async function api(pathname, options = {}) {
   }
 
   const headers = { "X-Koravo-Tenant-Id": tenantId };
+  headers["X-Request-Id"] = options.requestId || verificationRequestId;
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`;
   }
@@ -383,6 +385,7 @@ async function apiFailure(pathname, options = {}) {
   }
 
   const headers = { "X-Koravo-Tenant-Id": tenantId };
+  headers["X-Request-Id"] = options.requestId || verificationRequestId;
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`;
   }

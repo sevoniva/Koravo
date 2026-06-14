@@ -67,4 +67,16 @@ class AuditLogQueryServiceTest {
 
         assertThat(service.relatedTaskIds("pi-1")).containsExactly("task-1", "task-2");
     }
+
+    @Test
+    void hiddenAuditPatternsCoverVerificationRunsAndNonProductionAssets() {
+        assertThat(service.hiddenAuditLikePatterns())
+                .contains(
+                        "COLLAB-VERIFY-%",
+                        "%COLLAB-VERIFY-%",
+                        "EA-%",
+                        "%\"assetOrigin\":\"TEST_FIXTURE\"%",
+                        "%\"assetOrigin\":\"LEGACY_DEMO\"%"
+                );
+    }
 }

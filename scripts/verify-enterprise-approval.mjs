@@ -14,6 +14,7 @@ const bpmnFile = process.env.KORAVO_BPMN_FILE
   : path.join(repoRoot, "examples/bpmn/enterprise-approval-30-node.bpmn20.xml");
 
 const processKey = "enterpriseApproval30";
+const verificationRequestId = `EA-RUNTIME-${Date.now()}`;
 const modelName = "企业级审批链路验收";
 const departmentNumbers = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
 
@@ -29,7 +30,7 @@ async function main() {
     ["operator", operator],
   ]);
   const definition = enterpriseDefinition();
-  const businessKey = `EA-RUNTIME-${Date.now()}`;
+  const businessKey = verificationRequestId;
   const instance = await startProcess(applicant, definition, businessKey);
 
   for (const [index, step] of definition.steps.entries()) {
@@ -254,6 +255,7 @@ async function api(pathname, options = {}) {
   }
 
   const headers = { "X-Koravo-Tenant-Id": tenantId };
+  headers["X-Request-Id"] = options.requestId || verificationRequestId;
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`;
   }
