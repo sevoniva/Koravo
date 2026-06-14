@@ -14,7 +14,6 @@ import {
   Button,
   Empty,
   Flex,
-  Progress,
   Space,
   Spin,
   Steps,
@@ -144,37 +143,31 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   diagramStatus: css`
     position: absolute;
-    right: 12px;
-    bottom: 12px;
     left: 12px;
+    top: 12px;
     z-index: 1;
     display: flex;
     align-items: center;
-    gap: 10px;
-    max-width: none;
+    gap: 6px;
+    max-width: min(460px, calc(100% - 128px));
     min-width: 0;
-    padding: 8px 10px;
+    padding: 6px 8px;
+    pointer-events: none;
     background: ${token.colorBgElevated};
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: ${token.borderRadiusSM}px;
     box-shadow: ${token.boxShadowTertiary};
 
-    @media (max-width: 640px) {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 6px;
+    .ant-badge-status-text {
+      display: inline-flex;
+      min-width: 0;
+      max-width: 320px;
+      margin-inline-start: 6px;
     }
-  `,
-  diagramStatusText: css`
-    min-width: 0;
-    flex: 1;
-  `,
-  diagramProgress: css`
-    flex: none;
-    width: 132px;
 
     @media (max-width: 640px) {
-      width: 100%;
+      right: 12px;
+      max-width: none;
     }
   `,
   generatedFlow: css`
@@ -212,7 +205,10 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
 }));
 
-function timelineIdsByStatus(timeline: ProcessTraceNode[] | undefined, statuses: string[]) {
+function timelineIdsByStatus(
+  timeline: ProcessTraceNode[] | undefined,
+  statuses: string[],
+) {
   const statusSet = new Set(statuses);
   return new Set(
     (timeline || [])
@@ -225,7 +221,10 @@ function timelineIdsByStatus(timeline: ProcessTraceNode[] | undefined, statuses:
 function hasBpmnDiagramLayout(bpmnXml: string) {
   if (typeof DOMParser === 'undefined') return true;
   try {
-    const document = new DOMParser().parseFromString(bpmnXml, 'application/xml');
+    const document = new DOMParser().parseFromString(
+      bpmnXml,
+      'application/xml',
+    );
     if (document.querySelector('parsererror')) return true;
     return Array.from(document.getElementsByTagName('*')).some(
       (element) => element.localName === 'BPMNShape',
@@ -237,7 +236,7 @@ function hasBpmnDiagramLayout(bpmnXml: string) {
 
 async function ensureBpmnDiagramLayout(bpmnXml: string) {
   if (hasBpmnDiagramLayout(bpmnXml)) return bpmnXml;
-  const module = await import('bpmn-auto-layout') as BpmnAutoLayoutModule;
+  const module = (await import('bpmn-auto-layout')) as BpmnAutoLayoutModule;
   return module.layoutProcess(bpmnXml);
 }
 
@@ -262,7 +261,9 @@ function addMarkerIfPresent(
 }
 
 function renderableDiagramElements(elementRegistry: ElementRegistry) {
-  return elementRegistry.getAll().filter((element) => element.id && !element.id.endsWith('_label'));
+  return elementRegistry
+    .getAll()
+    .filter((element) => element.id && !element.id.endsWith('_label'));
 }
 
 function currentDiagramElementId(
@@ -281,10 +282,12 @@ function currentDiagramElementId(
       node.activityType !== 'sequenceFlow' &&
       String(node.status || '').toUpperCase() === 'COMPLETED',
   );
-  const businessNodes = completed.filter((node) => node.activityType !== 'startEvent');
-  return [...(businessNodes.length ? businessNodes : completed)]
-    .sort((left, right) => activityTime(right) - activityTime(left))[0]
-    ?.activityId;
+  const businessNodes = completed.filter(
+    (node) => node.activityType !== 'startEvent',
+  );
+  return [...(businessNodes.length ? businessNodes : completed)].sort(
+    (left, right) => activityTime(right) - activityTime(left),
+  )[0]?.activityId;
 }
 
 function currentDiagramNode(
@@ -295,7 +298,11 @@ function currentDiagramNode(
   const node = (timeline || []).find((item) => item.activityId === currentId);
   return {
     id: currentId,
-    label: node ? nodeTitle(node) : currentId ? taskDefinitionLabel(currentId) : '-',
+    label: node
+      ? nodeTitle(node)
+      : currentId
+        ? taskDefinitionLabel(currentId)
+        : '-',
     status: node?.status,
   };
 }
@@ -308,7 +315,6 @@ function diagramStatusCounts(timeline: ProcessTraceNode[]) {
   return {
     completed,
     total: nodes.length,
-    percent: progressPercent(completed, nodes.length),
   };
 }
 
@@ -334,10 +340,7 @@ function readableZoom(elementCount: number) {
   return 1;
 }
 
-function fitDiagramViewport(
-  canvas: Canvas,
-  elementRegistry: ElementRegistry,
-) {
+function fitDiagramViewport(canvas: Canvas, elementRegistry: ElementRegistry) {
   const elements = renderableDiagramElements(elementRegistry);
   canvas.zoom('fit-viewport', 'auto');
   return elements;
@@ -370,7 +373,10 @@ function visibleFlowNodes(timeline: ProcessTraceNode[]) {
 function bpmnActivityOrder(bpmnXml?: string) {
   if (!bpmnXml || typeof DOMParser === 'undefined') return [];
   try {
-    const document = new DOMParser().parseFromString(bpmnXml, 'application/xml');
+    const document = new DOMParser().parseFromString(
+      bpmnXml,
+      'application/xml',
+    );
     if (document.querySelector('parsererror')) return [];
     const processElement = Array.from(document.getElementsByTagName('*')).find(
       (element) => element.localName === 'process',
@@ -423,13 +429,21 @@ function generatedFlowNodes(timeline: ProcessTraceNode[], bpmnXml?: string) {
   ];
 }
 
-function generatedStepStatus(node: ProcessTraceNode, currentActivityIds: string[]) {
+function generatedStepStatus(
+  node: ProcessTraceNode,
+  currentActivityIds: string[],
+) {
   const normalized = String(node.status || '').toUpperCase();
-  if (currentActivityIds.includes(node.activityId) || normalized === 'ACTIVE' || normalized === 'RUNNING') {
+  if (
+    currentActivityIds.includes(node.activityId) ||
+    normalized === 'ACTIVE' ||
+    normalized === 'RUNNING'
+  ) {
     return 'process' as const;
   }
   if (normalized === 'COMPLETED') return 'finish' as const;
-  if (normalized === 'FAILED' || normalized === 'TERMINATED') return 'error' as const;
+  if (normalized === 'FAILED' || normalized === 'TERMINATED')
+    return 'error' as const;
   return 'wait' as const;
 }
 
@@ -453,20 +467,10 @@ function diagramBadgeStatus(status?: string) {
   return 'default' as const;
 }
 
-function progressPercent(completed: number, total: number) {
-  if (!total) return 0;
-  return Math.round((completed / total) * 100);
-}
-
-function diagramProgressStatus(status?: string) {
-  const normalized = String(status || '').toUpperCase();
-  if (normalized === 'FAILED' || normalized === 'TERMINATED') return 'exception' as const;
-  if (normalized === 'COMPLETED') return 'success' as const;
-  if (normalized === 'ACTIVE' || normalized === 'RUNNING') return 'active' as const;
-  return 'normal' as const;
-}
-
-function currentNodeIndex(nodes: ProcessTraceNode[], currentActivityIds: string[]) {
+function currentNodeIndex(
+  nodes: ProcessTraceNode[],
+  currentActivityIds: string[],
+) {
   const currentIds = new Set(currentActivityIds.filter(Boolean));
   const current = nodes.findIndex((node) => currentIds.has(node.activityId));
   if (current >= 0) return current;
@@ -478,7 +482,9 @@ function currentNodeIndex(nodes: ProcessTraceNode[], currentActivityIds: string[
 
   const completed = nodes
     .map((node, index) => ({ node, index }))
-    .filter(({ node }) => String(node.status || '').toUpperCase() === 'COMPLETED')
+    .filter(
+      ({ node }) => String(node.status || '').toUpperCase() === 'COMPLETED',
+    )
     .at(-1)?.index;
   return completed ?? 0;
 }
@@ -486,7 +492,10 @@ function currentNodeIndex(nodes: ProcessTraceNode[], currentActivityIds: string[
 function nodeTitle(node: ProcessTraceNode) {
   if (node.activityType === 'startEvent') return '开始';
   if (node.activityType === 'endEvent') return '结束';
-  return taskDefinitionLabel(node.activityId, { name: node.activityName }) || node.activityId;
+  return (
+    taskDefinitionLabel(node.activityId, { name: node.activityName }) ||
+    node.activityId
+  );
 }
 
 function generatedCurrentText(nodes: ProcessTraceNode[], currentIndex: number) {
@@ -506,7 +515,7 @@ function generatedStepItems(
           {nodeTitle(node)}
         </Typography.Text>
       ),
-      description: (
+      content: (
         <Tag color={generatedStatusColor(status)}>
           {processStatusLabel(node.status)}
         </Tag>
@@ -528,26 +537,21 @@ const DiagramStatusOverlay: React.FC<{
 
   return (
     <div className={styles.diagramStatus}>
-      <Space className={styles.diagramStatusText} size={8} wrap>
-        <Badge status={diagramBadgeStatus(current.status)} text="当前位置" />
-        <Typography.Text
-          strong
-          ellipsis={{ tooltip: current.label }}
-          style={{ maxWidth: 220 }}
-        >
-          {current.label}
-        </Typography.Text>
-      </Space>
-      <Progress
-        className={styles.diagramProgress}
-        percent={counts.percent}
-        showInfo={false}
-        size={[132, 6]}
-        status={diagramProgressStatus(current.status)}
+      <Badge
+        status={diagramBadgeStatus(current.status)}
+        text={
+          <Typography.Text
+            strong
+            ellipsis={{ tooltip: current.label }}
+            style={{ maxWidth: 320 }}
+          >
+            {current.label}
+          </Typography.Text>
+        }
       />
-      <Typography.Text type="secondary">
+      <Tag variant="filled">
         {counts.completed}/{counts.total}
-      </Typography.Text>
+      </Tag>
     </div>
   );
 };
@@ -564,7 +568,6 @@ const GeneratedFlow: React.FC<{
   const completedCount = nodes.filter(
     (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
   ).length;
-  const percent = progressPercent(completedCount, nodes.length);
 
   if (!nodes.length) {
     return (
@@ -579,7 +582,11 @@ const GeneratedFlow: React.FC<{
       : 'process';
 
   return (
-    <div className={styles.shell} style={{ height }} data-testid="process-diagram-viewer">
+    <div
+      className={styles.shell}
+      style={{ height }}
+      data-testid="process-diagram-viewer"
+    >
       <div className={styles.generatedFlow}>
         <Flex
           className={styles.generatedHeader}
@@ -589,22 +596,14 @@ const GeneratedFlow: React.FC<{
           wrap
         >
           <Space size={8}>
-            <Badge status="processing" />
+            <Badge status={diagramBadgeStatus(nodes[currentIndex]?.status)} />
             <Typography.Text strong>
               {generatedCurrentText(nodes, currentIndex)}
             </Typography.Text>
           </Space>
-          <Space size={8}>
-            <Progress
-              percent={percent}
-              showInfo={false}
-              size={[132, 6]}
-              status={diagramProgressStatus(nodes[currentIndex]?.status)}
-            />
-            <Typography.Text type="secondary">
-              {completedCount}/{nodes.length}
-            </Typography.Text>
-          </Space>
+          <Tag variant="filled">
+            {completedCount}/{nodes.length}
+          </Tag>
         </Flex>
         <div className={styles.generatedSteps}>
           <Steps
@@ -652,7 +651,12 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
 
       clearMarkers(canvas, elementRegistry);
       completedIds.forEach((id) => {
-        addMarkerIfPresent(canvas, elementRegistry, id, 'koravo-node-completed');
+        addMarkerIfPresent(
+          canvas,
+          elementRegistry,
+          id,
+          'koravo-node-completed',
+        );
       });
       activeIds.forEach((id) => {
         addMarkerIfPresent(canvas, elementRegistry, id, 'koravo-node-active');
@@ -701,10 +705,13 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     );
   }, [currentActivityIds, diagramServices, timeline]);
 
-  React.useEffect(() => () => {
-    viewerRef.current?.destroy();
-    viewerRef.current = undefined;
-  }, []);
+  React.useEffect(
+    () => () => {
+      viewerRef.current?.destroy();
+      viewerRef.current = undefined;
+    },
+    [],
+  );
 
   React.useEffect(() => {
     let disposed = false;
@@ -723,11 +730,14 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
       setError(undefined);
       setDiagramReady(false);
       try {
-        const renderableBpmnXml = await ensureBpmnDiagramLayout(normalizedBpmnXml);
+        const renderableBpmnXml =
+          await ensureBpmnDiagramLayout(normalizedBpmnXml);
         if (disposed) return;
         await viewerRef.current.importXML(renderableBpmnXml);
         const canvas = viewerRef.current.get('canvas') as Canvas;
-        const elementRegistry = viewerRef.current.get('elementRegistry') as ElementRegistry;
+        const elementRegistry = viewerRef.current.get(
+          'elementRegistry',
+        ) as ElementRegistry;
         const elements = applyReadableViewport(canvas, elementRegistry);
         if (!elements.length) {
           throw new Error('流程图没有可显示节点');
@@ -787,7 +797,11 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   }
 
   return (
-    <div className={styles.shell} style={{ height }} data-testid="process-diagram-viewer">
+    <div
+      className={styles.shell}
+      style={{ height }}
+      data-testid="process-diagram-viewer"
+    >
       <div ref={mountRef} className={styles.mount} />
       <DiagramStatusOverlay
         currentActivityIds={currentActivityIds}
@@ -832,7 +846,12 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
       ) : null}
       {error && !timeline.length ? (
         <div className={styles.overlay}>
-          <Alert showIcon type="warning" title="流程图无法加载" description={error} />
+          <Alert
+            showIcon
+            type="warning"
+            title="流程图无法加载"
+            description={error}
+          />
         </div>
       ) : null}
     </div>
