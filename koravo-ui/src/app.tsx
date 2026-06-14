@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import React from 'react';
 import { ErrorBoundary, Footer, OfflineBanner } from '@/components';
+import Exception403 from '@/pages/exception/403';
 import type { OrganizationMemberItem } from '@/services/koravo/api';
 import { logout } from '@/services/koravo/api';
 import { setFeedbackApis } from '@/services/koravo/feedback';
@@ -171,6 +172,7 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
     },
     footerRender: () => <Footer />,
     ErrorBoundary,
+    unAccessible: <Exception403 />,
     menuHeaderRender: undefined,
     ...initialState?.settings,
   };
