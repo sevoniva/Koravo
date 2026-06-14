@@ -45,7 +45,7 @@ public class SystemHealthService {
                 UserContextHolder.getRole(),
                 dependencies,
                 new SystemHealthResponse.WorkflowEnablementInfo(true, "配置检查接口已启用"),
-                new SystemHealthResponse.UrlPolicyInfo(true, false, true, "允许 localhost；公网地址必须使用 HTTPS；拒绝内网地址")
+                new SystemHealthResponse.UrlPolicyInfo(true, false, true, "允许本地服务地址；公网地址必须使用 HTTPS；拒绝内网地址")
         );
     }
 

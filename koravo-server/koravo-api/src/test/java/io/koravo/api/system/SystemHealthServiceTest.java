@@ -31,5 +31,6 @@ class SystemHealthServiceTest {
                 .singleElement()
                 .extracting(SystemHealthResponse.SystemHealthItem::message)
                 .isEqualTo("对象存储健康探测暂未启用");
+        assertThat(response.urlPolicy().message()).isEqualTo("允许本地服务地址；公网地址必须使用 HTTPS；拒绝内网地址");
     }
 }
