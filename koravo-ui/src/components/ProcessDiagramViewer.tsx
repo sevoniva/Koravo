@@ -60,6 +60,7 @@ interface ProcessDiagramViewerProps {
   fitMode?: 'readable' | 'fit';
   timeline?: ProcessTraceNode[];
   height?: number;
+  viewMode?: 'bpmn' | 'steps';
 }
 
 const MARKERS = [
@@ -372,6 +373,10 @@ function visibleFlowNodes(timeline: ProcessTraceNode[]) {
 }
 
 function bpmnActivityOrder(bpmnXml?: string) {
+  return bpmnActivityNodes(bpmnXml).map((node) => node.activityId);
+}
+
+function bpmnActivityNodes(bpmnXml?: string): ProcessTraceNode[] {
   if (!bpmnXml || typeof DOMParser === 'undefined') return [];
   try {
     const document = new DOMParser().parseFromString(
@@ -384,7 +389,6 @@ function bpmnActivityOrder(bpmnXml?: string) {
     );
     if (!processElement) return [];
 
-    const orderedIds: string[] = [];
     const activityTypes = new Set([
       'startEvent',
       'endEvent',
@@ -395,12 +399,20 @@ function bpmnActivityOrder(bpmnXml?: string) {
       'inclusiveGateway',
       'subProcess',
     ]);
+    const nodes: ProcessTraceNode[] = [];
 
     function collect(scope: Element) {
       Array.from(scope.children).forEach((child) => {
         if (!activityTypes.has(child.localName)) return;
         const id = child.getAttribute('id');
-        if (id) orderedIds.push(id);
+        if (id) {
+          nodes.push({
+            activityId: id,
+            activityName: child.getAttribute('name') || undefined,
+            activityType: child.localName,
+            status: 'WAITING',
+          });
+        }
         if (child.localName === 'subProcess') {
           collect(child);
         }
@@ -408,7 +420,7 @@ function bpmnActivityOrder(bpmnXml?: string) {
     }
 
     collect(processElement);
-    return orderedIds;
+    return nodes;
   } catch {
     return [];
   }
@@ -416,12 +428,18 @@ function bpmnActivityOrder(bpmnXml?: string) {
 
 function generatedFlowNodes(timeline: ProcessTraceNode[], bpmnXml?: string) {
   const nodes = visibleFlowNodes(timeline);
-  const order = bpmnActivityOrder(bpmnXml);
+  const modelNodes = bpmnActivityNodes(bpmnXml);
+  const order = modelNodes.length
+    ? modelNodes.map((node) => node.activityId)
+    : bpmnActivityOrder(bpmnXml);
   if (!order.length) return nodes;
 
   const nodeById = new Map(nodes.map((node) => [node.activityId, node]));
+  const modelNodeById = new Map(
+    modelNodes.map((node) => [node.activityId, node]),
+  );
   const ordered = order
-    .map((activityId) => nodeById.get(activityId))
+    .map((activityId) => nodeById.get(activityId) || modelNodeById.get(activityId))
     .filter((node): node is ProcessTraceNode => Boolean(node));
   const orderedIds = new Set(ordered.map((node) => node.activityId));
   return [
@@ -456,6 +474,16 @@ function generatedStatusColor(status: ReturnType<typeof generatedStepStatus>) {
     wait: 'default',
   };
   return mapping[status];
+}
+
+function generatedStatusText(
+  status: ReturnType<typeof generatedStepStatus>,
+  rawStatus?: string,
+) {
+  if (status === 'finish') return '已完成';
+  if (status === 'process') return '当前';
+  if (status === 'error') return processStatusLabel(rawStatus) || '异常';
+  return '待到达';
 }
 
 function diagramBadgeStatus(status?: string) {
@@ -518,7 +546,7 @@ function generatedStepItems(
       ),
       content: (
         <Tag color={generatedStatusColor(status)}>
-          {processStatusLabel(node.status)}
+          {generatedStatusText(status, node.status)}
         </Tag>
       ),
       status,
@@ -566,9 +594,7 @@ const GeneratedFlow: React.FC<{
   const { styles } = useStyles();
   const nodes = generatedFlowNodes(timeline, bpmnXml);
   const currentIndex = currentNodeIndex(nodes, currentActivityIds);
-  const completedCount = nodes.filter(
-    (node) => String(node.status || '').toUpperCase() === 'COMPLETED',
-  ).length;
+  const currentPosition = Math.min(currentIndex + 1, nodes.length);
 
   if (!nodes.length) {
     return (
@@ -603,7 +629,7 @@ const GeneratedFlow: React.FC<{
             </Typography.Text>
           </Space>
           <Tag variant="filled">
-            {completedCount}/{nodes.length}
+            {currentPosition}/{nodes.length}
           </Tag>
         </Flex>
         <div className={styles.generatedSteps}>
@@ -627,6 +653,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   fitMode = 'readable',
   timeline = [],
   height = 360,
+  viewMode = 'bpmn',
 }) => {
   const { styles } = useStyles();
   const normalizedBpmnXml = React.useMemo(
@@ -719,6 +746,11 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     let disposed = false;
 
     async function importDiagram() {
+      if (viewMode === 'steps') {
+        setLoading(false);
+        setDiagramReady(false);
+        return;
+      }
       if (!hasXml || !normalizedBpmnXml) return;
       if (!viewerRef.current) {
         const module = await import('bpmn-js/lib/Viewer');
@@ -775,11 +807,23 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
     hasXml,
     normalizedBpmnXml,
     timeline,
+    viewMode,
   ]);
 
   React.useEffect(() => {
     applyMarkers();
   }, [applyMarkers]);
+
+  if (viewMode === 'steps') {
+    return (
+      <GeneratedFlow
+        bpmnXml={normalizedBpmnXml}
+        timeline={timeline}
+        currentActivityIds={currentActivityIds}
+        height={height}
+      />
+    );
+  }
 
   if (!hasXml) {
     if (timeline.length) {
