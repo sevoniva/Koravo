@@ -327,6 +327,8 @@ const Tasks: React.FC = () => {
   const canClaimTask =
     session.permissions?.canClaimTask ??
     (session.role === 'manager' || session.role === 'finance');
+  const canStartProcess =
+    session.permissions?.canStartProcess ?? session.role === 'applicant';
 
   const reloadTables = React.useCallback(() => {
     todoRef.current?.reload();
@@ -485,12 +487,14 @@ const Tasks: React.FC = () => {
                   emptyText: taskEmpty(
                     '暂无你的待办任务',
                     <Space wrap>
-                      <Button
-                        type="primary"
-                        onClick={() => history.push('/process-start')}
-                      >
-                        发起流程
-                      </Button>
+                      {canStartProcess ? (
+                        <Button
+                          type="primary"
+                          onClick={() => history.push('/process-start')}
+                        >
+                          发起流程
+                        </Button>
+                      ) : null}
                       <Button onClick={() => switchTab('started')}>
                         查看我的申请
                       </Button>
@@ -588,12 +592,14 @@ const Tasks: React.FC = () => {
                 locale={{
                   emptyText: taskEmpty(
                     '暂无申请记录',
-                    <Button
-                      type="primary"
-                      onClick={() => history.push('/process-start')}
-                    >
-                      发起流程
-                    </Button>,
+                    canStartProcess ? (
+                      <Button
+                        type="primary"
+                        onClick={() => history.push('/process-start')}
+                      >
+                        发起流程
+                      </Button>
+                    ) : null,
                   ),
                 }}
                 request={async (params) => {

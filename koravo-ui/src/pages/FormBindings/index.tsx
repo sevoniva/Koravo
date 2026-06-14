@@ -39,6 +39,7 @@ import {
   type ProcessModelItem,
   updateFormBinding,
 } from '@/services/koravo/api';
+import { getSessionContext } from '@/services/koravo/session';
 import {
   formSchemaKeyLabel,
   formSchemaNameLabel,
@@ -452,6 +453,9 @@ const FormBindings: React.FC = () => {
   const [viewMode, setViewMode] = useState<BindingViewMode>('current');
   const queryProcessModelId = useQueryProcessModelId();
   const queryFormSchemaId = useQueryFormSchemaId();
+  const session = getSessionContext();
+  const canStartProcess =
+    session.permissions?.canStartProcess ?? session.role === 'applicant';
 
   const showBindingSuccess = (
     binding: FormBindingItem | BindingForm,
@@ -573,20 +577,22 @@ const FormBindings: React.FC = () => {
         const canSyncVersion =
           bindingVersionState(record) === 'outdated' && Boolean(record.formSchema);
         return [
-          <Button
-            key="start"
-            type="link"
-            disabled={!canStartFromBinding(record)}
-            onClick={() =>
-              history.push(
-                record.processModelId
-                  ? `/process-start?processModelId=${record.processModelId}`
-                  : '/process-start',
-              )
-            }
-          >
-            发起流程
-          </Button>,
+          canStartProcess ? (
+            <Button
+              key="start"
+              type="link"
+              disabled={!canStartFromBinding(record)}
+              onClick={() =>
+                history.push(
+                  record.processModelId
+                    ? `/process-start?processModelId=${record.processModelId}`
+                    : '/process-start',
+                )
+              }
+            >
+              发起流程
+            </Button>
+          ) : null,
           canSyncVersion ? (
             <Popconfirm
               key="sync-version"
