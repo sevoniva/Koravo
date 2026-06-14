@@ -26,7 +26,6 @@ import {
   getProcessTrace,
   listAuditLogs,
   listFormSnapshots,
-  type ProcessTraceNode,
   suspendProcessInstance,
   type TaskItem,
   terminateProcessInstance,
@@ -45,6 +44,10 @@ import {
   taskNameLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
+import {
+  type ProcessTraceNodeRow,
+  withProcessTraceRowKeys,
+} from '@/utils/processTraceRows';
 
 function snapshotData(record: FormSnapshotItem) {
   return parseJsonSafe(record.dataJson, {}) as Record<string, unknown>;
@@ -207,7 +210,7 @@ function activityTypeLabel(activityType?: string) {
   return mapping[activityType || ''] || activityType || '-';
 }
 
-const traceColumns: ProColumns<ProcessTraceNode>[] = [
+const traceColumns: ProColumns<ProcessTraceNodeRow>[] = [
   {
     title: '节点',
     dataIndex: 'activityId',
@@ -334,9 +337,14 @@ const ProcessInstanceDetail: React.FC = () => {
   });
   const currentTasks = instance?.currentTasks || [];
   const timeline = trace?.timeline || [];
-  const visibleTimeline = timeline.filter(
-    (node) => node.activityType !== 'sequenceFlow',
-  );
+  const traceRows = React.useMemo(() => {
+    const visibleTimeline = timeline.filter(
+      (node) => node.activityType !== 'sequenceFlow',
+    );
+    return withProcessTraceRowKeys(
+      visibleTimeline.length ? visibleTimeline : timeline,
+    );
+  }, [timeline]);
   const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
   const openTaskAsAssignee = React.useCallback((task: TaskItem) => {
     history.push(`/tasks/${task.taskId}`);
@@ -638,12 +646,10 @@ const ProcessInstanceDetail: React.FC = () => {
           />
         </ProCard>
         <ProCard title="执行轨迹">
-          <ProTable<ProcessTraceNode>
-            rowKey={(record) =>
-              `${record.activityId}-${record.activityType}-${record.startTime || 'pending'}-${record.endTime || 'running'}-${record.status}`
-            }
+          <ProTable<ProcessTraceNodeRow>
+            rowKey="rowKey"
             columns={traceColumns}
-            dataSource={visibleTimeline.length ? visibleTimeline : timeline}
+            dataSource={traceRows}
             search={false}
             pagination={false}
             options={false}
