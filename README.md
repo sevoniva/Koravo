@@ -182,8 +182,8 @@ The packaged UI uses the local `koravo-ui/dist` output, listens on `KORAVO_UI_PO
 2. Start backend. Liquibase creates `ko_*` platform tables. Flowable initializes its own tables.
 3. Start frontend, open `http://localhost:8000`, and log in as `applicant` / `Koravo@2026`.
 4. Open `发起流程`, choose `协同审批流程`, confirm `发起人` and `所属部门` are filled from the current organization member, then submit a request with multiple approval users.
-5. Open `我的申请` or the process instance detail page to inspect the flow diagram, current node, parallel tasks, form snapshot, and timeline.
-6. Log in as `manager` and `finance` in turn, open `我的待办`, and complete each parallel approval task. The task detail page shows the current node, required action, prior records, next step, and business form snapshot.
+5. Open `我的申请` or the process instance detail page to inspect the flow diagram, current node, countersign tasks, form snapshot, and timeline.
+6. Log in as `manager` and `finance` in turn, open `我的待办`, and complete each countersign task. The task detail page shows the current node, required action, prior records, next step, and business form snapshot.
 7. Return to the instance detail page to confirm the flow is completed and both approval records are retained.
 8. Open `审计日志` to review model, start, task, form, datasource, connector, and ops events.
 9. Create, update, test, and inspect datasource test logs in `数据源管理`; pool settings are edited with structured fields.

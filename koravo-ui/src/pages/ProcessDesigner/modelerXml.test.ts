@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultBpmnXml, resolveDesignerXml } from './modelerXml';
 
 describe('ProcessDesigner BPMN XML helpers', () => {
-  it('creates an executable BPMN process with a parallel approval task', () => {
+  it('creates an executable BPMN process with a countersign task', () => {
     const xml = createDefaultBpmnXml('collaborativeApproval', '协同审批流程');
 
     expect(xml).toContain('id="collaborativeApproval"');

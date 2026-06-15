@@ -18,7 +18,7 @@ function task(partial: Partial<TaskItem>): TaskItem {
 }
 
 describe('ProcessContextSummary', () => {
-  it('summarizes parallel approval tasks with handlers', () => {
+  it('summarizes countersign tasks with handlers', () => {
     render(
       <ProcessContextSummary
         tasks={[

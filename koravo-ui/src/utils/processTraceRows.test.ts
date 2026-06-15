@@ -3,7 +3,7 @@ import type { ProcessTraceNode } from '@/services/koravo/api';
 import { withProcessTraceRowKeys } from './processTraceRows';
 
 describe('process trace rows', () => {
-  it('keeps parallel approval activity rows unique', () => {
+  it('keeps countersign activity rows unique', () => {
     const parallelNode: ProcessTraceNode = {
       activityId: 'jointApprovalTask',
       activityName: '多人会签',

@@ -80,7 +80,7 @@ const trace: ProcessTrace = {
 };
 
 describe('ProcessProgressCard', () => {
-  it('makes parallel approval ownership explicit', () => {
+  it('makes countersign ownership explicit', () => {
     render(
       <ProcessProgressCard
         trace={trace}

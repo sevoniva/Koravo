@@ -18,6 +18,7 @@ async function main() {
 
   const admin = await login("admin", "admin");
   await api("/workflow-enablement/init", { method: "POST", token: admin.token });
+  const organizationMembers = await assertCoreOrganizationMembers(admin);
 
   const applicant = await login("applicant", "applicant");
   const operator = await login("operator", "operator");
@@ -39,11 +40,11 @@ async function main() {
   };
   const instance = await startProcess(applicant, workflow, businessKey, formData);
   const startedTrace = await waitForTrace(applicant, instance.instanceId, "RUNNING");
-  assertEquals(startedTrace.currentTasks.length, approverIds.length, "parallel task count");
+  assertEquals(startedTrace.currentTasks.length, approverIds.length, "countersign task count");
   assertListEquals(
     startedTrace.currentTasks.map((task) => task.assignee).sort(),
     [...approverIds].sort(),
-    "parallel task assignees",
+    "countersign task assignees",
   );
   if (!startedTrace.currentActivityIds?.includes("jointApprovalTask")) {
     throw new Error(`current activity expected jointApprovalTask, got ${JSON.stringify(startedTrace.currentActivityIds)}`);
@@ -112,10 +113,12 @@ async function main() {
         instanceId: instance.instanceId,
         businessKey,
         status: completedTrace.status,
+        organizationMembers,
         applicant: completedTrace.variables.applicant,
         department: completedTrace.variables.department,
         position: completedTrace.variables.position,
         approvers: approverIds,
+        workflowMode: "countersign",
         formSnapshotCount: formSnapshots.length,
         completedTasks: completedTasks.map((task) => task.taskId),
         startAuditCount: startAuditLogs.length,
@@ -128,6 +131,52 @@ async function main() {
       2,
     ),
   );
+}
+
+async function assertCoreOrganizationMembers(session) {
+  const members = await api("/organization/members", { token: session.token });
+  const byUserId = new Map(members.map((member) => [member.userId, member]));
+  const expectedMembers = [
+    { userId: "admin", role: "admin" },
+    { userId: "applicant", role: "applicant" },
+    { userId: "manager", role: "manager" },
+    { userId: "finance", role: "finance" },
+    { userId: "operator", role: "operator" },
+  ];
+  const verified = [];
+
+  for (const expected of expectedMembers) {
+    const member = byUserId.get(expected.userId);
+    if (!member) {
+      throw new Error(`missing organization member ${expected.userId}`);
+    }
+    assertEquals(member.role, expected.role, `${expected.userId} role`);
+    assertEquals(member.status, "ACTIVE", `${expected.userId} status`);
+    if (member.passwordConfigured !== true) {
+      throw new Error(`${expected.userId} password must be configured`);
+    }
+    if (!member.name || !member.department) {
+      throw new Error(`${expected.userId} must have name and department`);
+    }
+    verified.push({
+      userId: member.userId,
+      role: member.role,
+      department: member.department,
+      status: member.status,
+    });
+  }
+
+  for (const userId of approverIds) {
+    const member = byUserId.get(userId);
+    if (!member) {
+      throw new Error(`missing configured approver ${userId}`);
+    }
+    if (member.status !== "ACTIVE") {
+      throw new Error(`approver ${userId} must be active`);
+    }
+  }
+
+  return verified;
 }
 
 function assertFormSnapshots(snapshots, formData, applicant, approverIds, completedTasks) {
@@ -287,7 +336,7 @@ async function waitForTask(session, instanceId, userId) {
     }
     await sleep(150);
   }
-  throw new Error(`Missing approval task for ${userId}`);
+  throw new Error(`Missing countersign task for ${userId}`);
 }
 
 async function completeTask(session, taskId, sequence) {
