@@ -89,6 +89,10 @@ import {
   completionAssigneeDisplayLabels,
   completionFieldReadOnly,
 } from './completionFieldState';
+import {
+  buildTaskCompletionOutcome,
+  type TaskCompletionOutcome,
+} from './completionOutcome';
 
 interface CompleteTaskForm {
   decision?: 'APPROVED' | 'REJECTED' | 'RETURNED';
@@ -192,22 +196,6 @@ const auditColumns: ProColumns<AuditLogItem>[] = [
     render: (_, record) => <CopyableText value={record.requestId} />,
   },
 ];
-
-function nextPendingTask(currentTask: TaskItem, tasks: TaskItem[]) {
-  return tasks.find(
-    (item) =>
-      item.taskId !== currentTask.taskId &&
-      item.assignee &&
-      item.assignee === currentTask.assignee &&
-      item.status !== 'COMPLETED',
-  );
-}
-
-function remainingPendingTasks(currentTask: TaskItem, tasks: TaskItem[]) {
-  return tasks.filter(
-    (item) => item.taskId !== currentTask.taskId && item.status !== 'COMPLETED',
-  );
-}
 
 function parallelTaskStatus(
   task: TaskItem,
@@ -850,6 +838,65 @@ const CompleteTaskFields: React.FC<{
   );
 };
 
+const TaskCompletionOutcomeContent: React.FC<{
+  outcome: TaskCompletionOutcome;
+  onContinue: () => void;
+  onViewInstance: () => void;
+  onBackToTasks: () => void;
+}> = ({ outcome, onContinue, onViewInstance, onBackToTasks }) => {
+  const hasRemainingTasks = outcome.remainingTaskSummaries.length > 0;
+  return (
+    <Flex vertical gap={12}>
+      <Alert
+        showIcon
+        type={outcome.nextTask || !hasRemainingTasks ? 'success' : 'info'}
+        title={outcome.title}
+        description={outcome.summary}
+      />
+      <ProDescriptions
+        size="small"
+        column={1}
+        dataSource={{
+          nextStep: outcome.nextStep,
+          remaining: hasRemainingTasks
+            ? `${outcome.remainingTaskSummaries.length} 个待办`
+            : '无',
+        }}
+        columns={[
+          { title: '下一步', dataIndex: 'nextStep' },
+          { title: '剩余待办', dataIndex: 'remaining' },
+        ]}
+      />
+      {hasRemainingTasks ? (
+        <Space size={[6, 6]} wrap>
+          {outcome.remainingTaskSummaries.map((item) => (
+            <Tag
+              key={item.taskId}
+              color={item.currentUserTask ? 'processing' : 'default'}
+            >
+              {item.nodeLabel} · {item.handlerLabel}
+            </Tag>
+          ))}
+        </Space>
+      ) : null}
+      <Flex gap={8} wrap>
+        {outcome.nextTask ? (
+          <Button type="primary" onClick={onContinue}>
+            继续处理{taskDefinitionLabel(outcome.nextTask.taskDefinitionKey)}
+          </Button>
+        ) : null}
+        <Button
+          type={outcome.nextTask ? 'default' : 'primary'}
+          onClick={onViewInstance}
+        >
+          查看实例进度
+        </Button>
+        <Button onClick={onBackToTasks}>返回我的待办</Button>
+      </Flex>
+    </Flex>
+  );
+};
+
 function taskActionTargetOptions() {
   return getOrganizationMembers()
     .filter((member) => member.status === '启用')
@@ -977,11 +1024,7 @@ const TaskDetail: React.FC = () => {
                 const updatedInstance = await getProcessInstance(
                   task.processInstanceId,
                 );
-                const remainingTasks = remainingPendingTasks(
-                  task,
-                  updatedInstance.currentTasks || [],
-                );
-                const nextTask = nextPendingTask(
+                const outcome = buildTaskCompletionOutcome(
                   task,
                   updatedInstance.currentTasks || [],
                 );
@@ -994,54 +1037,30 @@ const TaskDetail: React.FC = () => {
                 let taskCompleteModal: { destroy: () => void } | undefined;
                 taskCompleteModal = modal.success({
                   title: '任务已完成',
-                  width: 520,
+                  width: 560,
                   okText: '留在当前页',
                   content: (
-                    <Flex vertical gap={12}>
-                      <span>
-                        {nextTask
-                          ? `下一节点：${taskDefinitionLabel(nextTask.taskDefinitionKey)}`
-                          : remainingTasks.length
-                            ? `仍有 ${remainingTasks.length} 个并行任务待处理。`
-                            : '流程已无当前待办。'}
-                      </span>
-                      <Flex gap={8} wrap>
-                        {nextTask ? (
-                          <Button
-                            type="primary"
-                            onClick={() => {
-                              taskCompleteModal?.destroy();
-                              Modal.destroyAll();
-                              openTaskAsAssignee(nextTask);
-                            }}
-                          >
-                            继续处理
-                            {taskDefinitionLabel(nextTask.taskDefinitionKey)}
-                          </Button>
-                        ) : null}
-                        <Button
-                          type={nextTask ? 'default' : 'primary'}
-                          onClick={() => {
-                            taskCompleteModal?.destroy();
-                            Modal.destroyAll();
-                            history.push(
-                              `/process-instances/${task.processInstanceId}`,
-                            );
-                          }}
-                        >
-                          查看实例进度
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            taskCompleteModal?.destroy();
-                            Modal.destroyAll();
-                            history.push('/tasks');
-                          }}
-                        >
-                          返回我的待办
-                        </Button>
-                      </Flex>
-                    </Flex>
+                    <TaskCompletionOutcomeContent
+                      outcome={outcome}
+                      onContinue={() => {
+                        if (!outcome.nextTask) return;
+                        taskCompleteModal?.destroy();
+                        Modal.destroyAll();
+                        openTaskAsAssignee(outcome.nextTask);
+                      }}
+                      onViewInstance={() => {
+                        taskCompleteModal?.destroy();
+                        Modal.destroyAll();
+                        history.push(
+                          `/process-instances/${task.processInstanceId}`,
+                        );
+                      }}
+                      onBackToTasks={() => {
+                        taskCompleteModal?.destroy();
+                        Modal.destroyAll();
+                        history.push('/tasks');
+                      }}
+                    />
                   ),
                 });
                 return true;
