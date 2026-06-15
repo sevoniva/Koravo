@@ -37,12 +37,19 @@ import ProcessContextSummary from '@/components/ProcessContextSummary';
 import ProcessDiagramViewer from '@/components/ProcessDiagramViewer';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
+  type BpmnTaskDefinition,
+  type FormBindingItem,
   type FormSchemaItem,
+  getProcessModel,
   getProcessTrace,
   type JsonRecord,
+  listFormBindings,
+  listFormSchemas,
   listOpsInstances,
+  listProcessModelTaskDefinitions,
   listStartableWorkflows,
   type OpsProcessInstance,
+  type ProcessModelItem,
   type StartableWorkflowItem,
   startProcessInstance,
   type TaskItem,
@@ -99,9 +106,22 @@ interface ProcessPreviewTarget {
 
 interface StartEntryNotice {
   title: string;
+  description?: string;
   actionText?: string;
   actionPath?: string;
 }
+
+export interface StartWorkflowReadiness {
+  found: boolean;
+  status?: string;
+  hasRuntimeDefinition: boolean;
+  hasStartBinding: boolean;
+  missingTaskCount: number;
+  invalidBindingCount: number;
+  outdatedBindingCount: number;
+}
+
+const START_FORM_TASK_KEY = '__START__';
 
 const useStyles = createStyles(({ css, token }) => ({
   startGrid: css`
@@ -321,10 +341,137 @@ function formSchemaLabel(schema?: FormSchemaItem, version?: number) {
     .replace('）', '');
 }
 
+function bindingTargetsModel(
+  binding: FormBindingItem,
+  model: ProcessModelItem,
+) {
+  return (
+    binding.processModelId === model.id ||
+    Boolean(
+      model.flowableDefinitionId &&
+        binding.processDefinitionId === model.flowableDefinitionId,
+    )
+  );
+}
+
+export function buildStartWorkflowReadiness(
+  model: ProcessModelItem | undefined,
+  bindings: FormBindingItem[],
+  schemas: FormSchemaItem[],
+  tasks: BpmnTaskDefinition[],
+): StartWorkflowReadiness {
+  if (!model) {
+    return {
+      found: false,
+      hasRuntimeDefinition: false,
+      hasStartBinding: false,
+      missingTaskCount: 0,
+      invalidBindingCount: 0,
+      outdatedBindingCount: 0,
+    };
+  }
+
+  const schemaMap = new Map(schemas.map((schema) => [schema.id, schema]));
+  const taskKeys = new Set(tasks.map((task) => task.taskDefinitionKey));
+  const relevantBindings = bindings
+    .filter((binding) => bindingTargetsModel(binding, model))
+    .filter(
+      (binding) =>
+        binding.taskDefinitionKey === START_FORM_TASK_KEY ||
+        taskKeys.has(binding.taskDefinitionKey),
+    );
+  const hasActiveSchema = (binding: FormBindingItem) =>
+    schemaMap.get(binding.formSchemaId)?.status === 'ACTIVE';
+  const hasStartBinding = relevantBindings.some(
+    (binding) =>
+      binding.taskDefinitionKey === START_FORM_TASK_KEY &&
+      hasActiveSchema(binding),
+  );
+  const boundTaskKeys = new Set(
+    relevantBindings
+      .filter((binding) => binding.taskDefinitionKey !== START_FORM_TASK_KEY)
+      .filter(hasActiveSchema)
+      .map((binding) => binding.taskDefinitionKey),
+  );
+  const invalidBindingCount = relevantBindings.filter(
+    (binding) => !hasActiveSchema(binding),
+  ).length;
+  const outdatedBindingCount = relevantBindings.filter((binding) => {
+    const schema = schemaMap.get(binding.formSchemaId);
+    return (
+      schema?.status === 'ACTIVE' &&
+      binding.formSchemaVersion !== schema.version
+    );
+  }).length;
+
+  return {
+    found: true,
+    status: model.status,
+    hasRuntimeDefinition: Boolean(model.flowableDefinitionId),
+    hasStartBinding,
+    missingTaskCount: tasks.filter(
+      (task) => !boundTaskKeys.has(task.taskDefinitionKey),
+    ).length,
+    invalidBindingCount,
+    outdatedBindingCount,
+  };
+}
+
+function startEntryNoticeDescription(readiness?: StartWorkflowReadiness) {
+  if (!readiness) return '正在检查流程发布和表单绑定状态。';
+  if (!readiness.found) return '未找到流程模型。';
+  if (readiness.status === 'ARCHIVED') return '流程已归档。';
+  if (readiness.status === 'DISABLED') return '流程已停用。';
+  if (readiness.status !== 'DEPLOYED' || !readiness.hasRuntimeDefinition) {
+    return '流程尚未发布。';
+  }
+  if (readiness.invalidBindingCount > 0) {
+    return `有 ${readiness.invalidBindingCount} 个表单绑定失效。`;
+  }
+  if (!readiness.hasStartBinding) return '缺少发起表单。';
+  if (readiness.missingTaskCount > 0) {
+    return `还有 ${readiness.missingTaskCount} 个任务节点未绑定表单。`;
+  }
+  if (readiness.outdatedBindingCount > 0) {
+    return `有 ${readiness.outdatedBindingCount} 个表单版本待同步。`;
+  }
+  return '配置未就绪。';
+}
+
+function startEntryAction(
+  initialProcessModelId: string | undefined,
+  canConfigureWorkflow: boolean,
+  readiness?: StartWorkflowReadiness,
+) {
+  if (!canConfigureWorkflow) return undefined;
+  if (
+    initialProcessModelId &&
+    readiness?.found &&
+    readiness.status === 'DEPLOYED' &&
+    readiness.hasRuntimeDefinition &&
+    (readiness.invalidBindingCount > 0 ||
+      !readiness.hasStartBinding ||
+      readiness.missingTaskCount > 0 ||
+      readiness.outdatedBindingCount > 0)
+  ) {
+    return {
+      actionText: '修复绑定',
+      actionPath: `/form-bindings?processModelId=${initialProcessModelId}`,
+    };
+  }
+  return {
+    actionText: initialProcessModelId ? '查看模型' : '查看配置',
+    actionPath: initialProcessModelId
+      ? `/process-designer?modelId=${initialProcessModelId}`
+      : '/process-models',
+  };
+}
+
 export function resolveStartEntryNotice(
   initialProcessModelId: string | undefined,
   startableWorkflows: StartableWorkflowItem[],
   canConfigureWorkflow: boolean,
+  readiness?: StartWorkflowReadiness,
 ): StartEntryNotice | undefined {
   const requestedWorkflowFound = initialProcessModelId
     ? startableWorkflows.some(
@@ -334,10 +481,19 @@ export function resolveStartEntryNotice(
 
   if (startableWorkflows.length && requestedWorkflowFound) return undefined;
 
+  const action = startEntryAction(
+    initialProcessModelId,
+    canConfigureWorkflow,
+    readiness,
+  );
+
   return {
     title: initialProcessModelId ? '该流程暂不可发起' : '暂无可发起流程',
-    actionText: canConfigureWorkflow ? '查看配置' : undefined,
-    actionPath: canConfigureWorkflow ? '/process-models' : undefined,
+    description: initialProcessModelId
+      ? startEntryNoticeDescription(readiness)
+      : '先发布流程并完成表单绑定。',
+    actionText: action?.actionText,
+    actionPath: action?.actionPath,
   };
 }
 
@@ -722,13 +878,20 @@ const StartInstanceFields: React.FC<{
   initialProcessModelId?: string;
   startableWorkflows: StartableWorkflowItem[];
   canConfigureWorkflow?: boolean;
-}> = ({ initialProcessModelId, startableWorkflows, canConfigureWorkflow }) => {
+  startWorkflowReadiness?: StartWorkflowReadiness;
+}> = ({
+  initialProcessModelId,
+  startableWorkflows,
+  canConfigureWorkflow,
+  startWorkflowReadiness,
+}) => {
   const { styles } = useStyles();
   const form = Form.useFormInstance();
   const startEntryNotice = resolveStartEntryNotice(
     initialProcessModelId,
     startableWorkflows,
     Boolean(canConfigureWorkflow),
+    startWorkflowReadiness,
   );
 
   const setProcessContext = React.useCallback(
@@ -784,6 +947,7 @@ const StartInstanceFields: React.FC<{
           showIcon
           type="warning"
           title={startEntryNotice.title}
+          description={startEntryNotice.description}
           action={
             startEntryNotice.actionPath ? (
               <Button
@@ -907,6 +1071,26 @@ const ProcessInstances: React.FC = () => {
     queryFn: listStartableWorkflows,
     enabled: isStartEntry || Boolean(queryProcessModelId),
   });
+  const { data: startWorkflowReadiness } = useQuery({
+    queryKey: ['start-workflow-readiness', queryProcessModelId],
+    queryFn: async () => {
+      const model = queryProcessModelId
+        ? await getProcessModel(queryProcessModelId).catch(() => undefined)
+        : undefined;
+      if (!model) {
+        return buildStartWorkflowReadiness(undefined, [], [], []);
+      }
+      const [bindings, schemas, tasks] = await Promise.all([
+        listFormBindings(),
+        listFormSchemas(),
+        listProcessModelTaskDefinitions(model.id).catch(
+          () => [] as BpmnTaskDefinition[],
+        ),
+      ]);
+      return buildStartWorkflowReadiness(model, bindings, schemas, tasks);
+    },
+    enabled: Boolean(queryProcessModelId),
+  });
 
   const [previewTarget, setPreviewTarget] =
     React.useState<ProcessPreviewTarget>();
@@ -991,6 +1175,7 @@ const ProcessInstances: React.FC = () => {
               initialProcessModelId={queryProcessModelId}
               startableWorkflows={startableWorkflows}
               canConfigureWorkflow={canConfigureWorkflow}
+              startWorkflowReadiness={startWorkflowReadiness}
             />
           </ProForm>
         </ProCard>
