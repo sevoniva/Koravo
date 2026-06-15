@@ -124,6 +124,17 @@ function auditProcessModelId(log?: AuditLogItem) {
   return undefined;
 }
 
+export function auditConnectorRecordPath(log?: AuditLogItem) {
+  if (log?.resourceType !== 'CONNECTOR_EXECUTION') return undefined;
+  if (log.resourceId) {
+    return `/http-connector?connectorLogId=${encodeURIComponent(log.resourceId)}`;
+  }
+  if (log.requestId) {
+    return `/http-connector?requestId=${encodeURIComponent(log.requestId)}`;
+  }
+  return '/http-connector';
+}
+
 function auditResourceName(value: unknown) {
   if (typeof value !== 'string') return '';
   const text = processNameLabel(businessKeyLabel(value));
@@ -251,23 +262,13 @@ function auditRelatedButtons(
       </Button>,
     );
   }
-  if (
-    log?.resourceType === 'CONNECTOR_EXECUTION' &&
-    access.canManageIntegration
-  ) {
+  const connectorRecordPath = auditConnectorRecordPath(log);
+  if (connectorRecordPath && access.canManageIntegration) {
     actions.push(
       <Button
         key="connector"
         type="link"
-        onClick={() =>
-          history.push(
-            log.resourceId
-              ? `/ops?tab=connector-failures&connectorLogId=${encodeURIComponent(log.resourceId)}`
-              : log.requestId
-                ? `/http-connector?requestId=${encodeURIComponent(log.requestId)}`
-                : '/http-connector',
-          )
-        }
+        onClick={() => history.push(connectorRecordPath)}
       >
         查看连接器记录
       </Button>,

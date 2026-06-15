@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   actionOptions,
   auditCanOpenProcessContext,
+  auditConnectorRecordPath,
   auditProcessInstanceId,
   auditTaskId,
 } from './index';
@@ -106,5 +107,35 @@ describe('AuditLogs actionOptions', () => {
     ).toBe(false);
 
     expect(auditCanOpenProcessContext({ role: 'manager' })).toBe(true);
+  });
+
+  it('opens connector audit records in the integration log page', () => {
+    expect(
+      auditConnectorRecordPath({
+        id: 'audit-connector',
+        tenantId: 'default',
+        userId: 'system',
+        action: 'CONNECTOR_EXECUTE',
+        resourceType: 'CONNECTOR_EXECUTION',
+        resourceId: 'connector-log-1',
+        requestId: 'REQ-1',
+        detailJson: '{}',
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    ).toBe('/http-connector?connectorLogId=connector-log-1');
+
+    expect(
+      auditConnectorRecordPath({
+        id: 'audit-connector',
+        tenantId: 'default',
+        userId: 'system',
+        action: 'CONNECTOR_EXECUTE',
+        resourceType: 'CONNECTOR_EXECUTION',
+        resourceId: '',
+        requestId: 'REQ-1',
+        detailJson: '{}',
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    ).toBe('/http-connector?requestId=REQ-1');
   });
 });

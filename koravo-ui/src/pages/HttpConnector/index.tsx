@@ -24,6 +24,7 @@ import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import StructuredDetailTable from '@/components/StructuredDetailTable';
 import {
   type ConnectorExecutionLogItem,
+  getConnectorExecutionLog,
   getConnectorExecutionSummary,
   listConnectorExecutionLogs,
   retryConnectorExecutionLog,
@@ -33,19 +34,25 @@ import {
   connectorExecutionStatusTitle,
   connectorTraceDisplay,
 } from '@/utils/connectorExecution';
-import { connectionAddressLabel, connectorTypeLabel } from '@/utils/display';
+import {
+  connectionAddressLabel,
+  connectorTypeLabel,
+  shortTraceLabel,
+} from '@/utils/display';
 import { formatDateTime, formatDuration } from '@/utils/format';
+import { parseConnectorExecutionQuery } from './query';
 
 function openAuditByRequestId(requestId?: string) {
   if (!requestId) return;
   history.push(`/audit-logs?requestId=${encodeURIComponent(requestId)}`);
 }
 
-function useQueryRequestId() {
+function useConnectorExecutionQuery() {
   const location = useLocation();
-  return React.useMemo(() => {
-    return new URLSearchParams(location.search).get('requestId') || undefined;
-  }, [location.search]);
+  return React.useMemo(
+    () => parseConnectorExecutionQuery(location.search),
+    [location.search],
+  );
 }
 
 const DetailBlock: React.FC<{ title: string; value?: string | null }> = ({
@@ -62,7 +69,7 @@ const HttpConnector: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
   const [detail, setDetail] = useState<ConnectorExecutionLogItem>();
-  const queryRequestId = useQueryRequestId();
+  const connectorQuery = useConnectorExecutionQuery();
   const {
     data: summary,
     isLoading,
@@ -71,6 +78,28 @@ const HttpConnector: React.FC = () => {
     queryKey: ['connector-summary', 'http'],
     queryFn: () => getConnectorExecutionSummary('http'),
   });
+  const {
+    data: focusedConnectorLog,
+    isError: focusedConnectorLogError,
+  } = useQuery({
+    queryKey: ['connector-execution-log', connectorQuery.connectorLogId],
+    queryFn: () =>
+      getConnectorExecutionLog(connectorQuery.connectorLogId || ''),
+    enabled: Boolean(connectorQuery.connectorLogId),
+    retry: false,
+  });
+
+  React.useEffect(() => {
+    if (focusedConnectorLog) {
+      setDetail(focusedConnectorLog);
+    }
+  }, [focusedConnectorLog]);
+
+  React.useEffect(() => {
+    if (focusedConnectorLogError) {
+      message.warning('连接器记录不存在或已清理');
+    }
+  }, [focusedConnectorLogError, message]);
 
   const retryLog = async (record: ConnectorExecutionLogItem) => {
     await retryConnectorExecutionLog(record.id);
@@ -192,19 +221,43 @@ const HttpConnector: React.FC = () => {
         </ProCard>
       </ProCard>
 
+      {connectorQuery.requestId || connectorQuery.connectorLogId ? (
+        <Alert
+          showIcon
+          style={{ marginBottom: 16 }}
+          type="info"
+          title={
+            connectorQuery.connectorLogId
+              ? '已定位执行记录'
+              : '已筛选业务追踪号'
+          }
+          description={
+            connectorQuery.connectorLogId
+              ? `执行记录：${shortTraceLabel(connectorQuery.connectorLogId)}`
+              : `追踪号：${connectorTraceDisplay(connectorQuery.requestId)}`
+          }
+          action={
+            <Button size="small" onClick={() => history.push('/http-connector')}>
+              清除筛选
+            </Button>
+          }
+        />
+      ) : null}
+
       <ProTable<ConnectorExecutionLogItem>
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
         scroll={{ x: 1280 }}
         search={{ labelWidth: 'auto' }}
-        params={{ requestId: queryRequestId }}
+        params={{ requestId: connectorQuery.requestId }}
         request={async (params) => {
           const result = await listConnectorExecutionLogs({
             connectorType: params.connectorType as string | undefined,
             status: params.status as string | undefined,
             requestId:
-              (params.requestId as string | undefined) || queryRequestId,
+              (params.requestId as string | undefined) ||
+              connectorQuery.requestId,
             page: Number(params.current || 1),
             pageSize: Number(params.pageSize || 10),
           });
