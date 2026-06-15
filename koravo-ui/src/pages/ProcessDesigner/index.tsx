@@ -2,7 +2,6 @@ import {
   AimOutlined,
   BarsOutlined,
   CheckCircleOutlined,
-  CodeOutlined,
   DeploymentUnitOutlined,
   DownloadOutlined,
   FileAddOutlined,
@@ -30,7 +29,6 @@ import {
   Dropdown,
   Flex,
   FloatButton,
-  Input,
   type MenuProps,
   Segmented,
   Space,
@@ -149,12 +147,6 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   meta: css`
     margin-bottom: 16px;
-  `,
-  xmlPreview: css`
-    min-height: 560px;
-    font-family: ${token.fontFamilyCode};
-    font-size: ${token.fontSizeSM}px;
-    line-height: 1.6;
   `,
   modelList: css`
     .ant-pro-list-row {
@@ -288,7 +280,6 @@ function releaseCheckBadgeStatus(status: ReleaseCheckItem['status']) {
 function releaseCheckActionText(item: ReleaseCheckItem) {
   if (item.action === 'bind') return '去绑定';
   if (item.action === 'inspect') return '定位节点';
-  if (item.action === 'xml') return '查看文件';
   return undefined;
 }
 
@@ -387,7 +378,6 @@ const ProcessDesigner: React.FC = () => {
   const [selectedElement, setSelectedElement] = useState<BpmnSelectedElement>();
   const [modelDrawerOpen, setModelDrawerOpen] = useState(false);
   const [inspectorDrawerOpen, setInspectorDrawerOpen] = useState(false);
-  const [xmlDrawerOpen, setXmlDrawerOpen] = useState(false);
   const [modelForm, setModelForm] = useState<ModelFormValues>({
     modelName: '新流程模型',
   });
@@ -523,10 +513,6 @@ const ProcessDesigner: React.FC = () => {
       if (item.action === 'inspect') {
         if (item.elementId) modelerRef.current?.focusElement(item.elementId);
         setInspectorDrawerOpen(true);
-        return;
-      }
-      if (item.action === 'xml') {
-        setXmlDrawerOpen(true);
       }
     },
     [],
@@ -853,12 +839,10 @@ const ProcessDesigner: React.FC = () => {
       { key: 'new', icon: <FileAddOutlined />, label: '新建模型' },
       { type: 'divider' },
       { key: 'export', icon: <DownloadOutlined />, label: '导出流程文件' },
-      { key: 'xml', icon: <CodeOutlined />, label: '查看流程文件' },
     ],
     onClick: ({ key }) => {
       if (key === 'new') handleNewModel();
       if (key === 'export') void handleExport();
-      if (key === 'xml') setXmlDrawerOpen(true);
     },
   };
 
@@ -1085,24 +1069,6 @@ const ProcessDesigner: React.FC = () => {
         </section>
       </KoravoDrawer>
 
-      <KoravoDrawer
-        title="流程文件"
-        open={xmlDrawerOpen}
-        size={720}
-        resizable
-        extra={
-          <Button icon={<DownloadOutlined />} onClick={handleExport}>
-            导出
-          </Button>
-        }
-        onClose={() => setXmlDrawerOpen(false)}
-      >
-        <Input.TextArea
-          readOnly
-          value={designerXml}
-          className={styles.xmlPreview}
-        />
-      </KoravoDrawer>
     </PageContainer>
   );
 };

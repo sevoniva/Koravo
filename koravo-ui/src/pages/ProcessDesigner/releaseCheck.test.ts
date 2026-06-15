@@ -110,8 +110,39 @@ describe('ProcessDesigner release check', () => {
     expect(state.deployable).toBe(true);
     expect(state.status).toBe('warning');
     expect(state.items.map((item) => item.title)).toEqual(
-      expect.arrayContaining(['缺少结束节点', '变量表达式']),
+      expect.arrayContaining(['缺少结束节点', '办理人配置']),
     );
+    expect(state.items.map((item) => item.title)).not.toContain('变量表达式');
+    expect(
+      state.items.find((item) => item.key === 'handler-inputs')?.description,
+    ).toBe('补齐表单字段或节点办理人：审批人');
+  });
+
+  it('does not warn for countersign fields already provided by the start form', () => {
+    const approvalUserExpression = '$' + '{approvalUser}';
+    const approvalUsersExpression = '$' + '{approvalUsers}';
+    const bpmnXml = `<definitions><process><userTask id="jointApprovalTask" flowable:assignee="${approvalUserExpression}"><multiInstanceLoopCharacteristics flowable:collection="${approvalUsersExpression}" flowable:elementVariable="approvalUser" /></userTask></process></definitions>`;
+    const state = buildReleaseCheckState({
+      activeModel: model({ bpmnXml }),
+      validation: { valid: true, errors: [], warnings: [] },
+      bindings: [
+        binding({ taskDefinitionKey: START_FORM_TASK_KEY }),
+        binding({ taskDefinitionKey: 'jointApprovalTask' }),
+      ],
+      schemas: [
+        schema({
+          schemaJson:
+            '{"type":"object","properties":{"subject":{"type":"string"},"approvalUsers":{"type":"array"}}}',
+        }),
+      ],
+      tasks: [task],
+      bpmnXml,
+    });
+
+    expect(state.deployable).toBe(true);
+    expect(state.status).toBe('success');
+    expect(state.items.map((item) => item.title)).not.toContain('办理人配置');
+    expect(state.items.map((item) => item.title)).not.toContain('变量表达式');
   });
 
   it('parses user tasks from the current BPMN XML before saving', () => {

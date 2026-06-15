@@ -6,12 +6,16 @@ import type {
   FormSchemaItem,
   ProcessModelItem,
 } from '@/services/koravo/api';
-import { bpmnValidationIssueText, taskDefinitionLabel } from '@/utils/display';
+import {
+  bpmnValidationIssueText,
+  businessFieldLabel,
+  taskDefinitionLabel,
+} from '@/utils/display';
 
 export const START_FORM_TASK_KEY = '__START__';
 
 export type ReleaseCheckStatus = 'success' | 'warning' | 'error';
-export type ReleaseCheckAction = 'bind' | 'inspect' | 'xml';
+export type ReleaseCheckAction = 'bind' | 'inspect';
 
 export interface ReleaseCheckItem {
   key: string;
@@ -112,9 +116,62 @@ function validationIssueItem(
     status,
     title: bpmnValidationIssueText(issue),
     description: issueDescription(issue),
-    action: issue.elementId ? 'inspect' : 'xml',
+    action: issue.elementId ? 'inspect' : undefined,
     elementId: issue.elementId,
   };
+}
+
+function parseSchemaFields(schemaJson?: string) {
+  if (!schemaJson?.trim()) return new Set<string>();
+  try {
+    const parsed = JSON.parse(schemaJson) as { properties?: unknown };
+    const properties =
+      parsed.properties && typeof parsed.properties === 'object'
+        ? (parsed.properties as Record<string, unknown>)
+        : {};
+    return new Set(Object.keys(properties));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+const RUNTIME_VARIABLES = new Set([
+  'approvalUser',
+  'approvalUserId',
+  'approvalUserName',
+  'assignee',
+  'businessKey',
+  'requestId',
+  'startUserId',
+  'tenantId',
+]);
+
+function startFormFields(
+  bindings: FormBindingItem[],
+  schemaMap: Map<string, FormSchemaItem>,
+) {
+  return bindings.reduce<Set<string>>((fields, binding) => {
+    if (binding.taskDefinitionKey !== START_FORM_TASK_KEY) return fields;
+    parseSchemaFields(schemaMap.get(binding.formSchemaId)?.schemaJson).forEach(
+      (field) => {
+        fields.add(field);
+      },
+    );
+    return fields;
+  }, new Set<string>());
+}
+
+function missingBusinessVariables(
+  expressions: string[],
+  providedFields: Set<string>,
+) {
+  return expressions
+    .filter((expression) => !RUNTIME_VARIABLES.has(expression))
+    .filter((expression) => !providedFields.has(expression));
+}
+
+function businessVariableLabels(expressions: string[]) {
+  return expressions.map((expression) => businessFieldLabel(expression));
 }
 
 export function buildReleaseCheckState({
@@ -167,6 +224,10 @@ export function buildReleaseCheckState({
     );
   }).length;
   const variableExpressions = extractVariableExpressions(bpmnXml);
+  const missingVariables = missingBusinessVariables(
+    variableExpressions,
+    startFormFields(relevantBindings, schemaMap),
+  );
 
   const items: ReleaseCheckItem[] = [];
 
@@ -243,13 +304,16 @@ export function buildReleaseCheckState({
     });
   }
 
-  if (variableExpressions.length > 0) {
+  if (missingVariables.length > 0) {
     items.push({
-      key: 'variable-expressions',
+      key: 'handler-inputs',
       status: 'warning',
-      title: '变量表达式',
-      description: `确认表单会提供：${variableExpressions.join('、')}`,
-      action: 'xml',
+      title: '办理人配置',
+      description: `补齐表单字段或节点办理人：${businessVariableLabels(
+        missingVariables,
+      ).join('、')}`,
+      action: 'bind',
+      actionPath: bindingPath,
     });
   }
 

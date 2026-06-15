@@ -90,7 +90,7 @@ function warningAction(reason: string) {
   if (reason.includes('未识别')) return '检查扩展属性或改为标准 BPMN 内容';
   if (reason.includes('不存在')) return '补齐引用目标或删除失效引用';
   if (reason.includes('连线')) return '重新连接起点和终点';
-  return '查看流程文件或选中节点后修正';
+  return '导出备份后修正流程配置';
 }
 
 export function normalizeBpmnImportWarnings(
