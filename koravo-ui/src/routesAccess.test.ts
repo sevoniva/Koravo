@@ -67,6 +67,7 @@ describe('route access declarations', () => {
   it('keeps applicant menu focused on workflow workbench', () => {
     const accessByPath = routeAccessByPath(routes);
 
+    expect(routeByKey(routes, 'workbench')?.name).toBe('审批中心');
     expect(routeByKey(routes, 'workbench')?.access).toBe('canHandleTask');
     expect(routeByKey(routes, 'process-center')?.name).toBe('工作台');
     expect(routeByKey(routes, 'process-center')?.access).toBe(
@@ -86,5 +87,13 @@ describe('route access declarations', () => {
       'canStartProcess',
     );
     expect(routeByPath(routes, '/process-instances')?.hideInMenu).toBe(true);
+  });
+
+  it('keeps top-level menu names distinct for role-expanded sessions', () => {
+    const names = routes
+      .filter((route) => route.name && !route.hideInMenu && route.path !== '*')
+      .map((route) => route.name);
+
+    expect(new Set(names).size).toBe(names.length);
   });
 });

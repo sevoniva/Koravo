@@ -17,7 +17,7 @@ export default [
   },
   {
     key: 'workbench',
-    name: '工作台',
+    name: '审批中心',
     icon: 'checkCircle',
     access: 'canHandleTask',
     routes: [

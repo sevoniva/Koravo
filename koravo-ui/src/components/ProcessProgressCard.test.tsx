@@ -117,6 +117,14 @@ describe('ProcessProgressCard', () => {
     expect(screen.getByText('会签 2 人')).toBeInTheDocument();
     expect(screen.getByText('审批主管、复核专员')).toBeInTheDocument();
     expect(screen.getByText('会签中')).toBeInTheDocument();
+    const pendingHeader = screen
+      .getAllByText('当前待办')
+      .map((element) => element.closest('.ant-collapse-header'))
+      .find(Boolean);
+    expect(pendingHeader?.querySelector('.ant-badge-count')).toHaveAttribute(
+      'title',
+      '2',
+    );
     expect(
       screen.getByText('多人会签 · 审批主管、复核专员 · 会签 2 人'),
     ).toBeInTheDocument();

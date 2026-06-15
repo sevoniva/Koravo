@@ -595,7 +595,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
       label: (
         <Space size={8}>
           <Typography.Text strong>当前待办</Typography.Text>
-          <Badge count={taskGroups.length} showZero={false} />
+          <Badge count={pendingTasks.length} showZero={false} />
         </Space>
       ),
       children: (

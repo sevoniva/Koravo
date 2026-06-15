@@ -1,6 +1,6 @@
 export default {
   'menu.dashboard': '总览',
-  'menu.workbench': '工作台',
+  'menu.workbench': '审批中心',
   'menu.process-center': '工作台',
   'menu.process-modeling': '流程配置',
   'menu.process-start': '发起流程',
