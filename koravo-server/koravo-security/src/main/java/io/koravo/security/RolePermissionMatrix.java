@@ -36,7 +36,7 @@ public final class RolePermissionMatrix {
             "GET", List.of(
                     rule("/api/v1/health", ALL_BUSINESS_ROLES),
                     rule("/api/v1/system/health", SYSTEM_ROLES),
-                    rule("/api/v1/dashboard/summary", SYSTEM_ROLES),
+                    rule("/api/v1/dashboard/summary", ADMIN_ROLES),
                     rule("/api/v1/organization/directory", ALL_BUSINESS_ROLES),
                     rule("/api/v1/organization/members", ADMIN_ROLES),
                     rule("/api/v1/workflow-enablement/status", ADMIN_ROLES),
@@ -117,7 +117,7 @@ public final class RolePermissionMatrix {
         boolean isOperator = UserContextHolder.ROLE_OPERATOR.equals(role);
         Map<String, Boolean> capabilities = new LinkedHashMap<>();
         capabilities.put("canAdmin", isAdmin);
-        capabilities.put("canViewDashboard", isAdmin || isOperator);
+        capabilities.put("canViewDashboard", isAdmin);
         capabilities.put("canViewOwnWork", isWorkflowUser);
         capabilities.put("canViewProcessContext", isAdmin || isWorkflowUser || isOperator);
         capabilities.put("canStartProcess", UserContextHolder.ROLE_APPLICANT.equals(role));

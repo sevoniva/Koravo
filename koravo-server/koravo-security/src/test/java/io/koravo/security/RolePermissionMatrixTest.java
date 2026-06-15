@@ -32,7 +32,7 @@ class RolePermissionMatrixTest {
                 .containsEntry("canViewAudit", true)
                 .containsEntry("canOperateSystem", false);
         assertThat(operator)
-                .containsEntry("canViewDashboard", true)
+                .containsEntry("canViewDashboard", false)
                 .containsEntry("canViewProcessContext", true)
                 .containsEntry("canViewAudit", true)
                 .containsEntry("canOperateSystem", true)
@@ -84,6 +84,12 @@ class RolePermissionMatrixTest {
                 "manager",
                 UserContextHolder.ROLE_MANAGER
         )).isTrue();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "GET",
+                "/api/v1/dashboard/summary",
+                "operator",
+                UserContextHolder.ROLE_OPERATOR
+        )).isFalse();
         assertThat(RolePermissionMatrix.isAllowed(
                 "GET",
                 "/api/v1/audit-logs",

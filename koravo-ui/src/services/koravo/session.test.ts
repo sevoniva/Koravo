@@ -93,6 +93,42 @@ describe('session context', () => {
     });
   });
 
+  it('persists refreshed server permissions over stale stored permissions', () => {
+    setAuthSession({
+      tenantId: 'default',
+      userId: 'operator',
+      role: 'operator',
+      token: 'session-token',
+      expiresAt: '2099-01-01T00:00:00Z',
+      permissions: {
+        canViewDashboard: true,
+        canOperateSystem: true,
+      },
+    });
+
+    setRuntimeSessionContext({
+      permissions: {
+        canViewDashboard: false,
+        canOperateSystem: true,
+      },
+    });
+
+    expect(getSessionContext()).toMatchObject({
+      userId: 'operator',
+      permissions: {
+        canViewDashboard: false,
+        canOperateSystem: true,
+      },
+    });
+    expect(
+      JSON.parse(window.localStorage.getItem('koravo.auth') || '{}')
+        .permissions,
+    ).toMatchObject({
+      canViewDashboard: false,
+      canOperateSystem: true,
+    });
+  });
+
   it('clears expired login sessions before sending credentials', () => {
     window.localStorage.setItem(
       'koravo.auth',

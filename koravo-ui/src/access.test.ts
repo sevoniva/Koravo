@@ -50,7 +50,7 @@ describe('access rules', () => {
   it('keeps operators focused on monitoring and audit', () => {
     const rules = access({ currentUser: { access: 'operator' } });
 
-    expect(rules.canViewDashboard).toBe(true);
+    expect(rules.canViewDashboard).toBe(false);
     expect(rules.canViewOwnWork).toBe(false);
     expect(rules.canViewProcessContext).toBe(true);
     expect(rules.canStartProcess).toBe(false);

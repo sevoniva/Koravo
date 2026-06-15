@@ -122,6 +122,7 @@ export function setRuntimeSessionContext(value: Partial<SessionContext>) {
     expiresAt: value.expiresAt ?? runtimeSession.expiresAt,
     permissions: value.permissions ?? runtimeSession.permissions,
   };
+  persistRuntimeAuthSession();
 }
 
 function clearLegacySessionOverride() {
@@ -174,7 +175,11 @@ export function hasAuthSession() {
 
 export function setAuthSession(value: Partial<SessionContext> & { token: string }) {
   setRuntimeSessionContext(value);
+}
+
+function persistRuntimeAuthSession() {
   if (!canUseStorage()) return;
+  if (!runtimeSession.token) return;
   try {
     window.localStorage.setItem(
       AUTH_SESSION_STORAGE_KEY,

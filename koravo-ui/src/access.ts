@@ -28,7 +28,7 @@ export function permissionsForRole(
   const isOperator = role === 'operator';
   return {
     canAdmin: isAdmin,
-    canViewDashboard: isAdmin || isOperator,
+    canViewDashboard: isAdmin,
     canViewOwnWork: isWorkflowUser,
     canViewProcessContext: isAdmin || isWorkflowUser || isOperator,
     canStartProcess: role === 'applicant',
