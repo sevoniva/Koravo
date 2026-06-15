@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  businessFieldTooltip,
   conditionFieldOptions,
   conditionValueOptions,
-  fieldEditorSummaryTags,
-  fieldEditorPanelOpenKeys,
   fieldChangeCount,
   fieldChangeSummary,
+  fieldEditorPanelOpenKeys,
+  fieldEditorSummaryTags,
   formBlockingReadinessIssues,
   formReadinessIssues,
 } from './index';
@@ -275,13 +276,13 @@ describe('formReadinessIssues', () => {
     expect(summary.removed.map((field) => field.fieldKey)).toEqual([
       'internalCode',
     ]);
-    expect(summary.changed.map((field) => field.fieldKey)).toEqual([
-      'subject',
-    ]);
+    expect(summary.changed.map((field) => field.fieldKey)).toEqual(['subject']);
     expect(fieldChangeCount(summary)).toBe(3);
   });
 
   it('summarizes editable field panels without exposing raw config names', () => {
+    expect(businessFieldTooltip).not.toContain('流程变量');
+    expect(businessFieldTooltip).toContain('业务字段');
     expect(
       fieldEditorSummaryTags({
         fieldKey: 'approvalUsers',

@@ -900,9 +900,10 @@ const ProcessDesigner: React.FC = () => {
                             />
                             <ProFormText
                               name="connectorOutputVariable"
-                              label="结果变量"
+                              label="结果字段"
+                              tooltip="接口返回结果保存到该字段，后续节点可继续使用。"
                               rules={[
-                                { required: true, message: '请输入结果变量' },
+                                { required: true, message: '请输入结果字段' },
                               ]}
                             />
                           </>
@@ -920,7 +921,7 @@ const ProcessDesigner: React.FC = () => {
                     <ProFormText name="delegateExpression" label="执行代理" />
                     <ProFormText name="serviceClass" label="服务处理类" />
                     <ProFormText name="expression" label="执行条件" />
-                    <ProFormText name="resultVariable" label="结果变量" />
+                    <ProFormText name="resultVariable" label="结果字段" />
                   </>
                 ),
               },

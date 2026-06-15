@@ -227,7 +227,7 @@ export function organizationMemberName(userId?: string | null) {
   if (userId === 'anonymous') return '平台身份未同步';
   const member = organizationMemberByUserId(userId);
   if (member) return member.name;
-  if (/^\$\{.+\}$/.test(userId)) return '按流程变量分配';
+  if (/^\$\{.+\}$/.test(userId)) return '按表单字段分配';
   return '待同步成员';
 }
 

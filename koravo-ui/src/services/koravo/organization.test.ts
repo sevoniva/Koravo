@@ -40,7 +40,7 @@ describe('organization display helpers', () => {
   });
 
   it('keeps unresolved assignee expressions readable', () => {
-    expect(organizationMemberName('${managerApprover}')).toBe('按流程变量分配');
+    expect(organizationMemberName('${managerApprover}')).toBe('按表单字段分配');
   });
 
   it('fills applicant, department, and position from the current organization member', () => {

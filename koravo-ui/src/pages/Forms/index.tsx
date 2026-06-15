@@ -507,6 +507,8 @@ const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
 };
 
 const systemFieldTooltip = '由组织成员档案自动带出。';
+export const businessFieldTooltip =
+  '保存为业务字段，发起、办理和流程绑定都会按该标识读取。';
 
 const parseJsonObject = (value?: string) => {
   if (!value) return {};
@@ -1757,14 +1759,13 @@ const FieldConditionEditor: React.FC<{
   );
 };
 
-function fieldEditorPanelTitle(
-  field: Partial<FormFieldConfig>,
-  index: number,
-) {
-  return fieldDisplayName({
-    fieldKey: field.fieldKey || '',
-    title: field.title || '',
-  }) || `字段 ${index + 1}`;
+function fieldEditorPanelTitle(field: Partial<FormFieldConfig>, index: number) {
+  return (
+    fieldDisplayName({
+      fieldKey: field.fieldKey || '',
+      title: field.title || '',
+    }) || `字段 ${index + 1}`
+  );
 }
 
 export function fieldEditorSummaryTags(field: Partial<FormFieldConfig>) {
@@ -1862,9 +1863,7 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                   label="业务字段"
                   disabled={isSystemField}
                   tooltip={
-                    isSystemField
-                      ? systemFieldTooltip
-                      : '流程变量名，保存后用于绑定。'
+                    isSystemField ? systemFieldTooltip : businessFieldTooltip
                   }
                   rules={[
                     { required: true, message: '请输入业务字段' },
@@ -2230,7 +2229,7 @@ const Forms: React.FC = () => {
     {
       title: '表单',
       dataIndex: 'formName',
-      width: 320,
+      width: 380,
       render: (_, record) => {
         const formName = formSchemaNameLabel(record.formName);
         return (
@@ -2466,7 +2465,9 @@ const Forms: React.FC = () => {
         return (
           <FieldChangeDigest
             summary={summary}
-            emptyText={record.version === preview?.version ? '当前版本' : '无差异'}
+            emptyText={
+              record.version === preview?.version ? '当前版本' : '无差异'
+            }
           />
         );
       },
@@ -2525,7 +2526,7 @@ const Forms: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        scroll={{ x: 1280 }}
+        scroll={{ x: 1500 }}
         request={async (params) => {
           const [data, bindings] = await Promise.all([
             listFormSchemas(),
