@@ -20,12 +20,14 @@ class ProcessTraceDTOTest {
                 Map.of("applicant", "u001"),
                 List.of("approveTask"),
                 List.of(new TaskDTO("task-1", "Approve", "pi-1", "pd-1", "biz-1", null, "admin", "approveTask", "RUNNING")),
-                List.of(new ProcessTraceNodeDTO("start", "Start", "startEvent", Instant.EPOCH, Instant.EPOCH, "COMPLETED"))
+                List.of(new ProcessTraceNodeDTO("approveTask", "Approve", "userTask", "task-1", "admin", Instant.EPOCH, Instant.EPOCH, "COMPLETED"))
         );
 
         assertThat(trace.bpmnXml()).contains("definitions");
         assertThat(trace.variables()).containsEntry("applicant", "u001");
         assertThat(trace.currentActivityIds()).containsExactly("approveTask");
         assertThat(trace.timeline().getFirst().status()).isEqualTo("COMPLETED");
+        assertThat(trace.timeline().getFirst().assignee()).isEqualTo("admin");
+        assertThat(trace.timeline().getFirst().taskId()).isEqualTo("task-1");
     }
 }

@@ -131,6 +131,8 @@ export interface ProcessTraceNode {
   activityId: string
   activityName?: string
   activityType: string
+  taskId?: string
+  assignee?: string
   startTime?: string
   endTime?: string
   status: string

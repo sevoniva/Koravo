@@ -171,6 +171,34 @@ describe('ProcessProgressCard', () => {
     expect(screen.getByText('会签 2 人')).toBeInTheDocument();
   });
 
+  it('shows the last completed handler in the progress summary', () => {
+    render(
+      <ProcessProgressCard
+        trace={{
+          ...trace,
+          timeline: [
+            trace.timeline[0],
+            {
+              activityId: 'submitTask',
+              activityName: '提交申请',
+              activityType: 'userTask',
+              taskId: 'task-submit',
+              assignee: 'applicant',
+              startTime: '2026-06-13T09:01:00Z',
+              endTime: '2026-06-13T09:02:00Z',
+              status: 'COMPLETED',
+            },
+            trace.timeline[1],
+          ],
+        }}
+        currentTasks={[task({ taskId: 'task-manager', assignee: 'manager' })]}
+      />,
+    );
+
+    expect(screen.getByText('最近流转')).toBeInTheDocument();
+    expect(screen.getByText('业务申请专员完成提交申请')).toBeInTheDocument();
+  });
+
   it('shows the end state instead of an empty current node after completion', () => {
     render(
       <ProcessProgressCard

@@ -703,6 +703,8 @@ public class FlowableProcessFacade implements ProcessFacade {
                 activity.getActivityId(),
                 activity.getActivityName(),
                 activity.getActivityType(),
+                activity.getTaskId(),
+                activity.getAssignee(),
                 toInstant(activity.getStartTime()),
                 toInstant(activity.getEndTime()),
                 activity.getEndTime() == null ? "ACTIVE" : "COMPLETED"

@@ -19,7 +19,7 @@ Trace includes:
 - current activity IDs
 - current tasks
 - process variables
-- historic activity timeline
+- historic activity timeline with task ID and assignee when the engine provides them
 - recent process instance audit logs from the application instance-detail API
 
 ## Console
@@ -42,7 +42,7 @@ Ops also renders trace BPMN XML with `bpmn-js`:
 
 - completed activities are highlighted
 - current activities are highlighted
-- timeline remains available as a table
+- timeline shows node status, time, and handler when available
 - form snapshots and audit details are rendered as structured business tables
 
 ## Instance Actions

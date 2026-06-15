@@ -44,7 +44,7 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   statusStrip: css`
     display: grid;
-    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    grid-template-columns: repeat(5, minmax(132px, 1fr));
     gap: 10px 12px;
     padding: 10px 12px;
     background: ${token.colorFillQuaternary};
@@ -440,9 +440,37 @@ function buildTimelineItems(timeline: ProcessTraceNode[]) {
           {formatDateTime(node.startTime)}
           {node.endTime ? ` - ${formatDateTime(node.endTime)}` : ''}
         </Typography.Text>
+        {node.assignee ? (
+          <Typography.Text type="secondary">
+            处理人：{organizationMemberName(node.assignee)}
+          </Typography.Text>
+        ) : null}
       </Flex>
     ),
   }));
+}
+
+function isCompletedTraceNode(node: ProcessTraceNode) {
+  return String(node.status || '').toUpperCase() === 'COMPLETED';
+}
+
+function isActionTraceNode(node: ProcessTraceNode) {
+  return ['userTask', 'serviceTask', 'subProcess', 'callActivity'].includes(
+    node.activityType,
+  );
+}
+
+function recentActionText(timeline: ProcessTraceNode[]) {
+  const node = visibleTimelineNodes(timeline)
+    .filter((item) => item.endTime && isCompletedTraceNode(item))
+    .reverse()
+    .find(isActionTraceNode);
+  if (!node) return '-';
+  const label = nodeLabel(node);
+  if (node.assignee) {
+    return `${organizationMemberName(node.assignee)}完成${label}`;
+  }
+  return `${label}已完成`;
 }
 
 function nextStepText(
@@ -664,6 +692,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             value={handlerMetric}
           />
           <Metric label="下一步" value={nextStep} />
+          <Metric label="最近流转" value={recentActionText(timeline)} />
         </div>
         <div className={styles.progressLine}>
           <Progress
