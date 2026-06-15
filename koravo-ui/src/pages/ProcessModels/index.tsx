@@ -101,6 +101,7 @@ export interface ModelReadiness {
   boundTaskCount: number;
   missingTaskKeys: string[];
   variableExpressions: string[];
+  missingHandlerVariables: string[];
   invalidBindingCount: number;
   outdatedBindingCount: number;
   bindingReady: boolean;
@@ -294,6 +295,55 @@ function extractVariableExpressions(bpmnXml?: string) {
     .slice(0, 8);
 }
 
+function parseSchemaFields(schemaJson?: string) {
+  if (!schemaJson?.trim()) return new Set<string>();
+  try {
+    const parsed = JSON.parse(schemaJson) as { properties?: unknown };
+    const properties =
+      parsed.properties && typeof parsed.properties === 'object'
+        ? (parsed.properties as Record<string, unknown>)
+        : {};
+    return new Set(Object.keys(properties));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+const runtimeVariableNames = new Set([
+  'approvalUser',
+  'approvalUserId',
+  'approvalUserName',
+  'assignee',
+  'businessKey',
+  'requestId',
+  'startUserId',
+  'tenantId',
+]);
+
+function startFormFields(
+  bindings: FormBindingItem[],
+  schemaMap: Map<string, FormSchemaItem>,
+) {
+  return bindings.reduce<Set<string>>((fields, binding) => {
+    if (binding.taskDefinitionKey !== START_FORM_TASK_KEY) return fields;
+    parseSchemaFields(schemaMap.get(binding.formSchemaId)?.schemaJson).forEach(
+      (field) => {
+        fields.add(field);
+      },
+    );
+    return fields;
+  }, new Set<string>());
+}
+
+function missingHandlerVariables(
+  expressions: string[],
+  providedFields: Set<string>,
+) {
+  return expressions
+    .filter((expression) => !runtimeVariableNames.has(expression))
+    .filter((expression) => !providedFields.has(expression));
+}
+
 export function handlerSourceSummary(expressions: string[]) {
   if (!expressions.length) return '办理人来源已明确';
   const labels = Array.from(
@@ -308,6 +358,7 @@ export function resolveModelNextAction(
   missingTaskKeys: string[],
   invalidBindingCount: number,
   outdatedBindingCount: number,
+  missingHandlerVariableCount: number,
   deployReady: boolean,
   canStart: boolean,
 ): Pick<
@@ -331,6 +382,13 @@ export function resolveModelNextAction(
   const published =
     record.status === 'DEPLOYED' && Boolean(record.flowableDefinitionId);
   if (!published) {
+    if (missingHandlerVariableCount > 0) {
+      return {
+        nextAction: 'design',
+        nextActionText: '补办理人来源',
+        nextActionDescription: '确认表单字段',
+      };
+    }
     return deployReady
       ? {
           nextAction: 'deploy',
@@ -369,6 +427,13 @@ export function resolveModelNextAction(
       nextAction: 'bind',
       nextActionText: '同步表单版本',
       nextActionDescription: `待同步 ${outdatedBindingCount} 个`,
+    };
+  }
+  if (missingHandlerVariableCount > 0) {
+    return {
+      nextAction: 'design',
+      nextActionText: '补办理人来源',
+      nextActionDescription: '确认表单字段',
     };
   }
   if (canStart) {
@@ -429,11 +494,17 @@ export function buildModelReadiness(
     )
     .map((task) => taskDefinitionLabel(task.taskDefinitionKey, task));
   const boundTaskCount = tasks.length - missingTaskKeys.length;
+  const variableExpressions = extractVariableExpressions(record.bpmnXml);
+  const missingVariables = missingHandlerVariables(
+    variableExpressions,
+    startFormFields(relevantBindings, schemaMap),
+  );
   const bindingReady =
     hasStartBinding &&
     missingTaskKeys.length === 0 &&
     invalidBindingCount === 0 &&
-    outdatedBindingCount === 0;
+    outdatedBindingCount === 0 &&
+    missingVariables.length === 0;
   const deployReady = Boolean(record.bpmnXml);
   const canStart =
     record.status === 'DEPLOYED' &&
@@ -447,6 +518,7 @@ export function buildModelReadiness(
     missingTaskKeys,
     invalidBindingCount,
     outdatedBindingCount,
+    missingVariables.length,
     deployReady,
     canStart,
   );
@@ -477,6 +549,9 @@ export function buildModelReadiness(
   } else if (missingTaskKeys.length > 0) {
     statusText = '待配置';
     description = `缺 ${missingTaskKeys.length} 个任务表单`;
+  } else if (missingVariables.length > 0) {
+    statusText = '待配置';
+    description = '缺少办理人来源';
   }
 
   return {
@@ -484,7 +559,8 @@ export function buildModelReadiness(
     taskCount: tasks.length,
     boundTaskCount,
     missingTaskKeys,
-    variableExpressions: extractVariableExpressions(record.bpmnXml),
+    variableExpressions,
+    missingHandlerVariables: missingVariables,
     invalidBindingCount,
     outdatedBindingCount,
     bindingReady,
@@ -714,7 +790,10 @@ const ProcessModels: React.FC = () => {
     const assigneeErrors = validation.errors.filter(
       (issue) => issue.code === assigneeRequiredCode,
     );
-    const releaseReady = validation.valid && record.readiness.deployReady;
+    const releaseReady =
+      validation.valid &&
+      record.readiness.deployReady &&
+      record.readiness.missingHandlerVariables.length === 0;
     const published =
       record.status === 'DEPLOYED' && Boolean(record.flowableDefinitionId);
     const content = (
@@ -794,8 +873,12 @@ const ProcessModels: React.FC = () => {
         )}
         {renderCheckItem(
           '办理人来源',
-          record.readiness.variableExpressions.length ? 'warning' : 'success',
-          handlerSourceSummary(record.readiness.variableExpressions),
+          record.readiness.missingHandlerVariables.length ? 'error' : 'success',
+          record.readiness.missingHandlerVariables.length
+            ? `缺少办理人来源：${handlerSourceSummary(
+                record.readiness.missingHandlerVariables,
+              ).replace('请确认发起表单或节点配置会提供：', '')}`
+            : '办理人来源已明确',
         )}
         {validation.warnings.length > 0 && (
           <Typography.Text type="secondary">
@@ -822,7 +905,11 @@ const ProcessModels: React.FC = () => {
 
   const deployDraft = async (record: ProcessModelTableItem) => {
     const validation = await validateProcessModel(record.id);
-    if (!validation.valid || !record.readiness.deployReady) {
+    if (
+      !validation.valid ||
+      !record.readiness.deployReady ||
+      record.readiness.missingHandlerVariables.length > 0
+    ) {
       showReleaseCheck(record, validation);
       return;
     }

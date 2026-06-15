@@ -120,6 +120,60 @@ describe('ProcessModels readiness', () => {
     expect(readiness.nextAction).toBe('start');
   });
 
+  it('blocks publish when handler variables are missing from the start form', () => {
+    const approverExpression = '$' + '{approvalUsers}';
+    const readiness = buildModelReadiness(
+      model({
+        bpmnXml: `<definitions><process><userTask id="jointApprovalTask" flowable:assignee="${approverExpression}" /></process></definitions>`,
+      }),
+      [
+        binding({ taskDefinitionKey: '__START__', processModelId: 'model-1' }),
+        binding({
+          taskDefinitionKey: 'jointApprovalTask',
+          processModelId: 'model-1',
+        }),
+      ],
+      [task],
+      [schema()],
+    );
+
+    expect(readiness.missingHandlerVariables).toEqual(['approvalUsers']);
+    expect(readiness.bindingReady).toBe(false);
+    expect(readiness.canStart).toBe(false);
+    expect(readiness.nextAction).toBe('design');
+    expect(readiness.nextActionText).toBe('补办理人来源');
+  });
+
+  it('accepts handler variables provided by the start form', () => {
+    const approverExpression = '$' + '{approvalUsers}';
+    const readiness = buildModelReadiness(
+      model({
+        status: 'DEPLOYED',
+        flowableDefinitionId: 'collaborativeApproval:1:pd',
+        bpmnXml: `<definitions><process><userTask id="jointApprovalTask" flowable:assignee="${approverExpression}" /></process></definitions>`,
+      }),
+      [
+        binding({ taskDefinitionKey: '__START__', processModelId: 'model-1' }),
+        binding({
+          taskDefinitionKey: 'jointApprovalTask',
+          processModelId: 'model-1',
+        }),
+      ],
+      [task],
+      [
+        schema({
+          schemaJson:
+            '{"type":"object","properties":{"subject":{"type":"string"},"approvalUsers":{"type":"array"}}}',
+        }),
+      ],
+    );
+
+    expect(readiness.missingHandlerVariables).toEqual([]);
+    expect(readiness.bindingReady).toBe(true);
+    expect(readiness.canStart).toBe(true);
+    expect(readiness.nextAction).toBe('start');
+  });
+
   it('routes outdated form bindings back to version sync before start', () => {
     const readiness = buildModelReadiness(
       model({
