@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { AuditLogItem, FormSnapshotItem } from '@/services/koravo/api';
+import type {
+  AuditLogItem,
+  FormSnapshotItem,
+  TaskCommentItem,
+} from '@/services/koravo/api';
 import {
   buildInstanceReviewItems,
   formSnapshotData,
+  mergeInstanceAuditLogs,
+  mergeInstanceFormSnapshots,
 } from './instanceReviewContext';
 
 function snapshot(partial: Partial<FormSnapshotItem>): FormSnapshotItem {
@@ -33,6 +39,15 @@ function audit(partial: Partial<AuditLogItem>): AuditLogItem {
     clientIp: partial.clientIp,
     detailJson: partial.detailJson,
     createdAt: partial.createdAt || '2026-06-15T10:00:00Z',
+  };
+}
+
+function comment(partial: Partial<TaskCommentItem>): TaskCommentItem {
+  return {
+    id: partial.id || 'comment-1',
+    userId: partial.userId || 'manager',
+    message: partial.message || '已核对',
+    time: partial.time || '2026-06-15T10:10:00Z',
   };
 }
 
@@ -123,6 +138,85 @@ describe('instanceReviewContext', () => {
         source: 'audit',
       }),
     ]);
+  });
+
+  it('adds focused task comments as review rows', () => {
+    const rows = buildInstanceReviewItems(
+      [
+        snapshot({
+          id: 'review',
+          taskId: 'task-1',
+          createdAt: '2026-06-15T10:00:00Z',
+          dataJson: JSON.stringify({
+            taskDefinitionKey: 'approvalTask',
+            approved: true,
+          }),
+        }),
+      ],
+      [],
+      [comment({ id: 'comment-1', message: '材料齐全' })],
+      'task-1',
+    );
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        source: 'snapshot',
+        resultLabel: '同意',
+      }),
+      expect.objectContaining({
+        taskId: 'task-1',
+        nodeLabel: '审批处理',
+        handlerLabel: '审批主管',
+        resultLabel: '处理意见',
+        opinion: '材料齐全',
+        source: 'comment',
+      }),
+    ]);
+  });
+
+  it('does not duplicate comments already present in snapshots', () => {
+    const rows = buildInstanceReviewItems(
+      [
+        snapshot({
+          id: 'review',
+          taskId: 'task-1',
+          dataJson: JSON.stringify({
+            approved: true,
+            opinion: '材料齐全',
+          }),
+        }),
+      ],
+      [],
+      [comment({ id: 'comment-1', message: '材料齐全' })],
+      'task-1',
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        opinion: '材料齐全',
+        source: 'snapshot',
+      }),
+    );
+  });
+
+  it('merges task detail fallbacks without replacing instance data', () => {
+    const primarySnapshot = snapshot({ id: 'snapshot-1' });
+    const fallbackSnapshot = snapshot({ id: 'snapshot-2', taskId: 'task-2' });
+    const primaryAudit = audit({ id: 'audit-1' });
+    const fallbackAudit = audit({ id: 'audit-2', resourceId: 'task-2' });
+
+    expect(
+      mergeInstanceFormSnapshots(
+        [primarySnapshot],
+        [primarySnapshot, fallbackSnapshot],
+      ).map((item) => item.id),
+    ).toEqual(['snapshot-1', 'snapshot-2']);
+    expect(
+      mergeInstanceAuditLogs([primaryAudit], [primaryAudit, fallbackAudit]).map(
+        (item) => item.id,
+      ),
+    ).toEqual(['audit-1', 'audit-2']);
   });
 
   it('parses snapshot data safely', () => {

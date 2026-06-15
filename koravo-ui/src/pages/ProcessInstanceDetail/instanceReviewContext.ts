@@ -2,6 +2,7 @@ import type {
   AuditLogItem,
   FormSnapshotItem,
   JsonRecord,
+  TaskCommentItem,
 } from '@/services/koravo/api';
 import { organizationMemberName } from '@/services/koravo/organization';
 import {
@@ -20,7 +21,7 @@ export interface InstanceReviewItem {
   resultStatus: 'success' | 'error' | 'warning' | 'processing' | 'default';
   opinion?: string;
   time?: string;
-  source: 'snapshot' | 'audit';
+  source: 'snapshot' | 'audit' | 'comment';
 }
 
 export function formSnapshotData(record: FormSnapshotItem) {
@@ -93,6 +94,34 @@ function reviewStatus(resultLabel: string) {
   return 'default';
 }
 
+function mergeById<T extends { id: string }>(
+  primary: T[] = [],
+  fallback: T[] = [],
+) {
+  const seen = new Set<string>();
+  const merged: T[] = [];
+  [...primary, ...fallback].forEach((item) => {
+    if (seen.has(item.id)) return;
+    seen.add(item.id);
+    merged.push(item);
+  });
+  return merged;
+}
+
+export function mergeInstanceFormSnapshots(
+  primary: FormSnapshotItem[] = [],
+  fallback: FormSnapshotItem[] = [],
+) {
+  return mergeById(primary, fallback);
+}
+
+export function mergeInstanceAuditLogs(
+  primary: AuditLogItem[] = [],
+  fallback: AuditLogItem[] = [],
+) {
+  return mergeById(primary, fallback);
+}
+
 function auditTaskId(log: AuditLogItem, detail: JsonRecord) {
   return firstText(detail.taskId, detail.resourceId, log.resourceId);
 }
@@ -152,6 +181,35 @@ function snapshotReviewItem(
   };
 }
 
+function commentReviewItem(
+  comment: TaskCommentItem,
+  taskId: string | undefined,
+  nodeLabel?: string,
+): InstanceReviewItem | undefined {
+  const opinion = firstText(comment.message);
+  if (!opinion) return undefined;
+
+  return {
+    id: `comment-${comment.id}`,
+    taskId,
+    nodeLabel: nodeLabel || '任务意见',
+    handlerLabel: comment.userId
+      ? organizationMemberName(comment.userId)
+      : '系统',
+    resultLabel: '处理意见',
+    resultStatus: 'default',
+    opinion,
+    time: comment.time,
+    source: 'comment',
+  };
+}
+
+function reviewOpinionKey(item: InstanceReviewItem) {
+  const opinion = item.opinion?.trim();
+  if (!opinion) return undefined;
+  return `${item.taskId || ''}::${opinion}`;
+}
+
 function reviewTime(value?: string) {
   if (!value) return 0;
   const time = Date.parse(value);
@@ -161,6 +219,8 @@ function reviewTime(value?: string) {
 export function buildInstanceReviewItems(
   snapshots: FormSnapshotItem[] = [],
   auditLogs: AuditLogItem[] = [],
+  comments: TaskCommentItem[] = [],
+  commentTaskId?: string,
 ) {
   const auditItems = auditLogs.flatMap((log) => {
     const item = auditReviewItem(log);
@@ -179,12 +239,38 @@ export function buildInstanceReviewItems(
   const extraAuditItems = auditItems.filter(
     (item) => !item.taskId || !snapshotTaskIds.has(item.taskId),
   );
+  const reviewItems = [...snapshotItems, ...extraAuditItems];
+  const reviewOpinionKeys = new Set(
+    reviewItems.flatMap((item) => {
+      const key = reviewOpinionKey(item);
+      return key ? [key] : [];
+    }),
+  );
+  const nodeLabelByTaskId = new Map(
+    reviewItems.flatMap((item) =>
+      item.taskId ? [[item.taskId, item.nodeLabel]] : [],
+    ),
+  );
+  const commentItems = comments.flatMap((comment) => {
+    const item = commentReviewItem(
+      comment,
+      commentTaskId,
+      commentTaskId ? nodeLabelByTaskId.get(commentTaskId) : undefined,
+    );
+    if (!item) return [];
+    const key = reviewOpinionKey(item);
+    if (key && reviewOpinionKeys.has(key)) return [];
+    if (key) reviewOpinionKeys.add(key);
+    return [item];
+  });
 
-  return [...snapshotItems, ...extraAuditItems].sort(
+  return [...reviewItems, ...commentItems].sort(
     (left, right) => reviewTime(left.time) - reviewTime(right.time),
   );
 }
 
 export function reviewSourceLabel(source: InstanceReviewItem['source']) {
-  return source === 'snapshot' ? '表单快照' : businessFieldLabel('auditLog');
+  if (source === 'snapshot') return '表单快照';
+  if (source === 'comment') return '任务意见';
+  return businessFieldLabel('auditLog');
 }

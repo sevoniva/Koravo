@@ -35,6 +35,7 @@ import {
   getOpsProcessTrace,
   getProcessInstance,
   getProcessTrace,
+  getTaskDetail,
   listAuditLogs,
   listFormSnapshots,
   suspendProcessInstance,
@@ -67,6 +68,8 @@ import {
   buildInstanceReviewItems,
   formSnapshotData,
   type InstanceReviewItem,
+  mergeInstanceAuditLogs,
+  mergeInstanceFormSnapshots,
   reviewSourceLabel,
 } from './instanceReviewContext';
 
@@ -119,9 +122,13 @@ function taskContextStatus(
   taskId: string | undefined,
   currentTask?: TaskItem,
   snapshot?: FormSnapshotItem,
+  taskFromDetail?: TaskItem,
 ) {
   if (!taskId) return undefined;
   if (currentTask) return `当前任务：${taskNameLabel(currentTask)}`;
+  if (taskFromDetail?.status === 'COMPLETED')
+    return `已办任务：${taskNameLabel(taskFromDetail)}`;
+  if (taskFromDetail) return `关联任务：${taskNameLabel(taskFromDetail)}`;
   if (snapshot) return `已匹配${snapshotTaskLabel(snapshot)}`;
   return '未匹配快照，查看执行轨迹和审计记录';
 }
@@ -366,10 +373,25 @@ const ProcessInstanceDetail: React.FC = () => {
     queryFn: () => listFormSnapshots({ processInstanceId: instanceId }),
     enabled: Boolean(instanceId),
   });
+  const { data: focusedTaskDetail } = useQuery({
+    queryKey: ['process-instance-focused-task-detail', focusedTaskId],
+    queryFn: () => getTaskDetail(focusedTaskId || ''),
+    enabled: Boolean(focusedTaskId && canOpenTaskDetail),
+    retry: false,
+  });
+  const instanceFormSnapshots = React.useMemo(
+    () =>
+      mergeInstanceFormSnapshots(
+        formSnapshots,
+        focusedTaskDetail?.formSnapshots,
+      ),
+    [focusedTaskDetail?.formSnapshots, formSnapshots],
+  );
   const primarySnapshot = React.useMemo(
     () =>
-      formSnapshots.find((snapshot) => !snapshot.taskId) || formSnapshots[0],
-    [formSnapshots],
+      instanceFormSnapshots.find((snapshot) => !snapshot.taskId) ||
+      instanceFormSnapshots[0],
+    [instanceFormSnapshots],
   );
   const { data: auditLogs } = useQuery({
     queryKey: ['process-instance-audit-logs', instanceId],
@@ -378,18 +400,18 @@ const ProcessInstanceDetail: React.FC = () => {
     enabled: canOperateInstance && Boolean(instanceId),
   });
   const currentTasks = instance?.currentTasks || [];
-  const focusedTask = React.useMemo(
-    () => currentTasks.find((task) => task.taskId === focusedTaskId),
-    [currentTasks, focusedTaskId],
-  );
   const focusedSnapshot = React.useMemo(
-    () => formSnapshots.find((snapshot) => snapshot.taskId === focusedTaskId),
-    [focusedTaskId, formSnapshots],
+    () =>
+      instanceFormSnapshots.find(
+        (snapshot) => snapshot.taskId === focusedTaskId,
+      ),
+    [focusedTaskId, instanceFormSnapshots],
   );
   const focusedTaskStatus = taskContextStatus(
     focusedTaskId,
-    focusedTask,
+    currentTasks.find((task) => task.taskId === focusedTaskId),
     focusedSnapshot,
+    focusedTaskDetail?.task,
   );
   const timeline = trace?.timeline || [];
   const traceRows = React.useMemo(() => {
@@ -400,10 +422,28 @@ const ProcessInstanceDetail: React.FC = () => {
       visibleTimeline.length ? visibleTimeline : timeline,
     );
   }, [timeline]);
-  const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
+  const instanceAuditLogs = React.useMemo(
+    () =>
+      mergeInstanceAuditLogs(
+        auditLogs?.items || instance?.auditLogs || [],
+        focusedTaskDetail?.auditLogs,
+      ),
+    [auditLogs?.items, focusedTaskDetail?.auditLogs, instance?.auditLogs],
+  );
   const reviewItems = React.useMemo(
-    () => buildInstanceReviewItems(formSnapshots, instanceAuditLogs),
-    [formSnapshots, instanceAuditLogs],
+    () =>
+      buildInstanceReviewItems(
+        instanceFormSnapshots,
+        instanceAuditLogs,
+        focusedTaskDetail?.comments,
+        focusedTaskId,
+      ),
+    [
+      focusedTaskDetail?.comments,
+      focusedTaskId,
+      instanceAuditLogs,
+      instanceFormSnapshots,
+    ],
   );
   const openTaskAsAssignee = React.useCallback((task: TaskItem) => {
     history.push(`/tasks/${task.taskId}`);
@@ -766,14 +806,14 @@ const ProcessInstanceDetail: React.FC = () => {
           title={
             <Flex align="center" gap={8}>
               <span>表单快照</span>
-              <Badge count={formSnapshots.length} showZero />
+              <Badge count={instanceFormSnapshots.length} showZero />
             </Flex>
           }
         >
           <ProTable<FormSnapshotItem>
             rowKey="id"
             columns={snapshotColumns}
-            dataSource={formSnapshots}
+            dataSource={instanceFormSnapshots}
             search={false}
             pagination={false}
             options={false}
