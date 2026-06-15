@@ -62,6 +62,24 @@ class RolePermissionMatrixTest {
         )).isFalse();
         assertThat(RolePermissionMatrix.isAllowed(
                 "GET",
+                "/api/v1/organization/directory",
+                "applicant",
+                UserContextHolder.ROLE_APPLICANT
+        )).isTrue();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "GET",
+                "/api/v1/organization/members",
+                "applicant",
+                UserContextHolder.ROLE_APPLICANT
+        )).isFalse();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "GET",
+                "/api/v1/organization/members",
+                "admin",
+                UserContextHolder.ROLE_ADMIN
+        )).isTrue();
+        assertThat(RolePermissionMatrix.isAllowed(
+                "GET",
                 "/api/v1/tasks/my",
                 "manager",
                 UserContextHolder.ROLE_MANAGER

@@ -61,6 +61,28 @@ class OrganizationDirectoryServiceTest {
     }
 
     @Test
+    void directoryExposesOnlyRuntimeIdentityFields() {
+        TenantContextHolder.setTenantId("tenant-a");
+        when(repository.countByTenantIdAndDeletedFalse("tenant-a")).thenReturn(1L);
+        when(repository.findByTenantIdAndDeletedFalseOrderByDepartmentAscNameAsc("tenant-a"))
+                .thenReturn(List.of(member("manager", "tenant-a", "审批主管", "审批中心", UserContextHolder.ROLE_MANAGER)));
+
+        var members = service.directory();
+
+        assertThat(members).singleElement().satisfies(member -> {
+            assertThat(member.userId()).isEqualTo("manager");
+            assertThat(member.name()).isEqualTo("审批主管");
+            assertThat(member.department()).isEqualTo("审批中心");
+            assertThat(member.role()).isEqualTo(UserContextHolder.ROLE_MANAGER);
+            assertThat(member.status()).isEqualTo("ACTIVE");
+        });
+        assertThat(OrganizationDirectoryMemberResponse.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .containsExactly("userId", "name", "department", "role", "status");
+        verify(repository, times(2)).findByTenantIdAndDeletedFalseOrderByDepartmentAscNameAsc("tenant-a");
+    }
+
+    @Test
     void createRejectsWeakInitialPassword() {
         TenantContextHolder.setTenantId("tenant-a");
         UserContextHolder.setUserId("admin");

@@ -88,7 +88,7 @@ async function loadOrganizationDirectory() {
     return;
   }
   try {
-    const response = await fetch('/api/v1/organization/members', {
+    const response = await fetch('/api/v1/organization/directory', {
       headers: sessionRequestHeaders(),
     });
     if (!response.ok) {

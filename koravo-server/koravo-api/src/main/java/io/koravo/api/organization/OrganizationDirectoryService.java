@@ -54,6 +54,17 @@ public class OrganizationDirectoryService {
                 .toList();
     }
 
+    @Transactional
+    public List<OrganizationDirectoryMemberResponse> directory() {
+        String tenantId = TenantContextHolder.getTenantId();
+        ensureTenantDirectory(tenantId);
+        return organizationMemberRepository
+                .findByTenantIdAndDeletedFalseOrderByDepartmentAscNameAsc(tenantId)
+                .stream()
+                .map(this::toDirectoryResponse)
+                .toList();
+    }
+
     private void ensureTenantDirectory(String tenantId) {
         if (organizationMemberRepository.countByTenantIdAndDeletedFalse(tenantId) > 0) {
             ensureSeededPasswords(tenantId);
@@ -288,6 +299,16 @@ public class OrganizationDirectoryService {
                 member.getStatus(),
                 member.getPasswordHash() != null && !member.getPasswordHash().isBlank(),
                 member.getLastLoginAt()
+        );
+    }
+
+    private OrganizationDirectoryMemberResponse toDirectoryResponse(KoOrganizationMember member) {
+        return new OrganizationDirectoryMemberResponse(
+                member.getUserId(),
+                member.getName(),
+                member.getDepartment(),
+                member.getRole(),
+                member.getStatus()
         );
     }
 }

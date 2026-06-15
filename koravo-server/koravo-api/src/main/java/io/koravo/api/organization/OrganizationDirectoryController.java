@@ -24,6 +24,11 @@ public class OrganizationDirectoryController {
         return ApiResponse.success(organizationDirectoryService.members());
     }
 
+    @GetMapping("/api/v1/organization/directory")
+    public ApiResponse<List<OrganizationDirectoryMemberResponse>> directory() {
+        return ApiResponse.success(organizationDirectoryService.directory());
+    }
+
     @PostMapping("/api/v1/organization/members")
     public ApiResponse<OrganizationMemberResponse> create(@Valid @RequestBody OrganizationMemberUpsertRequest request) {
         return ApiResponse.success(organizationDirectoryService.create(request));
