@@ -8,6 +8,7 @@ interface ProcessContextSummaryProps {
   tasks?: TaskItem[];
   activeTask?: TaskItem;
   instanceStatus?: string;
+  currentUserId?: string;
   emptyText?: string;
 }
 
@@ -58,10 +59,24 @@ function isInstanceDone(status?: string) {
   return ['COMPLETED', 'TERMINATED'].includes(String(status || '').toUpperCase());
 }
 
-function nextActionText(tasks: TaskItem[], instanceStatus?: string) {
+function hasCurrentUserTask(tasks: TaskItem[], currentUserId?: string) {
+  return Boolean(
+    currentUserId &&
+      tasks.some(
+        (task) => !isCompletedTask(task) && task.assignee === currentUserId,
+      ),
+  );
+}
+
+function nextActionText(
+  tasks: TaskItem[],
+  instanceStatus?: string,
+  currentUserId?: string,
+) {
   if (!tasks.length) {
     return isInstanceDone(instanceStatus) ? '无待办' : '待流转';
   }
+  if (hasCurrentUserTask(tasks, currentUserId)) return '待你处理';
   if (tasks.some((task) => !task.assignee)) return '待认领';
   if (tasks.length > 1) {
     return pendingTaskGroupCount(tasks) <= 1 ? '会签审批' : '并行审批';
@@ -81,6 +96,7 @@ const ProcessContextSummary: React.FC<ProcessContextSummaryProps> = ({
   tasks = [],
   activeTask,
   instanceStatus,
+  currentUserId,
   emptyText = '暂无当前节点',
 }) => {
   const visibleTasks = pendingTasks(tasks, activeTask);
@@ -90,7 +106,7 @@ const ProcessContextSummary: React.FC<ProcessContextSummaryProps> = ({
       ? '流程已结束'
       : emptyText;
   const currentHandlerText = visibleTasks.length ? handlerText(visibleTasks) : '-';
-  const nextText = nextActionText(visibleTasks, instanceStatus);
+  const nextText = nextActionText(visibleTasks, instanceStatus, currentUserId);
   const currentCoordinationText = coordinationText(visibleTasks);
 
   return (

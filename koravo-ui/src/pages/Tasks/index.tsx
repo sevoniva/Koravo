@@ -77,6 +77,7 @@ function instanceBusinessObject(
 
 function buildTaskColumns(
   onPreview: (task: TaskItem) => void,
+  currentUserId?: string,
 ): ProColumns<TaskItem>[] {
   return [
     {
@@ -110,7 +111,11 @@ function buildTaskColumns(
       width: 260,
       search: false,
       render: (_, record) => (
-        <ProcessContextSummary tasks={[record]} activeTask={record} />
+        <ProcessContextSummary
+          tasks={[record]}
+          activeTask={record}
+          currentUserId={currentUserId}
+        />
       ),
     },
     {
@@ -174,6 +179,7 @@ function buildTaskColumns(
 
 function buildInstanceColumns(
   onPreview: (instance: OpsProcessInstance) => void,
+  currentUserId?: string,
 ): ProColumns<OpsProcessInstance>[] {
   return [
     {
@@ -217,6 +223,7 @@ function buildInstanceColumns(
         <ProcessContextSummary
           tasks={record.currentTasks}
           instanceStatus={record.status}
+          currentUserId={currentUserId}
         />
       ),
     },
@@ -348,8 +355,8 @@ const Tasks: React.FC = () => {
   );
 
   const taskColumns = React.useMemo(
-    () => buildTaskColumns(openTaskPreview),
-    [openTaskPreview],
+    () => buildTaskColumns(openTaskPreview, session.userId),
+    [openTaskPreview, session.userId],
   );
 
   const claimTask = React.useCallback(
@@ -419,8 +426,8 @@ const Tasks: React.FC = () => {
   }, [candidateGroupOptions, claimTask, openTaskPreview, taskColumns]);
 
   const instanceColumns = React.useMemo(
-    () => buildInstanceColumns(openInstancePreview),
-    [openInstancePreview],
+    () => buildInstanceColumns(openInstancePreview, session.userId),
+    [openInstancePreview, session.userId],
   );
 
   const switchTab = React.useCallback(

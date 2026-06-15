@@ -559,11 +559,12 @@ const ProcessStartReadiness: React.FC<{
   );
 };
 
-function renderCurrentTasks(record: OpsProcessInstance) {
+function renderCurrentTasks(record: OpsProcessInstance, currentUserId?: string) {
   return (
     <ProcessContextSummary
       tasks={record.currentTasks}
       instanceStatus={record.status}
+      currentUserId={currentUserId}
       emptyText="无待办"
     />
   );
@@ -571,6 +572,7 @@ function renderCurrentTasks(record: OpsProcessInstance) {
 
 function buildColumns(
   openPreview: (instance: OpsProcessInstance) => void,
+  currentUserId?: string,
 ): ProColumns<OpsProcessInstance>[] {
   return [
     {
@@ -607,7 +609,7 @@ function buildColumns(
       dataIndex: 'currentTasks',
       width: 260,
       search: false,
-      render: (_, record) => renderCurrentTasks(record),
+      render: (_, record) => renderCurrentTasks(record, currentUserId),
     },
     {
       title: '开始时间',
@@ -1109,7 +1111,10 @@ const ProcessInstances: React.FC = () => {
     });
   }, []);
 
-  const columns = React.useMemo(() => buildColumns(openPreview), [openPreview]);
+  const columns = React.useMemo(
+    () => buildColumns(openPreview, session.userId),
+    [openPreview, session.userId],
+  );
   const emptyActions = [
     canStartProcess ? (
       <Button

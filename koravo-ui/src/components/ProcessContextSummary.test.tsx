@@ -18,6 +18,18 @@ function task(partial: Partial<TaskItem>): TaskItem {
 }
 
 describe('ProcessContextSummary', () => {
+  it('marks tasks assigned to the current user', () => {
+    render(
+      <ProcessContextSummary
+        currentUserId="manager"
+        tasks={[task({ assignee: 'manager' })]}
+      />,
+    );
+
+    expect(screen.getByText('待你处理')).toBeInTheDocument();
+    expect(screen.getByText('审批主管')).toBeInTheDocument();
+  });
+
   it('summarizes countersign tasks with handlers', () => {
     render(
       <ProcessContextSummary

@@ -487,6 +487,7 @@ const ProcessInstanceDetail: React.FC = () => {
             tasks={tasksOnSameNode(currentTasks, record)}
             activeTask={record}
             instanceStatus={instance?.status}
+            currentUserId={session.userId}
           />
         ),
       },
