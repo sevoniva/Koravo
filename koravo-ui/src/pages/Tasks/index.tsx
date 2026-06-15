@@ -42,12 +42,13 @@ import {
   taskNameLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+import { processInstanceDetailPath } from '@/utils/processStartNotice';
 import {
   resolveTaskTab,
   type TaskTabKey,
+  tabFromPath,
   taskTabMeta,
   taskTabRoutes,
-  tabFromPath,
   visibleTaskTabs,
 } from './taskTabs';
 
@@ -156,7 +157,11 @@ function buildTaskColumns(
           <Button
             type="link"
             onClick={() =>
-              history.push(`/process-instances/${record.processInstanceId}`)
+              history.push(
+                processInstanceDetailPath(record.processInstanceId, {
+                  taskId: record.taskId,
+                }),
+              )
             }
           >
             查看实例
@@ -382,7 +387,11 @@ const Tasks: React.FC = () => {
             <Button
               type="link"
               onClick={() =>
-                history.push(`/process-instances/${record.processInstanceId}`)
+                history.push(
+                  processInstanceDetailPath(record.processInstanceId, {
+                    taskId: record.taskId,
+                  }),
+                )
               }
             >
               查看实例
@@ -435,7 +444,10 @@ const Tasks: React.FC = () => {
   if (!visibleTabs.length) {
     return (
       <PageContainer title="工作台">
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无可用入口" />
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="暂无可用入口"
+        />
       </PageContainer>
     );
   }
@@ -617,11 +629,7 @@ const Tasks: React.FC = () => {
           <Tag>{tenantDisplayName(session.tenantId)}</Tag>
         </Space>
       </ProCard>
-      <Tabs
-        activeKey={activeTab}
-        onChange={switchTab}
-        items={tabItems}
-      />
+      <Tabs activeKey={activeTab} onChange={switchTab} items={tabItems} />
       <KoravoDrawer
         title={previewTarget?.title || '流程预览'}
         size={980}

@@ -26,6 +26,15 @@ describe('process start notice helpers', () => {
     expect(processInstanceDetailPath('instance-1', { started: true })).toBe(
       '/process-instances/instance-1?started=1',
     );
+    expect(processInstanceDetailPath('instance-1', { taskId: 'task-1' })).toBe(
+      '/process-instances/instance-1?taskId=task-1',
+    );
+    expect(
+      processInstanceDetailPath('instance-1', {
+        started: true,
+        taskId: 'task-1',
+      }),
+    ).toBe('/process-instances/instance-1?started=1&taskId=task-1');
     expect(isStartSuccessRedirect('?started=1')).toBe(true);
     expect(isStartSuccessRedirect('?started=0')).toBe(false);
   });

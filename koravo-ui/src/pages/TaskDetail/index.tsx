@@ -71,6 +71,7 @@ import {
   taskNameLabel,
 } from '@/utils/display';
 import { formatDateTime, parseJsonSafe } from '@/utils/format';
+import { processInstanceDetailPath } from '@/utils/processStartNotice';
 import {
   type TaskHandlingState,
   taskActionAccess,
@@ -437,7 +438,11 @@ function renderParallelTasks(
         <Button
           type="link"
           onClick={() =>
-            history.push(`/process-instances/${currentTask.processInstanceId}`)
+            history.push(
+              processInstanceDetailPath(currentTask.processInstanceId, {
+                taskId: currentTask.taskId,
+              }),
+            )
           }
         >
           查看实例进度
@@ -1073,7 +1078,9 @@ const TaskDetail: React.FC = () => {
                         taskCompleteModal?.destroy();
                         Modal.destroyAll();
                         history.push(
-                          `/process-instances/${task.processInstanceId}`,
+                          processInstanceDetailPath(task.processInstanceId, {
+                            taskId: task.taskId,
+                          }),
                         );
                       }}
                       onBackToTasks={() => {
@@ -1193,7 +1200,9 @@ const TaskDetail: React.FC = () => {
                       type="link"
                       onClick={() =>
                         history.push(
-                          `/process-instances/${record.processInstanceId}`,
+                          processInstanceDetailPath(record.processInstanceId, {
+                            taskId: record.taskId,
+                          }),
                         )
                       }
                     >
@@ -1303,7 +1312,12 @@ const TaskDetail: React.FC = () => {
                         <Button
                           onClick={() =>
                             history.push(
-                              `/process-instances/${task.processInstanceId}`,
+                              processInstanceDetailPath(
+                                task.processInstanceId,
+                                {
+                                  taskId: task.taskId,
+                                },
+                              ),
                             )
                           }
                         >

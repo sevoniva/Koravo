@@ -9,7 +9,17 @@ import {
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { history, useLocation, useParams } from '@umijs/max';
-import { Alert, App, Badge, Button, Empty, Flex, Space, Tag, Typography } from 'antd';
+import {
+  Alert,
+  App,
+  Badge,
+  Button,
+  Empty,
+  Flex,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import React from 'react';
 import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
@@ -44,22 +54,24 @@ import {
   taskDefinitionLabel,
   taskNameLabel,
 } from '@/utils/display';
-import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
+import { formatDateTime, maskSecret } from '@/utils/format';
+import {
+  isStartSuccessRedirect,
+  startSuccessDescription,
+} from '@/utils/processStartNotice';
 import {
   type ProcessTraceNodeRow,
   withProcessTraceRowKeys,
 } from '@/utils/processTraceRows';
 import {
-  isStartSuccessRedirect,
-  startSuccessDescription,
-} from '@/utils/processStartNotice';
-
-function snapshotData(record: FormSnapshotItem) {
-  return parseJsonSafe(record.dataJson, {}) as Record<string, unknown>;
-}
+  buildInstanceReviewItems,
+  formSnapshotData,
+  type InstanceReviewItem,
+  reviewSourceLabel,
+} from './instanceReviewContext';
 
 function snapshotTaskLabel(record: FormSnapshotItem) {
-  const data = snapshotData(record);
+  const data = formSnapshotData(record);
   const taskDefinitionKey = String(data.taskDefinitionKey || '');
   if (taskDefinitionKey) return taskDefinitionLabel(taskDefinitionKey);
   return record.taskId ? '任务表单' : '发起表单';
@@ -77,7 +89,7 @@ function snapshotFormLabel(record: FormSnapshotItem) {
 }
 
 function snapshotSummary(record: FormSnapshotItem) {
-  const data = snapshotData(record);
+  const data = formSnapshotData(record);
   const approved = data.approved;
   const opinion = [data.opinion, data.reviewComment, data.approvalComment].find(
     (value) => typeof value === 'string' && value.trim(),
@@ -389,6 +401,10 @@ const ProcessInstanceDetail: React.FC = () => {
     );
   }, [timeline]);
   const instanceAuditLogs = auditLogs?.items || instance?.auditLogs || [];
+  const reviewItems = React.useMemo(
+    () => buildInstanceReviewItems(formSnapshots, instanceAuditLogs),
+    [formSnapshots, instanceAuditLogs],
+  );
   const openTaskAsAssignee = React.useCallback((task: TaskItem) => {
     history.push(`/tasks/${task.taskId}`);
   }, []);
@@ -515,6 +531,66 @@ const ProcessInstanceDetail: React.FC = () => {
       ),
     },
   ];
+  const reviewColumns: ProColumns<InstanceReviewItem>[] = [
+    {
+      title: '节点',
+      dataIndex: 'nodeLabel',
+      width: 180,
+      render: (_, record) => (
+        <Space wrap size={4}>
+          <span>{record.nodeLabel}</span>
+          {record.taskId && record.taskId === focusedTaskId ? (
+            <Tag color="processing">关联任务</Tag>
+          ) : null}
+        </Space>
+      ),
+    },
+    {
+      title: '处理人',
+      dataIndex: 'handlerLabel',
+      width: 140,
+    },
+    {
+      title: '结论',
+      dataIndex: 'resultLabel',
+      width: 120,
+      render: (_, record) => (
+        <Tag color={record.resultStatus}>{record.resultLabel}</Tag>
+      ),
+    },
+    {
+      title: '处理意见',
+      dataIndex: 'opinion',
+      ellipsis: true,
+      renderText: (value) => value || '-',
+    },
+    {
+      title: '来源',
+      dataIndex: 'source',
+      width: 120,
+      renderText: reviewSourceLabel,
+    },
+    {
+      title: '时间',
+      dataIndex: 'time',
+      width: 170,
+      renderText: formatDateTime,
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 96,
+      render: (_, record) =>
+        canOpenTaskDetail && record.taskId ? (
+          <Button
+            type="link"
+            onClick={() => history.push(`/tasks/${record.taskId}`)}
+          >
+            查看任务
+          </Button>
+        ) : null,
+    },
+  ];
 
   return (
     <PageContainer
@@ -568,7 +644,10 @@ const ProcessInstanceDetail: React.FC = () => {
           title="已发起"
           description={startSuccessDescription(currentTasks)}
           action={
-            <Button size="small" onClick={() => history.push('/started-instances')}>
+            <Button
+              size="small"
+              onClick={() => history.push('/started-instances')}
+            >
               我的申请
             </Button>
           }
@@ -669,7 +748,7 @@ const ProcessInstanceDetail: React.FC = () => {
               schemaJson={primarySnapshot.schemaJson}
               uiSchemaJson={primarySnapshot.uiSchemaJson}
               values={
-                maskSecret(snapshotData(primarySnapshot)) as Record<
+                maskSecret(formSnapshotData(primarySnapshot)) as Record<
                   string,
                   unknown
                 >
@@ -712,6 +791,32 @@ const ProcessInstanceDetail: React.FC = () => {
         <ProCard
           title={
             <Flex align="center" gap={8}>
+              <span>处理意见</span>
+              <Badge count={reviewItems.length} showZero />
+            </Flex>
+          }
+        >
+          <ProTable<InstanceReviewItem>
+            rowKey="id"
+            columns={reviewColumns}
+            dataSource={reviewItems}
+            search={false}
+            pagination={false}
+            options={false}
+            locale={{
+              emptyText: (
+                <Empty
+                  description="暂无处理意见"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              ),
+            }}
+            scroll={{ x: 1000 }}
+          />
+        </ProCard>
+        <ProCard
+          title={
+            <Flex align="center" gap={8}>
               <span>当前任务</span>
               <Badge count={currentTasks.length} showZero />
             </Flex>
@@ -739,7 +844,9 @@ const ProcessInstanceDetail: React.FC = () => {
                       <Button
                         onClick={() =>
                           history.push(
-                            `/audit-logs?resourceId=${encodeURIComponent(instanceId)}`,
+                            `/audit-logs?resourceId=${encodeURIComponent(
+                              instanceId,
+                            )}`,
                           )
                         }
                       >
@@ -809,7 +916,7 @@ const ProcessInstanceDetail: React.FC = () => {
             schemaJson={selectedSnapshot.schemaJson}
             uiSchemaJson={selectedSnapshot.uiSchemaJson}
             values={
-              maskSecret(snapshotData(selectedSnapshot)) as Record<
+              maskSecret(formSnapshotData(selectedSnapshot)) as Record<
                 string,
                 unknown
               >

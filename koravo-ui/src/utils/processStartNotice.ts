@@ -14,10 +14,14 @@ function pendingTaskGroupCount(tasks: TaskItem[]) {
 
 export function processInstanceDetailPath(
   instanceId: string,
-  options?: { started?: boolean },
+  options?: { started?: boolean; taskId?: string },
 ) {
   const path = `/process-instances/${encodeURIComponent(instanceId)}`;
-  return options?.started ? `${path}?started=1` : path;
+  const search = new URLSearchParams();
+  if (options?.started) search.set('started', '1');
+  if (options?.taskId) search.set('taskId', options.taskId);
+  const query = search.toString();
+  return query ? `${path}?${query}` : path;
 }
 
 export function isStartSuccessRedirect(search?: string) {
