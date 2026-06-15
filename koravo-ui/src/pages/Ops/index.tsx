@@ -56,6 +56,7 @@ import {
   connectorExecutionResultSummary,
   connectorExecutionStatusTitle,
   connectorExecutionTitle,
+  connectorMethodDisplay,
   connectorTraceDisplay,
 } from '@/utils/connectorExecution';
 import {
@@ -360,7 +361,12 @@ function connectorColumns(
       width: 120,
       renderText: connectorTypeLabel,
     },
-    { title: '方法', dataIndex: 'method', width: 96 },
+    {
+      title: '方法',
+      dataIndex: 'method',
+      width: 96,
+      renderText: connectorMethodDisplay,
+    },
     {
       title: '地址',
       dataIndex: 'url',
@@ -1136,7 +1142,11 @@ const Ops: React.FC = () => {
                   dataIndex: 'connectorType',
                   renderText: connectorTypeLabel,
                 },
-                { title: '方法', dataIndex: 'method' },
+                {
+                  title: '方法',
+                  dataIndex: 'method',
+                  renderText: connectorMethodDisplay,
+                },
                 {
                   title: '地址',
                   dataIndex: 'url',

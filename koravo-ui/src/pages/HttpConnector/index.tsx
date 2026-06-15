@@ -30,9 +30,10 @@ import {
   retryConnectorExecutionLog,
 } from '@/services/koravo/api';
 import {
-  connectorMethodDisplay,
   connectorExecutionResultSummary,
   connectorExecutionStatusTitle,
+  connectorMethodDisplay,
+  connectorMethodOptions,
   connectorTraceDisplay,
 } from '@/utils/connectorExecution';
 import {
@@ -125,6 +126,8 @@ const HttpConnector: React.FC = () => {
       title: '方法',
       dataIndex: 'method',
       width: 96,
+      valueType: 'select',
+      fieldProps: { options: connectorMethodOptions },
       renderText: connectorMethodDisplay,
     },
     {

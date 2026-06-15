@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  connectorMethodDisplay,
   connectorExecutionResultSummary,
   connectorExecutionStatusTitle,
   connectorExecutionTitle,
+  connectorMethodDisplay,
+  connectorMethodOptions,
   connectorRequestDisplay,
   connectorTraceDisplay,
 } from './connectorExecution';
@@ -32,6 +33,10 @@ describe('connector execution display helpers', () => {
 
   it('formats connector request methods as product labels', () => {
     expect(connectorMethodDisplay('POST')).toBe('提交');
+    expect(connectorMethodOptions).toContainEqual({
+      label: '读取',
+      value: 'GET',
+    });
     expect(
       connectorRequestDisplay({
         method: 'GET',

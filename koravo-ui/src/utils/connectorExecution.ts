@@ -12,6 +12,16 @@ type ConnectorExecutionDisplay = Pick<
   'connectorType' | 'elapsedMillis' | 'status' | 'statusCode' | 'url'
 >;
 
+export const connectorMethodOptions = [
+  { label: requestMethodLabel('GET'), value: 'GET' },
+  { label: requestMethodLabel('POST'), value: 'POST' },
+  { label: requestMethodLabel('PUT'), value: 'PUT' },
+  { label: requestMethodLabel('PATCH'), value: 'PATCH' },
+  { label: requestMethodLabel('DELETE'), value: 'DELETE' },
+  { label: requestMethodLabel('HEAD'), value: 'HEAD' },
+  { label: requestMethodLabel('OPTIONS'), value: 'OPTIONS' },
+];
+
 export function connectorTraceDisplay(requestId?: string) {
   if (!requestId) return '';
   return shortTraceLabel(requestId);
