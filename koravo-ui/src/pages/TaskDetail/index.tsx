@@ -63,6 +63,7 @@ import {
   auditActionLabel,
   auditResourceLabel,
   businessKeyLabel,
+  formSchemaKeyLabel,
   formSchemaNameLabel,
   formSchemaOptionLabel,
   processDefinitionLabel,
@@ -1265,7 +1266,11 @@ const TaskDetail: React.FC = () => {
                     dataIndex: 'formName',
                     renderText: (value) => formSchemaNameLabel(value),
                   },
-                  { title: '表单标识', dataIndex: 'formKey' },
+                  {
+                    title: '表单标识',
+                    dataIndex: 'formKey',
+                    renderText: (value) => formSchemaKeyLabel(value),
+                  },
                   {
                     title: '版本',
                     dataIndex: 'version',
