@@ -900,6 +900,7 @@ const SystemSettings: React.FC = () => {
                 岗位职责：{sessionRoleLabel}
               </Tag>
               <Tag>组织：{tenantDisplayName(session.tenantId)}</Tag>
+              <Tag>有效至：{formatDateTime(session.expiresAt)}</Tag>
             </Space>
             <Space wrap>
               {permissions.canStartProcess ? (
@@ -1043,6 +1044,22 @@ const SystemSettings: React.FC = () => {
                 title: '岗位职责',
                 dataIndex: 'role',
                 renderText: () => sessionRoleLabel,
+              },
+              {
+                title: '会话有效至',
+                dataIndex: 'expiresAt',
+                renderText: formatDateTime,
+              },
+              {
+                title: '权限来源',
+                dataIndex: 'permissions',
+                renderText: () =>
+                  session.permissions ? '服务端权限' : '角色默认',
+              },
+              {
+                title: '最近追踪号',
+                dataIndex: 'lastRequestId',
+                renderText: (value) => value || session.requestId || '-',
               },
             ]}
           />
