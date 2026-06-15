@@ -5,7 +5,12 @@ import type {
   FormSchemaItem,
   ProcessModelItem,
 } from '@/services/koravo/api';
-import { buildBindingReadiness, resolveBindingCompletionState } from './index';
+import {
+  type BindingTableItem,
+  buildBindingReadiness,
+  resolveBindingCompletionState,
+  shouldShowBindingRow,
+} from './index';
 
 vi.mock('@ant-design/pro-components', () => ({
   ModalForm: () => null,
@@ -161,5 +166,23 @@ describe('FormBindings readiness', () => {
     expect(completion.primaryPath).toBe(
       '/form-bindings?processModelId=model-1',
     );
+  });
+
+  it('keeps scoped repair rows visible even when the binding is outdated', () => {
+    const row = {
+      ...binding({ taskDefinitionKey: 'jointApprovalTask' }),
+      processModel: model({
+        status: 'DEPLOYED',
+        flowableDefinitionId: 'collaborativeApproval:1:pd',
+      }),
+      formSchema: schema({ version: 2 }),
+      hasStartBinding: true,
+      taskDefinitionExists: true,
+      missingTaskNames: [],
+      readyToStart: false,
+    } as BindingTableItem;
+
+    expect(shouldShowBindingRow(row, 'current', false)).toBe(false);
+    expect(shouldShowBindingRow(row, 'current', true)).toBe(true);
   });
 });

@@ -59,7 +59,7 @@ interface BindingForm {
   formSchemaVersion: number;
 }
 
-type BindingViewMode = 'current' | 'all';
+export type BindingViewMode = 'current' | 'all';
 export type BindingCompletionAction =
   | 'deploy'
   | 'bindStart'
@@ -69,7 +69,7 @@ export type BindingCompletionAction =
   | 'review'
   | 'none';
 
-type BindingTableItem = FormBindingItem & {
+export type BindingTableItem = FormBindingItem & {
   processModel?: ProcessModelItem;
   formSchema?: FormSchemaItem;
   hasStartBinding: boolean;
@@ -459,6 +459,18 @@ function isCurrentBindingRow(record: BindingTableItem) {
   );
 }
 
+export function shouldShowBindingRow(
+  record: BindingTableItem,
+  viewMode: BindingViewMode,
+  scopedRepairMode = false,
+) {
+  if (viewMode === 'all' || scopedRepairMode) return true;
+  return (
+    isActiveBusinessProcessModel(record.processModel) &&
+    isCurrentBindingRow(record)
+  );
+}
+
 const BindingFormItems: React.FC<{
   initialProcessModelId?: string;
   initialFormSchemaId?: string;
@@ -601,12 +613,19 @@ const FormBindings: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [editing, setEditing] = useState<FormBindingItem>();
   const [modal, contextHolder] = Modal.useModal();
-  const [viewMode, setViewMode] = useState<BindingViewMode>('current');
   const queryProcessModelId = useQueryProcessModelId();
   const queryFormSchemaId = useQueryFormSchemaId();
+  const scopedRepairMode = Boolean(queryProcessModelId || queryFormSchemaId);
+  const [viewMode, setViewMode] = useState<BindingViewMode>(
+    scopedRepairMode ? 'all' : 'current',
+  );
   const session = getSessionContext();
   const canStartProcess =
     session.permissions?.canStartProcess ?? session.role === 'applicant';
+
+  React.useEffect(() => {
+    setViewMode(scopedRepairMode ? 'all' : 'current');
+  }, [scopedRepairMode]);
 
   const loadBindingCompletionState = async (
     processModelId?: string,
@@ -842,6 +861,7 @@ const FormBindings: React.FC = () => {
           showIcon
           type="info"
           title="指定流程"
+          description="已显示该流程的全部绑定，包含待同步版本和失效绑定。"
           action={
             <Button size="small" onClick={() => history.push('/form-bindings')}>
               查看全部
@@ -855,6 +875,7 @@ const FormBindings: React.FC = () => {
           showIcon
           type="info"
           title="指定表单"
+          description="已显示该表单的全部绑定，便于同步版本或调整绑定位置。"
           action={
             <Button size="small" onClick={() => history.push('/form-bindings')}>
               查看全部
@@ -935,14 +956,9 @@ const FormBindings: React.FC = () => {
                 ),
             };
           });
-          const businessData =
-            viewMode === 'current'
-              ? data
-                  .filter((item) =>
-                    isActiveBusinessProcessModel(item.processModel),
-                  )
-                  .filter(isCurrentBindingRow)
-              : data;
+          const businessData = data.filter((item) =>
+            shouldShowBindingRow(item, viewMode, scopedRepairMode),
+          );
           const scopedData = queryFormSchemaId
             ? businessData.filter(
                 (item) => item.formSchemaId === queryFormSchemaId,
