@@ -145,6 +145,48 @@ describe('ProcessModels readiness', () => {
     expect(readiness.nextActionText).toBe('同步表单版本');
   });
 
+  it('routes inactive form bindings to repair before asking for new bindings', () => {
+    const readiness = buildModelReadiness(
+      model({
+        status: 'DEPLOYED',
+        flowableDefinitionId: 'collaborativeApproval:1:pd',
+      }),
+      [
+        binding({ taskDefinitionKey: '__START__', processModelId: 'model-1' }),
+        binding({
+          taskDefinitionKey: 'jointApprovalTask',
+          processModelId: 'model-1',
+        }),
+      ],
+      [task],
+      [schema({ status: 'DISABLED' })],
+    );
+
+    expect(readiness.invalidBindingCount).toBe(2);
+    expect(readiness.nextAction).toBe('bind');
+    expect(readiness.nextActionText).toBe('修复表单绑定');
+    expect(readiness.nextActionDescription).toBe('失效 2 个');
+  });
+
+  it('does not mark a deployed model startable without a runtime definition', () => {
+    const readiness = buildModelReadiness(
+      model({ status: 'DEPLOYED', flowableDefinitionId: undefined }),
+      [
+        binding({ taskDefinitionKey: '__START__', processModelId: 'model-1' }),
+        binding({
+          taskDefinitionKey: 'jointApprovalTask',
+          processModelId: 'model-1',
+        }),
+      ],
+      [task],
+      [schema()],
+    );
+
+    expect(readiness.bindingReady).toBe(true);
+    expect(readiness.canStart).toBe(false);
+    expect(readiness.nextAction).toBe('deploy');
+  });
+
   it('summarizes handler sources as business fields', () => {
     expect(handlerSourceSummary(['approvalUsers', 'approvalUser'])).toBe(
       '请确认发起表单或节点配置会提供：审批人',

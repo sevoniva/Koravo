@@ -27,13 +27,13 @@ import {
   Dropdown,
   Empty,
   Flex,
+  type MenuProps,
   Modal,
   Segmented,
   Space,
   Steps,
   Tag,
   Typography,
-  type MenuProps,
   type UploadFile,
 } from 'antd';
 import React, { useRef, useState } from 'react';
@@ -53,8 +53,8 @@ import {
   listFormBindings,
   listFormSchemas,
   listProcessModels,
-  listProcessModelVersions,
   listProcessModelTaskDefinitions,
+  listProcessModelVersions,
   type ProcessModelItem,
   restoreProcessModelDraft,
   validateProcessModel,
@@ -205,7 +205,9 @@ export function aggregateProcessModelVersions(
   }
   return Array.from(groups.values())
     .map((versions) => {
-      const sortedVersions = [...versions].sort(compareProcessModelVersionsDesc);
+      const sortedVersions = [...versions].sort(
+        compareProcessModelVersionsDesc,
+      );
       return versionGroupContext(sortedVersions[0], sortedVersions);
     })
     .sort(compareProcessModelVersionsDesc);
@@ -304,6 +306,7 @@ export function resolveModelNextAction(
   record: ProcessModelItem,
   hasStartBinding: boolean,
   missingTaskKeys: string[],
+  invalidBindingCount: number,
   outdatedBindingCount: number,
   deployReady: boolean,
   canStart: boolean,
@@ -339,6 +342,13 @@ export function resolveModelNextAction(
           nextActionText: '完善设计',
           nextActionDescription: '保存后再校验',
         };
+  }
+  if (invalidBindingCount > 0) {
+    return {
+      nextAction: 'bind',
+      nextActionText: '修复表单绑定',
+      nextActionDescription: `失效 ${invalidBindingCount} 个`,
+    };
   }
   if (!hasStartBinding) {
     return {
@@ -425,13 +435,17 @@ export function buildModelReadiness(
     invalidBindingCount === 0 &&
     outdatedBindingCount === 0;
   const deployReady = Boolean(record.bpmnXml);
-  const canStart = record.status === 'DEPLOYED' && bindingReady;
+  const canStart =
+    record.status === 'DEPLOYED' &&
+    Boolean(record.flowableDefinitionId) &&
+    bindingReady;
   let statusText = '待配置';
   let description = hasStartBinding ? '完善任务表单后可发起' : '先发布流程';
   const nextAction = resolveModelNextAction(
     record,
     hasStartBinding,
     missingTaskKeys,
+    invalidBindingCount,
     outdatedBindingCount,
     deployReady,
     canStart,
@@ -611,8 +625,7 @@ const ProcessModels: React.FC = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ModelViewMode>('business');
-  const [versionPreview, setVersionPreview] =
-    useState<ProcessModelTableItem>();
+  const [versionPreview, setVersionPreview] = useState<ProcessModelTableItem>();
   const [versionLoading, setVersionLoading] = useState(false);
   const session = getSessionContext();
   const canStartProcess =
