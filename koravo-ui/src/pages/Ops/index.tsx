@@ -24,6 +24,7 @@ import {
 } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import { CopyableText } from '@/components/CopyableText';
+import ExceptionDiagnostics from '@/components/ExceptionDiagnostics';
 import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import ProcessContextSummary from '@/components/ProcessContextSummary';
@@ -1047,22 +1048,9 @@ const Ops: React.FC = () => {
                         emptyText="暂无处理器配置"
                       />
                       <Typography.Title level={5}>错误详情</Typography.Title>
-                      {jobDetail.exceptionStacktrace ? (
-                        <Typography.Paragraph
-                          copyable
-                          style={{
-                            marginBottom: 0,
-                            maxHeight: 360,
-                            overflow: 'auto',
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {jobDetail.exceptionStacktrace}
-                        </Typography.Paragraph>
-                      ) : (
-                        <Empty description="暂无错误详情" />
-                      )}
+                      <ExceptionDiagnostics
+                        value={jobDetail.exceptionStacktrace}
+                      />
                     </Space>
                   ),
                 },

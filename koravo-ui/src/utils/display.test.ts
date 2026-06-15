@@ -215,6 +215,10 @@ describe('display helpers', () => {
     expect(businessFieldLabel('jobId')).toBe('任务编号');
     expect(businessFieldLabel('exceptionMessage')).toBe('异常信息');
     expect(businessFieldLabel('exceptionStacktrace')).toBe('异常堆栈');
+    expect(businessFieldLabel('exceptionType')).toBe('异常类型');
+    expect(businessFieldLabel('rootCause')).toBe('根因');
+    expect(businessFieldLabel('applicationFrame')).toBe('发生位置');
+    expect(businessFieldLabel('stackFrameCount')).toBe('堆栈行数');
     expect(businessFieldLabel('fromVersion')).toBe('恢复版本');
     expect(businessFieldLabel('applicantName')).toBe('发起人');
     expect(businessFieldLabel('applicantDepartment')).toBe('申请部门');
