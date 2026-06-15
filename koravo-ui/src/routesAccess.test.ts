@@ -3,6 +3,7 @@ import routes from '../config/routes';
 
 interface AppRoute {
   key?: string;
+  name?: string;
   path?: string;
   access?: string;
   hideInMenu?: boolean;
@@ -63,10 +64,11 @@ describe('route access declarations', () => {
     expect(accessByPath.get('/http-connector')).toBe('canManageIntegration');
   });
 
-  it('keeps applicant menu focused on process center', () => {
+  it('keeps applicant menu focused on workflow workbench', () => {
     const accessByPath = routeAccessByPath(routes);
 
     expect(routeByKey(routes, 'workbench')?.access).toBe('canHandleTask');
+    expect(routeByKey(routes, 'process-center')?.name).toBe('工作台');
     expect(routeByKey(routes, 'process-center')?.access).toBe(
       'canStartProcess',
     );

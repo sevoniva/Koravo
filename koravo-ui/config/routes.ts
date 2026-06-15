@@ -53,7 +53,7 @@ export default [
   },
   {
     key: 'process-center',
-    name: '流程中心',
+    name: '工作台',
     icon: 'playCircle',
     access: 'canStartProcess',
     routes: [
