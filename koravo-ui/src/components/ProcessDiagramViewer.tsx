@@ -58,6 +58,7 @@ interface ProcessDiagramViewerProps {
   bpmnXml?: string;
   currentActivityIds?: string[];
   fitMode?: 'readable' | 'fit';
+  showStatusOverlay?: boolean;
   timeline?: ProcessTraceNode[];
   height?: number;
   viewMode?: 'bpmn' | 'steps';
@@ -652,6 +653,7 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
   bpmnXml,
   currentActivityIds = [],
   fitMode = 'readable',
+  showStatusOverlay = true,
   timeline = [],
   height = 360,
   viewMode = 'bpmn',
@@ -862,11 +864,13 @@ const ProcessDiagramViewer: React.FC<ProcessDiagramViewerProps> = ({
       data-testid="process-diagram-viewer"
     >
       <div ref={mountRef} className={styles.mount} />
-      <DiagramStatusOverlay
-        bpmnXml={normalizedBpmnXml}
-        currentActivityIds={currentActivityIds}
-        timeline={timeline}
-      />
+      {showStatusOverlay ? (
+        <DiagramStatusOverlay
+          bpmnXml={normalizedBpmnXml}
+          currentActivityIds={currentActivityIds}
+          timeline={timeline}
+        />
+      ) : null}
       <Space.Compact className={styles.toolbar}>
         <Tooltip title="适配视图">
           <Button

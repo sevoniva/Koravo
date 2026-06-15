@@ -4,9 +4,14 @@ import type { ProcessTrace, TaskItem } from '@/services/koravo/api';
 import ProcessProgressCard from './ProcessProgressCard';
 
 const processDiagramViewerMock = vi.hoisted(() =>
-  vi.fn((props: { viewMode?: string; height?: number }) => (
+  vi.fn((props: {
+    showStatusOverlay?: boolean;
+    viewMode?: string;
+    height?: number;
+  }) => (
     <div
       data-height={props.height}
+      data-show-status-overlay={String(props.showStatusOverlay)}
       data-testid="process-diagram-viewer"
       data-view-mode={props.viewMode || 'bpmn'}
     />
@@ -95,6 +100,10 @@ describe('ProcessProgressCard', () => {
     expect(screen.getByTestId('process-diagram-viewer')).toHaveAttribute(
       'data-view-mode',
       'bpmn',
+    );
+    expect(screen.getByTestId('process-diagram-viewer')).toHaveAttribute(
+      'data-show-status-overlay',
+      'false',
     );
     expect(screen.getByTestId('process-diagram-viewer')).toHaveAttribute(
       'data-height',

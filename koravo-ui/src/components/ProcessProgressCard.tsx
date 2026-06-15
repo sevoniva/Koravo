@@ -691,6 +691,7 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
             resolvedCurrentTasks,
             activeTask,
           )}
+          showStatusOverlay={false}
           timeline={trace?.timeline}
           height={diagramHeight(trace)}
         />
