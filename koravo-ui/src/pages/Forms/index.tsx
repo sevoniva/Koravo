@@ -686,6 +686,19 @@ interface FieldChangeSummaryResult {
   changed: FormFieldConfig[];
 }
 
+interface FieldReleaseImpactItem {
+  key: string;
+  color: string;
+  text: string;
+}
+
+export interface FieldReleaseImpactResult {
+  level: 'success' | 'info' | 'warning' | 'error';
+  title: string;
+  description: string;
+  items: FieldReleaseImpactItem[];
+}
+
 export function fieldChangeSummary(
   originalFields: FormFieldConfig[],
   currentFields?: FormFieldConfig[],
@@ -711,6 +724,143 @@ export function fieldChangeSummary(
 
 export function fieldChangeCount(summary: FieldChangeSummaryResult) {
   return summary.added.length + summary.removed.length + summary.changed.length;
+}
+
+function changedFieldBeforeMap(fields: FormFieldConfig[]) {
+  return new Map(fields.map((field) => [field.fieldKey, field]));
+}
+
+function isCriticalFieldChange(before: FormFieldConfig, after: FormFieldConfig) {
+  return (
+    before.type !== after.type ||
+    Boolean(before.required) !== Boolean(after.required) ||
+    (before.permission || 'editable') !== (after.permission || 'editable') ||
+    usesOrganizationProfile(before) !== usesOrganizationProfile(after) ||
+    usesOrganizationAssignee(before) !== usesOrganizationAssignee(after)
+  );
+}
+
+function fieldNames(fields: FormFieldConfig[], limit = 4) {
+  const names = fields.map(fieldDisplayName).filter(Boolean);
+  if (names.length <= limit) return names.join('、');
+  return `${names.slice(0, limit).join('、')} 等 ${names.length} 个`;
+}
+
+export function fieldReleaseImpact(
+  originalFields: FormFieldConfig[],
+  currentFields: FormFieldConfig[] = originalFields,
+  impact: FormBindingImpact,
+): FieldReleaseImpactResult {
+  const summary = fieldChangeSummary(originalFields, currentFields);
+  const changedCount = fieldChangeCount(summary);
+  const beforeByKey = changedFieldBeforeMap(originalFields);
+  const criticalChangedFields = summary.changed.filter((field) => {
+    const before = beforeByKey.get(field.fieldKey);
+    return before ? isCriticalFieldChange(before, field) : false;
+  });
+  const removedRequiredFields = summary.removed.filter((field) => field.required);
+  const organizationChangedFields = [
+    ...summary.removed.filter(
+      (field) => usesOrganizationProfile(field) || usesOrganizationAssignee(field),
+    ),
+    ...criticalChangedFields.filter((field) => {
+      const before = beforeByKey.get(field.fieldKey);
+      return Boolean(
+        before &&
+          (usesOrganizationProfile(before) ||
+            usesOrganizationAssignee(before) ||
+            usesOrganizationProfile(field) ||
+            usesOrganizationAssignee(field)),
+      );
+    }),
+  ];
+  const hasHighRisk =
+    removedRequiredFields.length > 0 || organizationChangedFields.length > 0;
+  const items: FieldReleaseImpactItem[] = [];
+
+  if (impact.start) {
+    items.push({
+      key: 'start',
+      color: 'success',
+      text: `影响 ${impact.start} 个发起表单，新的发起页面会使用保存后的字段。`,
+    });
+  }
+  if (impact.task) {
+    items.push({
+      key: 'task',
+      color: 'blue',
+      text: `影响 ${impact.task} 个任务表单，新的待办办理页会使用保存后的字段。`,
+    });
+  }
+  if (summary.added.length) {
+    items.push({
+      key: 'added',
+      color: 'green',
+      text: `新增字段：${fieldNames(summary.added)}`,
+    });
+  }
+  if (summary.changed.length) {
+    items.push({
+      key: 'changed',
+      color: criticalChangedFields.length ? 'orange' : 'gold',
+      text: `修改字段：${fieldNames(summary.changed)}`,
+    });
+  }
+  if (summary.removed.length) {
+    items.push({
+      key: 'removed',
+      color: 'red',
+      text: `删除字段：${fieldNames(summary.removed)}`,
+    });
+  }
+  if (removedRequiredFields.length) {
+    items.push({
+      key: 'required',
+      color: 'red',
+      text: `删除必填字段：${fieldNames(removedRequiredFields)}。后续提交不再采集这些字段。`,
+    });
+  }
+  if (organizationChangedFields.length) {
+    items.push({
+      key: 'organization',
+      color: 'purple',
+      text: `组织联动变化：${fieldNames(organizationChangedFields)}。确认申请人、部门和审批人仍从组织成员带出。`,
+    });
+  }
+  if (impact.total) {
+    items.push({
+      key: 'snapshot',
+      color: 'default',
+      text: '历史表单快照不变，仅影响后续发起和办理。',
+    });
+  }
+
+  if (!impact.total) {
+    return {
+      level: 'info',
+      title: changedCount ? '未绑定流程节点' : '暂无流程绑定',
+      description: changedCount
+        ? '保存后只更新表单设计，不影响运行中的流程。'
+        : '绑定到流程后，发起和办理页面会按这里的字段配置渲染。',
+      items,
+    };
+  }
+
+  if (!changedCount) {
+    return {
+      level: 'success',
+      title: '字段未变更',
+      description: `${bindingImpactText(impact)}，当前版本可继续用于发起和办理。`,
+      items,
+    };
+  }
+
+  return {
+    level: hasHighRisk ? 'warning' : 'info',
+    title: hasHighRisk ? '字段变更需确认' : '字段变更影响后续使用',
+    description: `${bindingImpactText(impact)}。保存后新发起和新办理按新字段渲染，历史快照保持原样。`,
+    items,
+  };
 }
 
 const schemaToFields = (
@@ -2141,6 +2291,43 @@ const FieldChangeSummary: React.FC<{
   );
 };
 
+const FieldReleaseImpact: React.FC<{
+  originalFields: FormFieldConfig[];
+  currentFields?: FormFieldConfig[];
+  impact: FormBindingImpact;
+}> = ({ originalFields, currentFields, impact }) => {
+  const releaseImpact = fieldReleaseImpact(
+    originalFields,
+    currentFields,
+    impact,
+  );
+
+  return (
+    <Alert
+      showIcon
+      type={releaseImpact.level}
+      title={releaseImpact.title}
+      description={
+        <Flex vertical gap={8}>
+          <Typography.Text type="secondary">
+            {releaseImpact.description}
+          </Typography.Text>
+          {releaseImpact.items.length ? (
+            <Space size={[4, 6]} wrap>
+              {releaseImpact.items.map((item) => (
+                <Tag key={item.key} color={item.color}>
+                  {item.text}
+                </Tag>
+              ))}
+            </Space>
+          ) : null}
+        </Flex>
+      }
+      style={{ marginBottom: 16 }}
+    />
+  );
+};
+
 const Forms: React.FC = () => {
   const { message } = App.useApp();
   const { styles } = useStyles();
@@ -2630,6 +2817,15 @@ const Forms: React.FC = () => {
                   )}
                   currentFields={fields as FormFieldConfig[] | undefined}
                 />
+                <FieldReleaseImpact
+                  originalFields={schemaToFields(
+                    editing.schemaJson,
+                    editing.uiSchemaJson,
+                    defaultFields,
+                  )}
+                  currentFields={fields as FormFieldConfig[] | undefined}
+                  impact={editingImpact}
+                />
               </>
             )}
           </ProFormDependency>
@@ -2695,6 +2891,11 @@ const Forms: React.FC = () => {
         {preview ? (
           <Flex vertical gap={16}>
             {renderFormVersionSummary(preview, previewFields, previewImpact)}
+            <FieldReleaseImpact
+              originalFields={previewFields}
+              currentFields={previewFields}
+              impact={previewImpact}
+            />
             {previewFields.length ? (
               <Tabs
                 items={[

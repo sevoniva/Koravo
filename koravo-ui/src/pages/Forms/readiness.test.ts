@@ -7,6 +7,7 @@ import {
   fieldChangeSummary,
   fieldEditorPanelOpenKeys,
   fieldEditorSummaryTags,
+  fieldReleaseImpact,
   formBlockingReadinessIssues,
   formReadinessIssues,
 } from './index';
@@ -278,6 +279,105 @@ describe('formReadinessIssues', () => {
     ]);
     expect(summary.changed.map((field) => field.fieldKey)).toEqual(['subject']);
     expect(fieldChangeCount(summary)).toBe(3);
+  });
+
+  it('explains release impact for bound start and task forms', () => {
+    const impact = fieldReleaseImpact(
+      [
+        {
+          fieldKey: 'requester',
+          title: '发起人',
+          type: 'string',
+          widget: 'organizationProfile',
+          required: true,
+          permission: 'readonly',
+        },
+        {
+          fieldKey: 'approvalUsers',
+          title: '审批人',
+          type: 'array',
+          widget: 'organizationMemberMulti',
+          required: true,
+        },
+        {
+          fieldKey: 'subject',
+          title: '事项名称',
+          type: 'string',
+          widget: 'input',
+          required: true,
+        },
+      ] as ReadinessField[],
+      [
+        {
+          fieldKey: 'requester',
+          title: '发起人',
+          type: 'string',
+          widget: 'organizationProfile',
+          required: true,
+          permission: 'readonly',
+        },
+        {
+          fieldKey: 'subject',
+          title: '事项名称',
+          type: 'string',
+          widget: 'textarea',
+          required: false,
+        },
+      ] as ReadinessField[],
+      {
+        total: 2,
+        start: 1,
+        task: 1,
+        versions: [3],
+      },
+    );
+
+    expect(impact.level).toBe('warning');
+    expect(impact.title).toBe('字段变更需确认');
+    expect(impact.description).toContain('1 个发起表单、1 个任务节点');
+    expect(impact.items.map((item) => item.text)).toEqual(
+      expect.arrayContaining([
+        '影响 1 个发起表单，新的发起页面会使用保存后的字段。',
+        '影响 1 个任务表单，新的待办办理页会使用保存后的字段。',
+        '删除字段：审批人',
+        '删除必填字段：审批人。后续提交不再采集这些字段。',
+        '组织联动变化：审批人。确认申请人、部门和审批人仍从组织成员带出。',
+        '历史表单快照不变，仅影响后续发起和办理。',
+      ]),
+    );
+  });
+
+  it('keeps release impact calm for unbound draft forms', () => {
+    const impact = fieldReleaseImpact(
+      [
+        {
+          fieldKey: 'subject',
+          title: '事项名称',
+          type: 'string',
+          widget: 'input',
+        },
+      ] as ReadinessField[],
+      [
+        {
+          fieldKey: 'subject',
+          title: '事项标题',
+          type: 'string',
+          widget: 'input',
+        },
+      ] as ReadinessField[],
+      {
+        total: 0,
+        start: 0,
+        task: 0,
+        versions: [],
+      },
+    );
+
+    expect(impact.level).toBe('info');
+    expect(impact.title).toBe('未绑定流程节点');
+    expect(impact.description).toBe(
+      '保存后只更新表单设计，不影响运行中的流程。',
+    );
   });
 
   it('summarizes editable field panels without exposing raw config names', () => {
