@@ -74,6 +74,21 @@ const useStyles = createStyles(({ css, token }) => ({
       grid-template-columns: minmax(0, 1fr);
     }
   `,
+  actionLine: css`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    align-items: center;
+    min-width: 0;
+
+    .ant-tag {
+      margin-inline-end: 0;
+    }
+  `,
+  actionDetail: css`
+    min-width: 0;
+    word-break: break-word;
+  `,
   metric: css`
     min-width: 0;
   `,
@@ -316,6 +331,98 @@ function isCompletedTask(task?: TaskItem) {
   return String(task?.status || '').toUpperCase() === 'COMPLETED';
 }
 
+function taskHandlerName(task: TaskItem) {
+  return task.assignee ? organizationMemberName(task.assignee) : '未分配';
+}
+
+function pendingHandlerNames(pendingTasks: TaskItem[]) {
+  return uniqueText(pendingTasks.map(taskHandlerName));
+}
+
+function pendingHandlerText(pendingTasks: TaskItem[], fallback: string) {
+  const handlers = pendingHandlerNames(pendingTasks);
+  return handlers.length ? handlers.join('、') : fallback;
+}
+
+function personalProgress(
+  trace: ProcessTrace | undefined,
+  pendingTasks: TaskItem[],
+  activeTask?: TaskItem,
+  currentUserId?: string,
+) {
+  const status = String(trace?.status || '').toUpperCase();
+  const pendingText = pendingHandlerText(
+    pendingTasks,
+    status === 'COMPLETED' || status === 'TERMINATED' ? '无待办' : '待流转',
+  );
+
+  if (activeTask) {
+    const handler = taskHandlerName(activeTask);
+    if (isCompletedTask(activeTask)) {
+      return {
+        color: 'success',
+        label:
+          activeTask.assignee && activeTask.assignee === currentUserId
+            ? '你已处理'
+            : `${handler}已处理`,
+        detail: pendingTasks.length ? `还差：${pendingText}` : '无待办',
+      };
+    }
+    if (!activeTask.assignee) {
+      return {
+        color: 'warning',
+        label: '待认领',
+        detail: `待处理：${pendingText}`,
+      };
+    }
+    if (activeTask.assignee === currentUserId) {
+      return {
+        color: 'processing',
+        label: '待你处理',
+        detail:
+          pendingTasks.length > 1 ? `同节点：${pendingText}` : '提交后流转',
+      };
+    }
+    return {
+      color: 'default',
+      label: `待${handler}`,
+      detail: `待处理：${pendingText}`,
+    };
+  }
+
+  if (pendingTasks.some((task) => task.assignee === currentUserId)) {
+    return {
+      color: 'processing',
+      label: '待你处理',
+      detail: pendingTasks.length > 1 ? `同节点：${pendingText}` : '提交后流转',
+    };
+  }
+  if (pendingTasks.some((task) => !task.assignee)) {
+    return {
+      color: 'warning',
+      label: '待认领',
+      detail: `待处理：${pendingText}`,
+    };
+  }
+  if (pendingTasks.length) {
+    return {
+      color: 'default',
+      label: '等待处理',
+      detail: `待处理：${pendingText}`,
+    };
+  }
+  if (status === 'COMPLETED') {
+    return { color: 'success', label: '已结束', detail: '无待办' };
+  }
+  if (status === 'TERMINATED') {
+    return { color: 'error', label: '已终止', detail: '无待办' };
+  }
+  if (status === 'SUSPENDED') {
+    return { color: 'warning', label: '已挂起', detail: '待恢复' };
+  }
+  return { color: 'default', label: '待流转', detail: '等待任务生成' };
+}
+
 function buildTimelineItems(timeline: ProcessTraceNode[]) {
   return recentTimelineNodes(timeline).map((node, index) => ({
     key: `${node.activityId}-${node.startTime || index}`,
@@ -432,9 +539,12 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
   loading,
 }) => {
   const { styles } = useStyles();
-  const activeNodes = currentNodes(trace, currentTasks);
-  const pendingTasks = currentTasks.filter(
-    (task) => task.status !== 'COMPLETED',
+  const resolvedCurrentTasks = currentTasks.length
+    ? currentTasks
+    : trace?.currentTasks || [];
+  const activeNodes = currentNodes(trace, resolvedCurrentTasks);
+  const pendingTasks = resolvedCurrentTasks.filter(
+    (task) => !isCompletedTask(task),
   );
   const isCompleted = String(trace?.status || '').toUpperCase() === 'COMPLETED';
   const rawNodeText = currentNodeText(activeTask, activeNodes);
@@ -462,6 +572,12 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
     trace,
     pendingTasks,
     taskGroups,
+    activeTask,
+    currentUserId,
+  );
+  const personal = personalProgress(
+    trace,
+    pendingTasks,
     activeTask,
     currentUserId,
   );
@@ -562,11 +678,17 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
           />
           <Typography.Text type="secondary">{progressText}</Typography.Text>
         </div>
+        <div className={styles.actionLine}>
+          <Tag color={personal.color}>{personal.label}</Tag>
+          <Typography.Text type="secondary" className={styles.actionDetail}>
+            {personal.detail}
+          </Typography.Text>
+        </div>
         <ProcessDiagramViewer
           bpmnXml={trace?.bpmnXml}
           currentActivityIds={progressCurrentActivityIds(
             trace,
-            currentTasks,
+            resolvedCurrentTasks,
             activeTask,
           )}
           timeline={trace?.timeline}

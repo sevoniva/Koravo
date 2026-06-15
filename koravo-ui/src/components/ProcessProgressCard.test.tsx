@@ -128,9 +128,30 @@ describe('ProcessProgressCard', () => {
     );
 
     expect(screen.getByText('已完成')).toBeInTheDocument();
+    expect(screen.getByText('你已处理')).toBeInTheDocument();
+    expect(screen.getByText('还差：复核专员')).toBeInTheDocument();
     expect(screen.queryByText('待你处理')).not.toBeInTheDocument();
     expect(screen.getByText('复核专员')).toBeInTheDocument();
     expect(screen.getByText('处理中')).toBeInTheDocument();
+  });
+
+  it('uses trace current tasks when callers only provide the trace', () => {
+    render(
+      <ProcessProgressCard
+        trace={{
+          ...trace,
+          currentTasks: [
+            task({ taskId: 'task-manager', assignee: 'manager' }),
+            task({ taskId: 'task-finance', assignee: 'finance' }),
+          ],
+        }}
+        currentUserId="manager"
+      />,
+    );
+
+    expect(screen.getByText('待你处理')).toBeInTheDocument();
+    expect(screen.getByText('同节点：审批主管、复核专员')).toBeInTheDocument();
+    expect(screen.getByText('会签 2 人')).toBeInTheDocument();
   });
 
   it('shows the end state instead of an empty current node after completion', () => {
@@ -157,7 +178,7 @@ describe('ProcessProgressCard', () => {
     );
 
     expect(screen.getByText('结束')).toBeInTheDocument();
-    expect(screen.getByText('无待办')).toBeInTheDocument();
+    expect(screen.getAllByText('无待办').length).toBeGreaterThan(0);
     expect(screen.getAllByText('3/3 节点').length).toBeGreaterThan(0);
     expect(screen.queryByText('当前节点')).toBeInTheDocument();
   });
