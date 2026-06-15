@@ -58,6 +58,7 @@ import {
 import { formatDateTime, maskSecret } from '@/utils/format';
 import {
   isStartSuccessRedirect,
+  processInstanceDetailPath,
   startSuccessDescription,
 } from '@/utils/processStartNotice';
 import {
@@ -68,6 +69,7 @@ import {
   buildInstanceReviewItems,
   formSnapshotData,
   type InstanceReviewItem,
+  isTaskDetailForInstance,
   mergeInstanceAuditLogs,
   mergeInstanceFormSnapshots,
   reviewSourceLabel,
@@ -379,13 +381,23 @@ const ProcessInstanceDetail: React.FC = () => {
     enabled: Boolean(focusedTaskId && canOpenTaskDetail),
     retry: false,
   });
+  const focusedTaskDetailForInstance = isTaskDetailForInstance(
+    instanceId,
+    focusedTaskDetail,
+  )
+    ? focusedTaskDetail
+    : undefined;
+  const focusedTaskMismatchInstanceId =
+    focusedTaskId && focusedTaskDetail && !focusedTaskDetailForInstance
+      ? focusedTaskDetail.task.processInstanceId
+      : undefined;
   const instanceFormSnapshots = React.useMemo(
     () =>
       mergeInstanceFormSnapshots(
         formSnapshots,
-        focusedTaskDetail?.formSnapshots,
+        focusedTaskDetailForInstance?.formSnapshots,
       ),
-    [focusedTaskDetail?.formSnapshots, formSnapshots],
+    [focusedTaskDetailForInstance?.formSnapshots, formSnapshots],
   );
   const primarySnapshot = React.useMemo(
     () =>
@@ -411,7 +423,7 @@ const ProcessInstanceDetail: React.FC = () => {
     focusedTaskId,
     currentTasks.find((task) => task.taskId === focusedTaskId),
     focusedSnapshot,
-    focusedTaskDetail?.task,
+    focusedTaskDetailForInstance?.task,
   );
   const timeline = trace?.timeline || [];
   const traceRows = React.useMemo(() => {
@@ -426,20 +438,24 @@ const ProcessInstanceDetail: React.FC = () => {
     () =>
       mergeInstanceAuditLogs(
         auditLogs?.items || instance?.auditLogs || [],
-        focusedTaskDetail?.auditLogs,
+        focusedTaskDetailForInstance?.auditLogs,
       ),
-    [auditLogs?.items, focusedTaskDetail?.auditLogs, instance?.auditLogs],
+    [
+      auditLogs?.items,
+      focusedTaskDetailForInstance?.auditLogs,
+      instance?.auditLogs,
+    ],
   );
   const reviewItems = React.useMemo(
     () =>
       buildInstanceReviewItems(
         instanceFormSnapshots,
         instanceAuditLogs,
-        focusedTaskDetail?.comments,
+        focusedTaskDetailForInstance?.comments,
         focusedTaskId,
       ),
     [
-      focusedTaskDetail?.comments,
+      focusedTaskDetailForInstance?.comments,
       focusedTaskId,
       instanceAuditLogs,
       instanceFormSnapshots,
@@ -697,11 +713,32 @@ const ProcessInstanceDetail: React.FC = () => {
       {focusedTaskId ? (
         <Alert
           showIcon
-          type="info"
-          title={`关联任务：${shortTraceLabel(focusedTaskId)}`}
-          description={focusedTaskStatus}
+          type={focusedTaskMismatchInstanceId ? 'warning' : 'info'}
+          title={
+            focusedTaskMismatchInstanceId
+              ? `任务不属于当前实例：${shortTraceLabel(focusedTaskId)}`
+              : `关联任务：${shortTraceLabel(focusedTaskId)}`
+          }
+          description={
+            focusedTaskMismatchInstanceId
+              ? `该任务关联到流程追踪号 ${shortTraceLabel(focusedTaskMismatchInstanceId)}。`
+              : focusedTaskStatus
+          }
           action={
-            canOperateInstance ? (
+            focusedTaskMismatchInstanceId ? (
+              <Button
+                size="small"
+                onClick={() =>
+                  history.push(
+                    processInstanceDetailPath(focusedTaskMismatchInstanceId, {
+                      taskId: focusedTaskId,
+                    }),
+                  )
+                }
+              >
+                查看对应实例
+              </Button>
+            ) : canOperateInstance ? (
               <Button
                 size="small"
                 onClick={() =>

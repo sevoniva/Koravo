@@ -3,10 +3,13 @@ import type {
   AuditLogItem,
   FormSnapshotItem,
   TaskCommentItem,
+  TaskDetail,
+  TaskItem,
 } from '@/services/koravo/api';
 import {
   buildInstanceReviewItems,
   formSnapshotData,
+  isTaskDetailForInstance,
   mergeInstanceAuditLogs,
   mergeInstanceFormSnapshots,
 } from './instanceReviewContext';
@@ -48,6 +51,33 @@ function comment(partial: Partial<TaskCommentItem>): TaskCommentItem {
     userId: partial.userId || 'manager',
     message: partial.message || '已核对',
     time: partial.time || '2026-06-15T10:10:00Z',
+  };
+}
+
+function task(partial: Partial<TaskItem>): TaskItem {
+  return {
+    taskId: partial.taskId || 'task-1',
+    name: partial.name || '审批处理',
+    processInstanceId: partial.processInstanceId || 'instance-1',
+    processDefinitionId: partial.processDefinitionId || 'definition-1',
+    businessKey: partial.businessKey || 'REQ-1',
+    createTime: partial.createTime || '2026-06-15T10:00:00Z',
+    assignee: partial.assignee || 'manager',
+    taskDefinitionKey: partial.taskDefinitionKey || 'approvalTask',
+    status: partial.status || 'COMPLETED',
+  };
+}
+
+function taskDetail(partial: Partial<TaskDetail>): TaskDetail {
+  return {
+    task: partial.task || task({}),
+    formBinding: partial.formBinding,
+    formSchema: partial.formSchema,
+    processVariables: partial.processVariables || {},
+    taskVariables: partial.taskVariables || {},
+    comments: partial.comments || [],
+    formSnapshots: partial.formSnapshots || [],
+    auditLogs: partial.auditLogs || [],
   };
 }
 
@@ -217,6 +247,21 @@ describe('instanceReviewContext', () => {
         (item) => item.id,
       ),
     ).toEqual(['audit-1', 'audit-2']);
+  });
+
+  it('only accepts task detail from the current process instance', () => {
+    expect(
+      isTaskDetailForInstance(
+        'instance-1',
+        taskDetail({ task: task({ processInstanceId: 'instance-1' }) }),
+      ),
+    ).toBe(true);
+    expect(
+      isTaskDetailForInstance(
+        'instance-1',
+        taskDetail({ task: task({ processInstanceId: 'instance-2' }) }),
+      ),
+    ).toBe(false);
   });
 
   it('parses snapshot data safely', () => {

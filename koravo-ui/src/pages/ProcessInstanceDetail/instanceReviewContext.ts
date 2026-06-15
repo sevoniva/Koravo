@@ -3,6 +3,7 @@ import type {
   FormSnapshotItem,
   JsonRecord,
   TaskCommentItem,
+  TaskDetail,
 } from '@/services/koravo/api';
 import { organizationMemberName } from '@/services/koravo/organization';
 import {
@@ -120,6 +121,17 @@ export function mergeInstanceAuditLogs(
   fallback: AuditLogItem[] = [],
 ) {
   return mergeById(primary, fallback);
+}
+
+export function isTaskDetailForInstance(
+  instanceId: string,
+  detail?: TaskDetail,
+) {
+  return Boolean(
+    instanceId &&
+      detail?.task.processInstanceId &&
+      detail.task.processInstanceId === instanceId,
+  );
 }
 
 function auditTaskId(log: AuditLogItem, detail: JsonRecord) {
