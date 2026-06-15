@@ -3,6 +3,7 @@ import {
   actionOptions,
   auditCanOpenProcessContext,
   auditProcessInstanceId,
+  auditTaskId,
 } from './index';
 
 vi.mock('@ant-design/pro-components', () => ({
@@ -52,6 +53,34 @@ describe('AuditLogs actionOptions', () => {
         createdAt: '2026-01-01T00:00:00Z',
       }),
     ).toBe('process-2');
+  });
+
+  it('finds task context from task audit records', () => {
+    expect(
+      auditTaskId({
+        id: 'audit-task',
+        tenantId: 'default',
+        userId: 'manager',
+        action: 'TASK_COMPLETE',
+        resourceType: 'TASK',
+        resourceId: 'task-1',
+        detailJson: '{}',
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    ).toBe('task-1');
+
+    expect(
+      auditTaskId({
+        id: 'audit-start',
+        tenantId: 'default',
+        userId: 'applicant',
+        action: 'PROCESS_INSTANCE_START',
+        resourceType: 'PROCESS_INSTANCE',
+        resourceId: 'process-1',
+        detailJson: JSON.stringify({ taskId: 'task-2' }),
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    ).toBe('task-2');
   });
 
   it('lets audit operators open process context from audit detail', () => {

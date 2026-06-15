@@ -102,6 +102,17 @@ function snapshotSummary(record: FormSnapshotItem) {
   );
 }
 
+function taskContextStatus(
+  taskId: string | undefined,
+  currentTask?: TaskItem,
+  snapshot?: FormSnapshotItem,
+) {
+  if (!taskId) return undefined;
+  if (currentTask) return `当前任务：${taskNameLabel(currentTask)}`;
+  if (snapshot) return `已匹配${snapshotTaskLabel(snapshot)}`;
+  return '未匹配快照，查看执行轨迹和审计记录';
+}
+
 function instanceActionDisabled(
   status: string | undefined,
   action: 'suspend' | 'activate' | 'terminate',
@@ -285,6 +296,10 @@ const ProcessInstanceDetail: React.FC = () => {
   const location = useLocation();
   const instanceId = params.instanceId || '';
   const startedFromCreate = isStartSuccessRedirect(location.search);
+  const focusedTaskId = React.useMemo(() => {
+    const value = new URLSearchParams(location.search).get('taskId')?.trim();
+    return value || undefined;
+  }, [location.search]);
   const session = getSessionContext();
   const canOperateInstance =
     session.permissions?.canOperateSystem ?? session.role === 'operator';
@@ -342,6 +357,19 @@ const ProcessInstanceDetail: React.FC = () => {
     enabled: canOperateInstance && Boolean(instanceId),
   });
   const currentTasks = instance?.currentTasks || [];
+  const focusedTask = React.useMemo(
+    () => currentTasks.find((task) => task.taskId === focusedTaskId),
+    [currentTasks, focusedTaskId],
+  );
+  const focusedSnapshot = React.useMemo(
+    () => formSnapshots.find((snapshot) => snapshot.taskId === focusedTaskId),
+    [focusedTaskId, formSnapshots],
+  );
+  const focusedTaskStatus = taskContextStatus(
+    focusedTaskId,
+    focusedTask,
+    focusedSnapshot,
+  );
   const timeline = trace?.timeline || [];
   const traceRows = React.useMemo(() => {
     const visibleTimeline = timeline.filter(
@@ -360,7 +388,14 @@ const ProcessInstanceDetail: React.FC = () => {
       {
         title: '任务名称',
         dataIndex: 'name',
-        renderText: (_, record) => taskNameLabel(record),
+        render: (_, record) => (
+          <Space wrap size={4}>
+            <span>{taskNameLabel(record)}</span>
+            {record.taskId === focusedTaskId ? (
+              <Tag color="processing">关联任务</Tag>
+            ) : null}
+          </Space>
+        ),
       },
       {
         title: '节点',
@@ -407,7 +442,7 @@ const ProcessInstanceDetail: React.FC = () => {
         },
       },
     ],
-    [canOpenTaskDetail, openTaskAsAssignee, session.userId],
+    [canOpenTaskDetail, focusedTaskId, openTaskAsAssignee, session.userId],
   );
   const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     {
@@ -426,7 +461,14 @@ const ProcessInstanceDetail: React.FC = () => {
       title: '节点',
       dataIndex: 'taskId',
       width: 140,
-      render: (_, record) => snapshotTaskLabel(record),
+      render: (_, record) => (
+        <Space wrap size={4}>
+          <span>{snapshotTaskLabel(record)}</span>
+          {record.taskId && record.taskId === focusedTaskId ? (
+            <Tag color="processing">关联任务</Tag>
+          ) : null}
+        </Space>
+      ),
     },
     {
       title: '提交摘要',
@@ -507,6 +549,29 @@ const ProcessInstanceDetail: React.FC = () => {
             <Button size="small" onClick={() => history.push('/started-instances')}>
               我的申请
             </Button>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
+      {focusedTaskId ? (
+        <Alert
+          showIcon
+          type="info"
+          title={`关联任务：${shortTraceLabel(focusedTaskId)}`}
+          description={focusedTaskStatus}
+          action={
+            canOperateInstance ? (
+              <Button
+                size="small"
+                onClick={() =>
+                  history.push(
+                    `/audit-logs?resourceId=${encodeURIComponent(focusedTaskId)}`,
+                  )
+                }
+              >
+                任务审计
+              </Button>
+            ) : null
           }
           style={{ marginBottom: 16 }}
         />

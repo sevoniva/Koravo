@@ -110,6 +110,13 @@ export function auditProcessInstanceId(log?: AuditLogItem) {
   return undefined;
 }
 
+export function auditTaskId(log?: AuditLogItem) {
+  const detail = auditDetailRecord(log);
+  if (typeof detail.taskId === 'string') return detail.taskId;
+  if (log?.resourceType === 'TASK') return log.resourceId;
+  return undefined;
+}
+
 function auditProcessModelId(log?: AuditLogItem) {
   const detail = auditDetailRecord(log);
   if (typeof detail.processModelId === 'string') return detail.processModelId;
@@ -166,9 +173,25 @@ function auditRelatedButtons(
   access = auditRelatedAccess(),
 ) {
   const processInstanceId = auditProcessInstanceId(log);
+  const taskId = auditTaskId(log);
   const processModelId = auditProcessModelId(log);
   const actions: React.ReactNode[] = [];
 
+  if (processInstanceId && taskId && access.canOpenProcessInstance) {
+    actions.push(
+      <Button
+        key="task-context"
+        type="link"
+        onClick={() =>
+          history.push(
+            `/process-instances/${processInstanceId}?taskId=${encodeURIComponent(taskId)}`,
+          )
+        }
+      >
+        查看任务上下文
+      </Button>,
+    );
+  }
   if (processInstanceId && access.canOpenProcessInstance) {
     actions.push(
       <Button
