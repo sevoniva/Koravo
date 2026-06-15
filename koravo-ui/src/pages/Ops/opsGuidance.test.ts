@@ -26,6 +26,21 @@ describe('opsGuidanceSteps', () => {
     expect(steps[2].description).toContain('剩余重试为 0');
   });
 
+  it('keeps diagnostics wording product-facing when an exception summary is missing', () => {
+    const steps = opsJobGuidanceSteps({
+      type: 'DEAD_LETTER',
+      retries: 1,
+      processInstanceId: undefined,
+      processDefinitionId: undefined,
+      elementName: undefined,
+      elementId: 'serviceTask',
+      exceptionMessage: undefined,
+    });
+
+    expect(steps[1].description).toContain('诊断明细');
+    expect(steps[1].description).not.toContain('技术');
+  });
+
   it('guides connector failures through request, response, and retry tracking', () => {
     const steps = connectorGuidanceSteps({
       status: 'FAILED',

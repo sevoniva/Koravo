@@ -543,6 +543,83 @@ const Ops: React.FC = () => {
     queryFn: () => getOpsProcessTrace(jobDetail?.processInstanceId || ''),
     enabled: Boolean(selectedJob?.id && jobDetail?.processInstanceId),
   });
+  const reloadJobTables = React.useCallback(() => {
+    failedRef.current?.reload();
+    deadLetterRef.current?.reload();
+  }, []);
+  const retryFailedJobWithRefresh = React.useCallback(
+    async (id: string) => {
+      await retryFailedJob(id);
+      await refetchSummary();
+    },
+    [refetchSummary],
+  );
+  const retryDeadLetterJobWithRefresh = React.useCallback(
+    async (id: string) => {
+      await retryDeadLetterJob(id);
+      await refetchSummary();
+    },
+    [refetchSummary],
+  );
+  const deleteFailedJobWithRefresh = React.useCallback(
+    async (id: string) => {
+      await deleteFailedJob(id);
+      await refetchSummary();
+    },
+    [refetchSummary],
+  );
+  const deleteDeadLetterJobWithRefresh = React.useCallback(
+    async (id: string) => {
+      await deleteDeadLetterJob(id);
+      await refetchSummary();
+    },
+    [refetchSummary],
+  );
+  const retrySelectedJob = React.useCallback(async () => {
+    if (!selectedJob) return;
+
+    if (selectedJob.kind === 'dead-letter') {
+      await retryDeadLetterJobWithRefresh(selectedJob.id);
+    } else {
+      await retryFailedJobWithRefresh(selectedJob.id);
+    }
+    message.success('已提交重试');
+    reloadJobTables();
+    setSelectedJob(undefined);
+  }, [
+    message,
+    reloadJobTables,
+    retryDeadLetterJobWithRefresh,
+    retryFailedJobWithRefresh,
+    selectedJob,
+  ]);
+  const confirmDeleteSelectedJob = React.useCallback(() => {
+    if (!selectedJob) return;
+
+    modal.confirm({
+      title: '删除异常任务',
+      content: '确认删除该异常任务？',
+      okText: '删除',
+      cancelText: '取消',
+      onOk: async () => {
+        if (selectedJob.kind === 'dead-letter') {
+          await deleteDeadLetterJobWithRefresh(selectedJob.id);
+        } else {
+          await deleteFailedJobWithRefresh(selectedJob.id);
+        }
+        message.success('已删除');
+        reloadJobTables();
+        setSelectedJob(undefined);
+      },
+    });
+  }, [
+    deleteDeadLetterJobWithRefresh,
+    deleteFailedJobWithRefresh,
+    message,
+    modal,
+    reloadJobTables,
+    selectedJob,
+  ]);
   const instanceColumns = React.useMemo(
     () =>
       buildInstanceColumns((instance) =>
@@ -708,8 +785,8 @@ const Ops: React.FC = () => {
                 rowKey="id"
                 locale={{ emptyText: jobEmpty('暂无失败任务') }}
                 columns={jobColumns(
-                  retryFailedJob,
-                  deleteFailedJob,
+                  retryFailedJobWithRefresh,
+                  deleteFailedJobWithRefresh,
                   failedRef,
                   modal,
                   message,
@@ -740,8 +817,8 @@ const Ops: React.FC = () => {
                 rowKey="id"
                 locale={{ emptyText: jobEmpty('暂无死信任务') }}
                 columns={jobColumns(
-                  retryDeadLetterJob,
-                  deleteDeadLetterJob,
+                  retryDeadLetterJobWithRefresh,
+                  deleteDeadLetterJobWithRefresh,
                   deadLetterRef,
                   modal,
                   message,
@@ -816,6 +893,12 @@ const Ops: React.FC = () => {
         extra={
           jobDetail ? (
             <Space wrap size={4}>
+              <Button type="primary" onClick={retrySelectedJob}>
+                重试
+              </Button>
+              <Button danger onClick={confirmDeleteSelectedJob}>
+                删除
+              </Button>
               <Button
                 type="link"
                 onClick={() =>
@@ -934,7 +1017,7 @@ const Ops: React.FC = () => {
               items={[
                 {
                   key: 'diagnostics',
-                  label: '技术诊断信息',
+                  label: '诊断明细',
                   children: (
                     <Space vertical size={16} style={{ width: '100%' }}>
                       <ProDescriptions<OpsJobItem>
@@ -963,7 +1046,7 @@ const Ops: React.FC = () => {
                         value={jobDetail.handlerConfiguration}
                         emptyText="暂无处理器配置"
                       />
-                      <Typography.Title level={5}>异常堆栈</Typography.Title>
+                      <Typography.Title level={5}>错误详情</Typography.Title>
                       {jobDetail.exceptionStacktrace ? (
                         <Typography.Paragraph
                           copyable
@@ -978,7 +1061,7 @@ const Ops: React.FC = () => {
                           {jobDetail.exceptionStacktrace}
                         </Typography.Paragraph>
                       ) : (
-                        <Empty description="暂无异常堆栈" />
+                        <Empty description="暂无错误详情" />
                       )}
                     </Space>
                   ),
@@ -1123,7 +1206,7 @@ const Ops: React.FC = () => {
               items={[
                 {
                   key: 'diagnostics',
-                  label: '技术诊断信息',
+                  label: '诊断明细',
                   children: (
                     <StructuredDetailTable
                       value={{
@@ -1133,7 +1216,7 @@ const Ops: React.FC = () => {
                         status: connectorDetail.status,
                         statusCode: connectorDetail.statusCode,
                       }}
-                      emptyText="暂无技术诊断信息"
+                      emptyText="暂无诊断明细"
                     />
                   ),
                 },

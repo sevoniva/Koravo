@@ -78,7 +78,7 @@ export function opsJobGuidanceSteps(
       title: '确认原因',
       description: job.exceptionMessage
         ? `先处理异常摘要：${job.exceptionMessage}`
-        : `${jobTypeText}没有返回异常摘要，查看技术诊断信息。`,
+        : `${jobTypeText}没有返回异常摘要，展开诊断明细。`,
     },
     {
       title: '处置结果',
