@@ -70,11 +70,11 @@ import {
   taskDefinitionLabel,
   taskNameLabel,
 } from '@/utils/display';
-import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
+import { formatDateTime, parseJsonSafe } from '@/utils/format';
 import {
+  type TaskHandlingState,
   taskActionAccess,
   taskHandlingSummary,
-  type TaskHandlingState,
 } from '@/utils/taskAccess';
 import {
   filterWorkflowFormValues,
@@ -93,6 +93,13 @@ import {
   buildTaskCompletionOutcome,
   type TaskCompletionOutcome,
 } from './completionOutcome';
+import {
+  reviewSnapshotValues,
+  shouldShowTaskComments,
+  shouldShowTaskSnapshots,
+  taskCompleted,
+  taskSnapshotForReview,
+} from './taskReviewContext';
 
 interface CompleteTaskForm {
   decision?: 'APPROVED' | 'REJECTED' | 'RETURNED';
@@ -994,9 +1001,23 @@ const TaskDetail: React.FC = () => {
       hasForm: Boolean(data?.formSchema),
       canClaimTask,
     });
-  const snapshotData = maskSecret(parseJsonSafe(snapshot?.dataJson, {}));
-  const showComments =
-    canViewOperationalContext || Boolean(data?.comments?.length);
+  const formSnapshots = data?.formSnapshots || [];
+  const taskDone = taskCompleted(task);
+  const reviewSnapshot = taskDone
+    ? taskSnapshotForReview(task, formSnapshots)
+    : undefined;
+  const reviewSnapshotData = reviewSnapshotValues(reviewSnapshot);
+  const snapshotData = reviewSnapshotValues(snapshot);
+  const showSnapshots = shouldShowTaskSnapshots(
+    task,
+    formSnapshots,
+    canViewOperationalContext,
+  );
+  const showComments = shouldShowTaskComments(
+    task,
+    data?.comments || [],
+    canViewOperationalContext,
+  );
   const openTaskAsAssignee = React.useCallback((nextTask: TaskItem) => {
     history.push(`/tasks/${nextTask.taskId}`);
   }, []);
@@ -1124,9 +1145,13 @@ const TaskDetail: React.FC = () => {
         : null}
       <ProCard title="业务数据" style={{ marginBottom: 16 }}>
         <BusinessDataDescriptions
-          schemaJson={data?.formSchema?.schemaJson}
-          uiSchemaJson={data?.formSchema?.uiSchemaJson}
-          values={data?.processVariables}
+          schemaJson={
+            reviewSnapshot?.schemaJson || data?.formSchema?.schemaJson
+          }
+          uiSchemaJson={
+            reviewSnapshot?.uiSchemaJson || data?.formSchema?.uiSchemaJson
+          }
+          values={reviewSnapshotData || data?.processVariables}
         />
       </ProCard>
       {canViewOperationalContext ? (
@@ -1218,79 +1243,79 @@ const TaskDetail: React.FC = () => {
         </ProCard>
       ) : null}
 
-      {canViewOperationalContext || showComments ? (
+      {canViewOperationalContext || showSnapshots || showComments ? (
         <Flex vertical gap={16}>
           {canViewOperationalContext ? (
-            <>
-              <ProCard title="表单">
-                <ProDescriptions
-                  column={{ xs: 1, sm: 1, md: 2 }}
-                  dataSource={data?.formSchema}
-                  columns={[
-                    {
-                      title: '表单名称',
-                      dataIndex: 'formName',
-                      renderText: (value) => formSchemaNameLabel(value),
-                    },
-                    { title: '表单标识', dataIndex: 'formKey' },
-                    {
-                      title: '版本',
-                      dataIndex: 'version',
-                      renderText: (value) => `v${value || 1}`,
-                    },
-                    {
-                      title: '状态',
-                      dataIndex: 'status',
-                      render: (_, record) => (
-                        <KoravoStatusTag status={record.status} />
-                      ),
-                    },
-                  ]}
-                />
-              </ProCard>
-              <ProCard title="表单快照">
-                <ProTable<FormSnapshotItem>
-                  rowKey="id"
-                  columns={[
-                    ...snapshotColumns,
-                    {
-                      title: '操作',
-                      valueType: 'option',
-                      render: (_, record) => (
-                        <Button type="link" onClick={() => setSnapshot(record)}>
-                          查看
-                        </Button>
-                      ),
-                    },
-                  ]}
-                  dataSource={data?.formSnapshots || []}
-                  search={false}
-                  pagination={false}
-                  options={false}
-                  locale={{
-                    emptyText: (
-                      <Empty
-                        description="暂无表单快照"
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      >
-                        {task ? (
-                          <Button
-                            onClick={() =>
-                              history.push(
-                                `/process-instances/${task.processInstanceId}`,
-                              )
-                            }
-                          >
-                            查看实例进度
-                          </Button>
-                        ) : null}
-                      </Empty>
+            <ProCard title="表单">
+              <ProDescriptions
+                column={{ xs: 1, sm: 1, md: 2 }}
+                dataSource={data?.formSchema}
+                columns={[
+                  {
+                    title: '表单名称',
+                    dataIndex: 'formName',
+                    renderText: (value) => formSchemaNameLabel(value),
+                  },
+                  { title: '表单标识', dataIndex: 'formKey' },
+                  {
+                    title: '版本',
+                    dataIndex: 'version',
+                    renderText: (value) => `v${value || 1}`,
+                  },
+                  {
+                    title: '状态',
+                    dataIndex: 'status',
+                    render: (_, record) => (
+                      <KoravoStatusTag status={record.status} />
                     ),
-                  }}
-                  scroll={{ x: 1000 }}
-                />
-              </ProCard>
-            </>
+                  },
+                ]}
+              />
+            </ProCard>
+          ) : null}
+          {showSnapshots ? (
+            <ProCard title="表单快照">
+              <ProTable<FormSnapshotItem>
+                rowKey="id"
+                columns={[
+                  ...snapshotColumns,
+                  {
+                    title: '操作',
+                    valueType: 'option',
+                    render: (_, record) => (
+                      <Button type="link" onClick={() => setSnapshot(record)}>
+                        查看
+                      </Button>
+                    ),
+                  },
+                ]}
+                dataSource={formSnapshots}
+                search={false}
+                pagination={false}
+                options={false}
+                locale={{
+                  emptyText: (
+                    <Empty
+                      description="暂无表单快照"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    >
+                      {task ? (
+                        <Button
+                          onClick={() =>
+                            history.push(
+                              `/process-instances/${task.processInstanceId}`,
+                            )
+                          }
+                        >
+                          查看实例进度
+                        </Button>
+                      ) : null}
+                    </Empty>
+                  ),
+                }}
+                scroll={{ x: 1000 }}
+              />
+            </ProCard>
           ) : null}
           {showComments ? (
             <ProCard title="处理意见">
