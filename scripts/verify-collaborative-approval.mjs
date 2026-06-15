@@ -32,11 +32,11 @@ async function main() {
   await assertSingleApproverRejected(applicant, workflow);
   const businessKey = verificationRequestId;
   const formData = {
-    subject: "通用业务申请验收",
-    businessDescription: "验证通用业务申请可以流转给多个审批人并完成会签。",
+    subject: "通用业务申请检查",
+    businessDescription: "检查通用业务申请可以流转给多个审批人并完成会签。",
     expectedResult: "全部审批人完成后流程结束。",
     approvalUsers: approverIds,
-    remark: "自动验收",
+    remark: "自动检查",
   };
   const instance = await startProcess(applicant, workflow, businessKey, formData);
   const startedTrace = await waitForTrace(applicant, instance.instanceId, "RUNNING");
@@ -249,8 +249,8 @@ async function startableWorkflow(session) {
 
 async function assertSingleApproverRejected(session, workflow) {
   const formData = {
-    subject: "单审批人拦截验收",
-    businessDescription: "验证通用一对多主流程不能退化成单人审批。",
+    subject: "单审批人规则检查",
+    businessDescription: "检查通用一对多主流程不能退化成单人审批。",
     expectedResult: "系统阻止单审批人发起。",
     approvalUsers: [approverIds[0]],
   };
@@ -271,7 +271,7 @@ async function assertAccessDeniedAudited(applicant, operator) {
     token: applicant.token,
     body: {
       modelKey: `forbiddenModel${Date.now()}`,
-      modelName: "越权访问验收",
+      modelName: "权限边界检查",
       description: "申请人不能维护流程模型",
     },
   });

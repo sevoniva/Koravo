@@ -75,7 +75,7 @@ describe('StructuredDetailTable', () => {
       <StructuredDetailTable
         value={{
           variables: {
-            subject: '通用业务申请验收',
+            subject: '通用业务申请检查',
             decision: 'APPROVED',
             approvalUser: 'finance',
             nrOfInstances: 2,
@@ -88,7 +88,7 @@ describe('StructuredDetailTable', () => {
     );
 
     expect(await screen.findByText('业务数据 / 事项名称')).toBeInTheDocument();
-    expect(screen.getByText('通用业务申请验收')).toBeInTheDocument();
+    expect(screen.getByText('通用业务申请检查')).toBeInTheDocument();
     expect(screen.getByText('业务数据 / 处理结论')).toBeInTheDocument();
     expect(screen.getByText('同意')).toBeInTheDocument();
     expect(screen.queryByText('APPROVED')).not.toBeInTheDocument();
@@ -108,7 +108,7 @@ describe('StructuredDetailTable', () => {
           request: JSON.stringify({
             url: 'http://localhost:8080/actuator/health',
             body: JSON.stringify({
-              subject: '通用业务申请验收',
+              subject: '通用业务申请检查',
               approvalUsers: ['manager', 'finance'],
               password: 'plain-password',
             }),
@@ -127,7 +127,7 @@ describe('StructuredDetailTable', () => {
     expect(screen.getByText('请求 / 请求地址')).toBeInTheDocument();
     expect(screen.getByText('本地服务健康检查')).toBeInTheDocument();
     expect(screen.getByText('请求 / 请求体 / 事项名称')).toBeInTheDocument();
-    expect(screen.getByText('通用业务申请验收')).toBeInTheDocument();
+    expect(screen.getByText('通用业务申请检查')).toBeInTheDocument();
     expect(screen.getByText('请求 / 请求体 / 审批人')).toBeInTheDocument();
     expect(screen.getAllByText('审批主管').length).toBeGreaterThan(0);
     expect(screen.getAllByText('复核专员').length).toBeGreaterThan(0);

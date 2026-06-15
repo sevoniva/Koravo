@@ -161,7 +161,7 @@ class ProcessModelServiceTest {
                 "default",
                 "admin",
                 "enterprise_approval_30_node",
-                "企业级审批链路验收",
+                "企业级审批链路检查",
                 "enterprise-approval-30-node.bpmn20.xml",
                 bpmnXml
         ))).thenReturn(new ProcessDeploymentDTO(
@@ -177,7 +177,7 @@ class ProcessModelServiceTest {
             return saved;
         });
 
-        var response = service.deploy("企业级审批链路验收", file, AssetOrigin.TEST_FIXTURE);
+        var response = service.deploy("企业级审批链路检查", file, AssetOrigin.TEST_FIXTURE);
 
         assertThat(response.platformModelId()).isEqualTo("fixture-model-1");
         ArgumentCaptor<KoProcessModel> modelCaptor = ArgumentCaptor.forClass(KoProcessModel.class);
@@ -258,7 +258,7 @@ class ProcessModelServiceTest {
 
         var response = service.importModel(new ProcessModelImportRequest(
                 "Expense Approval",
-                "Imported demo model",
+                "Imported workflow model",
                 bpmnXml
         ));
 

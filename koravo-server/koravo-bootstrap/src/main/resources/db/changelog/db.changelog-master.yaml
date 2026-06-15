@@ -577,7 +577,7 @@ databaseChangeLog:
             tableName: ko_process_model
             columns:
               - column: { name: asset_origin, value: TEST_FIXTURE }
-            where: model_key = 'enterpriseApproval30' and model_name like '%验收%'
+            where: model_key = 'enterpriseApproval30' and (model_name like '%验收%' or model_name like '%检查%')
   - changeSet:
       id: 0015-classify-enterprise-approval-fixtures
       author: koravo

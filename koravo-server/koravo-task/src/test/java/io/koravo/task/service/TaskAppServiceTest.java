@@ -125,7 +125,7 @@ class TaskAppServiceTest {
                 "manager",
                 1,
                 20,
-                "验收",
+                "检查",
                 "RUNNING",
                 null,
                 null,
@@ -135,7 +135,7 @@ class TaskAppServiceTest {
         when(processFacade.queryCandidateTasks(command))
                 .thenReturn(PageResult.of(List.of(), 0, 1, 20));
 
-        var result = service.queryCandidateTasks(1, 20, "验收", "RUNNING", null, null);
+        var result = service.queryCandidateTasks(1, 20, "检查", "RUNNING", null, null);
 
         assertThat(result.items()).isEmpty();
         verify(processFacade).queryCandidateTasks(command);
@@ -389,7 +389,7 @@ class TaskAppServiceTest {
         UserContextHolder.setUserId("manager");
         TaskDTO transferred = new TaskDTO(
                 "task-1",
-                "业务验收",
+                "业务检查",
                 "pi-1",
                 "pd-1",
                 "biz-1",

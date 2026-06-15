@@ -15,7 +15,7 @@ const bpmnFile = process.env.KORAVO_BPMN_FILE
 
 const processKey = "enterpriseApproval30";
 const verificationRequestId = `EA-RUNTIME-${Date.now()}`;
-const modelName = "企业级审批链路验收";
+const modelName = "企业级审批链路检查";
 const departmentNumbers = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
 
 async function main() {
@@ -159,7 +159,7 @@ async function startProcess(applicant, definition, businessKey) {
       processDefinitionKey: processKey,
       businessKey,
       variables: {
-        subject: "企业级审批链路验收",
+        subject: "企业级审批链路检查",
         businessDescription: "覆盖多部门、多角色、并行认领和连续审批的运行链路。",
         expectedResult: "全部审批节点正常完成，运维队列无失败任务。",
         departmentCount: definition.departments.length,

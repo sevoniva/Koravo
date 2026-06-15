@@ -111,6 +111,7 @@ function isVerificationModel(model) {
     || model.assetOrigin === "SAMPLE"
     || /^enterpriseApproval\d*$/i.test(key)
     || /^koravoProcess/i.test(key)
+    || name.includes("权限边界检查")
     || name.includes("越权访问验收");
 }
 
