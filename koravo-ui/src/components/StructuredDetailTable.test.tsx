@@ -98,6 +98,34 @@ describe('StructuredDetailTable', () => {
     expect(screen.queryByText('复核专员')).not.toBeInTheDocument();
   });
 
+  it('renders access-denied audit details without raw API strings', async () => {
+    render(
+      <StructuredDetailTable
+        value={{
+          reason: 'ROLE_PERMISSION_DENIED',
+          method: 'GET',
+          path: '/api/v1/ops/process-instances',
+          userId: 'operator',
+          role: 'operator',
+        }}
+      />,
+    );
+
+    expect(await screen.findByText('事项说明')).toBeInTheDocument();
+    expect(screen.getByText('角色权限不足')).toBeInTheDocument();
+    expect(screen.getByText('请求方式')).toBeInTheDocument();
+    expect(screen.getByText('读取')).toBeInTheDocument();
+    expect(screen.getByText('接口地址')).toBeInTheDocument();
+    expect(screen.getByText('运维流程实例接口')).toBeInTheDocument();
+    expect(screen.getByText('运行审计专员')).toBeInTheDocument();
+    expect(screen.getByText('运维审计人')).toBeInTheDocument();
+    expect(screen.queryByText('ROLE_PERMISSION_DENIED')).not.toBeInTheDocument();
+    expect(screen.queryByText('GET')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('/api/v1/ops/process-instances'),
+    ).not.toBeInTheDocument();
+  });
+
   it('expands nested json strings into readable rows', async () => {
     const processInstanceId = '62738d33-678f-11f1-9bb0-6eaa56961236';
 

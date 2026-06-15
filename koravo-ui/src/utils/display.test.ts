@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  accessReasonLabel,
   assetOriginColor,
   assetOriginLabel,
   auditActionLabel,
@@ -20,6 +21,9 @@ import {
   processModelKeyLabel,
   processNameLabel,
   productCopy,
+  requestMethodLabel,
+  requestPathLabel,
+  requestTargetLabel,
   shortTraceLabel,
   taskDefinitionLabel,
 } from './display';
@@ -82,6 +86,18 @@ describe('display helpers', () => {
     expect(
       connectionAddressLabel('jdbc:postgresql://127.0.0.1:5432/koravo'),
     ).toBe('本地数据源连接');
+  });
+
+  it('uses product labels for protected API audit details', () => {
+    expect(accessReasonLabel('ROLE_PERMISSION_DENIED')).toBe('角色权限不足');
+    expect(requestMethodLabel('GET')).toBe('读取');
+    expect(requestPathLabel('/api/v1/ops/process-instances?page=1')).toBe(
+      '运维流程实例接口',
+    );
+    expect(requestTargetLabel('GET /api/v1/dashboard/summary')).toBe(
+      '工作台统计接口（读取）',
+    );
+    expect(businessFieldLabel('path')).toBe('接口地址');
   });
 
   it('hides raw build markers from product copy', () => {

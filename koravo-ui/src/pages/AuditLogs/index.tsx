@@ -32,6 +32,7 @@ import {
   auditResourceLabel,
   businessKeyLabel,
   processNameLabel,
+  requestTargetLabel,
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
@@ -327,10 +328,17 @@ function auditRelatedButtons(
   ));
 }
 
-function auditResourceText(log?: AuditLogItem) {
+export function auditResourceText(log?: AuditLogItem) {
   if (!log?.resourceId) return '-';
   const detail = auditDetailRecord(log);
   const resourceType = String(log.resourceType || '');
+  const prefix = auditResourceLabel(resourceType);
+  if (resourceType === 'API_ENDPOINT') {
+    const method = typeof detail.method === 'string' ? detail.method : '';
+    const path = typeof detail.path === 'string' ? detail.path : '';
+    const endpoint = method && path ? `${method} ${path}` : log.resourceId;
+    return `${prefix}：${requestTargetLabel(endpoint)}`;
+  }
   const nameCandidates = [
     detail.modelName,
     detail.formName,
@@ -343,7 +351,6 @@ function auditResourceText(log?: AuditLogItem) {
     .map(auditResourceName)
     .filter(Boolean);
   const resourceName = nameCandidates[0];
-  const prefix = auditResourceLabel(resourceType);
   return resourceName
     ? `${prefix}：${resourceName}`
     : `${prefix}：${auditResourceName(log.resourceId) || shortTraceLabel(log.resourceId)}`;

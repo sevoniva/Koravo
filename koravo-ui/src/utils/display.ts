@@ -107,6 +107,47 @@ const CONNECTOR_TYPE_LABELS: Record<string, string> = {
   JDBC: 'JDBC',
 };
 
+const ACCESS_REASON_LABELS: Record<string, string> = {
+  ROLE_PERMISSION_DENIED: '角色权限不足',
+  AUTHENTICATION_REQUIRED: '需要登录后访问',
+  SESSION_EXPIRED: '登录已过期',
+  TOKEN_INVALID: '身份凭证无效',
+  TENANT_PERMISSION_DENIED: '组织权限不足',
+};
+
+const REQUEST_METHOD_LABELS: Record<string, string> = {
+  GET: '读取',
+  POST: '提交',
+  PUT: '更新',
+  PATCH: '更新',
+  DELETE: '删除',
+  HEAD: '读取',
+  OPTIONS: '预检',
+};
+
+const API_PATH_LABELS: Array<[RegExp, string]> = [
+  [/^\/api\/v1\/dashboard\/summary(?:[/?#]|$)/, '工作台统计接口'],
+  [/^\/api\/v1\/organization\/members(?:[/?#]|$)/, '组织成员接口'],
+  [/^\/api\/v1\/organization\/directory(?:[/?#]|$)/, '组织目录接口'],
+  [/^\/api\/v1\/workflow-enablement(?:[/?#]|$)/, '工作流启用接口'],
+  [/^\/api\/v1\/tasks(?:[/?#]|$)/, '任务中心接口'],
+  [/^\/api\/v1\/process-instances(?:[/?#]|$)/, '流程实例接口'],
+  [/^\/api\/v1\/ops\/process-instances(?:[/?#]|$)/, '运维流程实例接口'],
+  [/^\/api\/v1\/ops(?:[/?#]|$)/, '运维中心接口'],
+  [/^\/api\/v1\/audit-logs(?:[/?#]|$)/, '审计日志接口'],
+  [
+    /^\/api\/v1\/connector-execution-logs(?:[/?#]|$)/,
+    '连接器执行记录接口',
+  ],
+  [/^\/api\/v1\/process-models(?:[/?#]|$)/, '流程模型接口'],
+  [/^\/api\/v1\/forms(?:[/?#]|$)/, '表单管理接口'],
+  [/^\/api\/v1\/form-bindings(?:[/?#]|$)/, '表单绑定接口'],
+  [/^\/api\/v1\/datasources(?:[/?#]|$)/, '数据源接口'],
+  [/^\/api\/v1\/auth(?:[/?#]|$)/, '登录会话接口'],
+  [/^\/api\/v1\/system\/health(?:[/?#]|$)/, '系统健康检查接口'],
+  [/^\/api\/v1\/health(?:[/?#]|$)/, '服务健康检查接口'],
+];
+
 const GENERATED_DEPARTMENT_NAMES = [
   '一',
   '二',
@@ -343,6 +384,7 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   password: '密码',
   fromVersion: '恢复版本',
   url: '请求地址',
+  path: '接口地址',
   method: '请求方式',
   statusCode: '状态码',
   headers: '请求头',
@@ -703,6 +745,36 @@ export function connectionAddressLabel(value?: string | null) {
     return '本地服务健康检查';
   if (normalized.startsWith('jdbc:')) return '本地数据源连接';
   return '本地服务地址';
+}
+
+export function accessReasonLabel(value?: string | null) {
+  return auditCodeLabel(value, ACCESS_REASON_LABELS);
+}
+
+export function requestMethodLabel(value?: string | null) {
+  return auditCodeLabel(value, REQUEST_METHOD_LABELS);
+}
+
+export function requestPathLabel(value?: string | null) {
+  if (!value) return '-';
+  const text = String(value).trim();
+  if (!text) return '-';
+  const path = text
+    .replace(/^https?:\/\/[^/]+/i, '')
+    .replace(/[?#].*$/, '');
+  const match = API_PATH_LABELS.find(([pattern]) => pattern.test(path));
+  if (match) return match[1];
+  if (path.startsWith('/api/v1/')) return '平台接口';
+  return connectionAddressLabel(text);
+}
+
+export function requestTargetLabel(value?: string | null) {
+  if (!value) return '-';
+  const text = String(value).trim();
+  if (!text) return '-';
+  const endpoint = text.match(/^([A-Z]+)\s+(\S+)/);
+  if (!endpoint) return requestPathLabel(text);
+  return `${requestPathLabel(endpoint[2])}（${requestMethodLabel(endpoint[1])}）`;
 }
 
 export function shortTraceLabel(value?: string | number | null) {

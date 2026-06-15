@@ -8,6 +8,7 @@ import {
 } from '@/services/koravo/organization';
 import type { SessionRole } from '@/services/koravo/session';
 import {
+  accessReasonLabel,
   auditActionLabel,
   auditResourceLabel,
   businessFieldLabel,
@@ -19,6 +20,8 @@ import {
   processModelKeyLabel,
   processNameLabel,
   productCopy,
+  requestMethodLabel,
+  requestPathLabel,
   shortTraceLabel,
   taskDefinitionLabel,
 } from '@/utils/display';
@@ -365,8 +368,12 @@ function domainText(rowKey: string, value: unknown) {
   if (field === 'candidateGroup') return roleGroupLabel(value);
   if (field === 'tenantId') return tenantDisplayName(value);
   if (isMemberField(rowKey)) return organizationMemberName(value);
+  if (field === 'reason') return accessReasonLabel(value);
+  if (field === 'method') return requestMethodLabel(value);
+  if (field === 'path') return requestPathLabel(value);
   if (field === 'businessKey') return businessKeyLabel(value);
   if (field === 'url' || field === 'jdbcUrl') {
+    if (value.startsWith('/api/v1/')) return requestPathLabel(value);
     return connectionAddressLabel(value);
   }
   if (field === 'requestId') return shortTraceLabel(value);

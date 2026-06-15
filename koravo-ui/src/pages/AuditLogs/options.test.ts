@@ -5,6 +5,7 @@ import {
   auditConnectorRecordPath,
   auditFocusTask,
   auditProcessInstanceId,
+  auditResourceText,
   auditRelatedActionTargets,
   auditTaskId,
 } from './index';
@@ -191,6 +192,25 @@ describe('AuditLogs actionOptions', () => {
         createdAt: '2026-01-01T00:00:00Z',
       }),
     ).toBe('/http-connector?requestId=REQ-1');
+  });
+
+  it('keeps protected API audit targets readable', () => {
+    expect(
+      auditResourceText({
+        id: 'audit-access-denied',
+        tenantId: 'default',
+        userId: 'operator',
+        action: 'ACCESS_DENIED',
+        resourceType: 'API_ENDPOINT',
+        resourceId: 'GET /api/v1/ops/process-instances',
+        detailJson: JSON.stringify({
+          method: 'GET',
+          path: '/api/v1/ops/process-instances',
+          reason: 'ROLE_PERMISSION_DENIED',
+        }),
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    ).toBe('接口：运维流程实例接口（读取）');
   });
 
   it('builds one process-context action for task audit records', () => {
