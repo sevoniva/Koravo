@@ -5,8 +5,8 @@ const baseUrl = stripTrailingSlash(process.env.KORAVO_BASE_URL ?? "http://localh
 const tenantId = process.env.KORAVO_TENANT_ID ?? "default";
 const password = process.env.KORAVO_PASSWORD ?? "Koravo@2026";
 const processKey = "collaborativeApproval";
-const activeSeedKey = process.env.KORAVO_TRIAL_ACTIVE_KEY ?? "TRIAL-SEED-ACTIVE";
-const completedSeedKey = process.env.KORAVO_TRIAL_COMPLETED_KEY ?? "TRIAL-SEED-COMPLETED";
+const activeSeedKey = process.env.KORAVO_VERIFICATION_ACTIVE_KEY ?? "VERIFY-SEED-ACTIVE";
+const completedSeedKey = process.env.KORAVO_VERIFICATION_COMPLETED_KEY ?? "VERIFY-SEED-COMPLETED";
 const approverIds = ["manager", "finance"];
 
 async function main() {
@@ -16,7 +16,7 @@ async function main() {
   const finance = await login("finance", "finance");
   const operator = await login("operator", "operator");
 
-  const auditCleanup = await api("/ops/trial-data/audit-cleanup", {
+  const auditCleanup = await api("/ops/verification-data/audit-cleanup", {
     method: "POST",
     token: operator.token,
   });
@@ -29,7 +29,7 @@ async function main() {
 
   const activeSeed = await ensureActiveSeed(applicant, operator, workflow);
   const completedSeed = await ensureCompletedSeed(applicant, operator, workflow, { manager, finance });
-  const trialSurface = await validateTrialSurface({ admin, applicant, operator, manager });
+  const verificationSurface = await validateVerificationSurface({ admin, applicant, operator, manager });
 
   console.log(JSON.stringify({
     baseUrl,
@@ -43,7 +43,7 @@ async function main() {
       active: activeSeed,
       completed: completedSeed,
     },
-    trialSurface,
+    verificationSurface,
   }, null, 2));
 }
 
@@ -153,7 +153,7 @@ async function completeSeedApprovals(instanceId, approvers) {
   }
 }
 
-async function validateTrialSurface({ admin, applicant, operator, manager }) {
+async function validateVerificationSurface({ admin, applicant, operator, manager }) {
   const [visibleModels, visibleForms, startable, started, opsDefault, doneManager, auditLogs] = await Promise.all([
     api("/process-models", { token: admin.token }),
     api("/forms/schemas", { token: admin.token }),
@@ -208,7 +208,7 @@ async function validateTrialSurface({ admin, applicant, operator, manager }) {
     defaultOpsTotal: opsDefault.total ?? 0,
     managerDoneTotal: doneManager.total ?? 0,
     recentAuditTotal: auditLogs.total ?? 0,
-    trialSeedKeys: visibleRuntimeKeys.filter((key) => key === activeSeedKey || key === completedSeedKey),
+    verificationSeedKeys: visibleRuntimeKeys.filter((key) => key === activeSeedKey || key === completedSeedKey),
   };
 }
 
@@ -326,6 +326,7 @@ function isVerificationBusinessKey(value) {
     /^HTTP-/,
     /^REQ-CODEX-/,
     /^REQ-E2E-/,
+    /^VERIFY-SEED-/,
     /^TRIAL-SEED-/,
     /^COLLABORATIVE-APPROVAL-/,
     /^COLLAB-VERIFY-/,

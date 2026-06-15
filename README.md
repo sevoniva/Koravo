@@ -144,10 +144,10 @@ curl -H 'X-Koravo-Tenant-Id: default' \
 Reset the local verification data after acceptance runs:
 
 ```bash
-node scripts/reset-trial-data.mjs
+node scripts/reset-verification-data.mjs
 ```
 
-The script keeps the default organization, collaborative workflow, business request form, bindings, audit trail, and a small seed workload for verification. Default task and ops views hide verification records such as `TRIAL-SEED-*`; scripts use `includeNonProduction=true` when they need to inspect those records.
+The script keeps the default organization, collaborative workflow, business request form, bindings, audit trail, and a small seed workload for verification. Default task and ops views hide verification records such as `VERIFY-SEED-*`; scripts use `includeNonProduction=true` when they need to inspect those records.
 
 ## Run Frontend
 

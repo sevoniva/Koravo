@@ -40,8 +40,8 @@ public class AuditLogController {
         return ApiResponse.success(auditLogQueryService.query(userId, action, resourceType, resourceId, requestId, startTime, endTime, page, pageSize, includeNonProduction));
     }
 
-    @PostMapping("/api/v1/ops/trial-data/audit-cleanup")
-    public ApiResponse<Map<String, Integer>> cleanupTrialAuditNoise() {
-        return ApiResponse.success(Map.of("deletedCount", auditLogService.cleanupTrialNoise()));
+    @PostMapping("/api/v1/ops/verification-data/audit-cleanup")
+    public ApiResponse<Map<String, Integer>> cleanupVerificationAuditNoise() {
+        return ApiResponse.success(Map.of("deletedCount", auditLogService.cleanupVerificationNoise()));
     }
 }

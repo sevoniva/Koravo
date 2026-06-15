@@ -9,7 +9,7 @@ async function main() {
   const admin = await login("admin", "admin");
   const applicant = await login("applicant", "applicant");
   const operator = await login("operator", "operator");
-  const auditCleanup = await api("/ops/trial-data/audit-cleanup", {
+  const auditCleanup = await api("/ops/verification-data/audit-cleanup", {
     method: "POST",
     token: operator.token,
   });
@@ -44,7 +44,7 @@ async function main() {
     method: "POST",
     token: admin.token,
   });
-  const trialSurface = await validateTrialSurface({
+  const verificationSurface = await validateVerificationSurface({
     admin,
     applicant,
     operator,
@@ -61,11 +61,11 @@ async function main() {
     retainedProcessKey: enablement.processDefinitionKey,
     retainedFormSchemaId: enablement.formSchemaId,
     auditCleanup,
-    trialSurface,
+    verificationSurface,
   }, null, 2));
 }
 
-async function validateTrialSurface({ admin, applicant, operator }) {
+async function validateVerificationSurface({ admin, applicant, operator }) {
   const [visibleModels, visibleForms, startable, started, opsDefault, opsAll] = await Promise.all([
     api("/process-models", { token: admin.token }),
     api("/forms/schemas", { token: admin.token }),
@@ -125,6 +125,7 @@ function isVerificationBusinessKey(value) {
     /^HTTP-/,
     /^REQ-CODEX-/,
     /^REQ-E2E-/,
+    /^VERIFY-SEED-/,
     /^TRIAL-SEED-/,
     /^COLLABORATIVE-APPROVAL-/,
     /^COLLAB-VERIFY-/,

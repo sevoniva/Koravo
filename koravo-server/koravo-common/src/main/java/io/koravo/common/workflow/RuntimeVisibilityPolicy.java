@@ -21,6 +21,7 @@ public final class RuntimeVisibilityPolicy {
             "HTTP-%",
             "REQ-CODEX-%",
             "REQ-E2E-%",
+            "VERIFY-SEED-%",
             "TRIAL-SEED-%",
             "COLLABORATIVE-APPROVAL-%",
             "COLLAB-VERIFY-%",

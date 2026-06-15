@@ -56,18 +56,18 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void cleanupTrialNoiseDeletesKnownVerificationAuditRecords() {
+    void cleanupVerificationNoiseDeletesKnownVerificationAuditRecords() {
         TenantContextHolder.setTenantId("default");
         when(jdbcTemplate.update(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(Object[].class)))
                 .thenReturn(12);
 
-        int deleted = service.cleanupTrialNoise();
+        int deleted = service.cleanupVerificationNoise();
 
         assertThat(deleted).isEqualTo(12);
         ArgumentCaptor<String> sql = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Object[]> args = ArgumentCaptor.forClass(Object[].class);
         verify(jdbcTemplate).update(sql.capture(), args.capture());
         assertThat(sql.getValue()).contains("delete from ko_audit_log");
-        assertThat(args.getValue()).contains("default", "COLLAB-VERIFY-%", "%\"assetOrigin\":\"TEST_FIXTURE\"%");
+        assertThat(args.getValue()).contains("default", "VERIFY-SEED-%", "COLLAB-VERIFY-%", "%\"assetOrigin\":\"TEST_FIXTURE\"%");
     }
 }

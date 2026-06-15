@@ -40,7 +40,7 @@ public class AuditLogService {
     }
 
     @Transactional
-    public int cleanupTrialNoise() {
+    public int cleanupVerificationNoise() {
         List<Object> args = new ArrayList<>();
         args.add(TenantContextHolder.getTenantId());
         List<String> conditions = new ArrayList<>();

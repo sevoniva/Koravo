@@ -11,6 +11,7 @@ class RuntimeVisibilityPolicyTest {
                 .contains(
                         "EA-%",
                         "REQ-E2E-%",
+                        "VERIFY-SEED-%",
                         "TRIAL-SEED-%",
                         "COLLABORATIVE-APPROVAL-%",
                         "COLLAB-VERIFY-%",

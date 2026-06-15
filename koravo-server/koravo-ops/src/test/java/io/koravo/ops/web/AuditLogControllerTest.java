@@ -33,13 +33,13 @@ class AuditLogControllerTest {
     }
 
     @Test
-    void cleanupTrialAuditNoiseReturnsDeletedCount() {
-        when(auditLogService.cleanupTrialNoise()).thenReturn(8);
+    void cleanupVerificationAuditNoiseReturnsDeletedCount() {
+        when(auditLogService.cleanupVerificationNoise()).thenReturn(8);
 
-        var response = controller.cleanupTrialAuditNoise();
+        var response = controller.cleanupVerificationAuditNoise();
 
         assertThat(response.success()).isTrue();
         assertThat(response.data()).containsEntry("deletedCount", 8);
-        verify(auditLogService).cleanupTrialNoise();
+        verify(auditLogService).cleanupVerificationNoise();
     }
 }
