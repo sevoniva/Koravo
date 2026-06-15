@@ -15,6 +15,7 @@ import BusinessDataDescriptions from '@/components/BusinessDataDescriptions';
 import { CopyableText } from '@/components/CopyableText';
 import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
+import ProcessContextSummary from '@/components/ProcessContextSummary';
 import ProcessProgressCard from '@/components/ProcessProgressCard';
 import {
   type AuditLogItem,
@@ -111,6 +112,14 @@ function taskContextStatus(
   if (currentTask) return `当前任务：${taskNameLabel(currentTask)}`;
   if (snapshot) return `已匹配${snapshotTaskLabel(snapshot)}`;
   return '未匹配快照，查看执行轨迹和审计记录';
+}
+
+function tasksOnSameNode(tasks: TaskItem[], activeTask: TaskItem) {
+  const activeKey = activeTask.taskDefinitionKey || activeTask.taskId;
+  const sameNodeTasks = tasks.filter(
+    (task) => (task.taskDefinitionKey || task.taskId) === activeKey,
+  );
+  return sameNodeTasks.length ? sameNodeTasks : [activeTask];
 }
 
 function instanceActionDisabled(
@@ -398,13 +407,19 @@ const ProcessInstanceDetail: React.FC = () => {
         ),
       },
       {
-        title: '节点',
+        title: '流程位置',
         dataIndex: 'taskDefinitionKey',
-        width: 150,
-        renderText: taskDefinitionLabel,
+        width: 300,
+        render: (_, record) => (
+          <ProcessContextSummary
+            tasks={tasksOnSameNode(currentTasks, record)}
+            activeTask={record}
+            instanceStatus={instance?.status}
+          />
+        ),
       },
       {
-        title: '处理人',
+        title: '当前处理人',
         dataIndex: 'assignee',
         width: 120,
         renderText: organizationMemberName,
@@ -442,7 +457,14 @@ const ProcessInstanceDetail: React.FC = () => {
         },
       },
     ],
-    [canOpenTaskDetail, focusedTaskId, openTaskAsAssignee, session.userId],
+    [
+      canOpenTaskDetail,
+      currentTasks,
+      focusedTaskId,
+      instance?.status,
+      openTaskAsAssignee,
+      session.userId,
+    ],
   );
   const snapshotColumns: ProColumns<FormSnapshotItem>[] = [
     {
