@@ -144,7 +144,7 @@ curl -H 'X-Koravo-Tenant-Id: default' \
 Reset the local verification data after acceptance runs:
 
 ```bash
-node scripts/reset-verification-data.mjs
+node scripts/verify-acceptance.mjs --reset-only
 ```
 
 The script keeps the default organization, collaborative workflow, business request form, bindings, audit trail, and a small seed workload for verification. Default task and ops views hide verification records such as `VERIFY-SEED-*`; scripts use `includeNonProduction=true` when they need to inspect those records.
@@ -204,7 +204,13 @@ The same workflow can be started through the API with `processDefinitionKey = co
 The API loop below mirrors the same collaborative approval path. For a repeatable runtime check:
 
 ```bash
-node scripts/verify-collaborative-approval.mjs
+node scripts/verify-acceptance.mjs
+```
+
+For the long enterprise path with the 30-node approval fixture:
+
+```bash
+node scripts/verify-acceptance.mjs --enterprise
 ```
 
 ## API Workflow Loop

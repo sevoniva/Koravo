@@ -23,6 +23,7 @@ node --check scripts/verify-collaborative-approval.mjs
 node --check scripts/verify-enterprise-approval.mjs
 node --check scripts/cleanup-verification-assets.mjs
 node --check scripts/reset-verification-data.mjs
+node --check scripts/verify-acceptance.mjs
 git diff --check
 ```
 
@@ -47,18 +48,23 @@ The same BPMN file is available for manual console upload at `examples/bpmn/ente
 Runtime approval workflow check:
 
 ```bash
-node scripts/verify-collaborative-approval.mjs
-node scripts/verify-enterprise-approval.mjs
+node scripts/verify-acceptance.mjs
 ```
 
-The collaborative check uses the running backend API. It initializes the default workflow assets, verifies the core organization members and permission-denied audit logging, starts `collaborativeApproval` as applicant, completes the countersign tasks as manager and finance, then checks trusted applicant data, form snapshots, process trace, completed tasks, audit records, failed jobs, and dead-letter jobs.
+The default acceptance command checks all verification script syntax, then runs the collaborative approval runtime check against the running backend API. It initializes the default workflow assets, verifies the core organization members and permission-denied audit logging, starts `collaborativeApproval` as applicant, completes the countersign tasks as manager and finance, then checks trusted applicant data, form snapshots, process trace, completed tasks, audit records, failed jobs, and dead-letter jobs.
+
+For the long enterprise path, run:
+
+```bash
+node scripts/verify-acceptance.mjs --enterprise
+```
 
 The enterprise check logs in as admin, creates or updates 20 approver accounts across 10 departments, deploys the enterprise BPMN through `/api/v1/process-models/deploy` with `assetOrigin=TEST_FIXTURE`, starts `enterpriseApproval30` as applicant, completes all 34 tasks through assigned and candidate task APIs, then checks process trace, failed jobs, and dead-letter jobs.
 
 After verification runs, reset the local verification data:
 
 ```bash
-node scripts/reset-verification-data.mjs
+node scripts/verify-acceptance.mjs --reset-only
 ```
 
 The reset script classifies historical verification models as `TEST_FIXTURE`, archives them, reinitializes the default collaborative workflow assets, and checks the default product lists. It also keeps a small seed workload for verification: one running request for pending-task checks and one completed request for done-task, audit, and trace checks. Product task and ops lists hide verification business keys such as `EA-*`, `REQ-E2E-*`, `VERIFY-SEED-*`, `COLLAB-VERIFY-*`, `COLLABORATIVE-APPROVAL-*`, and `UI-CONTEXT-*`; verification scripts pass `includeNonProduction=true` when they need to inspect their own runtime records.
