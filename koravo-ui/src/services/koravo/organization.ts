@@ -19,6 +19,8 @@ export interface OrganizationCoverageSummary {
   disabled: number;
   departmentCount: number;
   approvalRoleCount: number;
+  passwordMissingCount: number;
+  activePasswordMissingCount: number;
   missingRoles: SessionRole[];
   roleCounts: Partial<Record<SessionRole, number>>;
 }
@@ -194,6 +196,9 @@ export function organizationCoverageSummary(
   members: OrganizationMember[],
 ): OrganizationCoverageSummary {
   const activeMembers = members.filter((member) => member.status === '启用');
+  const passwordMissingMembers = members.filter(
+    (member) => member.passwordConfigured === false,
+  );
   const roleCounts = activeMembers.reduce<Partial<Record<SessionRole, number>>>(
     (result, member) => {
       result[member.role] = (result[member.role] || 0) + 1;
@@ -210,6 +215,10 @@ export function organizationCoverageSummary(
     disabled: members.length - activeMembers.length,
     departmentCount: departments.size,
     approvalRoleCount: (roleCounts.manager || 0) + (roleCounts.finance || 0),
+    passwordMissingCount: passwordMissingMembers.length,
+    activePasswordMissingCount: passwordMissingMembers.filter(
+      (member) => member.status === '启用',
+    ).length,
     missingRoles: requiredOrganizationRoles.filter(
       (role) => !roleCounts[role],
     ),

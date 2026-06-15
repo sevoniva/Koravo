@@ -436,6 +436,9 @@ const SystemSettings: React.FC = () => {
     () => organizationCoverageSummary(members),
     [members],
   );
+  const hasOrganizationGaps =
+    organizationCoverage.missingRoles.length > 0 ||
+    organizationCoverage.activePasswordMissingCount > 0;
   const departmentFilters = useMemo(
     () => tableFilterOptions(members.map((member) => member.department)),
     [members],
@@ -741,23 +744,30 @@ const SystemSettings: React.FC = () => {
     <>
       <Alert
         showIcon
-        type={
-          organizationCoverage.missingRoles.length ? 'warning' : 'success'
-        }
-        title={
-          organizationCoverage.missingRoles.length
-            ? '关键岗位未覆盖'
-            : '组织目录可用'
-        }
+        type={hasOrganizationGaps ? 'warning' : 'success'}
+        title={hasOrganizationGaps ? '组织权限待处理' : '组织目录可用'}
         description={
-          organizationCoverage.missingRoles.length ? (
-            <Space size={[4, 6]} wrap>
-              {organizationCoverage.missingRoles.map((role) => (
-                <Tag key={role} color="warning">
-                  {roleLabel(role)}
-                </Tag>
-              ))}
-            </Space>
+          hasOrganizationGaps ? (
+            <Flex vertical gap={6}>
+              {organizationCoverage.missingRoles.length ? (
+                <Space size={[4, 6]} wrap>
+                  <Typography.Text type="secondary">
+                    缺少岗位
+                  </Typography.Text>
+                  {organizationCoverage.missingRoles.map((role) => (
+                    <Tag key={role} color="warning">
+                      {roleLabel(role)}
+                    </Tag>
+                  ))}
+                </Space>
+              ) : null}
+              {organizationCoverage.activePasswordMissingCount ? (
+                <Typography.Text type="secondary">
+                  {organizationCoverage.activePasswordMissingCount}
+                  名启用成员未设置登录密码
+                </Typography.Text>
+              ) : null}
+            </Flex>
           ) : (
             '成员、部门、岗位和登录权限已关联。'
           )
@@ -775,6 +785,12 @@ const SystemSettings: React.FC = () => {
           <Statistic
             title="审批岗位"
             value={organizationCoverage.approvalRoleCount}
+          />
+        </ProCard>
+        <ProCard colSpan={{ xs: 24, sm: 6 }}>
+          <Statistic
+            title="待设密码"
+            value={organizationCoverage.activePasswordMissingCount}
           />
         </ProCard>
         <ProCard colSpan={{ xs: 24, sm: 6 }}>

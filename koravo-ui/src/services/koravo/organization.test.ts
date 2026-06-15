@@ -209,6 +209,7 @@ describe('organization display helpers', () => {
         department: '平台组',
         role: 'admin',
         status: 'ACTIVE',
+        passwordConfigured: true,
       },
       {
         key: 'applicant',
@@ -217,6 +218,7 @@ describe('organization display helpers', () => {
         department: '业务部',
         role: 'applicant',
         status: 'ACTIVE',
+        passwordConfigured: false,
       },
       {
         key: 'manager',
@@ -225,6 +227,7 @@ describe('organization display helpers', () => {
         department: '审批中心',
         role: 'manager',
         status: 'ACTIVE',
+        passwordConfigured: true,
       },
       {
         key: 'operator',
@@ -233,6 +236,7 @@ describe('organization display helpers', () => {
         department: '运维组',
         role: 'operator',
         status: 'DISABLED',
+        passwordConfigured: false,
       },
     ]);
 
@@ -242,6 +246,8 @@ describe('organization display helpers', () => {
       disabled: 1,
       departmentCount: 3,
       approvalRoleCount: 1,
+      passwordMissingCount: 2,
+      activePasswordMissingCount: 1,
       missingRoles: ['finance', 'operator'],
       roleCounts: {
         admin: 1,
