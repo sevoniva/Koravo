@@ -51,9 +51,11 @@ import {
   applyOrganizationProfileValues,
   isOrganizationAssigneeField,
   isOrganizationProfileField,
+  organizationApprovalRoleOptions,
   organizationApprovalMemberSelectOptions,
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
+  organizationMemberIdsByRoles,
   organizationMemberName,
   organizationMemberSelectOptions,
   organizationProfileFieldValue,
@@ -83,6 +85,7 @@ interface StartInstanceForm {
   processModelId?: string;
   processDefinitionId?: string;
   startFormSchemaId?: string;
+  approvalRoleSelections?: Record<string, string[]>;
   formValues?: JsonRecord;
 }
 
@@ -520,6 +523,42 @@ function startFieldRules(field: StartFormField, messagePrefix = '请输入') {
   return workflowFieldRules(field, messagePrefix);
 }
 
+const ApprovalRoleQuickSelect: React.FC<{ fieldKey: string }> = ({
+  fieldKey,
+}) => {
+  const form = Form.useFormInstance();
+  const roleOptions = React.useMemo(() => organizationApprovalRoleOptions(), []);
+  if (!roleOptions.length) return null;
+
+  return (
+    <ProFormSelect
+      name={['approvalRoleSelections', fieldKey]}
+      label="按角色选择"
+      options={roleOptions}
+      placeholder="选择后填入审批人"
+      tooltip="选择审批角色后，会把该角色下启用成员填入审批人。"
+      fieldProps={{
+        mode: 'multiple',
+        showSearch: true,
+        optionFilterProp: 'label',
+        onChange: (roles) => {
+          const selectedRoles = Array.isArray(roles) ? roles.map(String) : [];
+          const selectedUsers = organizationMemberIdsByRoles(selectedRoles);
+          if (!selectedUsers.length) return;
+          const formValues =
+            (form.getFieldValue('formValues') as JsonRecord | undefined) || {};
+          form.setFieldsValue({
+            formValues: {
+              ...formValues,
+              [fieldKey]: Array.from(new Set(selectedUsers)),
+            },
+          });
+        },
+      }}
+    />
+  );
+};
+
 function renderStartField(field: StartFormField, values?: JsonRecord) {
   if (!isWorkflowFieldVisible(field, values)) return null;
 
@@ -529,22 +568,24 @@ function renderStartField(field: StartFormField, values?: JsonRecord) {
 
   if (isStartAssigneeMultiField(field)) {
     return (
-      <ProFormSelect
-        key={field.fieldKey}
-        name={name}
-        label={field.title}
-        initialValue={defaultApprovalUsers(field)}
-        options={organizationApprovalMemberSelectOptions()}
-        placeholder="请选择一个或多个审批人"
-        disabled={readOnly}
-        fieldProps={{
-          mode: 'multiple',
-          showSearch: true,
-          optionFilterProp: 'label',
-        }}
-        formItemProps={formItemProps}
-        rules={approvalUserRules(field)}
-      />
+      <React.Fragment key={field.fieldKey}>
+        <ApprovalRoleQuickSelect fieldKey={field.fieldKey} />
+        <ProFormSelect
+          name={name}
+          label={field.title}
+          initialValue={defaultApprovalUsers(field)}
+          options={organizationApprovalMemberSelectOptions()}
+          placeholder="请选择一个或多个审批人"
+          disabled={readOnly}
+          fieldProps={{
+            mode: 'multiple',
+            showSearch: true,
+            optionFilterProp: 'label',
+          }}
+          formItemProps={formItemProps}
+          rules={approvalUserRules(field)}
+        />
+      </React.Fragment>
     );
   }
 

@@ -8,9 +8,11 @@ import {
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
   organizationApprovalMemberSelectOptions,
+  organizationApprovalRoleOptions,
   organizationCoverageSummary,
   organizationGroupOptions,
   organizationHandlerOptions,
+  organizationMemberIdsByRoles,
   organizationMemberName,
   organizationProfileFieldValue,
   setOrganizationMembers,
@@ -329,6 +331,20 @@ describe('organization display helpers', () => {
     expect(values).toEqual(['manager', 'finance']);
     expect(values).not.toContain('applicant');
     expect(values).not.toContain('operator');
+  });
+
+  it('expands selected approval roles to active members', () => {
+    expect(organizationApprovalRoleOptions()).toEqual([
+      { label: '审批人（1人）', value: 'manager' },
+      { label: '复核人（1人）', value: 'finance' },
+    ]);
+    expect(organizationMemberIdsByRoles(['manager', 'finance'])).toEqual([
+      'manager',
+      'finance',
+    ]);
+    expect(organizationMemberIdsByRoles(['applicant', 'operator'])).toEqual(
+      [],
+    );
   });
 
   it('recognizes approver fields without treating comments as assignees', () => {

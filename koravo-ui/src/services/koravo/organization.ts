@@ -31,6 +31,7 @@ const requiredOrganizationRoles: SessionRole[] = [
   'finance',
   'operator',
 ];
+const approvalRoles: SessionRole[] = ['manager', 'finance'];
 const generatedDepartmentNames = [
   '一',
   '二',
@@ -505,7 +506,6 @@ export function organizationMemberSelectOptions(role?: SessionRole) {
 }
 
 export function organizationApprovalMemberSelectOptions() {
-  const approvalRoles: SessionRole[] = ['manager', 'finance'];
   return getOrganizationMembers()
     .filter((member) => member.status === '启用')
     .filter((member) => approvalRoles.includes(member.role))
@@ -513,6 +513,36 @@ export function organizationApprovalMemberSelectOptions() {
       label: `${member.name}（${member.department}）`,
       value: member.userId,
     }));
+}
+
+export function organizationApprovalRoleOptions() {
+  const roleCounts = getOrganizationMembers()
+    .filter((member) => member.status === '启用')
+    .filter((member) => approvalRoles.includes(member.role))
+    .reduce<Partial<Record<SessionRole, number>>>((result, member) => {
+      result[member.role] = (result[member.role] || 0) + 1;
+      return result;
+    }, {});
+
+  return approvalRoles
+    .filter((role) => roleCounts[role])
+    .map((role) => ({
+      label: `${roleLabels[role]}（${roleCounts[role]}人）`,
+      value: role,
+    }));
+}
+
+export function organizationMemberIdsByRoles(roles?: string[]) {
+  const selectedRoles = new Set(
+    (roles || []).filter((role): role is SessionRole =>
+      approvalRoles.includes(role as SessionRole),
+    ),
+  );
+  if (!selectedRoles.size) return [];
+  return getOrganizationMembers()
+    .filter((member) => member.status === '启用')
+    .filter((member) => selectedRoles.has(member.role))
+    .map((member) => member.userId);
 }
 
 export function organizationAssigneeFieldValue(
