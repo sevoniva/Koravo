@@ -49,7 +49,18 @@ function reviewOpinion(data: JsonRecord) {
   );
 }
 
-function reviewHandler(data: JsonRecord, fallback?: string) {
+function handlerDisplayName(value?: string) {
+  if (!value) return undefined;
+  const label = organizationMemberName(value);
+  if (label === '待同步成员' && /[\u4e00-\u9fa5]/.test(value)) return value;
+  return label;
+}
+
+function reviewHandler(
+  data: JsonRecord,
+  fallbackUserId?: string,
+  fallbackLabel?: string,
+) {
   const value = firstText(
     data.userId,
     data.handlerUserId,
@@ -59,9 +70,10 @@ function reviewHandler(data: JsonRecord, fallback?: string) {
     data.assignee,
     data.approver,
     data.approvalUser,
-    fallback,
   );
-  return value ? organizationMemberName(value) : '系统';
+  if (value) return handlerDisplayName(value) || '系统';
+  if (fallbackUserId) return handlerDisplayName(fallbackUserId) || '系统';
+  return fallbackLabel || '系统';
 }
 
 function reviewNodeLabel(data: JsonRecord, fallback?: string) {
@@ -182,7 +194,7 @@ function snapshotReviewItem(
     id: `snapshot-${snapshot.id}`,
     taskId: snapshot.taskId,
     nodeLabel,
-    handlerLabel: reviewHandler(data, auditItem?.handlerLabel),
+    handlerLabel: reviewHandler(data, undefined, auditItem?.handlerLabel),
     resultLabel: resultLabel || auditItem?.resultLabel || '已提交',
     resultStatus: reviewStatus(
       resultLabel || auditItem?.resultLabel || '已提交',

@@ -142,6 +142,37 @@ describe('instanceReviewContext', () => {
     );
   });
 
+  it('uses the audit handler label when snapshot data has no handler field', () => {
+    const rows = buildInstanceReviewItems(
+      [
+        snapshot({
+          id: 'review',
+          taskId: 'task-1',
+          dataJson: JSON.stringify({
+            approved: true,
+          }),
+        }),
+      ],
+      [
+        audit({
+          resourceId: 'task-1',
+          userId: 'manager',
+          detailJson: JSON.stringify({
+            taskId: 'task-1',
+            taskDefinitionKey: 'jointApprovalTask',
+          }),
+        }),
+      ],
+    );
+
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        handlerLabel: '审批主管',
+        source: 'snapshot',
+      }),
+    );
+  });
+
   it('keeps task audit comments when there is no matching snapshot', () => {
     const rows = buildInstanceReviewItems(
       [],
