@@ -5,6 +5,7 @@ import {
   conditionValueOptions,
   fieldChangeCount,
   fieldChangeSummary,
+  fieldEditorPanelDefaultActiveKey,
   fieldEditorPanelOpenKeys,
   fieldEditorSummaryTags,
   fieldReleaseImpact,
@@ -396,7 +397,16 @@ describe('formReadinessIssues', () => {
     ).toEqual(['多选', '组织成员多选', '必填', '只读', '有条件']);
   });
 
-  it('keeps every field editor panel open by default', () => {
+  it('opens new field editors and keeps configured fields compact', () => {
     expect(fieldEditorPanelOpenKeys).toEqual(['field']);
+    expect(
+      fieldEditorPanelDefaultActiveKey({
+        fieldKey: 'subject',
+        title: '事项标题',
+      }),
+    ).toEqual([]);
+    expect(fieldEditorPanelDefaultActiveKey({ fieldKey: '', title: '' })).toEqual([
+      'field',
+    ]);
   });
 });

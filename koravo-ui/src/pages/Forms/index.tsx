@@ -133,6 +133,14 @@ interface JsonSchemaProperty {
 const START_FORM_TASK_KEY = '__START__';
 export const fieldEditorPanelOpenKeys = ['field'];
 
+export function fieldEditorPanelDefaultActiveKey(
+  field: Partial<FormFieldConfig>,
+) {
+  return field.fieldKey?.trim() && field.title?.trim()
+    ? []
+    : fieldEditorPanelOpenKeys;
+}
+
 const useStyles = createStyles(({ css, token }) => ({
   fieldList: css`
     .ant-pro-form-list-container,
@@ -1968,8 +1976,10 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
       itemRender={(dom, meta) => (
         <Collapse
           className={classNames.fieldPanel}
-          defaultActiveKey={fieldEditorPanelOpenKeys}
-          destroyOnHidden
+          defaultActiveKey={fieldEditorPanelDefaultActiveKey(
+            meta.record as Partial<FormFieldConfig>,
+          )}
+          destroyOnHidden={false}
           expandIconPlacement="end"
           items={[
             {
