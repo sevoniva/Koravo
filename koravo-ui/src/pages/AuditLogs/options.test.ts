@@ -3,6 +3,7 @@ import {
   actionOptions,
   auditCanOpenProcessContext,
   auditConnectorRecordPath,
+  auditFocusTask,
   auditProcessInstanceId,
   auditRelatedActionTargets,
   auditTaskId,
@@ -83,6 +84,58 @@ describe('AuditLogs actionOptions', () => {
         createdAt: '2026-01-01T00:00:00Z',
       }),
     ).toBe('task-2');
+  });
+
+  it('builds focused task context for audit process diagrams', () => {
+    expect(
+      auditFocusTask({
+        id: 'audit-task',
+        tenantId: 'default',
+        userId: 'manager',
+        action: 'TASK_COMPLETE',
+        resourceType: 'TASK',
+        resourceId: 'task-1',
+        detailJson: JSON.stringify({
+          processInstanceId: 'process-1',
+          processDefinitionId: 'collaborativeApproval:2',
+          businessKey: 'REQ-1',
+          taskDefinitionKey: 'jointApprovalTask',
+          taskName: '多人会签',
+        }),
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    ).toMatchObject({
+      taskId: 'task-1',
+      name: '多人会签',
+      processInstanceId: 'process-1',
+      processDefinitionId: 'collaborativeApproval:2',
+      businessKey: 'REQ-1',
+      assignee: 'manager',
+      taskDefinitionKey: 'jointApprovalTask',
+      status: 'COMPLETED',
+    });
+
+    expect(
+      auditFocusTask({
+        id: 'audit-transfer',
+        tenantId: 'default',
+        userId: 'manager',
+        action: 'TASK_TRANSFER',
+        resourceType: 'TASK',
+        resourceId: 'task-2',
+        detailJson: JSON.stringify({
+          processInstanceId: 'process-2',
+          taskDefinitionKey: 'reviewTask',
+          targetUserId: 'finance',
+        }),
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    ).toMatchObject({
+      taskId: 'task-2',
+      assignee: 'finance',
+      taskDefinitionKey: 'reviewTask',
+      status: 'ACTIVE',
+    });
   });
 
   it('lets audit operators open process context from audit detail', () => {

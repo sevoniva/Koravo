@@ -16,6 +16,7 @@ import {
   type AuditLogItem,
   getProcessTrace,
   listAuditLogs,
+  type TaskItem,
 } from '@/services/koravo/api';
 import {
   organizationMemberName,
@@ -116,6 +117,45 @@ export function auditTaskId(log?: AuditLogItem) {
   if (typeof detail.taskId === 'string') return detail.taskId;
   if (log?.resourceType === 'TASK') return log.resourceId;
   return undefined;
+}
+
+export function auditFocusTask(log?: AuditLogItem): TaskItem | undefined {
+  const detail = auditDetailRecord(log);
+  const taskDefinitionKey =
+    typeof detail.taskDefinitionKey === 'string'
+      ? detail.taskDefinitionKey.trim()
+      : '';
+  const taskId = auditTaskId(log);
+  const processInstanceId = auditProcessInstanceId(log);
+
+  if (!taskDefinitionKey || !taskId || !processInstanceId) return undefined;
+
+  const action = String(log?.action || '').toUpperCase();
+  const assignee =
+    typeof detail.assignee === 'string' && detail.assignee.trim()
+      ? detail.assignee.trim()
+      : typeof detail.targetUserId === 'string' && detail.targetUserId.trim()
+        ? detail.targetUserId.trim()
+        : log?.userId || '';
+
+  return {
+    taskId,
+    name:
+      typeof detail.taskName === 'string' && detail.taskName.trim()
+        ? detail.taskName.trim()
+        : taskDefinitionKey,
+    processInstanceId,
+    processDefinitionId:
+      typeof detail.processDefinitionId === 'string'
+        ? detail.processDefinitionId
+        : '',
+    businessKey:
+      typeof detail.businessKey === 'string' ? detail.businessKey : '',
+    createTime: log?.createdAt || '',
+    assignee,
+    taskDefinitionKey,
+    status: action === 'TASK_COMPLETE' ? 'COMPLETED' : 'ACTIVE',
+  };
 }
 
 function auditProcessModelId(log?: AuditLogItem) {
@@ -319,6 +359,7 @@ const AuditRelatedActions: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
 
 const AuditProcessContext: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
   const processInstanceId = auditProcessInstanceId(log);
+  const focusTask = auditFocusTask(log);
   const access = auditRelatedAccess();
   const session = getSessionContext();
   const trace = useQuery({
@@ -343,6 +384,7 @@ const AuditProcessContext: React.FC<{ log?: AuditLogItem }> = ({ log }) => {
   return (
     <ProcessProgressCard
       trace={trace.data}
+      activeTask={focusTask}
       loading={trace.isLoading}
       currentUserId={session.userId}
     />
