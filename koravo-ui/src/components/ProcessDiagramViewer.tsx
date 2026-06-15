@@ -190,20 +190,28 @@ const useStyles = createStyles(({ css, token }) => ({
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: 8px 4px 2px;
+    padding: 10px 4px 2px;
 
     .ant-steps {
       min-width: max-content;
     }
 
     .ant-steps-item {
-      min-width: 128px;
-      max-width: 180px;
+      min-width: 136px;
+      max-width: 176px;
     }
 
     .ant-steps-item-title,
     .ant-steps-item-description {
       max-width: 150px;
+    }
+
+    .ant-steps-item-description {
+      margin-top: 6px;
+    }
+
+    .ant-tag {
+      margin-inline-end: 0;
     }
   `,
 }));
@@ -545,7 +553,7 @@ function generatedStepItems(
           {nodeTitle(node)}
         </Typography.Text>
       ),
-      content: (
+      description: (
         <Tag color={generatedStatusColor(status)}>
           {generatedStatusText(status, node.status)}
         </Tag>
