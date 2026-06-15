@@ -126,8 +126,8 @@ describe('ProcessProgressCard', () => {
       '2',
     );
     expect(
-      screen.getByText('多人会签 · 审批主管、复核专员 · 会签 2 人'),
-    ).toBeInTheDocument();
+      screen.queryByText('多人会签 · 审批主管、复核专员 · 会签 2 人'),
+    ).not.toBeInTheDocument();
   });
 
   it('does not mark a completed active task as pending for the current user', () => {

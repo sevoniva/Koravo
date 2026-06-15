@@ -331,7 +331,7 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   retries: '重试次数',
   errorMessage: '错误信息',
   exceptionMessage: '异常信息',
-  exceptionStacktrace: '异常堆栈',
+  exceptionStacktrace: '异常明细',
   exceptionType: '异常类型',
   rootCause: '根因',
   applicationFrame: '发生位置',

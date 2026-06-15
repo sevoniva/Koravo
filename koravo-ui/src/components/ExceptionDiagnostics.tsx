@@ -42,7 +42,7 @@ const ExceptionDiagnostics: React.FC<ExceptionDiagnosticsProps> = ({
         items={[
           {
             key: 'raw',
-            label: '原始错误文本',
+            label: '技术明细',
             children: (
               <Typography.Paragraph
                 copyable={{ text: summary.rawText }}

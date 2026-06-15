@@ -214,7 +214,7 @@ describe('display helpers', () => {
     expect(businessFieldLabel('deploymentId')).toBe('发布编号');
     expect(businessFieldLabel('jobId')).toBe('任务编号');
     expect(businessFieldLabel('exceptionMessage')).toBe('异常信息');
-    expect(businessFieldLabel('exceptionStacktrace')).toBe('异常堆栈');
+    expect(businessFieldLabel('exceptionStacktrace')).toBe('异常明细');
     expect(businessFieldLabel('exceptionType')).toBe('异常类型');
     expect(businessFieldLabel('rootCause')).toBe('根因');
     expect(businessFieldLabel('applicationFrame')).toBe('发生位置');

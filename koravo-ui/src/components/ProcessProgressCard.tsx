@@ -698,7 +698,6 @@ const ProcessProgressCard: React.FC<ProcessProgressCardProps> = ({
         {detailItems.length ? (
           <Collapse
             className={styles.details}
-            defaultActiveKey={taskGroups.length ? ['pending'] : undefined}
             ghost
             items={detailItems}
             size="small"
