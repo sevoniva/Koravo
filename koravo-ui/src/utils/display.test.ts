@@ -66,7 +66,7 @@ describe('display helpers', () => {
       '业务申请 2026/06/09 04:37:01',
     );
     expect(businessKeyLabel('任务：PO-CONTINUE-20260609-0437')).toBe(
-      '任务：PO-CONTINUE-20260609-0437',
+      '历史业务记录',
     );
     expect(businessKeyLabel('HTTP-1780845610965')).toBe('HTTP-1780845610965');
   });
@@ -94,13 +94,13 @@ describe('display helpers', () => {
     );
   });
 
-  it('keeps stored process descriptions unchanged instead of masking legacy copy', () => {
+  it('keeps stored process descriptions readable without leaking legacy copy', () => {
     expect(
       processDescriptionLabel({
         modelKey: 'expenseApproval',
         description: 'Imported legacy model',
       }),
-    ).toBe('Imported legacy model');
+    ).toBe('历史流程资产');
     expect(
       processDescriptionLabel({
         modelKey: 'collaborativeApproval',

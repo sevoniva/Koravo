@@ -1,4 +1,4 @@
-import { Collapse, Empty, Space, Typography } from 'antd';
+import { Alert, Collapse, Empty, Space, Typography } from 'antd';
 import React from 'react';
 import { summarizeExceptionStacktrace } from '@/utils/exceptionDiagnostics';
 import StructuredDetailTable from './StructuredDetailTable';
@@ -6,14 +6,6 @@ import StructuredDetailTable from './StructuredDetailTable';
 interface ExceptionDiagnosticsProps {
   value?: string | null;
 }
-
-const rawTextStyle: React.CSSProperties = {
-  marginBottom: 0,
-  maxHeight: 280,
-  overflow: 'auto',
-  whiteSpace: 'pre-wrap',
-  wordBreak: 'break-word',
-};
 
 const ExceptionDiagnostics: React.FC<ExceptionDiagnosticsProps> = ({
   value,
@@ -26,6 +18,12 @@ const ExceptionDiagnostics: React.FC<ExceptionDiagnosticsProps> = ({
 
   return (
     <Space vertical size={12} style={{ width: '100%' }}>
+      <Alert
+        type="warning"
+        showIcon
+        title="已整理错误摘要"
+        description="完整排障信息已保留，可复制后交给维护人员定位。"
+      />
       <StructuredDetailTable
         value={{
           exceptionType: summary.exceptionType,
@@ -42,14 +40,16 @@ const ExceptionDiagnostics: React.FC<ExceptionDiagnosticsProps> = ({
         items={[
           {
             key: 'raw',
-            label: '技术明细',
+            label: '排障信息',
             children: (
-              <Typography.Paragraph
-                copyable={{ text: summary.rawText }}
-                style={rawTextStyle}
+              <Typography.Text
+                copyable={{
+                  text: summary.rawText,
+                  tooltips: ['复制排障信息', '已复制'],
+                }}
               >
-                {summary.rawText}
-              </Typography.Paragraph>
+                复制完整排障信息
+              </Typography.Text>
             ),
           },
         ]}

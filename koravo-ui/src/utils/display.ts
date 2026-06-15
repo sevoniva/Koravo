@@ -147,6 +147,9 @@ const LEGACY_FORM_KEYS = new Set([
   'leave-form',
 ]);
 
+const LEGACY_BUSINESS_KEY_PATTERN =
+  /(?:^|[:：\s])(?:PO|PURCHASE|LEAVE|MULTI[-_]?ACCEPTANCE)[-_]/i;
+
 export const ASSET_ORIGIN_LABELS: Record<string, string> = {
   SYSTEM_TEMPLATE: '系统模板',
   USER_FLOW: '用户流程',
@@ -430,6 +433,7 @@ export function processDescriptionLabel(
 export function productCopy(value?: string | null) {
   if (!value) return '';
   return value
+    .replace(/Imported legacy model/gi, '历史流程资产')
     .replaceAll('允许 localhost', '允许本地服务地址')
     .replace(
       /v\d+(?:\.\d+)*\s*未接入对象存储健康探测/g,
@@ -464,6 +468,7 @@ function generatedBusinessKeyLabel(value: string) {
 export function businessKeyLabel(value?: string | null) {
   if (!value) return '-';
   const text = productCopy(value);
+  if (LEGACY_BUSINESS_KEY_PATTERN.test(text)) return '历史业务记录';
   return generatedBusinessKeyLabel(text) || text;
 }
 

@@ -50,7 +50,8 @@ at io.koravo.ops.service.ProcessOpsService.retry(ProcessOpsService.java:42)`}
     expect(screen.getByText('异常信息')).toBeInTheDocument();
     expect(screen.getByText('connector timeout')).toBeInTheDocument();
     expect(screen.getByText('发生位置')).toBeInTheDocument();
-    expect(screen.getByText('技术明细')).toBeInTheDocument();
+    expect(screen.getByText('已整理错误摘要')).toBeInTheDocument();
+    expect(screen.getByText('排障信息')).toBeInTheDocument();
     expect(screen.queryByText(/io\.koravo\.ops\.service/)).not.toBeInTheDocument();
   });
 
