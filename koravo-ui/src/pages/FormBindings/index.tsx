@@ -96,6 +96,21 @@ export interface BindingCompletionState {
   secondaryPath?: string;
 }
 
+export interface BindingOverviewItem {
+  model: ProcessModelItem;
+  readiness: ProcessBindingReadiness;
+}
+
+export interface BindingOverviewSummary {
+  total: number;
+  ready: number;
+  needDeploy: number;
+  needStartBinding: number;
+  needTaskBinding: number;
+  needVersionSync: number;
+  needRepair: number;
+}
+
 const START_FORM_TASK_KEY = '__START__';
 
 function bindingPayload(values: BindingForm) {
@@ -390,6 +405,119 @@ export function resolveBindingCompletionState(
   };
 }
 
+export function bindingOverviewStatus(
+  model: ProcessModelItem,
+  readiness: ProcessBindingReadiness,
+) {
+  const published =
+    model.status === 'DEPLOYED' && Boolean(model.flowableDefinitionId);
+  if (!published) return '待发布';
+  if (readiness.invalidBindingCount) return '需修复绑定';
+  if (!readiness.hasStartBinding) return '缺发起表单';
+  if (readiness.missingTaskNames.length) return '缺任务表单';
+  if (readiness.outdatedBindingCount) return '待同步版本';
+  if (readiness.readyToStart) return '可发起';
+  return '待检查';
+}
+
+export function summarizeBindingOverview(
+  items: BindingOverviewItem[],
+): BindingOverviewSummary {
+  return items.reduce<BindingOverviewSummary>(
+    (summary, item) => {
+      const { model, readiness } = item;
+      const published =
+        model.status === 'DEPLOYED' && Boolean(model.flowableDefinitionId);
+      summary.total += 1;
+      if (readiness.readyToStart) summary.ready += 1;
+      if (!published) summary.needDeploy += 1;
+      if (readiness.invalidBindingCount) summary.needRepair += 1;
+      if (published && !readiness.hasStartBinding) {
+        summary.needStartBinding += 1;
+      }
+      if (published && readiness.missingTaskNames.length) {
+        summary.needTaskBinding += 1;
+      }
+      if (readiness.outdatedBindingCount) summary.needVersionSync += 1;
+      return summary;
+    },
+    {
+      total: 0,
+      ready: 0,
+      needDeploy: 0,
+      needStartBinding: 0,
+      needTaskBinding: 0,
+      needVersionSync: 0,
+      needRepair: 0,
+    },
+  );
+}
+
+const BindingOverviewPanel: React.FC<{
+  items: BindingOverviewItem[];
+}> = ({ items }) => {
+  if (!items.length) return null;
+  const summary = summarizeBindingOverview(items);
+  const pendingCount = summary.total - summary.ready;
+  const statusItems = items
+    .filter((item) => !item.readiness.readyToStart)
+    .slice(0, 4);
+
+  return (
+    <Alert
+      showIcon
+      type={pendingCount ? 'warning' : 'success'}
+      title={
+        pendingCount
+          ? `还有 ${pendingCount} 个流程未就绪`
+          : '流程可发起'
+      }
+      description={
+        <Flex vertical gap={8}>
+          <Space size={[4, 6]} wrap>
+            <Tag color="success">可发起 {summary.ready}</Tag>
+            {summary.needDeploy ? (
+              <Tag color="gold">待发布 {summary.needDeploy}</Tag>
+            ) : null}
+            {summary.needStartBinding ? (
+              <Tag color="orange">缺发起表单 {summary.needStartBinding}</Tag>
+            ) : null}
+            {summary.needTaskBinding ? (
+              <Tag color="orange">缺任务表单 {summary.needTaskBinding}</Tag>
+            ) : null}
+            {summary.needVersionSync ? (
+              <Tag color="gold">待同步版本 {summary.needVersionSync}</Tag>
+            ) : null}
+            {summary.needRepair ? (
+              <Tag color="red">需修复 {summary.needRepair}</Tag>
+            ) : null}
+          </Space>
+          {statusItems.length ? (
+            <Space size={[4, 6]} wrap>
+              {statusItems.map(({ model, readiness }) => (
+                <Tag key={model.id}>
+                  {processDisplayName(model.modelKey, model.modelName)}：
+                  {bindingOverviewStatus(model, readiness)}
+                </Tag>
+              ))}
+            </Space>
+          ) : (
+            <Typography.Text type="secondary">
+              已发布流程都有发起表单、任务表单和当前表单版本。
+            </Typography.Text>
+          )}
+        </Flex>
+      }
+      action={
+        <Button size="small" onClick={() => history.push('/process-models')}>
+          查看流程
+        </Button>
+      }
+      style={{ marginBottom: 16 }}
+    />
+  );
+};
+
 function bindingVersionState(record: BindingTableItem) {
   if (!record.formSchema) return 'missing';
   if (record.formSchema.status !== 'ACTIVE') return 'inactive';
@@ -640,6 +768,9 @@ const FormBindings: React.FC = () => {
   const queryProcessModelId = useQueryProcessModelId();
   const queryFormSchemaId = useQueryFormSchemaId();
   const scopedRepairMode = Boolean(queryProcessModelId || queryFormSchemaId);
+  const [bindingOverview, setBindingOverview] = useState<
+    BindingOverviewItem[]
+  >([]);
   const [viewMode, setViewMode] = useState<BindingViewMode>(
     scopedRepairMode ? 'all' : 'current',
   );
@@ -908,6 +1039,7 @@ const FormBindings: React.FC = () => {
           style={{ marginBottom: 16 }}
         />
       ) : null}
+      <BindingOverviewPanel items={bindingOverview} />
       <ProTable<BindingTableItem>
         actionRef={actionRef}
         rowKey="id"
@@ -952,6 +1084,18 @@ const FormBindings: React.FC = () => {
                 taskMap.get(model.id) || [],
               ),
             ]),
+          );
+          setBindingOverview(
+            businessModels.map((model) => ({
+              model,
+              readiness: readinessMap.get(model.id) || {
+                hasStartBinding: false,
+                missingTaskNames: [],
+                invalidBindingCount: 0,
+                outdatedBindingCount: 0,
+                readyToStart: false,
+              },
+            })),
           );
           const keyword = String(
             params.processModelId || params.taskDefinitionKey || '',

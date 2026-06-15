@@ -7,9 +7,11 @@ import type {
 } from '@/services/koravo/api';
 import {
   type BindingTableItem,
+  bindingOverviewStatus,
   buildBindingReadiness,
   resolveBindingCompletionState,
   shouldShowBindingRow,
+  summarizeBindingOverview,
 } from './index';
 
 vi.mock('@ant-design/pro-components', () => ({
@@ -239,5 +241,89 @@ describe('FormBindings readiness', () => {
 
     expect(shouldShowBindingRow(row, 'current', false)).toBe(false);
     expect(shouldShowBindingRow(row, 'current', true)).toBe(true);
+  });
+
+  it('summarizes workflow binding gaps for the page overview', () => {
+    const published = model({
+      id: 'model-ready',
+      status: 'DEPLOYED',
+      flowableDefinitionId: 'collaborativeApproval:1:pd',
+    });
+    const draft = model({ id: 'model-draft' });
+    const outdated = model({
+      id: 'model-outdated',
+      status: 'DEPLOYED',
+      flowableDefinitionId: 'collaborativeApproval:2:pd',
+    });
+    const missingTask = model({
+      id: 'model-missing-task',
+      status: 'DEPLOYED',
+      flowableDefinitionId: 'collaborativeApproval:3:pd',
+    });
+    const ready = buildBindingReadiness(
+      published,
+      [
+        binding({ processModelId: 'model-ready', taskDefinitionKey: '__START__' }),
+        binding({
+          processModelId: 'model-ready',
+          taskDefinitionKey: 'jointApprovalTask',
+        }),
+      ],
+      [schema()],
+      [task],
+    );
+    const needsPublish = buildBindingReadiness(
+      draft,
+      [],
+      [schema()],
+      [task],
+    );
+    const needsSync = buildBindingReadiness(
+      outdated,
+      [
+        binding({
+          processModelId: 'model-outdated',
+          taskDefinitionKey: '__START__',
+        }),
+        binding({
+          processModelId: 'model-outdated',
+          taskDefinitionKey: 'jointApprovalTask',
+        }),
+      ],
+      [schema({ version: 2 })],
+      [task],
+    );
+    const needsTaskBinding = buildBindingReadiness(
+      missingTask,
+      [
+        binding({
+          processModelId: 'model-missing-task',
+          taskDefinitionKey: '__START__',
+        }),
+      ],
+      [schema()],
+      [task],
+    );
+
+    expect(bindingOverviewStatus(published, ready)).toBe('可发起');
+    expect(bindingOverviewStatus(draft, needsPublish)).toBe('待发布');
+    expect(bindingOverviewStatus(outdated, needsSync)).toBe('待同步版本');
+    expect(bindingOverviewStatus(missingTask, needsTaskBinding)).toBe(
+      '缺任务表单',
+    );
+    expect(
+      summarizeBindingOverview([
+        { model: published, readiness: ready },
+        { model: draft, readiness: needsPublish },
+        { model: outdated, readiness: needsSync },
+        { model: missingTask, readiness: needsTaskBinding },
+      ]),
+    ).toMatchObject({
+      total: 4,
+      ready: 1,
+      needDeploy: 1,
+      needTaskBinding: 1,
+      needVersionSync: 1,
+    });
   });
 });
