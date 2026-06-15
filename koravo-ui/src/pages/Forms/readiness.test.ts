@@ -53,7 +53,7 @@ describe('formReadinessIssues', () => {
 
     expect(issues).toEqual(
       expect.arrayContaining([
-        { key: 'duplicate', level: 'error', text: '业务字段不能重复' },
+        { key: 'duplicate', level: 'error', text: '字段编号不能重复' },
         {
           key: 'hiddenRequired',
           level: 'error',
@@ -153,7 +153,7 @@ describe('formReadinessIssues', () => {
     ] as ReadinessField[];
 
     expect(conditionFieldOptions(fields, 'subject')).toEqual([
-      { label: '审批结果（approvalResult）', value: 'approvalResult' },
+      { label: '审批结果', value: 'approvalResult' },
     ]);
     expect(conditionValueOptions(fields, 'approvalResult')).toEqual([
       { label: '通过', value: '通过' },
@@ -173,7 +173,7 @@ describe('formReadinessIssues', () => {
     ] as unknown as ReadinessField[];
 
     expect(conditionFieldOptions(fields, 'approvalUsers')).toEqual([
-      { label: '事项名称（subject）', value: 'subject' },
+      { label: '事项名称', value: 'subject' },
     ]);
   });
 
@@ -282,7 +282,7 @@ describe('formReadinessIssues', () => {
 
   it('summarizes editable field panels without exposing raw config names', () => {
     expect(businessFieldTooltip).not.toContain('流程变量');
-    expect(businessFieldTooltip).toContain('业务字段');
+    expect(businessFieldTooltip).toContain('字段编号');
     expect(
       fieldEditorSummaryTags({
         fieldKey: 'approvalUsers',

@@ -508,7 +508,7 @@ const widgetText: Record<NonNullable<FormFieldConfig['widget']>, string> = {
 
 const systemFieldTooltip = '由组织成员档案自动带出。';
 export const businessFieldTooltip =
-  '保存为业务字段，发起、办理和流程绑定都会按该标识读取。';
+  '保存为字段编号，发起、办理和流程绑定都会按该编号读取。建议使用英文或拼音。';
 
 const parseJsonObject = (value?: string) => {
   if (!value) return {};
@@ -621,7 +621,7 @@ export function conditionFieldOptions(
       return key && key !== currentKey && field.permission !== 'hidden';
     })
     .map((field) => ({
-      label: `${fieldDisplayName(field)}（${fieldKey(field)}）`,
+      label: fieldDisplayName(field),
       value: fieldKey(field),
     }));
 }
@@ -1033,7 +1033,7 @@ const fieldConfigError = (fields: FormFieldConfig[]) => {
       try {
         new RegExp(field.pattern.trim());
       } catch {
-        return `${label}的格式正则无效`;
+        return `${label}的格式规则无效`;
       }
     }
   }
@@ -1056,7 +1056,7 @@ export function formReadinessIssues(fields: FormFieldConfig[]) {
     return issues;
   }
   if (hasDuplicatedFieldKey(fields)) {
-    issues.push({ key: 'duplicate', level: 'error', text: '业务字段不能重复' });
+    issues.push({ key: 'duplicate', level: 'error', text: '字段编号不能重复' });
   }
 
   const configError = fieldConfigError(fields);
@@ -1169,7 +1169,7 @@ const fieldColumns = (
 ): ProColumns<FormFieldConfig>[] => [
   { title: '字段名称', dataIndex: 'title', width: 180 },
   {
-    title: '业务字段',
+    title: '字段编号',
     dataIndex: 'fieldKey',
     width: 180,
     render: (_, record) => <CopyableText value={record.fieldKey} />,
@@ -1793,11 +1793,7 @@ const FieldEditorPanelLabel: React.FC<{
         <Typography.Text className={classNames.fieldPanelName} ellipsis>
           {fieldEditorPanelTitle(field, index)}
         </Typography.Text>
-        {key ? (
-          <Typography.Text type="secondary">{key}</Typography.Text>
-        ) : (
-          <Tag color="gold">未命名字段</Tag>
-        )}
+        {key ? null : <Tag color="gold">未命名字段</Tag>}
       </div>
       <div className={classNames.fieldPanelMeta}>
         {fieldEditorSummaryTags(field).map((tag) => (
@@ -1860,13 +1856,13 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
               <div className={classNames.fieldIdentity}>
                 <ProFormText
                   name="fieldKey"
-                  label="业务字段"
+                  label="字段编号"
                   disabled={isSystemField}
                   tooltip={
                     isSystemField ? systemFieldTooltip : businessFieldTooltip
                   }
                   rules={[
-                    { required: true, message: '请输入业务字段' },
+                    { required: true, message: '请输入字段编号' },
                     {
                       pattern: /^[A-Za-z_][A-Za-z0-9_]*$/,
                       message: '仅支持字母、数字、下划线，且不能以数字开头',
@@ -2021,9 +2017,9 @@ const renderFormFieldsEditor = (classNames: FormFieldsEditorClassNames) => (
                 />
                 <ProFormText
                   name="pattern"
-                  label="格式正则"
+                  label="格式规则"
                   formItemProps={{ className: classNames.fieldWide }}
-                  placeholder="^[A-Z0-9]+$"
+                  placeholder="如：大写字母和数字"
                 />
               </>
             );
@@ -2170,7 +2166,7 @@ const Forms: React.FC = () => {
       return false;
     }
     if (hasDuplicatedFieldKey(values.fields)) {
-      message.error('业务字段不能重复');
+      message.error('字段编号不能重复');
       return false;
     }
     const configError = fieldConfigError(values.fields);
