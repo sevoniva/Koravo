@@ -4,10 +4,44 @@ import type {
 } from '@/services/koravo/api';
 import { connectorExecutionStatusTitle } from '@/utils/connectorExecution';
 import { processDefinitionLabel, taskDefinitionLabel } from '@/utils/display';
+import { processInstanceDetailPath } from '@/utils/processStartNotice';
 
 export interface OpsGuidanceStep {
   title: string;
   description: string;
+}
+
+export interface OpsProcessContextTarget {
+  key: 'progress' | 'audit';
+  label: string;
+  path: string;
+}
+
+export function opsProcessProgressPath(processInstanceId: string) {
+  return processInstanceDetailPath(processInstanceId);
+}
+
+export function opsProcessAuditPath(processInstanceId: string) {
+  return `/audit-logs?resourceId=${encodeURIComponent(processInstanceId)}`;
+}
+
+export function opsProcessContextTargets(
+  processInstanceId?: string | null,
+): OpsProcessContextTarget[] {
+  if (!processInstanceId) return [];
+
+  return [
+    {
+      key: 'progress',
+      label: '查看进度',
+      path: opsProcessProgressPath(processInstanceId),
+    },
+    {
+      key: 'audit',
+      label: '查看审计',
+      path: opsProcessAuditPath(processInstanceId),
+    },
+  ];
 }
 
 function nodeLabel(job: Pick<OpsJobItem, 'elementName' | 'elementId'>) {
@@ -56,18 +90,15 @@ export function opsJobGuidanceSteps(
 export function connectorGuidanceSteps(
   log: Pick<
     ConnectorExecutionLogItem,
-    | 'status'
-    | 'statusCode'
-    | 'url'
-    | 'method'
-    | 'errorMessage'
-    | 'requestId'
+    'status' | 'statusCode' | 'url' | 'method' | 'errorMessage' | 'requestId'
   >,
 ): OpsGuidanceStep[] {
   const statusText = connectorExecutionStatusTitle(log.status);
   const requestText = log.requestId ? '已关联业务追踪号' : '缺少业务追踪号';
   const statusCode =
-    typeof log.statusCode === 'number' ? `状态码 ${log.statusCode}` : statusText;
+    typeof log.statusCode === 'number'
+      ? `状态码 ${log.statusCode}`
+      : statusText;
 
   return [
     {

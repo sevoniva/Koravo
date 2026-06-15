@@ -69,6 +69,9 @@ import {
   connectorGuidanceSteps,
   type OpsGuidanceStep,
   opsJobGuidanceSteps,
+  opsProcessAuditPath,
+  opsProcessContextTargets,
+  opsProcessProgressPath,
 } from './opsGuidance';
 
 type JobKind = 'failed' | 'dead-letter';
@@ -100,6 +103,18 @@ function jobTypeLabel(type?: string) {
 
 function jobKindFromType(type?: string): JobKind {
   return type === 'DEAD_LETTER' ? 'dead-letter' : 'failed';
+}
+
+function renderProcessContextButtons(processInstanceId?: string | null) {
+  return opsProcessContextTargets(processInstanceId).map((target) => (
+    <Button
+      key={target.key}
+      type="link"
+      onClick={() => history.push(target.path)}
+    >
+      {target.label}
+    </Button>
+  ));
 }
 
 function buildInstanceColumns(
@@ -169,7 +184,7 @@ function buildInstanceColumns(
     {
       title: '操作',
       valueType: 'option',
-      width: 210,
+      width: 240,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -177,25 +192,21 @@ function buildInstanceColumns(
             icon={<DeploymentUnitOutlined />}
             onClick={() => openPreview(record)}
           >
-            流程
+            预览进度
           </Button>
           <Button
             type="link"
             onClick={() =>
-              history.push(`/process-instances/${record.instanceId}`)
+              history.push(opsProcessProgressPath(record.instanceId))
             }
           >
-            查看实例
+            查看进度
           </Button>
           <Button
             type="link"
-            onClick={() =>
-              history.push(
-                `/audit-logs?resourceId=${encodeURIComponent(record.instanceId)}`,
-              )
-            }
+            onClick={() => history.push(opsProcessAuditPath(record.instanceId))}
           >
-            审计日志
+            查看审计
           </Button>
         </Space>
       ),
@@ -232,7 +243,7 @@ function jobColumns(
     {
       title: '关联流程',
       dataIndex: 'processInstanceId',
-      width: 190,
+      width: 260,
       render: (_, record) =>
         record.processInstanceId ? (
           <Space wrap>
@@ -240,14 +251,7 @@ function jobColumns(
               value={record.processInstanceId}
               displayValue={shortTraceLabel(record.processInstanceId)}
             />
-            <Button
-              type="link"
-              onClick={() =>
-                history.push(`/process-instances/${record.processInstanceId}`)
-              }
-            >
-              查看实例
-            </Button>
+            {renderProcessContextButtons(record.processInstanceId)}
           </Space>
         ) : (
           '-'
@@ -292,10 +296,12 @@ function jobColumns(
           key="audit"
           type="link"
           onClick={() =>
-            history.push(`/audit-logs?resourceId=${encodeURIComponent(record.id)}`)
+            history.push(
+              `/audit-logs?resourceId=${encodeURIComponent(record.id)}`,
+            )
           }
         >
-          审计
+          任务审计
         </Button>,
         <Button
           key="retry"
@@ -432,7 +438,7 @@ function connectorColumns(
             )
           }
         >
-          审计
+          查看审计
         </Button>,
       ],
     },
@@ -453,7 +459,7 @@ const capabilityColumns: ProColumns<OpsCapabilityItem>[] = [
 function jobEmpty(description: string) {
   return (
     <Empty description={description} image={Empty.PRESENTED_IMAGE_SIMPLE}>
-      <Button onClick={() => history.push('/audit-logs')}>查看审计日志</Button>
+      <Button onClick={() => history.push('/audit-logs')}>查看审计</Button>
     </Empty>
   );
 }
@@ -573,6 +579,7 @@ const Ops: React.FC = () => {
     (summary?.failedJobCount || 0) +
     (summary?.deadLetterJobCount || 0) +
     (summary?.connectorFailureCount || 0);
+  const jobProcessInstanceId = jobDetail?.processInstanceId;
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -817,29 +824,25 @@ const Ops: React.FC = () => {
                   )
                 }
               >
-                异常审计
+                任务审计
               </Button>
-              {jobDetail.processInstanceId ? (
+              {jobProcessInstanceId ? (
                 <>
                   <Button
                     type="link"
                     onClick={() =>
-                      history.push(
-                        `/process-instances/${jobDetail.processInstanceId}`,
-                      )
+                      history.push(opsProcessProgressPath(jobProcessInstanceId))
                     }
                   >
-                    查看流程实例
+                    查看进度
                   </Button>
                   <Button
                     type="link"
                     onClick={() =>
-                      history.push(
-                        `/audit-logs?resourceId=${encodeURIComponent(jobDetail.processInstanceId || '')}`,
-                      )
+                      history.push(opsProcessAuditPath(jobProcessInstanceId))
                     }
                   >
-                    流程审计
+                    查看审计
                   </Button>
                 </>
               ) : null}
@@ -889,16 +892,7 @@ const Ops: React.FC = () => {
                             record.processInstanceId,
                           )}
                         />
-                        <Button
-                          type="link"
-                          onClick={() =>
-                            history.push(
-                              `/process-instances/${record.processInstanceId}`,
-                            )
-                          }
-                        >
-                          查看实例
-                        </Button>
+                        {renderProcessContextButtons(record.processInstanceId)}
                       </Space>
                     ) : (
                       '-'
@@ -1033,7 +1027,7 @@ const Ops: React.FC = () => {
                   )
                 }
               >
-                审计日志
+                查看审计
               </Button>
               <Button
                 type="link"

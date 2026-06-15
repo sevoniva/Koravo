@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { connectorGuidanceSteps, opsJobGuidanceSteps } from './opsGuidance';
+import {
+  connectorGuidanceSteps,
+  opsJobGuidanceSteps,
+  opsProcessAuditPath,
+  opsProcessContextTargets,
+  opsProcessProgressPath,
+} from './opsGuidance';
 
 describe('opsGuidanceSteps', () => {
   it('guides operators through failed workflow jobs without raw ids first', () => {
@@ -38,5 +44,27 @@ describe('opsGuidanceSteps', () => {
     expect(steps[0].description).toContain('POST');
     expect(steps[1].description).toContain('状态码 502');
     expect(steps[2].description).toContain('审计日志');
+  });
+
+  it('builds stable process context targets for ops pages', () => {
+    expect(opsProcessContextTargets()).toEqual([]);
+    expect(opsProcessProgressPath('process/1')).toBe(
+      '/process-instances/process%2F1',
+    );
+    expect(opsProcessAuditPath('process/1')).toBe(
+      '/audit-logs?resourceId=process%2F1',
+    );
+    expect(opsProcessContextTargets('process-1')).toEqual([
+      {
+        key: 'progress',
+        label: '查看进度',
+        path: '/process-instances/process-1',
+      },
+      {
+        key: 'audit',
+        label: '查看审计',
+        path: '/audit-logs?resourceId=process-1',
+      },
+    ]);
   });
 });
