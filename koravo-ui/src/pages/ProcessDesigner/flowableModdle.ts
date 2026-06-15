@@ -27,6 +27,15 @@ export const flowableModdle = {
       ],
     },
     {
+      name: 'Field',
+      superClass: ['Element'],
+      properties: [
+        { name: 'name', isAttr: true, type: 'String' },
+        { name: 'stringValue', isAttr: true, type: 'String' },
+        { name: 'expression', isAttr: true, type: 'String' },
+      ],
+    },
+    {
       name: 'MultiInstanceLoopCharacteristics',
       extends: ['bpmn:MultiInstanceLoopCharacteristics'],
       properties: [

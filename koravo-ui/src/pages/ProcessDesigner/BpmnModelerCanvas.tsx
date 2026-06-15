@@ -22,10 +22,18 @@ import React, {
   useState,
 } from 'react';
 import {
-  normalizeBpmnImportWarnings,
   type BpmnImportWarningView,
+  normalizeBpmnImportWarnings,
 } from './bpmnImportWarnings';
 import { flowableModdle } from './flowableModdle';
+import {
+  CONNECTOR_FIELD_NAMES,
+  type ConnectorHeaderRow,
+  connectorFieldValueMap,
+  connectorHeadersFromJson,
+  KORAVO_CONNECTOR_DELEGATE,
+  normalizeServiceTaskConnectorFields,
+} from './serviceTaskConnector';
 
 type ModelerConstructor = new (options: Record<string, unknown>) => BpmnModeler;
 
@@ -74,8 +82,23 @@ type Selection = {
 type Modeling = {
   updateProperties: (
     element: BpmnElement,
-    properties: Record<string, string | undefined>,
+    properties: Record<string, unknown>,
   ) => void;
+};
+
+type Moddle = {
+  create: (
+    type: string,
+    attributes: Record<string, unknown>,
+  ) => BpmnModdleValue;
+};
+
+type BpmnModdleValue = {
+  $type?: string;
+  name?: string;
+  stringValue?: string;
+  values?: BpmnModdleValue[];
+  get?: (name: string) => unknown;
 };
 
 export interface BpmnSelectedElement {
@@ -90,6 +113,14 @@ export interface BpmnSelectedElement {
   serviceClass?: string;
   expression?: string;
   resultVariable?: string;
+  connectorEnabled?: boolean;
+  connectorType?: string;
+  connectorMethod?: string;
+  connectorUrl?: string;
+  connectorHeaders?: ConnectorHeaderRow[];
+  connectorBody?: string;
+  connectorTimeoutMillis?: number;
+  connectorOutputVariable?: string;
 }
 
 export interface BpmnSelectedElementPatch {
@@ -102,6 +133,14 @@ export interface BpmnSelectedElementPatch {
   serviceClass?: string;
   expression?: string;
   resultVariable?: string;
+  connectorEnabled?: boolean;
+  connectorType?: string;
+  connectorMethod?: string;
+  connectorUrl?: string;
+  connectorHeaders?: ConnectorHeaderRow[];
+  connectorBody?: string;
+  connectorTimeoutMillis?: number | string;
+  connectorOutputVariable?: string;
 }
 
 export interface BpmnModelerCanvasHandle {
@@ -211,6 +250,13 @@ function normalizeElement(element?: BpmnElement): BpmnElement | undefined {
   return element?.businessObject ? element : undefined;
 }
 
+function isServiceTaskElement(element: BpmnElement) {
+  return (
+    element.type === 'bpmn:ServiceTask' ||
+    element.businessObject?.$type === 'bpmn:ServiceTask'
+  );
+}
+
 function readFlowableAttribute(
   businessObject: BpmnBusinessObject,
   key: string,
@@ -226,12 +272,64 @@ function readFlowableAttribute(
   return typeof value === 'string' && value.trim() ? value : undefined;
 }
 
+function extensionValues(businessObject: BpmnBusinessObject) {
+  const extensionElements =
+    businessObject.get?.('extensionElements') ||
+    businessObject['extensionElements' as keyof BpmnBusinessObject];
+  const values =
+    (extensionElements as BpmnModdleValue | undefined)?.get?.('values') ||
+    (extensionElements as BpmnModdleValue | undefined)?.values;
+
+  return Array.isArray(values) ? (values as BpmnModdleValue[]) : [];
+}
+
+function flowableFieldName(value: BpmnModdleValue) {
+  const name = value.get?.('name') || value.name;
+  return typeof name === 'string' && name.trim() ? name : undefined;
+}
+
+function flowableFieldStringValue(value: BpmnModdleValue) {
+  const stringValue = value.get?.('stringValue') || value.stringValue;
+  return typeof stringValue === 'string' ? stringValue : undefined;
+}
+
+function readFlowableFieldValue(
+  businessObject: BpmnBusinessObject,
+  fieldName: string,
+) {
+  const field = extensionValues(businessObject).find(
+    (value) =>
+      value.$type === 'flowable:Field' &&
+      flowableFieldName(value) === fieldName,
+  );
+  return field ? flowableFieldStringValue(field) : undefined;
+}
+
+function hasConnectorFieldValues(businessObject: BpmnBusinessObject) {
+  return CONNECTOR_FIELD_NAMES.some((fieldName) =>
+    Boolean(readFlowableFieldValue(businessObject, fieldName)),
+  );
+}
+
+function readPositiveNumber(value?: string) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function toSelectedElement(
   element?: BpmnElement,
 ): BpmnSelectedElement | undefined {
   const normalized = normalizeElement(element);
   const businessObject = normalized?.businessObject;
   if (!normalized || !businessObject) return undefined;
+
+  const delegateExpression = readFlowableAttribute(
+    businessObject,
+    'delegateExpression',
+  );
+  const connectorEnabled =
+    delegateExpression === KORAVO_CONNECTOR_DELEGATE ||
+    hasConnectorFieldValues(businessObject);
 
   return {
     elementId: businessObject.id || normalized.id || '',
@@ -245,13 +343,26 @@ function toSelectedElement(
       readFlowableAttribute(businessObject, 'candidateGroups'),
     ),
     formKey: readFlowableAttribute(businessObject, 'formKey'),
-    delegateExpression: readFlowableAttribute(
-      businessObject,
-      'delegateExpression',
-    ),
+    delegateExpression,
     serviceClass: readFlowableAttribute(businessObject, 'class'),
     expression: readFlowableAttribute(businessObject, 'expression'),
     resultVariable: readFlowableAttribute(businessObject, 'resultVariable'),
+    connectorEnabled,
+    connectorType:
+      readFlowableFieldValue(businessObject, 'connectorType') || 'http',
+    connectorMethod: readFlowableFieldValue(businessObject, 'method') || 'GET',
+    connectorUrl: readFlowableFieldValue(businessObject, 'url'),
+    connectorHeaders: connectorHeadersFromJson(
+      readFlowableFieldValue(businessObject, 'headers'),
+    ),
+    connectorBody: readFlowableFieldValue(businessObject, 'body'),
+    connectorTimeoutMillis: readPositiveNumber(
+      readFlowableFieldValue(businessObject, 'timeoutMillis'),
+    ),
+    connectorOutputVariable: readFlowableFieldValue(
+      businessObject,
+      'outputVariable',
+    ),
   };
 }
 
@@ -272,18 +383,46 @@ function listToCsv(value?: string[]) {
   return items.length ? items.join(',') : undefined;
 }
 
-function buildElementPatch(values: BpmnSelectedElementPatch) {
+function buildElementPatch(
+  values: BpmnSelectedElementPatch,
+): Record<string, unknown> {
+  const normalized = normalizeServiceTaskConnectorFields(values);
+
   return {
-    name: blankToUndefined(values.name),
-    'flowable:assignee': blankToUndefined(values.assignee),
-    'flowable:candidateUsers': listToCsv(values.candidateUsers),
-    'flowable:candidateGroups': listToCsv(values.candidateGroups),
-    'flowable:formKey': blankToUndefined(values.formKey),
-    'flowable:delegateExpression': blankToUndefined(values.delegateExpression),
-    'flowable:class': blankToUndefined(values.serviceClass),
-    'flowable:expression': blankToUndefined(values.expression),
-    'flowable:resultVariable': blankToUndefined(values.resultVariable),
+    name: blankToUndefined(normalized.name),
+    'flowable:assignee': blankToUndefined(normalized.assignee),
+    'flowable:candidateUsers': listToCsv(normalized.candidateUsers),
+    'flowable:candidateGroups': listToCsv(normalized.candidateGroups),
+    'flowable:formKey': blankToUndefined(normalized.formKey),
+    'flowable:delegateExpression': blankToUndefined(
+      normalized.delegateExpression,
+    ),
+    'flowable:class': blankToUndefined(normalized.serviceClass),
+    'flowable:expression': blankToUndefined(normalized.expression),
+    'flowable:resultVariable': blankToUndefined(normalized.resultVariable),
   };
+}
+
+function buildExtensionElementsPatch(
+  moddle: Moddle,
+  businessObject: BpmnBusinessObject,
+  values: BpmnSelectedElementPatch,
+) {
+  const connectorNames = new Set<string>(CONNECTOR_FIELD_NAMES);
+  const retained = extensionValues(businessObject).filter((value) => {
+    if (value.$type !== 'flowable:Field') return true;
+    const name = flowableFieldName(value);
+    return !name || !connectorNames.has(name);
+  });
+  const connectorFields = Object.entries(connectorFieldValueMap(values))
+    .filter(([, stringValue]) => Boolean(stringValue))
+    .map(([name, stringValue]) =>
+      moddle.create('flowable:Field', { name, stringValue }),
+    );
+  const nextValues = [...retained, ...connectorFields];
+
+  if (!nextValues.length) return undefined;
+  return moddle.create('bpmn:ExtensionElements', { values: nextValues });
 }
 
 export const BpmnModelerCanvas = forwardRef<
@@ -304,9 +443,9 @@ export const BpmnModelerCanvas = forwardRef<
   const onXmlChangeRef = useRef(onXmlChange);
   const [loading, setLoading] = useState(true);
   const [importError, setImportError] = useState<string>();
-  const [importWarnings, setImportWarnings] = useState<
-    BpmnImportWarningView[]
-  >([]);
+  const [importWarnings, setImportWarnings] = useState<BpmnImportWarningView[]>(
+    [],
+  );
 
   useEffect(() => {
     valueRef.current = value;
@@ -378,7 +517,9 @@ export const BpmnModelerCanvas = forwardRef<
       }
     } catch (error) {
       setImportWarnings([]);
-      setImportError(error instanceof Error ? error.message : '流程文件加载失败');
+      setImportError(
+        error instanceof Error ? error.message : '流程文件加载失败',
+      );
     } finally {
       setLoading(false);
     }
@@ -395,9 +536,19 @@ export const BpmnModelerCanvas = forwardRef<
       const modeling = modelerRef.current?.get('modeling') as
         | Modeling
         | undefined;
+      const moddle = modelerRef.current?.get('moddle') as Moddle | undefined;
       if (!element || !modeling) return saveXml();
 
-      modeling.updateProperties(element, buildElementPatch(values));
+      const patch = buildElementPatch(values);
+      if (element.businessObject && moddle && isServiceTaskElement(element)) {
+        patch.extensionElements = buildExtensionElementsPatch(
+          moddle,
+          element.businessObject,
+          values,
+        );
+      }
+
+      modeling.updateProperties(element, patch);
       await emitXmlChange();
       onSelectionChangeRef.current?.(toSelectedElement(element));
       return saveXml();

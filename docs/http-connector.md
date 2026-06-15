@@ -15,12 +15,12 @@ Configure it with Flowable field extensions:
 - `connectorType`: `http`
 - `url`: target URL
 - `method`: `GET` or `POST`
-- `headers`: JSON object string
+- request headers: maintained as key/value rows in the console
 - `body`: optional request body
 - `timeoutMillis`: optional timeout, defaults to 5000
 - `outputVariable`: variable name for the connector response
 
-In the console designer, select a `bpmn:ServiceTask` to edit the delegate expression and the basic HTTP connector fields above. This covers the workflow configuration path without requiring raw XML edits. The designer validates headers as a JSON object and requires `timeoutMillis` to be a positive integer before applying connector properties.
+In the console designer, select a `bpmn:ServiceTask` and enable `HTTP 调用`. The designer writes the delegate expression and Flowable field extensions, and request headers are edited as rows instead of a raw map string. `timeoutMillis` must be a positive integer before applying connector properties.
 
 The output variable contains:
 

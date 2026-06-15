@@ -17,4 +17,16 @@ describe('flowableModdle', () => {
       ]),
     );
   });
+
+  it('registers service task field extensions used by connector configuration', () => {
+    const field = flowableModdle.types.find((type) => type.name === 'Field');
+
+    expect(field?.superClass).toContain('Element');
+    expect(field?.properties).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'name', isAttr: true }),
+        expect.objectContaining({ name: 'stringValue', isAttr: true }),
+      ]),
+    );
+  });
 });

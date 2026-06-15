@@ -14,8 +14,13 @@ import {
   PageContainer,
   ProDescriptions,
   ProForm,
+  ProFormDependency,
+  ProFormDigit,
+  ProFormList,
   ProFormSelect,
+  ProFormSwitch,
   ProFormText,
+  ProFormTextArea,
   ProList,
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
@@ -42,11 +47,11 @@ import KoravoDrawer from '@/components/KoravoDrawer';
 import { KoravoStatusTag } from '@/components/KoravoStatusTag';
 import {
   deployProcessModelDraft,
+  type FormSchemaItem,
   getProcessModel,
   importProcessModel,
-  type FormSchemaItem,
-  listFormSchemas,
   listFormBindings,
+  listFormSchemas,
   listProcessModels,
   listProcessModelTaskDefinitions,
   type ProcessModelItem,
@@ -80,6 +85,10 @@ import {
   type ReleaseCheckItem,
   type ReleaseCheckState,
 } from './releaseCheck';
+import {
+  KORAVO_CONNECTOR_DELEGATE,
+  normalizeServiceTaskConnectorFields,
+} from './serviceTaskConnector';
 
 interface ModelFormValues {
   modelName: string;
@@ -237,6 +246,14 @@ function isUserTask(element?: BpmnSelectedElement) {
 
 function isServiceTask(element?: BpmnSelectedElement) {
   return element?.elementType === 'bpmn:ServiceTask';
+}
+
+function isHttpConnectorTask(element?: Partial<BpmnSelectedElementPatch>) {
+  return Boolean(
+    element?.connectorEnabled ||
+      element?.connectorUrl ||
+      element?.delegateExpression === KORAVO_CONNECTOR_DELEGATE,
+  );
 }
 
 function bpmnElementTypeLabel(type?: string) {
@@ -504,19 +521,16 @@ const ProcessDesigner: React.FC = () => {
     }
   }, [activeModel, forms, getCurrentXml]);
 
-  const handleReleaseCheckAction = useCallback(
-    (item: ReleaseCheckItem) => {
-      if (item.action === 'bind' && item.actionPath) {
-        history.push(item.actionPath);
-        return;
-      }
-      if (item.action === 'inspect') {
-        if (item.elementId) modelerRef.current?.focusElement(item.elementId);
-        setInspectorDrawerOpen(true);
-      }
-    },
-    [],
-  );
+  const handleReleaseCheckAction = useCallback((item: ReleaseCheckItem) => {
+    if (item.action === 'bind' && item.actionPath) {
+      history.push(item.actionPath);
+      return;
+    }
+    if (item.action === 'inspect') {
+      if (item.elementId) modelerRef.current?.focusElement(item.elementId);
+      setInspectorDrawerOpen(true);
+    }
+  }, []);
 
   const handleValidate = useCallback(async () => {
     setValidating(true);
@@ -655,12 +669,15 @@ const ProcessDesigner: React.FC = () => {
 
   const handleApplyElement = useCallback(
     async (values: BpmnSelectedElementPatch) => {
-      const xml = await modelerRef.current?.applySelectedElement(values);
+      const nextValues = isServiceTask(selectedElement)
+        ? normalizeServiceTaskConnectorFields(values)
+        : values;
+      const xml = await modelerRef.current?.applySelectedElement(nextValues);
       if (xml) setDesignerXml(xml);
       message.success('属性已更新');
       return true;
     },
-    [],
+    [message, selectedElement],
   );
 
   const renderModelList = () => (
@@ -814,7 +831,87 @@ const ProcessDesigner: React.FC = () => {
           <Collapse
             size="small"
             ghost
+            defaultActiveKey={
+              isHttpConnectorTask(selectedElement)
+                ? ['service-task-http']
+                : undefined
+            }
             items={[
+              {
+                key: 'service-task-http',
+                label: 'HTTP 调用',
+                children: (
+                  <>
+                    <ProFormSwitch
+                      name="connectorEnabled"
+                      label="启用"
+                      fieldProps={{
+                        checkedChildren: '启用',
+                        unCheckedChildren: '关闭',
+                      }}
+                    />
+                    <ProFormDependency name={['connectorEnabled']}>
+                      {({ connectorEnabled }) =>
+                        connectorEnabled ? (
+                          <>
+                            <ProFormSelect
+                              name="connectorMethod"
+                              label="请求方法"
+                              options={[
+                                { label: 'GET', value: 'GET' },
+                                { label: 'POST', value: 'POST' },
+                              ]}
+                              rules={[
+                                { required: true, message: '请选择请求方法' },
+                              ]}
+                            />
+                            <ProFormText
+                              name="connectorUrl"
+                              label="请求地址"
+                              rules={[
+                                { required: true, message: '请输入请求地址' },
+                              ]}
+                            />
+                            <ProFormList
+                              name="connectorHeaders"
+                              label="请求头"
+                              creatorButtonProps={{
+                                creatorButtonText: '添加请求头',
+                              }}
+                              copyIconProps={false}
+                            >
+                              <ProFormText name="name" label="名称" />
+                              <ProFormText name="value" label="值" />
+                            </ProFormList>
+                            <ProFormTextArea
+                              name="connectorBody"
+                              label="请求体"
+                              fieldProps={{
+                                autoSize: { minRows: 3, maxRows: 6 },
+                              }}
+                            />
+                            <ProFormDigit
+                              name="connectorTimeoutMillis"
+                              label="超时毫秒"
+                              fieldProps={{ min: 1, precision: 0 }}
+                              rules={[
+                                { required: true, message: '请输入超时毫秒' },
+                              ]}
+                            />
+                            <ProFormText
+                              name="connectorOutputVariable"
+                              label="结果变量"
+                              rules={[
+                                { required: true, message: '请输入结果变量' },
+                              ]}
+                            />
+                          </>
+                        ) : null
+                      }
+                    </ProFormDependency>
+                  </>
+                ),
+              },
               {
                 key: 'service-task-advanced',
                 label: '高级执行配置',
@@ -1068,7 +1165,6 @@ const ProcessDesigner: React.FC = () => {
           {renderElementProperties()}
         </section>
       </KoravoDrawer>
-
     </PageContainer>
   );
 };
