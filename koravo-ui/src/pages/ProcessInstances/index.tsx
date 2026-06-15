@@ -51,8 +51,8 @@ import {
   applyOrganizationProfileValues,
   isOrganizationAssigneeField,
   isOrganizationProfileField,
-  organizationApprovalRoleOptions,
   organizationApprovalMemberSelectOptions,
+  organizationApprovalRoleOptions,
   organizationAssigneeFieldValue,
   organizationAssigneeRole,
   organizationMemberIdsByRoles,
@@ -68,6 +68,7 @@ import {
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDateTime } from '@/utils/format';
+import { processInstanceDetailPath } from '@/utils/processStartNotice';
 import {
   filterWorkflowFormValues,
   isWorkflowFieldVisible,
@@ -77,7 +78,6 @@ import {
   workflowFieldRules,
   workflowNumberFieldProps,
 } from '@/utils/workflowForm';
-import { processInstanceDetailPath } from '@/utils/processStartNotice';
 
 interface StartInstanceForm {
   processDefinitionKey: string;
@@ -485,15 +485,15 @@ function buildColumns(
             icon={<DeploymentUnitOutlined />}
             onClick={() => openPreview(record)}
           >
-            流程
+            预览进度
           </Button>
           <Button
             type="link"
             onClick={() =>
-              history.push(`/process-instances/${record.instanceId}`)
+              history.push(processInstanceDetailPath(record.instanceId))
             }
           >
-            查看实例
+            查看进度
           </Button>
         </Space>
       ),
@@ -527,7 +527,10 @@ const ApprovalRoleQuickSelect: React.FC<{ fieldKey: string }> = ({
   fieldKey,
 }) => {
   const form = Form.useFormInstance();
-  const roleOptions = React.useMemo(() => organizationApprovalRoleOptions(), []);
+  const roleOptions = React.useMemo(
+    () => organizationApprovalRoleOptions(),
+    [],
+  );
   if (!roleOptions.length) return null;
 
   return (

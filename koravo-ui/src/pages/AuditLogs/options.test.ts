@@ -4,6 +4,7 @@ import {
   auditCanOpenProcessContext,
   auditConnectorRecordPath,
   auditProcessInstanceId,
+  auditRelatedActionTargets,
   auditTaskId,
 } from './index';
 
@@ -137,5 +138,63 @@ describe('AuditLogs actionOptions', () => {
         createdAt: '2026-01-01T00:00:00Z',
       }),
     ).toBe('/http-connector?requestId=REQ-1');
+  });
+
+  it('builds one process-context action for task audit records', () => {
+    expect(
+      auditRelatedActionTargets(
+        {
+          id: 'audit-task',
+          tenantId: 'default',
+          userId: 'manager',
+          action: 'TASK_COMPLETE',
+          resourceType: 'TASK',
+          resourceId: 'task-1',
+          detailJson: JSON.stringify({ processInstanceId: 'process-1' }),
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+        {
+          canOpenProcessInstance: true,
+          canConfigureWorkflow: false,
+          canManageIntegration: false,
+          canOperateSystem: false,
+        },
+      ),
+    ).toEqual([
+      {
+        key: 'task-context',
+        label: '查看任务进度',
+        path: '/process-instances/process-1?taskId=task-1',
+      },
+    ]);
+  });
+
+  it('builds a process progress action for instance audit records', () => {
+    expect(
+      auditRelatedActionTargets(
+        {
+          id: 'audit-instance',
+          tenantId: 'default',
+          userId: 'applicant',
+          action: 'PROCESS_INSTANCE_START',
+          resourceType: 'PROCESS_INSTANCE',
+          resourceId: 'process-1',
+          detailJson: '{}',
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+        {
+          canOpenProcessInstance: true,
+          canConfigureWorkflow: false,
+          canManageIntegration: false,
+          canOperateSystem: false,
+        },
+      ),
+    ).toEqual([
+      {
+        key: 'instance',
+        label: '查看流程进度',
+        path: '/process-instances/process-1',
+      },
+    ]);
   });
 });

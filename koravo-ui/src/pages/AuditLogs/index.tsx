@@ -34,6 +34,7 @@ import {
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDateTime, maskSecret, parseJsonSafe } from '@/utils/format';
+import { processInstanceDetailPath } from '@/utils/processStartNotice';
 
 export const actionOptions = {
   AUTH_LOGIN: { text: '登录系统' },
@@ -144,11 +145,17 @@ function auditResourceName(value: unknown) {
   return text;
 }
 
-interface AuditRelatedAccess {
+export interface AuditRelatedAccess {
   canOpenProcessInstance: boolean;
   canConfigureWorkflow: boolean;
   canManageIntegration: boolean;
   canOperateSystem: boolean;
+}
+
+interface AuditRelatedActionTarget {
+  key: string;
+  label: string;
+  path: string;
 }
 
 export function auditCanOpenProcessContext(
@@ -179,100 +186,63 @@ function auditRelatedAccess(): AuditRelatedAccess {
   };
 }
 
-function auditRelatedButtons(
+export function auditRelatedActionTargets(
   log?: AuditLogItem,
   access = auditRelatedAccess(),
 ) {
   const processInstanceId = auditProcessInstanceId(log);
   const taskId = auditTaskId(log);
   const processModelId = auditProcessModelId(log);
-  const actions: React.ReactNode[] = [];
+  const actions: AuditRelatedActionTarget[] = [];
 
-  if (processInstanceId && taskId && access.canOpenProcessInstance) {
-    actions.push(
-      <Button
-        key="task-context"
-        type="link"
-        onClick={() =>
-          history.push(
-            `/process-instances/${processInstanceId}?taskId=${encodeURIComponent(taskId)}`,
-          )
-        }
-      >
-        查看任务上下文
-      </Button>,
-    );
-  }
   if (processInstanceId && access.canOpenProcessInstance) {
     actions.push(
-      <Button
-        key="instance"
-        type="link"
-        onClick={() => history.push(`/process-instances/${processInstanceId}`)}
-      >
-        查看流程实例
-      </Button>,
+      taskId
+        ? {
+            key: 'task-context',
+            label: '查看任务进度',
+            path: processInstanceDetailPath(processInstanceId, { taskId }),
+          }
+        : {
+            key: 'instance',
+            label: '查看流程进度',
+            path: processInstanceDetailPath(processInstanceId),
+          },
     );
   }
   if (processModelId && access.canConfigureWorkflow) {
-    actions.push(
-      <Button
-        key="model"
-        type="link"
-        onClick={() =>
-          history.push(`/process-designer?modelId=${processModelId}`)
-        }
-      >
-        查看流程设计
-      </Button>,
-    );
+    actions.push({
+      key: 'model',
+      label: '查看流程设计',
+      path: `/process-designer?modelId=${processModelId}`,
+    });
   }
   if (log?.resourceType === 'FORM_SCHEMA' && access.canConfigureWorkflow) {
-    actions.push(
-      <Button key="form" type="link" onClick={() => history.push('/forms')}>
-        查看表单
-      </Button>,
-    );
+    actions.push({ key: 'form', label: '查看表单', path: '/forms' });
   }
   if (log?.resourceType === 'FORM_BINDING' && access.canConfigureWorkflow) {
-    actions.push(
-      <Button
-        key="binding"
-        type="link"
-        onClick={() =>
-          history.push(
-            processModelId
-              ? `/form-bindings?processModelId=${processModelId}`
-              : '/form-bindings',
-          )
-        }
-      >
-        查看表单绑定
-      </Button>,
-    );
+    actions.push({
+      key: 'binding',
+      label: '查看表单绑定',
+      path: processModelId
+        ? `/form-bindings?processModelId=${processModelId}`
+        : '/form-bindings',
+    });
   }
   if (log?.resourceType === 'DATASOURCE' && access.canManageIntegration) {
-    actions.push(
-      <Button
-        key="datasource"
-        type="link"
-        onClick={() => history.push('/datasources')}
-      >
-        查看数据源
-      </Button>,
-    );
+    actions.push({
+      key: 'datasource',
+      label: '查看数据源',
+      path: '/datasources',
+    });
   }
   const connectorRecordPath = auditConnectorRecordPath(log);
   if (connectorRecordPath && access.canManageIntegration) {
-    actions.push(
-      <Button
-        key="connector"
-        type="link"
-        onClick={() => history.push(connectorRecordPath)}
-      >
-        查看连接器记录
-      </Button>,
-    );
+    actions.push({
+      key: 'connector',
+      label: '查看连接器记录',
+      path: connectorRecordPath,
+    });
   }
   if (
     log?.resourceType === 'FAILED_JOB' &&
@@ -280,19 +250,11 @@ function auditRelatedButtons(
     access.canOperateSystem
   ) {
     const jobId = log.resourceId;
-    actions.push(
-      <Button
-        key="failed-job"
-        type="link"
-        onClick={() =>
-          history.push(
-            `/ops?tab=failed&jobKind=failed&jobId=${encodeURIComponent(jobId)}`,
-          )
-        }
-      >
-        查看异常任务
-      </Button>,
-    );
+    actions.push({
+      key: 'failed-job',
+      label: '查看异常任务',
+      path: `/ops?tab=failed&jobKind=failed&jobId=${encodeURIComponent(jobId)}`,
+    });
   }
   if (
     log?.resourceType === 'DEAD_LETTER_JOB' &&
@@ -300,22 +262,29 @@ function auditRelatedButtons(
     access.canOperateSystem
   ) {
     const jobId = log.resourceId;
-    actions.push(
-      <Button
-        key="dead-letter-job"
-        type="link"
-        onClick={() =>
-          history.push(
-            `/ops?tab=dead-letter&jobKind=dead-letter&jobId=${encodeURIComponent(jobId)}`,
-          )
-        }
-      >
-        查看异常任务
-      </Button>,
-    );
+    actions.push({
+      key: 'dead-letter-job',
+      label: '查看异常任务',
+      path: `/ops?tab=dead-letter&jobKind=dead-letter&jobId=${encodeURIComponent(jobId)}`,
+    });
   }
 
   return actions;
+}
+
+function auditRelatedButtons(
+  log?: AuditLogItem,
+  access = auditRelatedAccess(),
+) {
+  return auditRelatedActionTargets(log, access).map((action) => (
+    <Button
+      key={action.key}
+      type="link"
+      onClick={() => history.push(action.path)}
+    >
+      {action.label}
+    </Button>
+  ));
 }
 
 function auditResourceText(log?: AuditLogItem) {

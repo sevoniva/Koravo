@@ -152,7 +152,7 @@ function buildTaskColumns(
             icon={<DeploymentUnitOutlined />}
             onClick={() => onPreview(record)}
           >
-            流程
+            预览进度
           </Button>
           <Button
             type="link"
@@ -164,7 +164,7 @@ function buildTaskColumns(
               )
             }
           >
-            查看实例
+            查看进度
           </Button>
         </Space>
       ),
@@ -239,15 +239,15 @@ function buildInstanceColumns(
             icon={<DeploymentUnitOutlined />}
             onClick={() => onPreview(record)}
           >
-            流程
+            预览进度
           </Button>
           <Button
             type="link"
             onClick={() =>
-              history.push(`/process-instances/${record.instanceId}`)
+              history.push(processInstanceDetailPath(record.instanceId))
             }
           >
-            查看
+            查看进度
           </Button>
         </Space>
       ),
@@ -382,7 +382,7 @@ const Tasks: React.FC = () => {
               icon={<DeploymentUnitOutlined />}
               onClick={() => openTaskPreview(record)}
             >
-              流程
+              预览进度
             </Button>
             <Button
               type="link"
@@ -394,7 +394,7 @@ const Tasks: React.FC = () => {
                 )
               }
             >
-              查看实例
+              查看进度
             </Button>
           </Space>
         ),
