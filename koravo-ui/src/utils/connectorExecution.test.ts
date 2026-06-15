@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  connectorMethodDisplay,
   connectorExecutionResultSummary,
   connectorExecutionStatusTitle,
   connectorExecutionTitle,
+  connectorRequestDisplay,
   connectorTraceDisplay,
 } from './connectorExecution';
 
@@ -26,6 +28,16 @@ describe('connector execution display helpers', () => {
         url: 'https://api.example.com/workflow',
       }),
     ).toBe('状态码 500，耗时 120 ms');
+  });
+
+  it('formats connector request methods as product labels', () => {
+    expect(connectorMethodDisplay('POST')).toBe('提交');
+    expect(
+      connectorRequestDisplay({
+        method: 'GET',
+        url: 'http://localhost:8080/actuator/health',
+      }),
+    ).toBe('读取 本地服务健康检查');
   });
 
   it('formats status and trace labels', () => {

@@ -56,7 +56,8 @@ describe('opsGuidanceSteps', () => {
       '确认响应',
       '重试跟踪',
     ]);
-    expect(steps[0].description).toContain('POST');
+    expect(steps[0].description).toContain('提交');
+    expect(steps[0].description).not.toContain('POST');
     expect(steps[1].description).toContain('状态码 502');
     expect(steps[2].description).toContain('审计日志');
   });

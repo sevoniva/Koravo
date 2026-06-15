@@ -2,6 +2,7 @@ import type { ConnectorExecutionLogItem } from '@/services/koravo/api';
 import {
   connectionAddressLabel,
   connectorTypeLabel,
+  requestMethodLabel,
   shortTraceLabel,
 } from '@/utils/display';
 import { formatDuration } from '@/utils/format';
@@ -28,6 +29,20 @@ export function connectorExecutionTitle(
 
 export function connectorExecutionStatusTitle(status?: string) {
   return status === 'SUCCESS' ? '连接器调用成功' : '连接器调用失败';
+}
+
+export function connectorMethodDisplay(method?: string | null) {
+  return requestMethodLabel(method);
+}
+
+export function connectorRequestDisplay(
+  record?: Pick<ConnectorExecutionLogItem, 'method' | 'url'>,
+) {
+  if (!record) return '-';
+  const method = connectorMethodDisplay(record.method);
+  const address = connectionAddressLabel(record.url);
+  if (method === '-' && address === '-') return '-';
+  return [method, address].filter((item) => item && item !== '-').join(' ');
 }
 
 export function connectorExecutionResultSummary(

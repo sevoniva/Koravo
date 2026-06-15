@@ -30,6 +30,7 @@ import {
   retryConnectorExecutionLog,
 } from '@/services/koravo/api';
 import {
+  connectorMethodDisplay,
   connectorExecutionResultSummary,
   connectorExecutionStatusTitle,
   connectorTraceDisplay,
@@ -120,7 +121,12 @@ const HttpConnector: React.FC = () => {
       },
       renderText: (value) => connectorTypeLabel(value),
     },
-    { title: '方法', dataIndex: 'method', width: 96 },
+    {
+      title: '方法',
+      dataIndex: 'method',
+      width: 96,
+      renderText: connectorMethodDisplay,
+    },
     {
       title: '地址',
       dataIndex: 'url',
@@ -311,7 +317,11 @@ const HttpConnector: React.FC = () => {
                 dataIndex: 'connectorType',
                 renderText: connectorTypeLabel,
               },
-              { title: '方法', dataIndex: 'method' },
+              {
+                title: '方法',
+                dataIndex: 'method',
+                renderText: connectorMethodDisplay,
+              },
               {
                 title: '地址',
                 dataIndex: 'url',

@@ -2,7 +2,10 @@ import type {
   ConnectorExecutionLogItem,
   OpsJobItem,
 } from '@/services/koravo/api';
-import { connectorExecutionStatusTitle } from '@/utils/connectorExecution';
+import {
+  connectorExecutionStatusTitle,
+  connectorRequestDisplay,
+} from '@/utils/connectorExecution';
 import { processDefinitionLabel, taskDefinitionLabel } from '@/utils/display';
 import { processInstanceDetailPath } from '@/utils/processStartNotice';
 
@@ -103,7 +106,7 @@ export function connectorGuidanceSteps(
   return [
     {
       title: '核对调用',
-      description: `${log.method || '-'} ${log.url || '-'}，${requestText}。`,
+      description: `${connectorRequestDisplay(log)}，${requestText}。`,
     },
     {
       title: '确认响应',
