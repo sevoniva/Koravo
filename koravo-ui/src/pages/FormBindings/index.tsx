@@ -64,6 +64,7 @@ export type BindingCompletionAction =
   | 'deploy'
   | 'bindStart'
   | 'bindTask'
+  | 'repairBinding'
   | 'syncVersion'
   | 'start'
   | 'review'
@@ -81,6 +82,7 @@ export type BindingTableItem = FormBindingItem & {
 export interface ProcessBindingReadiness {
   hasStartBinding: boolean;
   missingTaskNames: string[];
+  invalidBindingCount: number;
   outdatedBindingCount: number;
   readyToStart: boolean;
 }
@@ -217,8 +219,14 @@ export function buildBindingReadiness(
       .map((schema) => schema.id),
   );
   const schemaMap = new Map(schemas.map((schema) => [schema.id, schema]));
+  const taskKeys = new Set(tasks.map((task) => task.taskDefinitionKey));
   const modelBindings = bindings.filter((binding) =>
     bindingTargetsModel(binding, model),
+  );
+  const relevantBindings = modelBindings.filter(
+    (binding) =>
+      binding.taskDefinitionKey === START_FORM_TASK_KEY ||
+      taskKeys.has(binding.taskDefinitionKey),
   );
   const hasStartBinding = modelBindings.some(
     (binding) =>
@@ -226,12 +234,15 @@ export function buildBindingReadiness(
       activeSchemaIds.has(binding.formSchemaId),
   );
   const boundTaskKeys = new Set(
-    modelBindings
+    relevantBindings
       .filter((binding) => binding.taskDefinitionKey !== START_FORM_TASK_KEY)
       .filter((binding) => activeSchemaIds.has(binding.formSchemaId))
       .map((binding) => binding.taskDefinitionKey),
   );
-  const outdatedBindingCount = modelBindings.filter((binding) => {
+  const invalidBindingCount = relevantBindings.filter(
+    (binding) => !activeSchemaIds.has(binding.formSchemaId),
+  ).length;
+  const outdatedBindingCount = relevantBindings.filter((binding) => {
     const schema = schemaMap.get(binding.formSchemaId);
     return (
       schema?.status === 'ACTIVE' &&
@@ -248,11 +259,13 @@ export function buildBindingReadiness(
   return {
     hasStartBinding,
     missingTaskNames,
+    invalidBindingCount,
     outdatedBindingCount,
     readyToStart:
       published &&
       hasStartBinding &&
       missingTaskNames.length === 0 &&
+      invalidBindingCount === 0 &&
       outdatedBindingCount === 0,
   };
 }
@@ -309,6 +322,17 @@ export function resolveBindingCompletionState(
       primaryPath: '/process-models',
       secondaryText: '查看设计',
       secondaryPath: designPath,
+    };
+  }
+
+  if (readiness?.invalidBindingCount) {
+    return {
+      nextAction: 'repairBinding',
+      description: `下一步：修复 ${readiness.invalidBindingCount} 个失效绑定`,
+      primaryText: '修复绑定',
+      primaryPath: bindingPath,
+      secondaryText: '查看配置',
+      secondaryPath: '/process-models',
     };
   }
 

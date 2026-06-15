@@ -168,6 +168,61 @@ describe('FormBindings readiness', () => {
     );
   });
 
+  it('routes inactive form bindings to repair before creating new bindings', () => {
+    const published = model({
+      status: 'DEPLOYED',
+      flowableDefinitionId: 'collaborativeApproval:1:pd',
+    });
+    const readiness = buildBindingReadiness(
+      published,
+      [
+        binding({ taskDefinitionKey: '__START__' }),
+        binding({ taskDefinitionKey: 'jointApprovalTask' }),
+      ],
+      [schema({ status: 'DISABLED' })],
+      [task],
+    );
+    const completion = resolveBindingCompletionState(
+      published,
+      readiness,
+      true,
+    );
+
+    expect(readiness.invalidBindingCount).toBe(2);
+    expect(readiness.readyToStart).toBe(false);
+    expect(completion.nextAction).toBe('repairBinding');
+    expect(completion.primaryText).toBe('修复绑定');
+  });
+
+  it('ignores bindings for removed task nodes when judging current readiness', () => {
+    const published = model({
+      status: 'DEPLOYED',
+      flowableDefinitionId: 'collaborativeApproval:1:pd',
+    });
+    const readiness = buildBindingReadiness(
+      published,
+      [
+        binding({ taskDefinitionKey: '__START__' }),
+        binding({ taskDefinitionKey: 'jointApprovalTask' }),
+        binding({
+          taskDefinitionKey: 'removedTask',
+          formSchemaId: 'disabled-form',
+        }),
+      ],
+      [schema(), schema({ id: 'disabled-form', status: 'DISABLED' })],
+      [task],
+    );
+    const completion = resolveBindingCompletionState(
+      published,
+      readiness,
+      true,
+    );
+
+    expect(readiness.invalidBindingCount).toBe(0);
+    expect(readiness.readyToStart).toBe(true);
+    expect(completion.nextAction).toBe('start');
+  });
+
   it('keeps scoped repair rows visible even when the binding is outdated', () => {
     const row = {
       ...binding({ taskDefinitionKey: 'jointApprovalTask' }),
