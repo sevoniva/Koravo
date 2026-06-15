@@ -256,18 +256,18 @@ export function buildReleaseCheckState({
 
   items.push({
     key: 'start-form',
-    status: hasStartBinding ? 'success' : 'error',
+    status: hasStartBinding ? 'success' : 'warning',
     title: '发起表单',
     description: hasStartBinding
       ? '已绑定可用表单。'
-      : '发起流程前需要绑定表单。',
+      : '发起前需要绑定表单。',
     action: hasStartBinding ? undefined : 'bind',
     actionPath: bindingPath,
   });
 
   items.push({
     key: 'task-forms',
-    status: missingTasks.length === 0 ? 'success' : 'error',
+    status: missingTasks.length === 0 ? 'success' : 'warning',
     title: '任务表单',
     description: tasks.length
       ? missingTasks.length
@@ -285,7 +285,7 @@ export function buildReleaseCheckState({
   if (invalidBindingCount > 0) {
     items.push({
       key: 'invalid-bindings',
-      status: 'error',
+      status: 'warning',
       title: '表单状态',
       description: `有 ${invalidBindingCount} 个绑定表单不可用。`,
       action: 'bind',
@@ -296,7 +296,7 @@ export function buildReleaseCheckState({
   if (outdatedBindingCount > 0) {
     items.push({
       key: 'outdated-bindings',
-      status: 'error',
+      status: 'warning',
       title: '表单版本',
       description: `有 ${outdatedBindingCount} 个绑定版本待同步。`,
       action: 'bind',
@@ -307,9 +307,9 @@ export function buildReleaseCheckState({
   if (missingVariables.length > 0) {
     items.push({
       key: 'handler-inputs',
-      status: 'warning',
+      status: 'error',
       title: '办理人配置',
-      description: `补齐表单字段或节点办理人：${businessVariableLabels(
+      description: `缺少办理人来源：${businessVariableLabels(
         missingVariables,
       ).join('、')}`,
       action: 'bind',

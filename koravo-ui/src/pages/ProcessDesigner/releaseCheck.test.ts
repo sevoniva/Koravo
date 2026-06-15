@@ -55,7 +55,7 @@ function binding(overrides: Partial<FormBindingItem>): FormBindingItem {
 }
 
 describe('ProcessDesigner release check', () => {
-  it('blocks publish with concrete binding actions when required forms are missing', () => {
+  it('keeps missing form bindings visible without blocking publish', () => {
     const state = buildReleaseCheckState({
       activeModel: model(),
       validation: { valid: true, errors: [], warnings: [] },
@@ -64,10 +64,16 @@ describe('ProcessDesigner release check', () => {
       tasks: [task],
     });
 
-    expect(state.deployable).toBe(false);
-    expect(state.title).toBe('发布检查未通过');
+    expect(state.deployable).toBe(true);
+    expect(state.title).toBe('可发布，有提示');
     expect(state.items.map((item) => item.title)).toEqual(
       expect.arrayContaining(['发起表单', '任务表单']),
+    );
+    expect(state.items.find((item) => item.key === 'start-form')?.status).toBe(
+      'warning',
+    );
+    expect(state.items.find((item) => item.key === 'task-forms')?.status).toBe(
+      'warning',
     );
     expect(
       state.items.find((item) => item.key === 'task-forms')?.description,
@@ -102,7 +108,12 @@ describe('ProcessDesigner release check', () => {
         binding({ taskDefinitionKey: START_FORM_TASK_KEY }),
         binding({ taskDefinitionKey: 'jointApprovalTask' }),
       ],
-      schemas: [schema()],
+      schemas: [
+        schema({
+          schemaJson:
+            '{"type":"object","properties":{"subject":{"type":"string"},"approver":{"type":"string"}}}',
+        }),
+      ],
       tasks: [task],
       bpmnXml,
     });
@@ -110,12 +121,34 @@ describe('ProcessDesigner release check', () => {
     expect(state.deployable).toBe(true);
     expect(state.status).toBe('warning');
     expect(state.items.map((item) => item.title)).toEqual(
-      expect.arrayContaining(['缺少结束节点', '办理人配置']),
+      expect.arrayContaining(['缺少结束节点']),
     );
     expect(state.items.map((item) => item.title)).not.toContain('变量表达式');
+    expect(state.items.map((item) => item.title)).not.toContain(
+      '办理人配置',
+    );
+  });
+
+  it('blocks publish when handler expressions are not supplied', () => {
+    const approverExpression = '$' + '{approver}';
+    const bpmnXml = `<definitions><process><userTask id="jointApprovalTask" flowable:assignee="${approverExpression}" /></process></definitions>`;
+    const state = buildReleaseCheckState({
+      activeModel: model({ bpmnXml }),
+      validation: { valid: true, errors: [], warnings: [] },
+      bindings: [
+        binding({ taskDefinitionKey: START_FORM_TASK_KEY }),
+        binding({ taskDefinitionKey: 'jointApprovalTask' }),
+      ],
+      schemas: [schema()],
+      tasks: [task],
+      bpmnXml,
+    });
+
+    expect(state.deployable).toBe(false);
+    expect(state.status).toBe('error');
     expect(
       state.items.find((item) => item.key === 'handler-inputs')?.description,
-    ).toBe('补齐表单字段或节点办理人：审批人');
+    ).toBe('缺少办理人来源：审批人');
   });
 
   it('does not warn for countersign fields already provided by the start form', () => {

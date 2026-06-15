@@ -612,7 +612,7 @@ const ProcessDesigner: React.FC = () => {
                 deployedModel.modelKey,
                 deployedModel.modelName,
               )}
-              已发布。发起后可在流程详情中跟进。
+              已发布。绑定表单后可发起并追踪。
             </span>
             <Space wrap>
               <Button
