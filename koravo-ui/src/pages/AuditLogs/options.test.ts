@@ -197,4 +197,33 @@ describe('AuditLogs actionOptions', () => {
       },
     ]);
   });
+
+  it('routes dead-letter audit records to the operations queue', () => {
+    expect(
+      auditRelatedActionTargets(
+        {
+          id: 'audit-dead-letter',
+          tenantId: 'default',
+          userId: 'operator',
+          action: 'DEAD_LETTER_JOB_RETRY',
+          resourceType: 'DEAD_LETTER_JOB',
+          resourceId: 'job-1',
+          detailJson: '{}',
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+        {
+          canOpenProcessInstance: false,
+          canConfigureWorkflow: false,
+          canManageIntegration: false,
+          canOperateSystem: true,
+        },
+      ),
+    ).toEqual([
+      {
+        key: 'dead-letter-job',
+        label: '查看异常任务',
+        path: '/ops?tab=dead-letter&jobKind=dead-letter&jobId=job-1',
+      },
+    ]);
+  });
 });

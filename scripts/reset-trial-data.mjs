@@ -94,11 +94,11 @@ async function ensureActiveSeed(applicant, operator, workflow) {
     return seedSummary(completed, "already-completed");
   }
   const instance = await startProcess(applicant, workflow, activeSeedKey, {
-    subject: "试用环境待办申请",
-    businessDescription: "用于试用我的待办、审批上下文和流程追踪。",
-    expectedResult: "保留为运行中状态，便于审批人体验办理。",
+    subject: "待审批业务申请",
+    businessDescription: "用于检查待办、审批上下文和流程追踪。",
+    expectedResult: "保持运行中，便于审批人办理。",
     approvalUsers: approverIds,
-    remark: "开发重置脚本生成",
+    remark: "本地重置脚本生成",
   });
   const trace = await waitForTrace(applicant, instance.instanceId, "RUNNING");
   return {
@@ -129,11 +129,11 @@ async function ensureCompletedSeed(applicant, operator, workflow, approvers) {
     };
   }
   const instance = await startProcess(applicant, workflow, completedSeedKey, {
-    subject: "试用环境已办申请",
-    businessDescription: "用于试用我的申请、已办任务、审计记录和完成态流程追踪。",
-    expectedResult: "多人会签完成后进入完成态。",
+    subject: "已完成业务申请",
+    businessDescription: "用于检查我的申请、已办任务、审计记录和完成态流程追踪。",
+    expectedResult: "多人会签完成后归档。",
     approvalUsers: approverIds,
-    remark: "开发重置脚本生成",
+    remark: "本地重置脚本生成",
   });
   await completeSeedApprovals(instance.instanceId, approvers);
   const trace = await waitForTrace(applicant, instance.instanceId, "COMPLETED");
@@ -288,10 +288,10 @@ async function completeTask(session, taskId, sequence) {
       formData: {
         decision: "APPROVED",
         approved: true,
-        opinion: `试用审批 ${sequence} 已同意`,
-        reviewComment: `试用审批 ${sequence} 已同意`,
+        opinion: `第 ${sequence} 位审批人已同意`,
+        reviewComment: `第 ${sequence} 位审批人已同意`,
       },
-      comment: `试用审批 ${sequence} 已同意`,
+      comment: `第 ${sequence} 位审批人已同意`,
     },
   });
 }

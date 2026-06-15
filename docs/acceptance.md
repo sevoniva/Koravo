@@ -55,7 +55,7 @@ The collaborative check uses the running backend API. It initializes the default
 
 The enterprise check logs in as admin, creates or updates 20 approver accounts across 10 departments, deploys the enterprise BPMN through `/api/v1/process-models/deploy` with `assetOrigin=TEST_FIXTURE`, starts `enterpriseApproval30` as applicant, completes all 34 tasks through assigned and candidate task APIs, then checks process trace, failed jobs, and dead-letter jobs.
 
-After verification runs, reset the trial surface:
+After verification runs, reset the local verification data:
 
 ```bash
 node scripts/reset-trial-data.mjs

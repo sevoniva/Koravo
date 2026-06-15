@@ -141,7 +141,7 @@ curl -H 'X-Koravo-Tenant-Id: default' \
   http://localhost:8080/api/v1/health
 ```
 
-Reset the local trial surface after acceptance runs:
+Reset the local verification data after acceptance runs:
 
 ```bash
 node scripts/reset-trial-data.mjs
