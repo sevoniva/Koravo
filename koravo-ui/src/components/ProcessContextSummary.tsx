@@ -41,6 +41,19 @@ function handlerText(tasks: TaskItem[]) {
   return handlers.length ? handlers.join('、') : '-';
 }
 
+function pendingTaskGroupCount(tasks: TaskItem[]) {
+  return new Set(
+    tasks.map((task) => task.taskDefinitionKey || task.taskId).filter(Boolean),
+  ).size;
+}
+
+function coordinationText(tasks: TaskItem[]) {
+  if (tasks.length <= 1) return undefined;
+  const groupCount = pendingTaskGroupCount(tasks);
+  if (groupCount <= 1) return `会签 ${tasks.length} 人`;
+  return `并行 ${groupCount} 节点`;
+}
+
 function isInstanceDone(status?: string) {
   return ['COMPLETED', 'TERMINATED'].includes(String(status || '').toUpperCase());
 }
@@ -50,7 +63,9 @@ function nextActionText(tasks: TaskItem[], instanceStatus?: string) {
     return isInstanceDone(instanceStatus) ? '无待办' : '待流转';
   }
   if (tasks.some((task) => !task.assignee)) return '待认领';
-  if (tasks.length > 1) return '并行审批';
+  if (tasks.length > 1) {
+    return pendingTaskGroupCount(tasks) <= 1 ? '会签审批' : '并行审批';
+  }
   return isCompletedTask(tasks[0]) ? '已处理' : '待处理';
 }
 
@@ -76,6 +91,7 @@ const ProcessContextSummary: React.FC<ProcessContextSummaryProps> = ({
       : emptyText;
   const currentHandlerText = visibleTasks.length ? handlerText(visibleTasks) : '-';
   const nextText = nextActionText(visibleTasks, instanceStatus);
+  const currentCoordinationText = coordinationText(visibleTasks);
 
   return (
     <Space vertical size={2} style={{ minWidth: 0, width: '100%' }}>
@@ -92,8 +108,8 @@ const ProcessContextSummary: React.FC<ProcessContextSummaryProps> = ({
             </Typography.Text>
           }
         />
-        {visibleTasks.length > 1 ? (
-          <Tag color="processing">并行 {visibleTasks.length}</Tag>
+        {currentCoordinationText ? (
+          <Tag color="processing">{currentCoordinationText}</Tag>
         ) : null}
       </Space>
       <Space size={[4, 4]} wrap>

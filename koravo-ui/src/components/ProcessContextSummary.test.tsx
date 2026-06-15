@@ -37,8 +37,31 @@ describe('ProcessContextSummary', () => {
     );
 
     expect(screen.getByText('多人会签')).toBeInTheDocument();
-    expect(screen.getByText('并行 2')).toBeInTheDocument();
+    expect(screen.getByText('会签 2 人')).toBeInTheDocument();
     expect(screen.getByText('审批主管、复核专员')).toBeInTheDocument();
+    expect(screen.getByText('会签审批')).toBeInTheDocument();
+  });
+
+  it('keeps parallel nodes distinct from one-node countersign tasks', () => {
+    render(
+      <ProcessContextSummary
+        tasks={[
+          task({
+            taskId: 'task-manager',
+            taskDefinitionKey: 'approvalTask',
+            assignee: 'manager',
+          }),
+          task({
+            taskId: 'task-finance',
+            taskDefinitionKey: 'financeApprovalTask',
+            assignee: 'finance',
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('审批处理、财务复核')).toBeInTheDocument();
+    expect(screen.getByText('并行 2 节点')).toBeInTheDocument();
     expect(screen.getByText('并行审批')).toBeInTheDocument();
   });
 

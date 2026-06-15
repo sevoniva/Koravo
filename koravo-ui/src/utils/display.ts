@@ -553,6 +553,8 @@ export function taskDefinitionLabel(
     );
   }
   const mapping: Record<string, string> = {
+    approvalTask: '审批处理',
+    candidateApprovalTask: '待认领审批',
     managerApprovalTask: '主管审批',
     financeApprovalTask: '财务复核',
     jointApprovalTask: '多人会签',
