@@ -103,6 +103,7 @@ function tryParseStructuredValue(value?: unknown) {
   if (typeof value !== 'string') return value;
   const text = value.trim();
   if (!text) return value;
+  if (text.startsWith('<')) return value;
   return parseJsonValue(text) ?? parseSummaryText(text) ?? value;
 }
 
@@ -203,6 +204,21 @@ function isDecisionField(rowKey: string) {
   );
 }
 
+function isFormDefinitionField(rowKey: string) {
+  const field = rowKey.split('.').pop();
+  return ['schemaJson', 'schema'].includes(field || '');
+}
+
+function isFormLayoutField(rowKey: string) {
+  const field = rowKey.split('.').pop();
+  return ['uiSchemaJson', 'uiSchema'].includes(field || '');
+}
+
+function isWorkflowXmlField(rowKey: string) {
+  const field = rowKey.split('.').pop();
+  return ['bpmnXml', 'bpmn'].includes(field || '');
+}
+
 function decisionValueText(value: unknown) {
   if (value === true) return '同意';
   if (value === false) return '不同意';
@@ -230,6 +246,114 @@ function roleGroupLabel(value: string) {
   const match = /^role[-_]?(\d+)$/i.exec(value);
   if (match) return `审批角色 ${Number(match[1])}`;
   return organizationRoleLabel(value as SessionRole);
+}
+
+function fieldTitle(key: string, value?: unknown) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const title = (value as Record<string, unknown>).title;
+    if (typeof title === 'string' && title.trim()) return title.trim();
+  }
+  return businessFieldLabel(key);
+}
+
+function compactList(items: string[], limit = 4) {
+  const values = Array.from(new Set(items.filter(Boolean)));
+  if (!values.length) return '';
+  const head = values.slice(0, limit).join('、');
+  return values.length > limit ? `${head} 等 ${values.length} 项` : head;
+}
+
+function formDefinitionSummary(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return '表单定义已配置';
+  }
+  const record = value as Record<string, unknown>;
+  const properties =
+    record.properties && typeof record.properties === 'object'
+      ? (record.properties as Record<string, unknown>)
+      : {};
+  const fieldNames = Object.entries(properties).map(([key, item]) =>
+    fieldTitle(key, item),
+  );
+  const required = Array.isArray(record.required)
+    ? record.required
+        .map((key) =>
+          typeof key === 'string' ? fieldTitle(key, properties[key]) : '',
+        )
+        .filter(Boolean)
+    : [];
+
+  if (!fieldNames.length) return '表单定义已配置';
+  const parts = [`字段 ${fieldNames.length} 个：${compactList(fieldNames)}`];
+  if (required.length) parts.push(`必填 ${required.length} 项`);
+  return parts.join('；');
+}
+
+function widgetLabel(widget?: unknown) {
+  const text = String(widget || '').trim();
+  const mapping: Record<string, string> = {
+    input: '单行文本',
+    textarea: '多行文本',
+    number: '数字',
+    money: '金额',
+    select: '下拉选择',
+    radio: '单选',
+    checkbox: '多选',
+    date: '日期',
+    dateTime: '日期时间',
+    organizationMember: '组织成员',
+    organizationMemberMulti: '多人选择',
+  };
+  return mapping[text] || productCopy(text);
+}
+
+function formLayoutSummary(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return '表单布局已配置';
+  }
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    ([key]) => !key.startsWith('ui:'),
+  );
+  const widgets = entries
+    .map(([, item]) =>
+      item && typeof item === 'object' && !Array.isArray(item)
+        ? widgetLabel(
+            (item as Record<string, unknown>)['ui:widget'] ||
+              (item as Record<string, unknown>).widget,
+          )
+        : '',
+    )
+    .filter(Boolean);
+  const parts = [`布局字段 ${entries.length} 个`];
+  const widgetText = compactList(widgets, 5);
+  if (widgetText) parts.push(`控件：${widgetText}`);
+  return parts.join('；');
+}
+
+function workflowXmlSummary(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) return '流程图已配置';
+  const text = value.trim();
+  const userTaskCount = (text.match(/<(?:\w+:)?userTask\b/g) || []).length;
+  const serviceTaskCount = (text.match(/<(?:\w+:)?serviceTask\b/g) || [])
+    .length;
+  const gatewayCount = (
+    text.match(/<(?:\w+:)?(?:parallel|exclusive|inclusive)Gateway\b/g) || []
+  ).length;
+  const parts = ['流程图已配置'];
+  const counts = [
+    userTaskCount ? `${userTaskCount} 个审批节点` : '',
+    serviceTaskCount ? `${serviceTaskCount} 个系统节点` : '',
+    gatewayCount ? `${gatewayCount} 个网关` : '',
+  ].filter(Boolean);
+  if (counts.length) parts.push(counts.join('、'));
+  return parts.join('：');
+}
+
+function productSummaryValue(rowKey: string, value: unknown) {
+  if (isFormDefinitionField(rowKey)) return formDefinitionSummary(value);
+  if (isFormLayoutField(rowKey)) return formLayoutSummary(value);
+  if (isWorkflowXmlField(rowKey)) return workflowXmlSummary(value);
+  return undefined;
 }
 
 function domainText(rowKey: string, value: unknown) {
@@ -438,6 +562,16 @@ function buildRows(value: unknown, parentKey?: string): DetailRow[] {
       const rowKey = parentKey ? `${parentKey}.${key}` : key;
       if (isInternalDetailField(rowKey)) return [];
       const parsedItem = normalizeDetailValue(item);
+      const productSummary = productSummaryValue(rowKey, parsedItem);
+      if (productSummary) {
+        return [
+          {
+            key: rowKey,
+            field: pathLabel(rowKey),
+            value: formatValue(productSummary, rowKey),
+          },
+        ];
+      }
       if (
         parsedItem &&
         typeof parsedItem === 'object' &&

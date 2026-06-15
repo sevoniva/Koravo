@@ -140,4 +140,44 @@ describe('StructuredDetailTable', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('是')).toBeInTheDocument();
   });
+
+  it('summarizes form schema and workflow xml instead of exposing raw config', async () => {
+    render(
+      <StructuredDetailTable
+        value={{
+          schemaJson: JSON.stringify({
+            type: 'object',
+            required: ['subject', 'approvalUsers'],
+            properties: {
+              subject: { title: '事项名称', type: 'string' },
+              approvalUsers: { title: '审批人', type: 'array' },
+              reason: { title: '事项说明', type: 'string' },
+            },
+          }),
+          uiSchemaJson: JSON.stringify({
+            subject: { 'ui:widget': 'input' },
+            approvalUsers: { 'ui:widget': 'organizationMemberMulti' },
+          }),
+          bpmnXml:
+            '<definitions><process><userTask id="approvalTask" /><userTask id="financeApprovalTask" /><parallelGateway id="join" /></process></definitions>',
+        }}
+      />,
+    );
+
+    expect(await screen.findByText('表单定义')).toBeInTheDocument();
+    expect(
+      screen.getByText('字段 3 个：事项名称、审批人、事项说明；必填 2 项'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('表单布局')).toBeInTheDocument();
+    expect(
+      screen.getByText('布局字段 2 个；控件：单行文本、多人选择'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('流程图')).toBeInTheDocument();
+    expect(
+      screen.getByText('流程图已配置：2 个审批节点、1 个网关'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('properties')).not.toBeInTheDocument();
+    expect(screen.queryByText('ui:widget')).not.toBeInTheDocument();
+    expect(screen.queryByText(/userTask/)).not.toBeInTheDocument();
+  });
 });

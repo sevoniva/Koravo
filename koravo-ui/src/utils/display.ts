@@ -298,6 +298,8 @@ const BUSINESS_FIELD_LABELS: Record<string, string> = {
   elementName: '节点名称',
   handlerType: '处理器',
   handlerConfiguration: '处理器配置',
+  bpmn: '流程图',
+  bpmnXml: '流程图',
   formSchemaId: '表单',
   schemaJson: '表单定义',
   uiSchemaJson: '表单布局',
