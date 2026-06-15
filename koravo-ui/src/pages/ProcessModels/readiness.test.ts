@@ -9,6 +9,7 @@ import {
   aggregateProcessModelVersions,
   buildModelReadiness,
   compareProcessModelVersionsDesc,
+  handlerSourceSummary,
   selectProcessModelVersionForStatus,
   withProcessModelVersionHistory,
 } from './index';
@@ -142,6 +143,13 @@ describe('ProcessModels readiness', () => {
     expect(readiness.statusText).toBe('待同步');
     expect(readiness.nextAction).toBe('bind');
     expect(readiness.nextActionText).toBe('同步表单版本');
+  });
+
+  it('summarizes handler sources as business fields', () => {
+    expect(handlerSourceSummary(['approvalUsers', 'approvalUser'])).toBe(
+      '请确认发起表单或节点配置会提供：审批人',
+    );
+    expect(handlerSourceSummary([])).toBe('办理人来源已明确');
   });
 });
 

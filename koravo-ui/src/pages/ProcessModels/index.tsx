@@ -65,6 +65,7 @@ import {
   assetOriginColor,
   assetOriginLabel,
   bpmnValidationIssueText,
+  businessFieldLabel,
   isActiveBusinessProcessModel,
   processDefinitionLabel,
   processDescriptionLabel,
@@ -289,6 +290,14 @@ function extractVariableExpressions(bpmnXml?: string) {
   return Array.from(new Set(Array.from(matches, (match) => match[1].trim())))
     .filter(Boolean)
     .slice(0, 8);
+}
+
+export function handlerSourceSummary(expressions: string[]) {
+  if (!expressions.length) return '办理人来源已明确';
+  const labels = Array.from(
+    new Set(expressions.map((expression) => businessFieldLabel(expression))),
+  );
+  return `请确认发起表单或节点配置会提供：${labels.join('、')}`;
 }
 
 export function resolveModelNextAction(
@@ -771,11 +780,9 @@ const ProcessModels: React.FC = () => {
               : '绑定表单均可用',
         )}
         {renderCheckItem(
-          '变量表达式',
+          '办理人来源',
           record.readiness.variableExpressions.length ? 'warning' : 'success',
-          record.readiness.variableExpressions.length
-            ? `需确认表单会提供：${record.readiness.variableExpressions.join('、')}`
-            : '未发现需要额外确认的表达式',
+          handlerSourceSummary(record.readiness.variableExpressions),
         )}
         {validation.warnings.length > 0 && (
           <Typography.Text type="secondary">
