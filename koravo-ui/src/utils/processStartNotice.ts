@@ -6,6 +6,12 @@ function uniqueText(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function pendingTaskGroupCount(tasks: TaskItem[]) {
+  return new Set(
+    tasks.map((task) => task.taskDefinitionKey || task.taskId).filter(Boolean),
+  ).size;
+}
+
 export function processInstanceDetailPath(
   instanceId: string,
   options?: { started?: boolean },
@@ -34,7 +40,9 @@ export function startSuccessDescription(tasks?: TaskItem[]) {
   ).join('、');
 
   if (pendingTasks.length > 1) {
-    return `${nodeText}已生成 ${pendingTasks.length} 个并行待办：${handlerText}`;
+    const taskType =
+      pendingTaskGroupCount(pendingTasks) <= 1 ? '会签待办' : '并行待办';
+    return `${nodeText}已生成 ${pendingTasks.length} 个${taskType}：${handlerText}`;
   }
   return `${nodeText}待${handlerText}处理`;
 }
